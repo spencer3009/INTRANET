@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  UtensilsCrossed, Calendar, Filter, Loader2, ChevronLeft,
+  UtensilsCrossed, Loader2, ChevronLeft,
   Clock, Users, Search
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,31 +18,47 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
   const [turnos, setTurnos] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Academic cascading filters
+  const [levels, setLevels] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [nivelId, setNivelId] = useState("");
+  const [gradoId, setGradoId] = useState("");
+  const [seccionId, setSeccionId] = useState("");
+
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Load academic data + turnos on mount
   useEffect(() => {
-    loadTurnos();
+    const loadFilters = async () => {
+      try {
+        const [lR, gR, sR, tR] = await Promise.all([
+          fetch(`${API}/academic/levels`, { headers }),
+          fetch(`${API}/academic/grades`, { headers }),
+          fetch(`${API}/academic/sections`, { headers }),
+          axios.get(`${API}/pae/turnos`, { headers }),
+        ]);
+        if (lR.ok) setLevels(await lR.json());
+        if (gR.ok) { const d = await gR.json(); setGrades(Array.isArray(d) ? d : d.grades || []); }
+        if (sR.ok) { const d = await sR.json(); setSections(Array.isArray(d) ? d : d.sections || []); }
+        setTurnos(tR.data || []);
+      } catch (err) {
+        console.error("Error loading filters:", err);
+      }
+    };
+    loadFilters();
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [fecha, turnoFilter]);
-
-  const loadTurnos = async () => {
-    try {
-      const res = await axios.get(`${API}/pae/turnos`, { headers });
-      setTurnos(res.data);
-    } catch (err) {
-      console.error("Error loading turnos:", err);
-    }
-  };
-
-  const loadData = async () => {
+  // Load data when filters change
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API}/pae/registros-dia?fecha=${fecha}`;
-      if (turnoFilter) url += `&turno_id=${turnoFilter}`;
-      const res = await axios.get(url, { headers });
+      const params = new URLSearchParams({ fecha });
+      if (turnoFilter) params.append("turno_id", turnoFilter);
+      if (nivelId) params.append("nivel_id", nivelId);
+      if (gradoId) params.append("grado_id", gradoId);
+      if (seccionId) params.append("seccion_id", seccionId);
+      const res = await axios.get(`${API}/pae/registros-dia?${params}`, { headers });
       setData(res.data);
     } catch (err) {
       console.error("Error loading registros:", err);
@@ -50,7 +66,13 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
     } finally {
       setLoading(false);
     }
-  };
+  }, [fecha, turnoFilter, nivelId, gradoId, seccionId]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Cascading filter logic
+  const filteredGrades = nivelId ? grades.filter(g => g.nivel_id === nivelId) : grades;
+  const filteredSections = gradoId ? sections.filter(s => s.grado_id === gradoId) : sections;
 
   const formatTime = (isoStr) => {
     if (!isoStr) return "";
@@ -72,26 +94,28 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
 
   return (
     <div className="space-y-6" data-testid="pae-registros-dia">
-      {/* Back button */}
-      <button
-        onClick={goBack}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-all font-medium text-sm shadow-sm"
-        data-testid="pae-registros-back"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Volver a Asistencias
-      </button>
+      {/* Back button - only when not embedded */}
+      {!embedded && (
+        <button
+          onClick={goBack}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-all font-medium text-sm shadow-sm"
+          data-testid="pae-registros-back"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Volver a Asistencias
+        </button>
+      )}
 
-      {/* Header */}
+      {/* Header - GREEN */}
       <div className="relative overflow-hidden rounded-2xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500" />
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500" />
         <div className="relative px-8 py-8 flex items-center gap-5">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-            <UtensilsCrossed className="w-8 h-8 text-orange-500" />
+            <UtensilsCrossed className="w-8 h-8 text-emerald-600" />
           </div>
           <div className="text-white">
             <h1 className="text-2xl font-bold">Registros de Alimentacion</h1>
-            <p className="text-orange-100">Control de comedor escolar</p>
+            <p className="text-emerald-100">Control de comedor escolar</p>
           </div>
         </div>
       </div>
@@ -105,16 +129,52 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
               type="date"
               value={fecha}
               onChange={e => setFecha(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
               data-testid="pae-filter-fecha"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Nivel</label>
+            <select
+              value={nivelId}
+              onChange={e => { setNivelId(e.target.value); setGradoId(""); setSeccionId(""); }}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-w-[140px]"
+              data-testid="pae-filter-nivel"
+            >
+              <option value="">Todos los niveles</option>
+              {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Grado</label>
+            <select
+              value={gradoId}
+              onChange={e => { setGradoId(e.target.value); setSeccionId(""); }}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-w-[140px]"
+              data-testid="pae-filter-grado"
+            >
+              <option value="">Todos los grados</option>
+              {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Seccion</label>
+            <select
+              value={seccionId}
+              onChange={e => setSeccionId(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-w-[120px]"
+              data-testid="pae-filter-seccion"
+            >
+              <option value="">Todas</option>
+              {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Turno</label>
             <select
               value={turnoFilter}
               onChange={e => setTurnoFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none min-w-[160px]"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-w-[160px]"
               data-testid="pae-filter-turno"
             >
               <option value="">Todos los turnos</option>
@@ -132,7 +192,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
                 placeholder="Buscar estudiante..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
                 data-testid="pae-filter-search"
               />
             </div>
@@ -140,17 +200,17 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards - GREEN */}
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl p-4 text-white">
+          <div className="bg-gradient-to-br from-emerald-600 to-green-500 rounded-xl p-4 text-white">
             <Users className="w-5 h-5 mb-1 opacity-80" />
             <p className="text-2xl font-bold">{data.total}</p>
-            <p className="text-xs text-orange-100">Total Registros</p>
+            <p className="text-xs text-emerald-100">Total Registros</p>
           </div>
           {(data.resumen_por_turno || []).map(s => (
             <div key={s.turno_id} className="bg-white rounded-xl p-4 border border-slate-200">
-              <UtensilsCrossed className="w-5 h-5 text-orange-500 mb-1" />
+              <UtensilsCrossed className="w-5 h-5 text-emerald-600 mb-1" />
               <p className="text-2xl font-bold text-slate-800">{s.total}</p>
               <p className="text-xs text-slate-500">{s.turno_nombre}</p>
             </div>
@@ -162,7 +222,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
         ) : filteredRegistros.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
@@ -190,7 +250,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
                     <td className="px-5 py-3 text-slate-600">{r.metadata?.grado || "-"}</td>
                     <td className="px-5 py-3 text-slate-600">{r.metadata?.seccion || "-"}</td>
                     <td className="px-5 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-orange-100 text-orange-700 text-xs font-medium">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-medium">
                         {r.turno_nombre || "-"}
                       </span>
                     </td>

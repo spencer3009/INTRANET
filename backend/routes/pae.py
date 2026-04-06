@@ -428,8 +428,15 @@ async def get_dashboard(user=Depends(require_role(PAE_SCAN_ROLES))):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/registros-dia")
-async def get_registros_dia(fecha: Optional[str] = None, turno_id: Optional[str] = None, user=Depends(require_role(ADMIN_ROLES))):
-    """Admin view: list all PAE records for a date, optionally filtered by turno."""
+async def get_registros_dia(
+    fecha: Optional[str] = None,
+    turno_id: Optional[str] = None,
+    nivel_id: Optional[str] = None,
+    grado_id: Optional[str] = None,
+    seccion_id: Optional[str] = None,
+    user=Depends(require_role(ADMIN_ROLES))
+):
+    """Admin view: list all PAE records for a date, with academic filters."""
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -437,9 +444,24 @@ async def get_registros_dia(fecha: Optional[str] = None, turno_id: Optional[str]
     if not fecha:
         fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    # If academic filters, get matching student_ids first
+    student_ids = None
+    if nivel_id or grado_id or seccion_id:
+        student_query = {"school_id": school_id, "role": "student"}
+        if nivel_id:
+            student_query["nivel_id"] = nivel_id
+        if grado_id:
+            student_query["grado_id"] = grado_id
+        if seccion_id:
+            student_query["seccion_id"] = seccion_id
+        matching = await db.users.find(student_query, {"_id": 0, "id": 1}).to_list(length=5000)
+        student_ids = [s["id"] for s in matching]
+
     query = {"school_id": school_id, "fecha": fecha, "estado": "registrado"}
     if turno_id:
         query["turno_id"] = turno_id
+    if student_ids is not None:
+        query["student_id"] = {"$in": student_ids}
 
     registros = await db.pae_registros.find(query, {"_id": 0}).sort("hora_registro", -1).to_list(length=500)
 
