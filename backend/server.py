@@ -54,6 +54,7 @@ from routes.academia import router as academia_router, seed_academia_categories
 from routes.parents import router as parents_router
 from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
+from routes.psychology_agenda import router as psychology_agenda_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -77,7 +78,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://psychology-hub-6.preview.emergentagent.com",
+        "https://citas-workshops.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -205,6 +206,7 @@ app.include_router(academia_router)
 app.include_router(parents_router)
 app.include_router(psychology_router)
 app.include_router(psychology_messages_router)
+app.include_router(psychology_agenda_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -305,6 +307,12 @@ async def create_indexes():
         await db.psychological_messages.create_index([("to_user_id", 1), ("read", 1)])
         await db.psychological_messages.create_index([("institution_id", 1), ("student_id", 1)])
         await db.psychological_messages.create_index([("from_user_id", 1), ("created_at", -1)])
+        # Psychology agenda indexes
+        await db.psychological_appointments.create_index([("psychologist_id", 1), ("date", 1)])
+        await db.psychological_appointments.create_index([("institution_id", 1), ("date", 1)])
+        await db.psychological_appointments.create_index([("student_id", 1), ("date", 1)])
+        await db.psychological_workshops.create_index([("psychologist_id", 1), ("date", -1)])
+        await db.psychological_workshops.create_index([("institution_id", 1), ("status", 1)])
         await db.user_school_roles.create_index(
             [("user_id", 1), ("school_id", 1)],
             unique=True

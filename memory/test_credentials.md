@@ -30,5 +30,5 @@
 - Role: teacher
 
 ## App URL
-- https://psychology-hub-6.preview.emergentagent.com
-- Login: https://psychology-hub-6.preview.emergentagent.com/elroble/login
+- https://citas-workshops.preview.emergentagent.com
+- Login: https://citas-workshops.preview.emergentagent.com/elroble/login
