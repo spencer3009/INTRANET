@@ -71,6 +71,7 @@ import ParentProfilePage from "@/pages/ParentProfilePage";
 import ParentTasksPage from "@/pages/ParentTasksPage";
 import ParentGradesPage from "@/pages/ParentGradesPage";
 import ParentAttendancePage from "@/pages/ParentAttendancePage";
+import PsicologiaPerfilPage from "@/pages/psicologia/PsicologiaPerfilPage";
 import ParentCoursesPage from "@/pages/ParentCoursesPage";
 import ParentSchedulePage from "@/pages/ParentSchedulePage";
 import ParentExamsPage from "@/pages/ParentExamsPage";
@@ -79,6 +80,8 @@ import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
 import HealthWellnessPage from "@/pages/HealthWellnessPage";
 import ParentHealthPage from "@/pages/ParentHealthPage";
+import ParentPsychologyMessages from "@/components/ParentPsychologyMessages";
+import ParentPsychMessagesPage from "@/pages/ParentPsychMessagesPage";
 import TopicoPage from "@/pages/TopicoPage";
 import PsicologiaPage from "@/pages/PsicologiaPage";
 import TeacherHealthPage from "@/pages/TeacherHealthPage";
@@ -107,7 +110,7 @@ import PsicologiaDashboardPage from "@/pages/psicologia/PsicologiaDashboardPage"
 import PsicologiaEstudiantesPage from "@/pages/psicologia/PsicologiaEstudiantesPage";
 import PsicologiaFichaPage from "@/pages/psicologia/PsicologiaFichaPage";
 import PsicologiaSesionesPage from "@/pages/psicologia/PsicologiaSesionesPage";
-import PsicologiaPerfilPage from "@/pages/psicologia/PsicologiaPerfilPage";
+import PsicologiaMensajesPage from "@/pages/psicologia/PsicologiaMensajesPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -999,6 +1002,14 @@ function App() {
             }
           />
           <Route
+            path="/parent/psicologia-mensajes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentPsychMessagesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -1055,6 +1066,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <PsicologiaPerfilPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/mensajes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaMensajesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1626,6 +1645,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/:subdomain/psicologia/mensajes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaMensajesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Parent Portal - Route based */}
           <Route
@@ -1713,6 +1740,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentHealthPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/parent/psicologia-mensajes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentPsychMessagesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

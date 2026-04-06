@@ -4,7 +4,7 @@ import { useTenant } from "@/App";
 import {
   Brain, Users, ClipboardList, Calendar, LogOut, User,
   TrendingUp, FileText, Search, ChevronRight, Clock,
-  AlertTriangle, CheckCircle2, Activity
+  AlertTriangle, CheckCircle2, Activity, MessageSquare, BookOpen
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -14,12 +14,23 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
   const { getSchoolPath } = useTenant();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     fetchStats();
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchUnread = async () => {
+    try {
+      const res = await fetch(`${API}/v1/psychology/messages/unread-count`, { headers });
+      if (res.ok) { const d = await res.json(); setUnreadCount(d.unread_count || 0); }
+    } catch(e) {}
+  };
 
   const fetchStats = async () => {
     try {
@@ -43,7 +54,6 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
       label: "Estudiantes",
       description: "Ver listado de estudiantes",
       path: getSchoolPath("/psicologia/estudiantes"),
-      color: "from-blue-500 to-indigo-600",
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600"
     },
@@ -52,7 +62,6 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
       label: "Fichas Psicologicas",
       description: "Registros clinicos de estudiantes",
       path: getSchoolPath("/psicologia/fichas"),
-      color: "from-violet-500 to-purple-600",
       iconBg: "bg-violet-100",
       iconColor: "text-violet-600"
     },
@@ -61,16 +70,23 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
       label: "Sesiones",
       description: "Historial de sesiones clinicas",
       path: getSchoolPath("/psicologia/sesiones"),
-      color: "from-emerald-500 to-teal-600",
       iconBg: "bg-emerald-100",
       iconColor: "text-emerald-600"
+    },
+    {
+      icon: MessageSquare,
+      label: "Comunicacion con Padres",
+      description: "Mensajes y plantillas",
+      path: getSchoolPath("/psicologia/mensajes"),
+      iconBg: "bg-sky-100",
+      iconColor: "text-sky-600",
+      badge: unreadCount
     },
     {
       icon: User,
       label: "Mi Perfil",
       description: "Datos personales y profesionales",
       path: getSchoolPath("/psicologia/perfil"),
-      color: "from-amber-500 to-orange-600",
       iconBg: "bg-amber-100",
       iconColor: "text-amber-600"
     }
@@ -167,14 +183,17 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
         </div>
 
         {/* Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {menuItems.map((item) => (
             <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className="bg-white rounded-2xl p-5 border border-slate-200/60 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/60 transition-all text-left group"
+              className="bg-white rounded-2xl p-5 border border-slate-200/60 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/60 transition-all text-left group relative"
               data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
+              {item.badge > 0 && (
+                <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">{item.badge}</span>
+              )}
               <div className={`w-12 h-12 rounded-xl ${item.iconBg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                 <item.icon className={`w-6 h-6 ${item.iconColor}`} />
               </div>

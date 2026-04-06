@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Home, BookOpen, ClipboardList, BarChart3, CalendarCheck,
   MessageSquare, User, Menu, LogOut, Users, Clock, Trophy,
-  Calendar, ChevronDown, Check, Wallet, X, HeartPulse
+  Calendar, ChevronDown, Check, Wallet, X, HeartPulse, Brain
 } from "lucide-react";
 
 const parentNavItems = [
@@ -16,6 +16,7 @@ const parentNavItems = [
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/parent/grades" },
   { id: "salud", label: "Salud y Bienestar", icon: HeartPulse, route: "/parent/salud-bienestar" },
+  { id: "psicologia-mensajes", label: "Psicologia", icon: Brain, route: "/parent/psicologia-mensajes" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
 ];
 

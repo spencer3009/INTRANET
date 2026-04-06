@@ -53,6 +53,7 @@ from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
 from routes.parents import router as parents_router
 from routes.psychology import router as psychology_router
+from routes.psychology_messages import router as psychology_messages_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -203,6 +204,7 @@ app.include_router(support_router)
 app.include_router(academia_router)
 app.include_router(parents_router)
 app.include_router(psychology_router)
+app.include_router(psychology_messages_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -298,6 +300,11 @@ async def create_indexes():
         await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1), ("created_at", -1)])
         await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
         await db.parent_notifications.create_index([("created_at", 1)], expireAfterSeconds=2592000)
+        # Psychology messaging indexes
+        await db.psychological_messages.create_index([("conversation_id", 1), ("created_at", 1)])
+        await db.psychological_messages.create_index([("to_user_id", 1), ("read", 1)])
+        await db.psychological_messages.create_index([("institution_id", 1), ("student_id", 1)])
+        await db.psychological_messages.create_index([("from_user_id", 1), ("created_at", -1)])
         await db.user_school_roles.create_index(
             [("user_id", 1), ("school_id", 1)],
             unique=True
