@@ -1,0 +1,207 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  UtensilsCrossed, Calendar, Filter, Loader2, ChevronLeft,
+  Clock, Users, Search
+} from "lucide-react";
+import { toast } from "sonner";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export default function PaeRegistrosDia({ user, token, subdomain, embedded = false }) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [turnoFilter, setTurnoFilter] = useState("");
+  const [turnos, setTurnos] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    loadTurnos();
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [fecha, turnoFilter]);
+
+  const loadTurnos = async () => {
+    try {
+      const res = await axios.get(`${API}/pae/turnos`, { headers });
+      setTurnos(res.data);
+    } catch (err) {
+      console.error("Error loading turnos:", err);
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      let url = `${API}/pae/registros-dia?fecha=${fecha}`;
+      if (turnoFilter) url += `&turno_id=${turnoFilter}`;
+      const res = await axios.get(url, { headers });
+      setData(res.data);
+    } catch (err) {
+      console.error("Error loading registros:", err);
+      toast.error("Error al cargar registros");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (isoStr) => {
+    if (!isoStr) return "";
+    try {
+      return new Date(isoStr).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    } catch { return ""; }
+  };
+
+  const goBack = () => {
+    const path = subdomain ? `/${subdomain}/asistencias` : "/asistencias";
+    navigate(path);
+  };
+
+  const filteredRegistros = (data?.registros || []).filter(r => {
+    if (!searchTerm) return true;
+    const name = (r.metadata?.nombre_estudiante || "").toLowerCase();
+    return name.includes(searchTerm.toLowerCase());
+  });
+
+  return (
+    <div className="space-y-6" data-testid="pae-registros-dia">
+      {/* Back button */}
+      <button
+        onClick={goBack}
+        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-all font-medium text-sm shadow-sm"
+        data-testid="pae-registros-back"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Volver a Asistencias
+      </button>
+
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500" />
+        <div className="relative px-8 py-8 flex items-center gap-5">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+            <UtensilsCrossed className="w-8 h-8 text-orange-500" />
+          </div>
+          <div className="text-white">
+            <h1 className="text-2xl font-bold">Registros de Alimentacion</h1>
+            <p className="text-orange-100">Control de comedor escolar</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Fecha</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={e => setFecha(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+              data-testid="pae-filter-fecha"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Turno</label>
+            <select
+              value={turnoFilter}
+              onChange={e => setTurnoFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none min-w-[160px]"
+              data-testid="pae-filter-turno"
+            >
+              <option value="">Todos los turnos</option>
+              {turnos.map(t => (
+                <option key={t.id} value={t.id}>{t.nombre} ({t.hora_inicio}-{t.hora_fin})</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Buscar</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar estudiante..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                data-testid="pae-filter-search"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      {data && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl p-4 text-white">
+            <Users className="w-5 h-5 mb-1 opacity-80" />
+            <p className="text-2xl font-bold">{data.total}</p>
+            <p className="text-xs text-orange-100">Total Registros</p>
+          </div>
+          {(data.resumen_por_turno || []).map(s => (
+            <div key={s.turno_id} className="bg-white rounded-xl p-4 border border-slate-200">
+              <UtensilsCrossed className="w-5 h-5 text-orange-500 mb-1" />
+              <p className="text-2xl font-bold text-slate-800">{s.total}</p>
+              <p className="text-xs text-slate-500">{s.turno_nombre}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+          </div>
+        ) : filteredRegistros.length === 0 ? (
+          <div className="text-center py-16 text-slate-400">
+            <UtensilsCrossed className="w-10 h-10 mx-auto mb-2" />
+            <p className="text-sm">No hay registros para esta fecha</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="pae-registros-table">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">#</th>
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">Estudiante</th>
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">Grado</th>
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">Seccion</th>
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">Turno</th>
+                  <th className="text-left px-5 py-3 font-semibold text-slate-600">Hora</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRegistros.map((r, i) => (
+                  <tr key={r.id || i} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
+                    <td className="px-5 py-3 font-medium text-slate-800">{r.metadata?.nombre_estudiante}</td>
+                    <td className="px-5 py-3 text-slate-600">{r.metadata?.grado || "-"}</td>
+                    <td className="px-5 py-3 text-slate-600">{r.metadata?.seccion || "-"}</td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-orange-100 text-orange-700 text-xs font-medium">
+                        {r.turno_nombre || "-"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-slate-500 font-mono text-xs">{formatTime(r.hora_registro)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -114,6 +114,9 @@ import PsicologiaSesionesPage from "@/pages/psicologia/PsicologiaSesionesPage";
 import PsicologiaMensajesPage from "@/pages/psicologia/PsicologiaMensajesPage";
 import PsicologiaAgendaPage from "@/pages/psicologia/PsicologiaAgendaPage";
 import PsicologiaTalleresPage from "@/pages/psicologia/PsicologiaTalleresPage";
+import PaeDashboard from "@/pages/pae/PaeDashboard";
+import PaeScanner from "@/pages/pae/PaeScanner";
+import PaeRegistrosDia from "@/pages/pae/PaeRegistrosDia";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1109,6 +1112,26 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              PAE (Programa de Alimentación Escolar) - Direct paths
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/pae"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PaeDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pae/scanner"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PaeScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
               All /admin routes redirect to /dashboard for unified experience
           ════════════════════════════════════════════════════════════════════ */}
@@ -1702,6 +1725,24 @@ function App() {
             }
           />
 
+          {/* PAE Portal - Route based (subdomain) */}
+          <Route
+            path="/:subdomain/pae"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PaeDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/pae/scanner"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PaeScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Parent Portal - Route based */}
           <Route
             path="/:subdomain/parent"
@@ -2002,6 +2043,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* PAE - Registros del día dentro de Asistencias (admin/owner) */}
+          <Route
+            path="/:subdomain/asistencias/alimentacion"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} initialView="alimentacion" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/asistencias/alimentacion"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} initialView="alimentacion" />
               </ProtectedRoute>
             }
           />

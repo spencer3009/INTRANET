@@ -31,6 +31,7 @@ export function canAccessSection(user, section) {
     grades: ['owner', 'admin', 'director', 'coordinator'],
     courses: ['owner', 'admin', 'director', 'coordinator', 'teacher'],
     attendance: ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'],
+    pae: ['owner', 'admin', 'auxiliar_alimentacion'],
     reports: ['owner', 'admin', 'director', 'coordinator'],
     schedule: ['owner', 'admin', 'director', 'coordinator'],
     exams: ['owner', 'admin', 'director', 'coordinator', 'teacher'],
@@ -75,7 +76,7 @@ export function hasAdminAccess(user) {
  * @returns {boolean}
  */
 export function isStaff(user) {
-  const staffRoles = ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'];
+  const staffRoles = ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar', 'auxiliar_alimentacion'];
   return staffRoles.includes(user?.role);
 }
 
@@ -92,6 +93,7 @@ export function getRoleDisplayName(role) {
     coordinator: 'Coordinador',
     teacher: 'Profesor',
     auxiliar: 'Auxiliar',
+    auxiliar_alimentacion: 'Auxiliar de Alimentacion',
     student: 'Estudiante',
     parent: 'Padre/Apoderado',
   };

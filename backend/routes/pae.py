@@ -5,6 +5,7 @@ Turno configuration CRUD endpoints.
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
+from pymongo.errors import DuplicateKeyError
 from datetime import datetime, timezone
 import logging
 
@@ -235,3 +236,232 @@ async def toggle_turno(turno_id: str, user=Depends(require_role(ADMIN_ROLES))):
     )
 
     return {"id": turno_id, "activo": new_state, "message": f"Turno {'activado' if new_state else 'desactivado'} correctamente"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REGISTRO (ESCANEO) ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+PAE_SCAN_ROLES = ["auxiliar_alimentacion", "owner", "admin"]
+
+class RegistroCreate(BaseModel):
+    qr_data: str
+    turno_id: str
+
+
+def resolve_qr_to_id(raw: str):
+    """Extract qr_id from raw QR data (URL or plain short ID)."""
+    raw = raw.strip()
+    if raw.startswith("http"):
+        parts = raw.rstrip("/").split("/")
+        return parts[-1] if parts else None
+    if len(raw) <= 12 and not raw.startswith("ey"):
+        return raw
+    return None
+
+
+@router.post("/registro", status_code=201)
+async def registrar_asistencia(data: RegistroCreate, user=Depends(require_role(PAE_SCAN_ROLES))):
+    """Register a student's meal attendance via QR scan."""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    # 1. Resolve QR → student
+    qr_id = resolve_qr_to_id(data.qr_data)
+    if not qr_id:
+        raise HTTPException(status_code=404, detail="Codigo QR no reconocido.")
+
+    student = await db.users.find_one(
+        {"qr_id": qr_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "role": 1,
+         "student_status": 1, "grado_id": 1, "seccion_id": 1, "school_id": 1}
+    )
+
+    # 2. QR not found
+    if not student:
+        raise HTTPException(status_code=404, detail="Codigo QR no reconocido.")
+
+    # 3. Must be same school
+    if student.get("school_id") != school_id:
+        raise HTTPException(status_code=403, detail="Estudiante no pertenece a este colegio.")
+
+    # Must be a student
+    if student.get("role") not in ("student", "estudiante"):
+        raise HTTPException(status_code=400, detail="Este QR no corresponde a un estudiante.")
+
+    # 4. Student must be active
+    if student.get("student_status") not in ("active", "enrolled"):
+        raise HTTPException(status_code=400, detail="Estudiante no activo. Contacte al administrador.")
+
+    # 5. Turno must exist and be active
+    turno = await db.pae_turnos.find_one(
+        {"id": data.turno_id, "school_id": school_id},
+        {"_id": 0}
+    )
+    if not turno:
+        raise HTTPException(status_code=400, detail="Turno no encontrado.")
+    if not turno.get("activo", False):
+        raise HTTPException(status_code=400, detail="Este turno no esta habilitado.")
+
+    # Resolve grado/seccion names for metadata snapshot
+    grado_nombre = ""
+    seccion_nombre = ""
+    if student.get("grado_id"):
+        grado = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "nombre": 1})
+        grado_nombre = grado.get("nombre", "") if grado else ""
+    if student.get("seccion_id"):
+        seccion = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "nombre": 1})
+        seccion_nombre = seccion.get("nombre", "") if seccion else ""
+
+    nombre_completo = f"{student.get('name', '')} {student.get('last_name', '')}".strip()
+    now = datetime.now(timezone.utc)
+    fecha_hoy = now.strftime("%Y-%m-%d")
+
+    registro = {
+        "id": generate_id(),
+        "school_id": school_id,
+        "student_id": student["id"],
+        "turno_id": data.turno_id,
+        "auxiliar_id": user["id"],
+        "fecha": fecha_hoy,
+        "hora_registro": now.isoformat(),
+        "estado": "registrado",
+        "metadata": {
+            "nombre_estudiante": nombre_completo,
+            "grado": grado_nombre,
+            "seccion": seccion_nombre,
+        },
+        "created_at": now.isoformat(),
+    }
+
+    # 6. Insert — DuplicateKeyError = anti-duplicate
+    try:
+        await db.pae_registros.insert_one(registro)
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{nombre_completo} ya fue registrado en este turno."
+        )
+
+    # Count total for this turno+date
+    total_turno = await db.pae_registros.count_documents(
+        {"school_id": school_id, "turno_id": data.turno_id, "fecha": fecha_hoy, "estado": "registrado"}
+    )
+
+    return {
+        "success": True,
+        "estudiante": {
+            "nombre": nombre_completo,
+            "grado": grado_nombre,
+            "seccion": seccion_nombre,
+        },
+        "hora_registro": now.isoformat(),
+        "total_turno": total_turno,
+    }
+
+
+@router.get("/registro/turno/{turno_id}")
+async def list_registros_turno(turno_id: str, fecha: Optional[str] = None, user=Depends(require_role(PAE_SCAN_ROLES))):
+    """List records for a turno on a given date (default: today)."""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    if not fecha:
+        fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    cursor = db.pae_registros.find(
+        {"school_id": school_id, "turno_id": turno_id, "fecha": fecha},
+        {"_id": 0}
+    ).sort("hora_registro", -1).limit(50)
+
+    registros = await cursor.to_list(length=50)
+    return registros
+
+
+@router.get("/registro/dashboard")
+async def get_dashboard(user=Depends(require_role(PAE_SCAN_ROLES))):
+    """Dashboard data for the auxiliar: counts per turno, last records, alerts."""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Active turnos
+    turnos = await db.pae_turnos.find(
+        {"school_id": school_id, "activo": True},
+        {"_id": 0}
+    ).sort("orden", 1).to_list(length=20)
+
+    # Count per turno
+    conteo_por_turno = []
+    for t in turnos:
+        total = await db.pae_registros.count_documents(
+            {"school_id": school_id, "turno_id": t["id"], "fecha": fecha_hoy, "estado": "registrado"}
+        )
+        conteo_por_turno.append({
+            "turno_id": t["id"],
+            "turno_nombre": t["nombre"],
+            "hora_inicio": t["hora_inicio"],
+            "hora_fin": t["hora_fin"],
+            "total": total,
+        })
+
+    # Last 10 records today (any turno)
+    ultimos = await db.pae_registros.find(
+        {"school_id": school_id, "fecha": fecha_hoy},
+        {"_id": 0}
+    ).sort("hora_registro", -1).limit(10).to_list(length=10)
+
+    return {
+        "fecha": fecha_hoy,
+        "conteo_por_turno": conteo_por_turno,
+        "ultimos_registros": ultimos,
+        "alertas_recientes": [],
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN READ-ONLY: Registros del día
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/registros-dia")
+async def get_registros_dia(fecha: Optional[str] = None, turno_id: Optional[str] = None, user=Depends(require_role(ADMIN_ROLES))):
+    """Admin view: list all PAE records for a date, optionally filtered by turno."""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    if not fecha:
+        fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    query = {"school_id": school_id, "fecha": fecha, "estado": "registrado"}
+    if turno_id:
+        query["turno_id"] = turno_id
+
+    registros = await db.pae_registros.find(query, {"_id": 0}).sort("hora_registro", -1).to_list(length=500)
+
+    # Get turno names map
+    turnos = await db.pae_turnos.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(length=20)
+    turno_map = {t["id"]: t["nombre"] for t in turnos}
+
+    # Enrich with turno name
+    for r in registros:
+        r["turno_nombre"] = turno_map.get(r.get("turno_id"), "")
+
+    # Summary counts
+    counts = {}
+    for r in registros:
+        tid = r.get("turno_id", "")
+        counts[tid] = counts.get(tid, 0) + 1
+
+    summary = [{"turno_id": tid, "turno_nombre": turno_map.get(tid, ""), "total": c} for tid, c in counts.items()]
+
+    return {
+        "fecha": fecha,
+        "total": len(registros),
+        "resumen_por_turno": summary,
+        "registros": registros,
+    }

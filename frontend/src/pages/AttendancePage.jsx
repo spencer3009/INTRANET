@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import MobileBottomNav from "../components/MobileBottomNav";
 import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import QRScannerTab from "../components/QRScannerTab";
+import PaeRegistrosDia from "./pae/PaeRegistrosDia";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { 
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
-  Eye, ChevronLeft, CheckCircle
+  Eye, ChevronLeft, CheckCircle, UtensilsCrossed
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1664,12 +1665,13 @@ function TeacherReportsTab({ token }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
-export default function AttendancePage({ user, token, subdomain, onLogout }) {
+export default function AttendancePage({ user, token, subdomain, onLogout, initialView }) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState(searchParams.get("tab") || "home");
+  const [activeView, setActiveView] = useState(initialView || searchParams.get("tab") || "home");
   const [scanContext, setScanContext] = useState(null);
 
   useEffect(() => {
@@ -1760,7 +1762,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
 
           {/* ─── HOME: Section Cards ─── */}
           {activeView === "home" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="attendance-home">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="attendance-home">
               {/* SECTION 1: Estudiantes */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-students">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
@@ -1917,6 +1919,52 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
                   </div>
                 </div>
               </div>
+
+              {/* SECTION 4: Alimentación (PAE) - Solo owner/admin */}
+              {(user?.role === "owner" || user?.role === "admin") && (
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-alimentacion">
+                <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <UtensilsCrossed className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Alimentacion</h2>
+                      <p className="text-orange-200 text-sm">Control de comedor escolar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => setActiveView("alimentacion")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-orange-50 border-2 border-slate-200 hover:border-orange-300 rounded-xl transition-all group"
+                    data-testid="btn-alimentacion-registros"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 group-hover:bg-orange-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-orange-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Registros del dia</p>
+                      <p className="text-xs text-slate-400">Ver asistencias de alimentacion</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                  </button>
+                  <button
+                    disabled
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed"
+                    data-testid="btn-alimentacion-reportes"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-500 text-sm">Reportes Alimentacion</p>
+                      <p className="text-xs text-slate-400">Proximamente</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              )}
             </div>
           )}
 
@@ -1939,6 +1987,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
           
           {activeView === "reports-teachers" && (
             <TeacherReportsTab token={token} schoolId={user?.school_id} />
+          )}
+
+          {activeView === "alimentacion" && (
+            <PaeRegistrosDia user={user} token={token} subdomain={subdomain} embedded />
           )}
         </main>
       </div>
