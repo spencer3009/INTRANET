@@ -238,6 +238,29 @@ async def toggle_turno(turno_id: str, user=Depends(require_role(ADMIN_ROLES))):
     return {"id": turno_id, "activo": new_state, "message": f"Turno {'activado' if new_state else 'desactivado'} correctamente"}
 
 
+@router.delete("/turnos/{turno_id}")
+async def delete_turno(turno_id: str, user=Depends(require_role(ADMIN_ROLES))):
+    """Delete a turno. Only if it has no registros associated."""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    existing = await db.pae_turnos.find_one(
+        {"id": turno_id, "school_id": school_id},
+        {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+
+    # Check if turno has registros
+    count = await db.pae_registros.count_documents({"turno_id": turno_id, "school_id": school_id})
+    if count > 0:
+        raise HTTPException(status_code=400, detail=f"No se puede eliminar: este turno tiene {count} registros asociados. Desactivelo en su lugar.")
+
+    await db.pae_turnos.delete_one({"id": turno_id, "school_id": school_id})
+    return {"message": "Turno eliminado correctamente"}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # REGISTRO (ESCANEO) ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════

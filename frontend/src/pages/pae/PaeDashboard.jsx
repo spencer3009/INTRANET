@@ -6,9 +6,10 @@ import DashboardHeader from "../../components/DashboardHeader";
 import MobileBottomNav from "../../components/MobileBottomNav";
 import { 
   UtensilsCrossed, QrCode, Clock, Users, RefreshCw, Loader2,
-  CheckCircle2, AlertCircle
+  CheckCircle2, AlertCircle, Settings
 } from "lucide-react";
 import { toast } from "sonner";
+import PaeSettingsModal from "../../components/PaeSettingsModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -19,6 +20,7 @@ export default function PaeDashboard({ user, token, onLogout }) {
   const [dashboard, setDashboard] = useState(null);
   const [selectedTurno, setSelectedTurno] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
@@ -94,6 +96,16 @@ export default function PaeDashboard({ user, token, onLogout }) {
           schoolName={settings?.school_name}
           subdomain={subdomain}
           token={token}
+          extraActions={
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+              title="Configuracion"
+              data-testid="pae-gear-btn"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          }
         />
 
         {loading ? (
@@ -199,6 +211,12 @@ export default function PaeDashboard({ user, token, onLogout }) {
         )}
       </div>
       <MobileBottomNav role="auxiliar_alimentacion" />
+      <PaeSettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        token={token}
+        onLogout={onLogout}
+      />
     </div>
   );
 }

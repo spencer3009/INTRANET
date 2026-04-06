@@ -11,7 +11,8 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse,
+  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 
@@ -80,6 +81,15 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [driveLoading, setDriveLoading] = useState(false);
   const [driveError, setDriveError] = useState("");
   const [driveSuccess, setDriveSuccess] = useState("");
+
+  // PAE Turnos states
+  const [paeTurnos, setPaeTurnos] = useState([]);
+  const [paeLoading, setPaeLoading] = useState(false);
+  const [paeModal, setPaeModal] = useState(null); // null | "new" | turno object
+  const [paeForm, setPaeForm] = useState({ nombre: "", hora_inicio: "", hora_fin: "" });
+  const [paeSaving, setPaeSaving] = useState(false);
+  const [paeError, setPaeError] = useState("");
+  const [paeDeleteConfirm, setPaeDeleteConfirm] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -163,6 +173,62 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     };
     if (token) fetchLoginBg();
   }, [token]);
+
+  // PAE Turnos
+  const loadPaeTurnos = async () => {
+    setPaeLoading(true);
+    try {
+      const res = await axios.get(`${API}/pae/turnos`, { headers });
+      setPaeTurnos(res.data);
+    } catch {}
+    setPaeLoading(false);
+  };
+  useEffect(() => { if (token) loadPaeTurnos(); }, [token]);
+
+  const handlePaeSave = async () => {
+    setPaeSaving(true);
+    setPaeError("");
+    try {
+      if (paeModal === "new") {
+        await axios.post(`${API}/pae/turnos`, {
+          nombre: paeForm.nombre,
+          hora_inicio: paeForm.hora_inicio,
+          hora_fin: paeForm.hora_fin,
+          orden: paeTurnos.length + 1,
+        }, { headers });
+      } else {
+        await axios.put(`${API}/pae/turnos/${paeModal.id}`, {
+          nombre: paeForm.nombre,
+          hora_inicio: paeForm.hora_inicio,
+          hora_fin: paeForm.hora_fin,
+        }, { headers });
+      }
+      setPaeModal(null);
+      loadPaeTurnos();
+    } catch (err) {
+      setPaeError(err.response?.data?.detail || "Error al guardar turno");
+    }
+    setPaeSaving(false);
+  };
+
+  const handlePaeToggle = async (id) => {
+    try {
+      await axios.patch(`${API}/pae/turnos/${id}/toggle`, {}, { headers });
+      loadPaeTurnos();
+    } catch {}
+  };
+
+  const handlePaeDelete = async (id) => {
+    try {
+      await axios.delete(`${API}/pae/turnos/${id}`, { headers });
+      setPaeDeleteConfirm(null);
+      loadPaeTurnos();
+    } catch (err) {
+      setPaeError(err.response?.data?.detail || "Error al eliminar");
+      setTimeout(() => setPaeError(""), 4000);
+      setPaeDeleteConfirm(null);
+    }
+  };
   
   // Handle OAuth callback results from URL params
   useEffect(() => {
@@ -1427,6 +1493,203 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                 </div>
               </section>
             )}
+
+            {/* ══════════════════════════════════════════════════════════════════
+                PAE - TURNOS DE ALIMENTACIÓN
+            ══════════════════════════════════════════════════════════════════ */}
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" data-testid="pae-turnos-section">
+              <div className="bg-gradient-to-r from-emerald-600 to-green-500 px-6 py-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <UtensilsCrossed className="w-5 h-5" />
+                  Programa de Alimentacion Escolar - Turnos
+                </h2>
+                <p className="text-emerald-100 text-sm mt-1">Configure los turnos de alimentacion del colegio</p>
+              </div>
+
+              <div className="p-6">
+                {paeError && (
+                  <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 text-sm">
+                    <XCircle className="w-4 h-4 flex-shrink-0" />
+                    {paeError}
+                  </div>
+                )}
+
+                {/* Add button */}
+                <div className="flex justify-end mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setPaeModal("new"); setPaeForm({ nombre: "", hora_inicio: "", hora_fin: "" }); setPaeError(""); }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium"
+                    data-testid="pae-add-turno"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nuevo Turno
+                  </button>
+                </div>
+
+                {/* Turnos list */}
+                {paeLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-emerald-500 animate-spin" /></div>
+                ) : paeTurnos.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400">
+                    <UtensilsCrossed className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No hay turnos configurados</p>
+                    <p className="text-xs mt-1">Cree el primer turno con el boton "Nuevo Turno"</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {paeTurnos.map((t) => (
+                      <div key={t.id} className={`flex items-center justify-between p-4 rounded-xl border ${t.activo ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-slate-50 opacity-60'}`} data-testid={`pae-turno-row-${t.id}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${t.activo ? 'bg-emerald-100' : 'bg-slate-200'}`}>
+                            <UtensilsCrossed className={`w-5 h-5 ${t.activo ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-800">{t.nombre}</p>
+                            <p className="text-xs text-slate-500">
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              {t.hora_inicio} - {t.hora_fin}
+                            </p>
+                          </div>
+                          {!t.activo && (
+                            <span className="px-2 py-0.5 bg-slate-200 text-slate-500 text-xs rounded-lg font-medium">Inactivo</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handlePaeToggle(t.id)}
+                            className={`p-2 rounded-lg transition-colors ${t.activo ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`}
+                            title={t.activo ? "Desactivar" : "Activar"}
+                            data-testid={`pae-toggle-${t.id}`}
+                          >
+                            {t.activo ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setPaeModal(t); setPaeForm({ nombre: t.nombre, hora_inicio: t.hora_inicio, hora_fin: t.hora_fin }); setPaeError(""); }}
+                            className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Editar"
+                            data-testid={`pae-edit-${t.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPaeDeleteConfirm(t)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Eliminar"
+                            data-testid={`pae-delete-${t.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* PAE Modal */}
+                {paeModal && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setPaeModal(null)}>
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()} data-testid="pae-turno-modal">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-bold text-slate-800">
+                          {paeModal === "new" ? "Nuevo Turno" : "Editar Turno"}
+                        </h3>
+                        <button type="button" onClick={() => setPaeModal(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {paeError && (
+                        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl text-sm">
+                          {paeError}
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre del turno</label>
+                          <input
+                            type="text"
+                            value={paeForm.nombre}
+                            onChange={e => setPaeForm(f => ({ ...f, nombre: e.target.value }))}
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                            placeholder="Ej: Desayuno, Almuerzo, Media manana..."
+                            data-testid="pae-form-nombre"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Hora inicio</label>
+                            <input
+                              type="time"
+                              value={paeForm.hora_inicio}
+                              onChange={e => setPaeForm(f => ({ ...f, hora_inicio: e.target.value }))}
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                              data-testid="pae-form-hora-inicio"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Hora fin</label>
+                            <input
+                              type="time"
+                              value={paeForm.hora_fin}
+                              onChange={e => setPaeForm(f => ({ ...f, hora_fin: e.target.value }))}
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                              data-testid="pae-form-hora-fin"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 mt-6">
+                        <button type="button" onClick={() => setPaeModal(null)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handlePaeSave}
+                          disabled={paeSaving || !paeForm.nombre || !paeForm.hora_inicio || !paeForm.hora_fin}
+                          className="px-6 py-2.5 text-sm font-medium bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          data-testid="pae-form-save"
+                        >
+                          {paeSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {paeModal === "new" ? "Crear Turno" : "Guardar Cambios"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delete confirmation */}
+                {paeDeleteConfirm && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setPaeDeleteConfirm(null)}>
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()} data-testid="pae-delete-confirm">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Trash2 className="w-6 h-6 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-1">Eliminar turno</h3>
+                        <p className="text-sm text-slate-500 mb-5">
+                          Estas seguro de eliminar el turno "<strong>{paeDeleteConfirm.nombre}</strong>"? Esta accion no se puede deshacer.
+                        </p>
+                        <div className="flex gap-3">
+                          <button type="button" onClick={() => setPaeDeleteConfirm(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                            Cancelar
+                          </button>
+                          <button type="button" onClick={() => handlePaeDelete(paeDeleteConfirm.id)} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors" data-testid="pae-confirm-delete">
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
           </form>
         </main>
       </div>

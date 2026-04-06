@@ -34,7 +34,7 @@ function getRoleDisplay(role, isOwner, isSuperAdmin) {
   return ROLE_DISPLAY_MAP[role] || role || "Usuario";
 }
 
-export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token }) {
+export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token, extraActions }) {
   const navigate = useNavigate();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
@@ -132,6 +132,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {extraActions}
           <NotificationBell token={token} />
           <div className="relative" ref={profileMenuRef}>
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" data-testid="header-profile-button">

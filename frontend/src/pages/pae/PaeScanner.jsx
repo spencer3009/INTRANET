@@ -4,9 +4,10 @@ import axios from "axios";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import {
   QrCode, ArrowLeft, CheckCircle2, XCircle, AlertTriangle,
-  Keyboard, Camera, Loader2, UtensilsCrossed, Users
+  Keyboard, Camera, Users, Hand
 } from "lucide-react";
 import { toast } from "sonner";
+import { getPaePreferences } from "../../components/PaeSettingsModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SCAN_DEBOUNCE_MS = 1500;
@@ -16,13 +17,22 @@ export default function PaeScanner({ user, token }) {
   const [searchParams] = useSearchParams();
   const turnoId = searchParams.get("turno");
 
+  // Load preferences from localStorage
+  const prefs = getPaePreferences() || {};
+  const prefMode = prefs.modo_escaneo || "auto";
+  const prefReadMode = prefs.modo_lectura || "continuo";
+  const prefSounds = prefs.sonidos !== false;
+  const prefVibration = prefs.vibracion !== false;
+
   const [turnoInfo, setTurnoInfo] = useState(null);
-  const [mode, setMode] = useState("auto"); // "camera" | "usb" | "auto"
+  const [mode, setMode] = useState(prefMode === "usb" ? "usb" : prefMode === "camara" ? "camera" : "auto");
   const [hasCamera, setHasCamera] = useState(false);
   const [totalTurno, setTotalTurno] = useState(0);
   const [lastResult, setLastResult] = useState(null);
-  const [scanning, setScanning] = useState(true);
   const [alerts, setAlerts] = useState([]);
+
+  // Manual mode: pending QR waiting for confirmation
+  const [pendingQR, setPendingQR] = useState(null);
 
   const scannedSetRef = useRef(new Set());
   const debounceRef = useRef(false);
@@ -38,12 +48,14 @@ export default function PaeScanner({ user, token }) {
           const devices = await navigator.mediaDevices.enumerateDevices();
           const cams = devices.filter(d => d.kind === "videoinput");
           setHasCamera(cams.length > 0);
-          setMode(cams.length > 0 ? "camera" : "usb");
+          if (prefMode === "auto") {
+            setMode(cams.length > 0 ? "camera" : "usb");
+          }
         } else {
-          setMode("usb");
+          if (prefMode !== "camara") setMode("usb");
         }
       } catch {
-        setMode("usb");
+        if (prefMode !== "camara") setMode("usb");
       }
     })();
   }, []);
@@ -75,7 +87,43 @@ export default function PaeScanner({ user, token }) {
     }
   }, [mode]);
 
-  const processQR = useCallback(async (qrData) => {
+  const sendRegistro = useCallback(async (qrData) => {
+    if (!qrData || !turnoId) return;
+
+    // Local cache check
+    if (scannedSetRef.current.has(qrData)) {
+      toast.warning("Ya registrado", { duration: 2000 });
+      addAlert("warning", "Ya registrado (cache local)");
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${API}/pae/registro`, { qr_data: qrData, turno_id: turnoId }, { headers });
+      const { estudiante, total_turno } = res.data;
+      scannedSetRef.current.add(qrData);
+      setTotalTurno(total_turno);
+      setLastResult({ type: "success", name: estudiante.nombre, grado: estudiante.grado, seccion: estudiante.seccion });
+      toast.success(`${estudiante.nombre} - ${estudiante.grado} ${estudiante.seccion}`, { duration: 3000 });
+      playBeep(true);
+      vibrate(true);
+    } catch (err) {
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || "Error desconocido";
+
+      if (status === 409) {
+        scannedSetRef.current.add(qrData);
+        setLastResult({ type: "duplicate", name: detail });
+      } else {
+        setLastResult({ type: "error", name: detail });
+      }
+      toast.error(detail, { duration: 3000 });
+      addAlert("error", detail);
+      playBeep(false);
+      vibrate(false);
+    }
+  }, [turnoId, token]);
+
+  const processQR = useCallback((qrData) => {
     if (!qrData || !turnoId) return;
     const raw = qrData.trim();
     if (!raw) return;
@@ -85,44 +133,28 @@ export default function PaeScanner({ user, token }) {
     debounceRef.current = true;
     setTimeout(() => { debounceRef.current = false; }, SCAN_DEBOUNCE_MS);
 
-    // Local cache check
-    if (scannedSetRef.current.has(raw)) {
-      toast.warning("Ya registrado", { duration: 2000 });
-      addAlert("warning", "Ya registrado (cache local)");
-      return;
+    if (prefReadMode === "manual") {
+      // Manual mode: set pending and wait for button press
+      setPendingQR(raw);
+    } else {
+      // Continuous mode: send immediately
+      sendRegistro(raw);
     }
+  }, [turnoId, prefReadMode, sendRegistro]);
 
-    try {
-      const res = await axios.post(`${API}/pae/registro`, { qr_data: raw, turno_id: turnoId }, { headers });
-      const { estudiante, total_turno } = res.data;
-      scannedSetRef.current.add(raw);
-      setTotalTurno(total_turno);
-      setLastResult({ type: "success", name: estudiante.nombre, grado: estudiante.grado, seccion: estudiante.seccion });
-      toast.success(`${estudiante.nombre} - ${estudiante.grado} ${estudiante.seccion}`, { duration: 3000 });
-      playBeep(true);
-    } catch (err) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail || "Error desconocido";
-
-      if (status === 409) {
-        scannedSetRef.current.add(raw);
-        setLastResult({ type: "duplicate", name: detail });
-        toast.error(detail, { duration: 3000 });
-        addAlert("error", detail);
-      } else {
-        setLastResult({ type: "error", name: detail });
-        toast.error(detail, { duration: 3000 });
-        addAlert("error", detail);
-      }
-      playBeep(false);
+  const confirmManualScan = () => {
+    if (pendingQR) {
+      sendRegistro(pendingQR);
+      setPendingQR(null);
     }
-  }, [turnoId, token]);
+  };
 
   const addAlert = (type, msg) => {
     setAlerts(prev => [{ type, msg, time: new Date().toLocaleTimeString("es-PE") }, ...prev].slice(0, 10));
   };
 
   const playBeep = (success) => {
+    if (!prefSounds) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -133,6 +165,13 @@ export default function PaeScanner({ user, token }) {
       gain.gain.value = 0.15;
       osc.start();
       osc.stop(ctx.currentTime + (success ? 0.15 : 0.3));
+    } catch {}
+  };
+
+  const vibrate = (success) => {
+    if (!prefVibration || !navigator.vibrate) return;
+    try {
+      navigator.vibrate(success ? 100 : [100, 50, 100]);
     } catch {}
   };
 
@@ -169,7 +208,6 @@ export default function PaeScanner({ user, token }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Mode toggle */}
           {hasCamera && (
             <button
               onClick={() => setMode(m => m === "camera" ? "usb" : "camera")}
@@ -191,7 +229,7 @@ export default function PaeScanner({ user, token }) {
       <div className="flex-1 flex flex-col">
         {/* Top half: scanner */}
         <div className="flex-1 flex items-center justify-center bg-slate-900 min-h-[300px] relative">
-          {mode === "camera" && scanning ? (
+          {mode === "camera" ? (
             <div className="w-full max-w-md aspect-square relative">
               <Scanner
                 onScan={handleCameraScan}
@@ -200,7 +238,6 @@ export default function PaeScanner({ user, token }) {
                 components={{ audio: false, torch: true }}
                 styles={{ container: { width: "100%", height: "100%" } }}
               />
-              {/* QR guide frame */}
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-orange-400/50 rounded-2xl" />
               </div>
@@ -232,11 +269,22 @@ export default function PaeScanner({ user, token }) {
 
         {/* Bottom half: result + info */}
         <div className="bg-slate-800 border-t border-slate-700 p-4 space-y-4">
+          {/* Manual mode: confirm button */}
+          {prefReadMode === "manual" && pendingQR && (
+            <button
+              onClick={confirmManualScan}
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3 animate-pulse"
+              data-testid="pae-confirm-scan"
+            >
+              <Hand className="w-6 h-6" />
+              Confirmar Lectura
+            </button>
+          )}
+
           {/* Last result */}
           {lastResult && (
             <div className={`p-4 rounded-xl ${
               lastResult.type === "success" ? "bg-emerald-500/10 border border-emerald-500/30" :
-              lastResult.type === "duplicate" ? "bg-red-500/10 border border-red-500/30" :
               "bg-red-500/10 border border-red-500/30"
             }`} data-testid="pae-last-result">
               <div className="flex items-center gap-3">
