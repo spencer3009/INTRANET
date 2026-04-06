@@ -93,7 +93,7 @@ const ROLE_CARDS = [
     borderColor: "border-violet-200",
     gradientBg: "from-violet-500 to-purple-600",
     lightGradient: "from-violet-50 to-purple-50",
-    image: "https://cdn-icons-png.flaticon.com/512/2785/2785482.png"
+    image: "https://cdn-icons-png.flaticon.com/512/1491/1491213.png"
   },
   { 
     id: "teacher", 
