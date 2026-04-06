@@ -25,7 +25,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const gridStart = useMemo(() => timeToMinutes(settings?.start_hour || "07:00"), [settings]);
   const gridEnd = useMemo(() => timeToMinutes(settings?.end_hour || "18:00"), [settings]);
   const totalMinutes = gridEnd - gridStart;
-  const totalHeightPx = (totalMinutes / 60) * HOUR_HEIGHT_PX + 40; // +40px bottom padding
+  const gridHeightPx = (totalMinutes / 60) * HOUR_HEIGHT_PX; // height for proportional calcs
+  const totalHeightPx = gridHeightPx + 60; // container height with bottom padding
   const guideInterval = settings?.block_duration || 60;
 
   const formatTime = useCallback((time) => {
@@ -64,7 +65,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const guideLines = useMemo(() => {
     const lines = [];
     for (let mins = gridStart; mins <= gridEnd; mins += guideInterval) {
-      lines.push({ minutes: mins, time: minutesToTime(mins), topPx: ((mins - gridStart) / totalMinutes) * totalHeightPx });
+      lines.push({ minutes: mins, time: minutesToTime(mins), topPx: ((mins - gridStart) / totalMinutes) * gridHeightPx });
     }
     return lines;
   }, [gridStart, gridEnd, guideInterval, totalMinutes, totalHeightPx]);
@@ -295,8 +296,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const { teacherFullName, teacherPhoto, studentCount } = getTeacherInfo(item);
     const duration = item._end - item._start;
     const isShort = duration <= 30;
-    const topPx = ((item._start - gridStart) / totalMinutes) * totalHeightPx;
-    const heightPx = Math.max((duration / totalMinutes) * totalHeightPx, 24);
+    const topPx = ((item._start - gridStart) / totalMinutes) * gridHeightPx;
+    const heightPx = Math.max((duration / totalMinutes) * gridHeightPx, 24);
     const widthPct = 100 / item._totalCols;
     const leftPct = item._col * widthPct;
 
@@ -347,8 +348,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const renderBreakOverlay = (breakItem) => {
     const bStart = timeToMinutes(breakItem.start_time);
     const bEnd = timeToMinutes(breakItem.end_time);
-    const topPx = ((bStart - gridStart) / totalMinutes) * totalHeightPx;
-    const heightPx = ((bEnd - bStart) / totalMinutes) * totalHeightPx;
+    const topPx = ((bStart - gridStart) / totalMinutes) * gridHeightPx;
+    const heightPx = ((bEnd - bStart) / totalMinutes) * gridHeightPx;
     const bc = breakConfig(breakItem.type);
     return (
       <div key={breakItem.id || breakItem.start_time}
@@ -368,7 +369,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const handleDayClick = (e, dayId) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const yPx = e.clientY - rect.top;
-    const clickedMins = gridStart + (yPx / totalHeightPx) * totalMinutes;
+    const clickedMins = gridStart + (yPx / gridHeightPx) * totalMinutes;
     const snapped = Math.round(clickedMins / guideInterval) * guideInterval;
     onCellClick(dayId, minutesToTime(Math.max(gridStart, Math.min(gridEnd, snapped))));
   };
