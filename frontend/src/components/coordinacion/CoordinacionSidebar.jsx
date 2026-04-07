@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   Home, Users, AlertTriangle, ClipboardList, Calendar,
-  Menu, MessageSquare, ArrowRightLeft, BarChart3, BookOpen
+  Menu, MessageSquare, ArrowRightLeft, BarChart3, Presentation
 } from "lucide-react";
 import { coordinacionApi } from "../../api/coordinacion";
 
@@ -11,7 +11,7 @@ const navItems = [
   { id: "estudiantes", label: "Estudiantes", icon: Users, route: "/coordinacion/estudiantes" },
   { id: "incidencias", label: "Incidencias", icon: AlertTriangle, route: "/coordinacion/incidencias" },
   { id: "seguimientos", label: "Seguimientos", icon: ClipboardList, route: "/coordinacion/seguimientos" },
-  { id: "charlas", label: "Charlas", icon: BookOpen, route: "/coordinacion/charlas" },
+  { id: "charlas", label: "Charlas", icon: Presentation, route: "/coordinacion/charlas" },
   { id: "reuniones", label: "Reuniones", icon: MessageSquare, route: "/coordinacion/reuniones" },
   { id: "derivaciones", label: "Derivaciones", icon: ArrowRightLeft, route: "/coordinacion/derivaciones" },
   { id: "agenda", label: "Agenda", icon: Calendar, route: "/coordinacion/agenda" },

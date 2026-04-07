@@ -125,6 +125,7 @@ import DerivacionesListPage from "@/pages/coordinacion/DerivacionesListPage";
 import DerivacionDetailPage from "@/pages/coordinacion/DerivacionDetailPage";
 import ReunionesListPage from "@/pages/coordinacion/ReunionesListPage";
 import ReunionDetailPage from "@/pages/coordinacion/ReunionDetailPage";
+import CoordinacionPlaceholderPage from "@/pages/coordinacion/CoordinacionPlaceholderPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1822,6 +1823,46 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ReunionDetailPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/estudiantes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPlaceholderPage title="Estudiantes" description="Ficha completa del estudiante desde el enfoque de coordinacion: historial de incidencias, observaciones de conducta y estado de seguimiento." user={user} token={token} onLogout={handleLogout} activeSection="estudiantes" iconName="Users" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/seguimientos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPlaceholderPage title="Seguimientos" description="Vista cronologica de todos los seguimientos activos con tareas pendientes y proximas revisiones." user={user} token={token} onLogout={handleLogout} activeSection="seguimientos" iconName="ClipboardList" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/charlas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPlaceholderPage title="Charlas" description="Programacion, asistencia y registro de charlas formativas y preventivas." user={user} token={token} onLogout={handleLogout} activeSection="charlas" iconName="Presentation" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/agenda"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPlaceholderPage title="Agenda" description="Calendario unificado con reuniones, charlas y derivaciones proximas." user={user} token={token} onLogout={handleLogout} activeSection="agenda" iconName="Calendar" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/reportes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPlaceholderPage title="Reportes" description="Reportes filtrables por grado, seccion y reincidencia. Exportacion a Excel y PDF." user={user} token={token} onLogout={handleLogout} activeSection="reportes" iconName="BarChart3" />
               </ProtectedRoute>
             }
           />
