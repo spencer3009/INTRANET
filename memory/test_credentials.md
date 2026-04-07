@@ -6,6 +6,12 @@
 - Subdomain: elroble
 - Role: owner
 
+## Coordinator Account
+- Email: coordinador@elroble.edu
+- Password: Coord123!
+- Subdomain: elroble
+- Role: coordinator
+
 ## Support Account
 - Email: spencer3009@gmail.com
 - Password: Socios3009

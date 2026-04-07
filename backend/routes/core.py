@@ -395,6 +395,7 @@ SECTION_PERMISSIONS = {
     "internal_mail": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "psicologo", "student", "parent"], "feature_flag": None},
     "psychology": {"allowed_roles": ["owner", "admin", "director", "coordinator", "psicologo"], "feature_flag": None},
     "pae": {"allowed_roles": ["owner", "admin", "auxiliar_alimentacion"], "feature_flag": None},
+    "coordinacion": {"allowed_roles": ["owner", "admin", "director", "coordinator", "psicologo"], "feature_flag": None},
 }
 
 async def can_access_section(user: dict, section: str, school_id: str = None) -> bool:

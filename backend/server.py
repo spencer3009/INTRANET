@@ -56,6 +56,7 @@ from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
 from routes.pae import router as pae_router, ensure_pae_indexes, seed_pae_default_turnos
+from routes.coordinacion import router as coordinacion_router, ensure_coordinacion_indexes
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -209,6 +210,7 @@ app.include_router(psychology_router)
 app.include_router(psychology_messages_router)
 app.include_router(psychology_agenda_router)
 app.include_router(pae_router)
+app.include_router(coordinacion_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -322,6 +324,7 @@ async def create_indexes():
         await ensure_global_support_user()
         await seed_academia_categories()
         await ensure_pae_indexes()
+        await ensure_coordinacion_indexes()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
             created = school.get("created_at")

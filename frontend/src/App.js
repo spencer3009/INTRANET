@@ -117,6 +117,10 @@ import PsicologiaTalleresPage from "@/pages/psicologia/PsicologiaTalleresPage";
 import PaeDashboard from "@/pages/pae/PaeDashboard";
 import PaeScanner from "@/pages/pae/PaeScanner";
 import PaeRegistrosDia from "@/pages/pae/PaeRegistrosDia";
+import CoordinacionDashboardPage from "@/pages/coordinacion/CoordinacionDashboardPage";
+import IncidenciasListPage from "@/pages/coordinacion/IncidenciasListPage";
+import IncidenciaFormPage from "@/pages/coordinacion/IncidenciaFormPage";
+import IncidenciaDetailPage from "@/pages/coordinacion/IncidenciaDetailPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -131,6 +135,7 @@ const isStudent = (user) => user?.role === "student";
 const isParent = (user) => user?.role === "parent";
 const isTeacher = (user) => user?.role === "teacher";
 const isPsicologo = (user) => user?.role === "psicologo";
+const isCoordinator = (user) => user?.role === "coordinator";
 const isAuxiliarAlimentacion = (user) => user?.role === "auxiliar_alimentacion";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
@@ -535,6 +540,14 @@ function App() {
         return '/pae';
       }
       return user?.subdomain ? `/${user.subdomain}/pae` : '/pae';
+    }
+    
+    // Coordinator gets redirected to Coordinacion dashboard
+    if (isCoordinator(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/coordinacion';
+      }
+      return user?.subdomain ? `/${user.subdomain}/coordinacion` : '/coordinacion';
     }
     
     // Admin role uses the SAME Owner portal with RBAC restrictions
@@ -1739,6 +1752,40 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <PaeScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Coordinacion Portal - Route based (subdomain) */}
+          <Route
+            path="/:subdomain/coordinacion"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/incidencias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <IncidenciasListPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/incidencias/nueva"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <IncidenciaFormPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/incidencias/:id"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <IncidenciaDetailPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

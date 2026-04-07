@@ -41,6 +41,12 @@ const auxiliarAlimentacionItems = [
   { id: "escaneo", label: "Escaneo", icon: QrCode, route: "/pae/scanner" },
 ];
 
+const coordinatorItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/coordinacion" },
+  { id: "incidencias", label: "Incidencias", icon: ScanLine, route: "/coordinacion/incidencias" },
+  { id: "estudiantes", label: "Estudiantes", icon: BookOpen, route: "/coordinacion/estudiantes" },
+];
+
 const itemsMap = {
   parent: parentItems,
   teacher: teacherItems,
@@ -48,6 +54,7 @@ const itemsMap = {
   admin: adminItems,
   student: studentItems,
   auxiliar_alimentacion: auxiliarAlimentacionItems,
+  coordinator: coordinatorItems,
 };
 
 export default function MobileBottomNav({ role = "parent" }) {
