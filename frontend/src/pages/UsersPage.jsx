@@ -1713,6 +1713,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // ═══════════════ PARENT IMPORT FUNCTIONS ═══════════════
   const [downloadingParentTemplate, setDownloadingParentTemplate] = useState(false);
   const [exportingCredentials, setExportingCredentials] = useState(false);
+  const [exportingTeacherCredentials, setExportingTeacherCredentials] = useState(false);
   const [showExportFilterModal, setShowExportFilterModal] = useState(false);
   const [missingExportFilters, setMissingExportFilters] = useState([]);
 
@@ -1844,6 +1845,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         toast.error("Error al exportar credenciales. Intente nuevamente.");
       }
     } finally { setExportingCredentials(false); }
+  };
+
+  const handleExportTeacherCredentials = async () => {
+    setExportingTeacherCredentials(true);
+    try {
+      const res = await axios.get(`${API}/teachers/export-credentials`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const disposition = res.headers["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : "credenciales_profesores.xlsx";
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Credenciales de profesores exportadas correctamente");
+    } catch (err) {
+      if (err.response?.status === 404) {
+        toast.error("No hay profesores para exportar");
+      } else {
+        toast.error("Error al exportar credenciales. Intente nuevamente.");
+      }
+    } finally { setExportingTeacherCredentials(false); }
   };
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2485,6 +2507,17 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <>
                     </>
+                  )}
+                  {selectedRole === 'teacher' && (
+                    <button
+                      onClick={handleExportTeacherCredentials}
+                      disabled={exportingTeacherCredentials}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      data-testid="export-teacher-credentials-btn"
+                    >
+                      {exportingTeacherCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                      {exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}
+                    </button>
                   )}
                 </div>
               )}

@@ -1649,3 +1649,111 @@ async def export_student_credentials(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  GET /api/teachers/export-credentials — Export teacher credentials as Excel
+# ═══════════════════════════════════════════════════════════════════════════════
+@router.get("/teachers/export-credentials")
+async def export_teacher_credentials(current_user=Depends(get_current_user)):
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=400, detail="school_id es requerido")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden exportar credenciales")
+
+    school_id = user["school_id"]
+
+    teachers = await db.users.find(
+        {"role": "teacher", "school_id": school_id},
+        {"_id": 0, "name": 1, "last_name": 1, "username": 1, "plain_password": 1}
+    ).sort([("last_name", 1), ("name", 1)]).to_list(5000)
+
+    if not teachers:
+        raise HTTPException(status_code=404, detail="No hay profesores para exportar")
+
+    # Get school name for metadata
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1})
+    school_name = (school.get("school_name") or school.get("name") or school_id) if school else school_id
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from datetime import datetime, timezone
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Credenciales"
+
+    ws.column_dimensions["A"].width = 35
+    ws.column_dimensions["B"].width = 25
+    ws.column_dimensions["C"].width = 20
+
+    title_font = Font(name="Arial", bold=True, size=14, color="1565C0")
+    label_font = Font(name="Arial", bold=True, size=11, color="333333")
+    value_font = Font(name="Arial", size=11, color="333333")
+    header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    # Row 1: Title
+    ws.merge_cells("A1:C1")
+    ws["A1"] = "Credenciales de Profesores"
+    ws["A1"].font = title_font
+
+    # Row 3-5: Metadata
+    meta = [
+        ("Colegio:", school_name),
+        ("Fecha de exportacion:", datetime.now(timezone.utc).strftime("%d/%m/%Y")),
+        ("Total de profesores:", str(len(teachers))),
+    ]
+    for i, (label, value) in enumerate(meta, 3):
+        ws.cell(row=i, column=1, value=label).font = label_font
+        ws.cell(row=i, column=2, value=value).font = value_font
+
+    # Row 7: Table headers
+    data_start = 7
+    headers = ["Nombre del Profesor", "Nombre de Usuario", "Contrasena"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=data_start, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    ws.freeze_panes = f"A{data_start + 1}"
+
+    # Data rows
+    for idx, t in enumerate(teachers, data_start + 1):
+        full_name = f"{t.get('last_name', '')} {t.get('name', '')}".strip()
+        username = t.get("username", "")
+        password = t.get("plain_password", "")
+
+        ws.cell(row=idx, column=1, value=full_name).border = thin_border
+        ws.cell(row=idx, column=2, value=username).border = thin_border
+        ws.cell(row=idx, column=3, value=password).border = thin_border
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    import re as _re
+    def sanitize(s):
+        s = unicodedata.normalize("NFD", s)
+        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        s = _re.sub(r"[^a-zA-Z0-9]+", "_", s.lower()).strip("_")
+        return s or "x"
+
+    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    filename = f"credenciales_profesores_{sanitize(school_name)}_{date_str}.xlsx"
+
+    logger.info(f"Teacher credentials exported by user {user.get('id')} — {len(teachers)} teachers, school {school_id}")
+
+    from starlette.responses import StreamingResponse
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
