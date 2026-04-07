@@ -145,7 +145,7 @@ const ROLE_CARDS = [
     borderColor: "border-teal-200",
     gradientBg: "from-teal-500 to-cyan-600",
     lightGradient: "from-teal-50 to-cyan-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3135/3135757.png"
+    image: "https://customer-assets.emergentagent.com/job_7640c3ce-c54e-4d68-974b-c0892d1592b5/artifacts/edukoaw4_image.png"
   },
   { 
     id: "auxiliar_alimentacion", 
