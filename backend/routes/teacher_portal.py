@@ -670,7 +670,12 @@ async def get_teacher_attendance(
             "exit_time": exit_time_str,
             "entry_method": r.get("entry_method"),
             "exit_method": r.get("exit_method"),
-            "total_minutes": r.get("total_minutes")
+            "total_minutes": r.get("total_minutes"),
+            "justification_reason": r.get("justification_reason"),
+            "justification_note": r.get("justification_note"),
+            "justified_by": r.get("justified_by"),
+            "justified_by_name": r.get("justified_by_name"),
+            "justified_at": r.get("justified_at"),
         })
     
     return {"records": formatted_records}

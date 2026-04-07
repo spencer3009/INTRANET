@@ -9,12 +9,13 @@ import QRScannerTab from "../components/QRScannerTab";
 import PaeRegistrosDia from "./pae/PaeRegistrosDia";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { 
+import {
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
-  Eye, ChevronLeft, CheckCircle, UtensilsCrossed
+  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, Info
 } from "lucide-react";
+import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -77,6 +78,9 @@ function StudentAttendanceTab({ token, schoolId }) {
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [markingEntry, setMarkingEntry] = useState(null);
   const [markingExit, setMarkingExit] = useState(null);
+  const [justifyModal, setJustifyModal] = useState(null); // { studentId, studentName, existingData }
+  const [savingJustification, setSavingJustification] = useState(false);
+  const [justificationInfo, setJustificationInfo] = useState(null); // data for popover
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -180,10 +184,54 @@ function StudentAttendanceTab({ token, schoolId }) {
   };
 
   const handleStatusChange = (studentId, newStatus) => {
+    if (newStatus === "justified") {
+      const student = students.find(s => s.id === studentId);
+      setJustifyModal({
+        studentId,
+        studentName: student?.full_name || "",
+        existingData: student?.justification_reason ? {
+          justification_reason: student.justification_reason,
+          justification_note: student.justification_note,
+        } : null
+      });
+      return;
+    }
     setStudents(prev => prev.map(s => 
       s.id === studentId ? { ...s, status: newStatus } : s
     ));
     setHasChanges(true);
+  };
+
+  const handleJustifySave = async ({ justification_reason, justification_note }) => {
+    if (!justifyModal) return;
+    setSavingJustification(true);
+    try {
+      const res = await axios.post(`${API}/attendance/justify`, {
+        student_id: justifyModal.studentId,
+        date: selectedDate,
+        justification_reason,
+        justification_note,
+      }, { headers });
+      setStudents(prev => prev.map(s =>
+        s.id === justifyModal.studentId ? {
+          ...s,
+          status: "justified",
+          justification_reason: res.data.justification_reason,
+          justification_note: res.data.justification_note,
+          justified_by: res.data.justified_by,
+          justified_by_name: res.data.justified_by_name,
+          justified_at: res.data.justified_at,
+        } : s
+      ));
+      setJustifyModal(null);
+      setSuccess("Justificacion registrada correctamente");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al justificar");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setSavingJustification(false);
+    }
   };
 
   const markEntry = async (studentId) => {
@@ -479,7 +527,7 @@ function StudentAttendanceTab({ token, schoolId }) {
                   </div>
 
                   {/* Status buttons */}
-                  <div className="flex gap-2 flex-wrap md:flex-nowrap md:ml-auto">
+                  <div className="flex gap-2 flex-wrap md:flex-nowrap md:ml-auto items-center">
                     {STUDENT_STATUSES.map(status => (
                       <StatusButton
                         key={status.id}
@@ -488,6 +536,16 @@ function StudentAttendanceTab({ token, schoolId }) {
                         onClick={(newStatus) => handleStatusChange(student.id, newStatus)}
                       />
                     ))}
+                    {student.status === "justified" && student.justification_reason && (
+                      <button
+                        onClick={() => setJustificationInfo(student)}
+                        className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center transition-colors flex-shrink-0"
+                        title="Ver detalle de justificacion"
+                        data-testid={`justification-info-${student.id}`}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -576,6 +634,24 @@ function StudentAttendanceTab({ token, schoolId }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Justification Modal */}
+      <JustificationModal
+        isOpen={!!justifyModal}
+        onClose={() => setJustifyModal(null)}
+        onSave={handleJustifySave}
+        studentName={justifyModal?.studentName || ""}
+        existingData={justifyModal?.existingData}
+        saving={savingJustification}
+      />
+
+      {/* Justification Info Popover */}
+      {justificationInfo && (
+        <JustificationInfoPopover
+          data={justificationInfo}
+          onClose={() => setJustificationInfo(null)}
+        />
       )}
     </div>
   );

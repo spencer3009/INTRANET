@@ -62,6 +62,17 @@ class AttendanceRecord(BaseModel):
     """Single attendance record for batch save"""
     user_id: str
     status: Literal["present", "late", "absent", "justified"]
+    justification_reason: Optional[str] = None
+    justification_note: Optional[str] = None
+
+JUSTIFICATION_REASONS = {
+    "salud": "Salud / Enfermedad",
+    "permiso_familiar": "Permiso familiar",
+    "tramite": "Trámite personal",
+    "duelo": "Duelo familiar",
+    "viaje": "Viaje",
+    "otro": "Otro",
+}
 
 class AttendanceBatchSave(BaseModel):
     """Batch save attendance records"""
@@ -196,7 +207,12 @@ async def get_students_for_attendance(
             "exit_time": exit_time_str,
             "entry_method": attendance.get("entry_method") if attendance else None,
             "exit_method": attendance.get("exit_method") if attendance else None,
-            "total_minutes": attendance.get("total_minutes") if attendance else None
+            "total_minutes": attendance.get("total_minutes") if attendance else None,
+            "justification_reason": attendance.get("justification_reason") if attendance else None,
+            "justification_note": attendance.get("justification_note") if attendance else None,
+            "justified_by": attendance.get("justified_by") if attendance else None,
+            "justified_by_name": attendance.get("justified_by_name") if attendance else None,
+            "justified_at": attendance.get("justified_at") if attendance else None,
         })
     
     # Sort by name
@@ -226,6 +242,30 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
     
     # Use upsert instead of delete+insert to preserve entry_time/exit_time data
     for record in data.records:
+        set_data = {
+            "status": record.status,
+            "grade_id": data.grade_id,
+            "section_id": data.section_id,
+            "recorded_by": current_user["sub"],
+            "updated_at": now
+        }
+        # Persist justification data when status is justified
+        if record.status == "justified" and record.justification_reason:
+            if record.justification_reason not in JUSTIFICATION_REASONS:
+                raise HTTPException(status_code=400, detail=f"Motivo de justificación inválido: {record.justification_reason}")
+            if record.justification_note and len(record.justification_note) > 500:
+                raise HTTPException(status_code=400, detail="La nota de justificación no puede exceder 500 caracteres")
+            set_data["justification_reason"] = record.justification_reason
+            set_data["justification_note"] = record.justification_note or ""
+            set_data["justified_by"] = current_user["sub"]
+            set_data["justified_at"] = now
+        elif record.status != "justified":
+            # Clear justification fields if status changed away from justified
+            set_data["justification_reason"] = None
+            set_data["justification_note"] = None
+            set_data["justified_by"] = None
+            set_data["justified_at"] = None
+
         await db.attendances.update_one(
             {
                 "school_id": school_id,
@@ -234,13 +274,7 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
                 "date": data.date
             },
             {
-                "$set": {
-                    "status": record.status,
-                    "grade_id": data.grade_id,
-                    "section_id": data.section_id,
-                    "recorded_by": current_user["sub"],
-                    "updated_at": now
-                },
+                "$set": set_data,
                 "$setOnInsert": {
                     "id": str(uuid.uuid4()),
                     "school_id": school_id,
@@ -267,6 +301,114 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
         "total_records": len(data.records),
         "summary": summary
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JUSTIFY INDIVIDUAL ATTENDANCE RECORD
+# ─────────────────────────────────────────────────────────────────────────────
+
+class JustifyAttendanceRequest(BaseModel):
+    student_id: str
+    date: str
+    justification_reason: str
+    justification_note: Optional[str] = None
+
+@router.post("/attendance/justify")
+async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depends(get_current_user)):
+    """Mark a student's attendance as justified with reason and optional note."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="No tienes permisos para justificar asistencias")
+
+    school_id = user["school_id"]
+
+    if data.justification_reason not in JUSTIFICATION_REASONS:
+        raise HTTPException(status_code=400, detail=f"Motivo inválido: {data.justification_reason}")
+    if data.justification_note and len(data.justification_note) > 500:
+        raise HTTPException(status_code=400, detail="La nota no puede exceder 500 caracteres")
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Find the justified_by user name for display
+    justified_by_name = user.get("name", "")
+    if user.get("last_name"):
+        justified_by_name = f"{user['name']} {user['last_name']}"
+
+    # Get student info for grade_id and section_id
+    student = await db.users.find_one(
+        {"id": data.student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "grado_id": 1, "seccion_id": 1}
+    )
+    student_grade_id = student.get("grado_id") if student else None
+    student_section_id = student.get("seccion_id") if student else None
+
+    # Check if record exists to determine if we need to set grade_id/section_id
+    existing_record = await db.attendances.find_one({
+        "school_id": school_id,
+        "user_id": data.student_id,
+        "date": data.date,
+        "type": "student"
+    })
+
+    set_data = {
+        "status": "justified",
+        "justification_reason": data.justification_reason,
+        "justification_note": data.justification_note or "",
+        "justified_by": current_user["sub"],
+        "justified_by_name": justified_by_name,
+        "justified_at": now,
+        "updated_at": now
+    }
+
+    # If record exists but doesn't have grade_id/section_id, add them
+    if existing_record:
+        if not existing_record.get("grade_id"):
+            set_data["grade_id"] = student_grade_id
+        if not existing_record.get("section_id"):
+            set_data["section_id"] = student_section_id
+
+    result = await db.attendances.update_one(
+        {
+            "school_id": school_id,
+            "user_id": data.student_id,
+            "date": data.date,
+            "type": "student"
+        },
+        {
+            "$set": set_data,
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "type": "student",
+                "user_id": data.student_id,
+                "date": data.date,
+                "grade_id": student_grade_id,
+                "section_id": student_section_id,
+                "created_at": now
+            }
+        },
+        upsert=True
+    )
+
+    logger.info(f"Attendance justified: student={data.student_id}, date={data.date}, reason={data.justification_reason}, by={current_user['sub']}")
+
+    return {
+        "message": "Justificación registrada correctamente",
+        "justification_reason": data.justification_reason,
+        "justification_reason_label": JUSTIFICATION_REASONS[data.justification_reason],
+        "justification_note": data.justification_note or "",
+        "justified_by": current_user["sub"],
+        "justified_by_name": justified_by_name,
+        "justified_at": now
+    }
+
+@router.get("/attendance/justification-reasons")
+async def get_justification_reasons():
+    """Return the list of valid justification reasons."""
+    return {"reasons": [{"id": k, "label": v} for k, v in JUSTIFICATION_REASONS.items()]}
+
 
 @router.get("/attendance/students/history")
 async def get_student_attendance_history(
