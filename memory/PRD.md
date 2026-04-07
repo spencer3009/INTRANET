@@ -44,6 +44,16 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 - Frontend: "Exportar Credenciales" blue button in Profesores view (UsersPage.jsx)
 - Uses plain_password field from DB, same pattern as student export
 
+### Attendance Justification System - Completed April 7, 2026
+- POST /api/attendance/justify: Dedicated endpoint for justifying attendance with reason + note
+- GET /api/attendance/justification-reasons: Returns 6 valid reasons (salud, permiso_familiar, tramite, duelo, viaje, otro)
+- JustificationModal.jsx: Modal with reason select, note textarea (500 char limit), save/cancel
+- JustificationInfoPopover: Shows motivo, descripcion, registrado por, fecha when clicking info icon
+- Integrated in both AttendancePage.jsx (admin) and TeacherAttendancePage.jsx (teacher)
+- Teachers can also justify absences (not just admins)
+- Justification data persisted in MongoDB attendances collection
+- StatusButton labels now visible on mobile (text-[10px]) in both pages
+
 **Phase 3: Reportes y Exportacion** - PENDING
 
 ## Key Files
