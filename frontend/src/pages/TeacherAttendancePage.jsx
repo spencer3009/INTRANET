@@ -46,14 +46,14 @@ function StatusButton({ status, isActive, onClick, disabled }) {
       type="button"
       onClick={() => onClick(status.id)}
       disabled={disabled}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+      className={`flex flex-col items-center justify-center min-w-[56px] px-2 py-1.5 sm:flex-row sm:gap-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all ${
         isActive
           ? `${status.bgColor} ${status.textColor} border-2 ${status.borderColor} shadow-sm`
           : "bg-slate-100 text-slate-500 border-2 border-transparent hover:bg-slate-200"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <Icon className="w-4 h-4" />
-      <span className="hidden sm:inline">{status.label}</span>
+      <span className="text-[10px] mt-0.5 sm:mt-0 sm:text-sm">{status.label}</span>
     </button>
   );
 }
