@@ -1,5 +1,5 @@
 import { Link, useParams, useLocation } from "react-router-dom";
-import { Home, ClipboardList, MessageSquare, BookOpen, ScanLine } from "lucide-react";
+import { Home, ClipboardList, MessageSquare, BookOpen, ScanLine, QrCode } from "lucide-react";
 
 const parentItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/parent" },
@@ -36,12 +36,18 @@ const adminItems = [
   { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/asistencias?tab=qr-scanner" },
 ];
 
+const auxiliarAlimentacionItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/pae" },
+  { id: "escaneo", label: "Escaneo", icon: QrCode, route: "/pae/scanner" },
+];
+
 const itemsMap = {
   parent: parentItems,
   teacher: teacherItems,
   owner: ownerItems,
   admin: adminItems,
   student: studentItems,
+  auxiliar_alimentacion: auxiliarAlimentacionItems,
 };
 
 export default function MobileBottomNav({ role = "parent" }) {
