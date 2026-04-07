@@ -1803,6 +1803,10 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         }
         await db.finance_entries.insert_one(finance_entry)
 
+    # Seed default PAE turnos
+    from .pae import seed_pae_default_turnos
+    await seed_pae_default_turnos(school_id)
+
     return {
         "message": f"Colegio '{data.school_name}' creado exitosamente",
         "school_id": school_id,

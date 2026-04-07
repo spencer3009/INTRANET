@@ -32,6 +32,7 @@ import cloudinary
 import cloudinary.utils
 
 from .core import BASE_DOMAIN
+from .pae import seed_pae_default_turnos
 
 logger = logging.getLogger(__name__)
 
@@ -757,6 +758,9 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         
         # Seed demo data for the new school
         await seed_demo_data_for_school(db, school_id, user["id"])
+
+        # Seed default PAE turnos
+        await seed_pae_default_turnos(school_id)
 
     # Create new token with school info
     new_token = create_token(

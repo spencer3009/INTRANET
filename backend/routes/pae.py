@@ -80,6 +80,34 @@ async def ensure_pae_indexes():
     except Exception as e:
         logger.warning(f"PAE index creation: {e}")
 
+
+DEFAULT_PAE_TURNOS = [
+    {"nombre": "Desayuno Escolar", "hora_inicio": "07:00", "hora_fin": "08:30", "orden": 1, "activo": False},
+    {"nombre": "Almuerzo", "hora_inicio": "12:00", "hora_fin": "13:30", "orden": 2, "activo": True},
+]
+
+
+async def seed_pae_default_turnos(school_id: str):
+    """Seed default PAE turnos for a school if none exist."""
+    existing = await db.pae_turnos.count_documents({"school_id": school_id})
+    if existing > 0:
+        return False  # Already has turnos
+
+    now = datetime.now(timezone.utc).isoformat()
+    for t in DEFAULT_PAE_TURNOS:
+        await db.pae_turnos.insert_one({
+            "id": generate_id(),
+            "school_id": school_id,
+            "nombre": t["nombre"],
+            "hora_inicio": t["hora_inicio"],
+            "hora_fin": t["hora_fin"],
+            "orden": t["orden"],
+            "activo": t["activo"],
+            "created_at": now,
+            "updated_at": now,
+        })
+    return True
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TURNO CRUD ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
