@@ -46,4 +46,34 @@ export const coordinacionApi = {
   createReunion: (token, data) => axios.post(`${API}/reuniones`, data, authHeaders(token)).then(r => r.data),
   updateReunion: (token, id, data) => axios.patch(`${API}/reuniones/${id}`, data, authHeaders(token)).then(r => r.data),
   getStudentParents: (token, studentId) => axios.get(`${API}/parents/${studentId}`, authHeaders(token)).then(r => r.data),
+
+  // Ficha estudiante
+  getStudentFicha: (token, studentId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/estudiante/${studentId}/ficha?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+
+  // Agenda
+  getAgenda: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/agenda?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+
+  // Parent endpoints
+  parentGetStudents: (token) => axios.get(`${API}/parent/students`, authHeaders(token)).then(r => r.data),
+  parentGetIncidencias: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/parent/incidencias?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+  parentGetReuniones: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/parent/reuniones?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+  parentConfirmReunion: (token, reunionId) => axios.post(`${API}/parent/reuniones/${reunionId}/confirm`, {}, authHeaders(token)).then(r => r.data),
+
+  // Student endpoints
+  studentGetCompromisos: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/student/compromisos?${qs}`, authHeaders(token)).then(r => r.data);
+  },
 };

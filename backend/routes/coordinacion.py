@@ -1159,6 +1159,473 @@ async def get_student_parents(student_id: str, user=Depends(require_role(COORD_V
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FICHA EXTENDIDA DEL ESTUDIANTE
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/estudiante/{student_id}/ficha")
+async def get_student_ficha(
+    student_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(COORD_VIEW_ROLES))
+):
+    school_id = user["school_id"]
+
+    # Validate student exists
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1, "photo_url": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    # Enrich with grade/section names
+    grade_name = ""
+    section_name = ""
+    if student.get("grado_id"):
+        g = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "nombre": 1})
+        grade_name = g["nombre"] if g else ""
+    if student.get("seccion_id"):
+        s = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "nombre": 1})
+        section_name = s["nombre"] if s else ""
+
+    # Defense in depth: roles that can see confidential
+    can_see_confidential = user["role"] in ["coordinator", "admin", "owner", "director", "psicologo"]
+
+    base_filter = {"school_id": school_id, "student_id": student_id, "deleted_at": None}
+
+    # Fetch all 4 event types
+    inc_filter = {**base_filter}
+    if not can_see_confidential:
+        inc_filter["confidential"] = {"$ne": True}
+
+    incidencias = await db.coordinacion_incidencias.find(
+        inc_filter, {"_id": 0}
+    ).to_list(500)
+
+    seguimientos = await db.coordinacion_seguimientos.find(
+        {**base_filter}, {"_id": 0}
+    ).to_list(500)
+
+    deriv_filter = {"school_id": school_id, "student_id": student_id, "deleted_at": None}
+    derivaciones = await db.coordinacion_derivaciones.find(
+        deriv_filter, {"_id": 0}
+    ).to_list(200)
+
+    reuniones = await db.coordinacion_reuniones.find(
+        {"school_id": school_id, "student_id": student_id, "deleted_at": None}, {"_id": 0}
+    ).to_list(200)
+
+    # Build unified timeline
+    timeline = []
+    for inc in incidencias:
+        timeline.append({
+            "event_type": "incidencia",
+            "id": inc["id"],
+            "occurred_at": inc.get("occurred_at") or inc.get("created_at"),
+            "title": inc.get("title", ""),
+            "severity": inc.get("severity"),
+            "status": inc.get("status"),
+            "confidential": inc.get("confidential", False),
+        })
+    for seg in seguimientos:
+        timeline.append({
+            "event_type": "seguimiento",
+            "id": seg["id"],
+            "occurred_at": seg.get("entry_date") or seg.get("created_at"),
+            "title": seg.get("observation", "")[:100],
+            "incidencia_id": seg.get("incidencia_id"),
+            "new_status": seg.get("new_status"),
+            "next_review_at": seg.get("next_review_at"),
+        })
+    for der in derivaciones:
+        timeline.append({
+            "event_type": "derivacion",
+            "id": der["id"],
+            "occurred_at": der.get("created_at"),
+            "title": f"Derivacion a {DERIVACION_AREA_LABELS.get(der.get('to_area'), der.get('to_area', ''))}",
+            "to_area": der.get("to_area"),
+            "status": der.get("status"),
+            "priority": der.get("priority"),
+        })
+    for reu in reuniones:
+        timeline.append({
+            "event_type": "reunion",
+            "id": reu["id"],
+            "occurred_at": reu.get("scheduled_at") or reu.get("created_at"),
+            "title": f"Reunion: {reu.get('agenda', '')[:60]}",
+            "status": reu.get("status"),
+            "location": reu.get("location"),
+        })
+
+    # Sort descending by date
+    timeline.sort(key=lambda x: x.get("occurred_at") or "", reverse=True)
+    total = len(timeline)
+
+    # Paginate
+    start = (page - 1) * page_size
+    timeline_page = timeline[start:start + page_size]
+
+    # Summary
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    open_statuses = ["nueva", "en_revision", "en_seguimiento", "citacion_programada", "derivada"]
+    incidencias_abiertas = sum(1 for i in incidencias if i.get("status") in open_statuses)
+    recent_inc = sum(1 for i in incidencias if (i.get("occurred_at") or i.get("created_at", "")) > thirty_days_ago)
+    reincidencia_30d = recent_inc >= 3
+
+    ultimo_evento = timeline[0]["occurred_at"] if timeline else None
+
+    return {
+        "student": {
+            "id": student["id"],
+            "full_name": f"{student.get('name','')} {student.get('last_name','')}".strip(),
+            "grade": grade_name,
+            "section": section_name,
+            "photo_url": student.get("photo_url"),
+        },
+        "summary": {
+            "total_incidencias": len(incidencias),
+            "incidencias_abiertas": incidencias_abiertas,
+            "reincidencia_30d": reincidencia_30d,
+            "ultimo_evento_at": ultimo_evento,
+            "total_derivaciones": len(derivaciones),
+            "total_reuniones": len(reuniones),
+        },
+        "timeline": timeline_page,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AGENDA INTEGRADA
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/agenda")
+async def get_agenda(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES))
+):
+    """Unified calendar: reuniones + derivaciones + next_review_at from seguimientos.
+    Designed for event_source extensibility (charlas in Phase 3)."""
+    school_id = user["school_id"]
+
+    # Default to current month if no dates provided
+    now = datetime.now(timezone.utc)
+    if not start_date:
+        start_date = now.replace(day=1).strftime("%Y-%m-%d")
+    if not end_date:
+        next_month = now.replace(day=28) + timedelta(days=4)
+        end_date = next_month.replace(day=1).strftime("%Y-%m-%d")
+
+    events = []
+
+    # 1. Reuniones
+    reuniones = await db.coordinacion_reuniones.find(
+        {
+            "school_id": school_id,
+            "deleted_at": None,
+            "scheduled_at": {"$gte": start_date, "$lte": end_date + "T23:59:59"},
+        },
+        {"_id": 0, "id": 1, "student_id": 1, "scheduled_at": 1, "status": 1, "location": 1, "agenda": 1}
+    ).to_list(200)
+
+    for r in reuniones:
+        events.append({
+            "event_source": "reunion",
+            "id": r["id"],
+            "date": r.get("scheduled_at", ""),
+            "title": f"Reunion: {(r.get('agenda') or '')[:50]}",
+            "status": r.get("status"),
+            "student_id": r.get("student_id"),
+            "location": r.get("location"),
+        })
+
+    # 2. Derivaciones (use created_at as reference date)
+    derivaciones = await db.coordinacion_derivaciones.find(
+        {
+            "school_id": school_id,
+            "deleted_at": None,
+            "status": {"$in": ["pendiente", "en_proceso"]},
+            "created_at": {"$gte": start_date, "$lte": end_date + "T23:59:59"},
+        },
+        {"_id": 0, "id": 1, "student_id": 1, "created_at": 1, "to_area": 1, "status": 1, "priority": 1}
+    ).to_list(200)
+
+    for d in derivaciones:
+        events.append({
+            "event_source": "derivacion",
+            "id": d["id"],
+            "date": d.get("created_at", ""),
+            "title": f"Derivacion a {DERIVACION_AREA_LABELS.get(d.get('to_area'), d.get('to_area', ''))}",
+            "status": d.get("status"),
+            "student_id": d.get("student_id"),
+            "priority": d.get("priority"),
+        })
+
+    # 3. Next reviews from seguimientos
+    seguimientos = await db.coordinacion_seguimientos.find(
+        {
+            "school_id": school_id,
+            "deleted_at": None,
+            "next_review_at": {"$gte": start_date, "$lte": end_date + "T23:59:59"},
+        },
+        {"_id": 0, "id": 1, "student_id": 1, "incidencia_id": 1, "next_review_at": 1, "observation": 1}
+    ).to_list(200)
+
+    for s in seguimientos:
+        events.append({
+            "event_source": "review",
+            "id": s["id"],
+            "date": s.get("next_review_at", ""),
+            "title": f"Revision: {(s.get('observation') or '')[:50]}",
+            "status": "pendiente",
+            "student_id": s.get("student_id"),
+            "incidencia_id": s.get("incidencia_id"),
+        })
+
+    # Enrich with student names
+    student_ids = list(set(e.get("student_id") for e in events if e.get("student_id")))
+    name_map = {}
+    if student_ids:
+        students = await db.users.find(
+            {"id": {"$in": student_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(100)
+        name_map = {s["id"]: f"{s.get('name','')} {s.get('last_name','')}".strip() for s in students}
+
+    for e in events:
+        e["student_name"] = name_map.get(e.get("student_id"), "")
+
+    # Sort by date ascending
+    events.sort(key=lambda x: x.get("date") or "")
+
+    return {"events": events, "start_date": start_date, "end_date": end_date, "total": len(events)}
+
+
+@router.get("/agenda/check-conflict")
+async def check_agenda_conflict(
+    date: str,
+    duration_minutes: int = 60,
+    exclude_id: Optional[str] = None,
+    user=Depends(require_role(COORD_WRITE_ROLES))
+):
+    """Check for scheduling conflicts (adapted from psychology_agenda.py)"""
+    school_id = user["school_id"]
+    try:
+        dt = datetime.fromisoformat(date.replace("Z", "+00:00"))
+        end_dt = dt + timedelta(minutes=duration_minutes)
+    except Exception:
+        return {"has_conflict": False}
+
+    query = {
+        "school_id": school_id,
+        "deleted_at": None,
+        "status": {"$in": ["programada", "confirmada"]},
+        "scheduled_at": {"$lt": end_dt.isoformat()},
+    }
+    if exclude_id:
+        query["id"] = {"$ne": exclude_id}
+
+    # Check against reuniones
+    conflict = await db.coordinacion_reuniones.find_one(query, {"_id": 0, "id": 1, "agenda": 1, "scheduled_at": 1})
+    return {
+        "has_conflict": conflict is not None,
+        "conflict": {"title": conflict.get("agenda", "")[:60], "date": conflict.get("scheduled_at")} if conflict else None
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# VISTAS PADRE (endpoints dedicados)
+# ══════════════════════════════════════════════════════════════════════════════
+
+PARENT_ROLES = ["parent"]
+STUDENT_ROLES = ["student"]
+
+
+@router.get("/parent/students")
+async def parent_get_students(user=Depends(require_role(PARENT_ROLES))):
+    """Parent: list their linked children"""
+    school_id = user["school_id"]
+    children_ids = user.get("children", [])
+    if not children_ids:
+        return {"students": []}
+
+    students = await db.users.find(
+        {"id": {"$in": children_ids}, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "grado_id": 1, "seccion_id": 1}
+    ).to_list(20)
+
+    for s in students:
+        s["full_name"] = f"{s.get('name','')} {s.get('last_name','')}".strip()
+
+    return {"students": students}
+
+
+@router.get("/parent/incidencias")
+async def parent_get_incidencias(
+    student_id: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(PARENT_ROLES))
+):
+    """Parent: only incidencias of their children, non-confidential, with notify_parents=true"""
+    school_id = user["school_id"]
+    children_ids = user.get("children", [])
+    if not children_ids:
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
+
+    query = {
+        "school_id": school_id,
+        "deleted_at": None,
+        "student_id": {"$in": children_ids},
+        "confidential": {"$ne": True},
+        "notify_parents": True,
+    }
+    if student_id:
+        if student_id not in children_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este estudiante")
+        query["student_id"] = student_id
+
+    total = await db.coordinacion_incidencias.count_documents(query)
+    items = await db.coordinacion_incidencias.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    # Enrich
+    student_ids = list(set(i.get("student_id") for i in items if i.get("student_id")))
+    name_map = {}
+    if student_ids:
+        students_data = await db.users.find(
+            {"id": {"$in": student_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(50)
+        name_map = {s["id"]: f"{s.get('name','')} {s.get('last_name','')}".strip() for s in students_data}
+    for item in items:
+        item["student_name"] = name_map.get(item.get("student_id"), "")
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/parent/reuniones")
+async def parent_get_reuniones(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(PARENT_ROLES))
+):
+    """Parent: only reuniones where they are in parent_ids"""
+    school_id = user["school_id"]
+    parent_id = user["id"]
+
+    query = {
+        "school_id": school_id,
+        "deleted_at": None,
+        "parent_ids": parent_id,
+    }
+
+    total = await db.coordinacion_reuniones.count_documents(query)
+    items = await db.coordinacion_reuniones.find(
+        query, {"_id": 0}
+    ).sort("scheduled_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    # Enrich
+    student_ids = list(set(i.get("student_id") for i in items))
+    name_map = {}
+    if student_ids:
+        students_data = await db.users.find(
+            {"id": {"$in": student_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(50)
+        name_map = {s["id"]: f"{s.get('name','')} {s.get('last_name','')}".strip() for s in students_data}
+    for item in items:
+        item["student_name"] = name_map.get(item.get("student_id"), "")
+        item["is_confirmed"] = parent_id in (item.get("confirmed_parents") or [])
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.post("/parent/reuniones/{reunion_id}/confirm")
+async def parent_confirm_reunion_intranet(reunion_id: str, user=Depends(require_role(PARENT_ROLES))):
+    """Parent intranet confirmation (already logged in, no JWT token needed)"""
+    school_id = user["school_id"]
+    parent_id = user["id"]
+
+    reunion = await db.coordinacion_reuniones.find_one(
+        {"id": reunion_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "parent_ids": 1, "confirmed_parents": 1, "status": 1}
+    )
+    if not reunion:
+        raise HTTPException(status_code=404, detail="Reunion no encontrada")
+    if parent_id not in reunion.get("parent_ids", []):
+        raise HTTPException(status_code=403, detail="No estas invitado a esta reunion")
+
+    confirmed = reunion.get("confirmed_parents", [])
+    if parent_id in confirmed:
+        return {"message": "Ya confirmaste tu asistencia", "already_confirmed": True}
+
+    confirmed.append(parent_id)
+    update = {"confirmed_parents": confirmed, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if reunion["status"] == "programada":
+        update["status"] = "confirmada"
+
+    await db.coordinacion_reuniones.update_one({"id": reunion_id}, {"$set": update})
+    return {"message": "Asistencia confirmada correctamente", "already_confirmed": False}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# VISTAS ALUMNO (endpoints dedicados)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/student/compromisos")
+async def student_get_compromisos(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(STUDENT_ROLES))
+):
+    """Student: only non-confidential incidencias where they are the student, showing commitments"""
+    school_id = user["school_id"]
+    student_id = user["id"]
+
+    # Get incidencias (non-confidential only)
+    incidencias = await db.coordinacion_incidencias.find(
+        {
+            "school_id": school_id,
+            "student_id": student_id,
+            "deleted_at": None,
+            "confidential": {"$ne": True},
+        },
+        {"_id": 0, "id": 1, "title": 1, "type": 1, "severity": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    total = await db.coordinacion_incidencias.count_documents({
+        "school_id": school_id, "student_id": student_id, "deleted_at": None, "confidential": {"$ne": True}
+    })
+
+    # Get latest seguimiento for each incidencia (for commitments)
+    inc_ids = [i["id"] for i in incidencias]
+    if inc_ids:
+        segs = await db.coordinacion_seguimientos.find(
+            {"incidencia_id": {"$in": inc_ids}, "deleted_at": None},
+            {"_id": 0, "incidencia_id": 1, "commitment": 1, "next_review_at": 1, "created_at": 1}
+        ).sort("created_at", -1).to_list(200)
+
+        # Group by incidencia, take latest
+        seg_map = {}
+        for s in segs:
+            iid = s["incidencia_id"]
+            if iid not in seg_map:
+                seg_map[iid] = s
+
+        for inc in incidencias:
+            seg = seg_map.get(inc["id"])
+            inc["latest_commitment"] = seg.get("commitment") if seg else None
+            inc["next_review_at"] = seg.get("next_review_at") if seg else None
+
+    return {"items": incidencias, "total": total, "page": page, "page_size": page_size}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 

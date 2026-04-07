@@ -126,6 +126,9 @@ import DerivacionDetailPage from "@/pages/coordinacion/DerivacionDetailPage";
 import ReunionesListPage from "@/pages/coordinacion/ReunionesListPage";
 import ReunionDetailPage from "@/pages/coordinacion/ReunionDetailPage";
 import CoordinacionPlaceholderPage from "@/pages/coordinacion/CoordinacionPlaceholderPage";
+import EstudiantesFichaPage from "@/pages/coordinacion/EstudiantesFichaPage";
+import AgendaPage from "@/pages/coordinacion/AgendaPage";
+import ParentCoordinacionView from "@/pages/coordinacion/ParentCoordinacionView";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1830,7 +1833,7 @@ function App() {
             path="/:subdomain/coordinacion/estudiantes"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CoordinacionPlaceholderPage title="Estudiantes" description="Ficha completa del estudiante desde el enfoque de coordinacion: historial de incidencias, observaciones de conducta y estado de seguimiento." user={user} token={token} onLogout={handleLogout} activeSection="estudiantes" iconName="Users" />
+                <EstudiantesFichaPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1854,7 +1857,7 @@ function App() {
             path="/:subdomain/coordinacion/agenda"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CoordinacionPlaceholderPage title="Agenda" description="Calendario unificado con reuniones, charlas y derivaciones proximas." user={user} token={token} onLogout={handleLogout} activeSection="agenda" iconName="Calendar" />
+                <AgendaPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1873,6 +1876,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/parent/coordinacion"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentCoordinacionView user={user} token={token} />
               </ProtectedRoute>
             }
           />
