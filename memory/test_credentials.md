@@ -36,5 +36,5 @@
 - Role: teacher
 
 ## App URL
-- https://fichas-clinical.preview.emergentagent.com
-- Login: https://fichas-clinical.preview.emergentagent.com/elroble/login
+- https://alimentacion-escolar.preview.emergentagent.com
+- Login: https://alimentacion-escolar.preview.emergentagent.com/elroble/login

@@ -55,7 +55,7 @@ from routes.parents import router as parents_router
 from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
-from routes.pae import router as pae_router, ensure_pae_indexes
+from routes.pae import router as pae_router, ensure_pae_indexes, seed_pae_default_turnos
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -79,7 +79,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://fichas-clinical.preview.emergentagent.com",
+        "https://alimentacion-escolar.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -392,6 +392,26 @@ async def create_indexes():
         await db.course_posts.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
 
         logging.info("MongoDB indexes created successfully")
+
+        # ── PAE Migration: seed default turnos for all schools ──
+        try:
+            logging.info("[PAE Migration] Verificando turnos por defecto...")
+            all_schools = await db.schools.find({}, {"_id": 0, "id": 1}).to_list(length=10000)
+            updated = 0
+            already_ok = 0
+            for s in all_schools:
+                seeded = await seed_pae_default_turnos(s["id"])
+                if seeded:
+                    updated += 1
+                else:
+                    already_ok += 1
+            if updated > 0:
+                logging.info(f"[PAE Migration] {updated} colegios actualizados, {already_ok} colegios ya tenían turnos")
+            else:
+                logging.info("[PAE Migration] Todos los colegios ya tienen turnos configurados. Skip.")
+        except Exception as pae_err:
+            logging.error(f"[PAE Migration] Error durante migración de turnos: {pae_err}")
+
         # Initialize Firebase Admin SDK
         from utils.firebase_admin_sdk import get_firebase_app
         fb_app = get_firebase_app()

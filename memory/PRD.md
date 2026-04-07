@@ -37,6 +37,7 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 - DELETE /api/pae/turnos/{id} with registros protection
 - GET /api/school/info: Public endpoint for logo+name (all authenticated users)
 - DashboardHeader: extraActions prop for custom header buttons
+- Auto-seed migration: `seed_pae_default_turnos` runs at server startup (idempotent, non-blocking, with [PAE Migration] logging)
 
 **Phase 3: Reportes y Exportacion** - PENDING
 
