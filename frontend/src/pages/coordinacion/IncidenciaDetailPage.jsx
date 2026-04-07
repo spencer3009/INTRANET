@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Loader2, AlertTriangle, Clock, User, Plus,
-  MessageSquare, ChevronDown, Edit, Trash2, CheckCircle
+  MessageSquare, ChevronDown, Edit, Trash2, CheckCircle, ArrowRightLeft
 } from "lucide-react";
 import CoordinacionLayout from "@/components/coordinacion/CoordinacionLayout";
 import { SeverityBadge, StatusPill } from "@/components/coordinacion/SharedBadges";
@@ -45,7 +45,11 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
     new_status: ""
   });
 
-  const canWrite = user?.role === "coordinator" || user?.role === "admin";
+  const [showDerivarForm, setShowDerivarForm] = useState(false);
+  const [derivForm, setDerivForm] = useState({ to_area: "", priority: "media", reason: "", notes: "" });
+  const [savingDeriv, setSavingDeriv] = useState(false);
+
+  const canWrite = user?.role === "coordinator" || user?.role === "admin" || user?.role === "owner";
 
   const loadData = async () => {
     if (!token || !id) return;
@@ -98,6 +102,32 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
     }
   };
 
+  const handleDerivar = async (e) => {
+    e.preventDefault();
+    if (!derivForm.to_area || !derivForm.reason) {
+      toast.error("Completa el area y el motivo de la derivacion");
+      return;
+    }
+    setSavingDeriv(true);
+    try {
+      await coordinacionApi.createDerivacion(token, {
+        incidencia_id: id,
+        to_area: derivForm.to_area,
+        priority: derivForm.priority,
+        reason: derivForm.reason,
+        notes: derivForm.notes || null,
+      });
+      toast.success("Derivacion creada correctamente");
+      setShowDerivarForm(false);
+      setDerivForm({ to_area: "", priority: "media", reason: "", notes: "" });
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al crear derivacion");
+    } finally {
+      setSavingDeriv(false);
+    }
+  };
+
   if (loading) {
     return (
       <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="incidencias">
@@ -143,7 +173,7 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
                 {inc.section_name && <> - {inc.section_name}</>}
               </p>
             </div>
-            {user?.role === "admin" && (
+            {(user?.role === "admin" || user?.role === "owner") && (
               <button onClick={handleDelete}
                 className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-colors"
                 data-testid="delete-incidencia-btn">
@@ -151,6 +181,26 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
               </button>
             )}
           </div>
+
+          {/* Action buttons */}
+          {canWrite && inc.status !== "derivada" && inc.status !== "cerrada" && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button onClick={() => setShowDerivarForm(!showDerivarForm)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-xl text-sm font-medium transition-colors"
+                data-testid="derivar-incidencia-btn">
+                <ArrowRightLeft className="w-4 h-4" /> Derivar
+              </button>
+            </div>
+          )}
+          {inc.status === "derivada" && (
+            <div className="mt-4">
+              <button onClick={() => navigate(`/${sub}/coordinacion/derivaciones`)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-xl text-sm font-medium transition-colors"
+                data-testid="ver-derivaciones-btn">
+                <ArrowRightLeft className="w-4 h-4" /> Ver derivaciones
+              </button>
+            </div>
+          )}
 
           {/* Details grid */}
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -178,6 +228,69 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
             </p>
           </div>
         </div>
+
+        {/* Derivar Form */}
+        {showDerivarForm && (
+          <form onSubmit={handleDerivar} className="bg-white rounded-2xl shadow-sm border border-teal-200 p-6 space-y-4" data-testid="derivar-form">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-teal-600" /> Crear derivacion
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Area de derivacion *</label>
+                <select value={derivForm.to_area}
+                  onChange={e => setDerivForm(p => ({...p, to_area: e.target.value}))}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm"
+                  data-testid="select-deriv-area">
+                  <option value="">Seleccionar area</option>
+                  <option value="psicologia">Psicologia</option>
+                  <option value="direccion">Direccion</option>
+                  <option value="tutoria">Tutoria</option>
+                  <option value="orientacion_familiar">Orientacion familiar</option>
+                  <option value="externa">Derivacion externa</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Prioridad</label>
+                <select value={derivForm.priority}
+                  onChange={e => setDerivForm(p => ({...p, priority: e.target.value}))}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm"
+                  data-testid="select-deriv-priority">
+                  <option value="baja">Baja</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="urgente">Urgente</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Motivo de la derivacion *</label>
+              <textarea rows={3} maxLength={4000} value={derivForm.reason}
+                onChange={e => setDerivForm(p => ({...p, reason: e.target.value}))}
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm resize-none"
+                data-testid="deriv-reason" placeholder="Explica por que se deriva este caso..." />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Notas adicionales</label>
+              <textarea rows={2} value={derivForm.notes}
+                onChange={e => setDerivForm(p => ({...p, notes: e.target.value}))}
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm resize-none"
+                data-testid="deriv-notes" placeholder="Opcional..." />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setShowDerivarForm(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium">
+                Cancelar
+              </button>
+              <button type="submit" disabled={savingDeriv}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+                data-testid="submit-derivacion-btn">
+                {savingDeriv ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRightLeft className="w-4 h-4" />}
+                Crear derivacion
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Seguimientos Timeline */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">

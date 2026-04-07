@@ -121,6 +121,10 @@ import CoordinacionDashboardPage from "@/pages/coordinacion/CoordinacionDashboar
 import IncidenciasListPage from "@/pages/coordinacion/IncidenciasListPage";
 import IncidenciaFormPage from "@/pages/coordinacion/IncidenciaFormPage";
 import IncidenciaDetailPage from "@/pages/coordinacion/IncidenciaDetailPage";
+import DerivacionesListPage from "@/pages/coordinacion/DerivacionesListPage";
+import DerivacionDetailPage from "@/pages/coordinacion/DerivacionDetailPage";
+import ReunionesListPage from "@/pages/coordinacion/ReunionesListPage";
+import ReunionDetailPage from "@/pages/coordinacion/ReunionDetailPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1786,6 +1790,38 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <IncidenciaDetailPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/derivaciones"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <DerivacionesListPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/derivaciones/:id"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <DerivacionDetailPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/reuniones"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ReunionesListPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/reuniones/:id"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ReunionDetailPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

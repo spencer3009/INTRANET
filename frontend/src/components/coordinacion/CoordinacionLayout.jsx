@@ -14,6 +14,7 @@ export default function CoordinacionLayout({ children, user, token, onLogout, ac
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         schoolName={user?.school_name}
         subdomain={user?.subdomain}
+        token={token}
       />
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader

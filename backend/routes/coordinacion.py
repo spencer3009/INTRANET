@@ -1,14 +1,15 @@
 """
-Coordinacion module: incidencias, seguimientos, dashboard
+Coordinacion module: incidencias, seguimientos, derivaciones, reuniones
 Routes prefixed with /api/coordinacion
 """
 import uuid
 import logging
-from datetime import datetime, timezone
+import jwt
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Query
-from .core import db, get_current_user, resolve_user_from_token, require_role
+from .core import db, get_current_user, resolve_user_from_token, require_role, JWT_SECRET
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,25 @@ INCIDENCIA_STATUSES = [
     "derivada", "resuelta", "cerrada"
 ]
 PARENT_INVOLVEMENT_OPTIONS = ["ninguna", "informada", "presente", "comprometida"]
+
+DERIVACION_AREAS = ["psicologia", "direccion", "tutoria", "orientacion_familiar", "externa"]
+DERIVACION_STATUSES = ["pendiente", "en_proceso", "resuelta", "cancelada"]
+DERIVACION_PRIORITIES = ["baja", "media", "alta", "urgente"]
+
+DERIVACION_AREA_LABELS = {
+    "psicologia": "Psicologia",
+    "direccion": "Direccion",
+    "tutoria": "Tutoria",
+    "orientacion_familiar": "Orientacion familiar",
+    "externa": "Derivacion externa"
+}
+
+# Map area to role for auto-assignment
+AREA_TO_ROLE = {
+    "psicologia": "psicologo",
+    "direccion": "director",
+    "tutoria": "teacher",
+}
 
 INCIDENCIA_TYPE_LABELS = {
     "conducta_disruptiva": "Conducta disruptiva",
@@ -143,6 +163,40 @@ class SeguimientoCreate(BaseModel):
     next_review_at: Optional[str] = None
     new_status: str
 
+class DerivacionCreate(BaseModel):
+    incidencia_id: str
+    to_area: str
+    priority: str = "media"
+    reason: str = Field(max_length=4000)
+    notes: Optional[str] = None
+    to_user_id: Optional[str] = None
+
+class DerivacionUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    to_user_id: Optional[str] = None
+
+REUNION_STATUSES = ["programada", "confirmada", "realizada", "cancelada", "no_asistio"]
+
+class ReunionCreate(BaseModel):
+    student_id: str
+    incidencia_id: Optional[str] = None
+    scheduled_at: str
+    location: str = "Oficina de Coordinacion"
+    agenda: str = Field(max_length=4000)
+    parent_ids: List[str] = []
+    notes: Optional[str] = None
+
+class ReunionUpdate(BaseModel):
+    status: Optional[str] = None
+    scheduled_at: Optional[str] = None
+    location: Optional[str] = None
+    agenda: Optional[str] = None
+    notes: Optional[str] = None
+    outcome: Optional[str] = None
+    commitments: Optional[str] = None
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ENUMS ENDPOINT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -154,6 +208,9 @@ async def get_enums(current_user=Depends(require_role(COORD_VIEW_ROLES))):
         "severities": [{"id": k, "label": v} for k, v in SEVERITY_LABELS.items()],
         "statuses": [{"id": k, "label": v} for k, v in STATUS_LABELS.items()],
         "parent_involvement": PARENT_INVOLVEMENT_OPTIONS,
+        "derivacion_areas": [{"id": k, "label": v} for k, v in DERIVACION_AREA_LABELS.items()],
+        "derivacion_statuses": DERIVACION_STATUSES,
+        "derivacion_priorities": DERIVACION_PRIORITIES,
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -565,6 +622,540 @@ async def update_seguimiento(seguimiento_id: str, data: SeguimientoCreate, user=
     )
 
     return {"message": "Seguimiento actualizado"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DERIVACIONES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/derivaciones")
+async def create_derivacion(data: DerivacionCreate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+
+    # Validate area
+    if data.to_area not in DERIVACION_AREAS:
+        raise HTTPException(status_code=400, detail=f"Area invalida: {data.to_area}")
+    if data.priority not in DERIVACION_PRIORITIES:
+        raise HTTPException(status_code=400, detail=f"Prioridad invalida: {data.priority}")
+
+    # Validate incidencia exists and belongs to school
+    inc = await db.coordinacion_incidencias.find_one(
+        {"id": data.incidencia_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "student_id": 1, "title": 1}
+    )
+    if not inc:
+        raise HTTPException(status_code=404, detail="Incidencia no encontrada")
+
+    # Try auto-assign if to_user_id not provided
+    to_user_id = data.to_user_id
+    if not to_user_id and data.to_area in AREA_TO_ROLE:
+        target_role = AREA_TO_ROLE[data.to_area]
+        candidates = await db.users.find(
+            {"school_id": school_id, "role": target_role, "status": {"$ne": "inactive"}},
+            {"_id": 0, "id": 1}
+        ).to_list(10)
+        if len(candidates) == 1:
+            to_user_id = candidates[0]["id"]
+        # If 0 or multiple candidates, leave unassigned
+
+    now = datetime.now(timezone.utc).isoformat()
+    deriv_id = str(uuid.uuid4())
+
+    derivacion = {
+        "id": deriv_id,
+        "school_id": school_id,
+        "incidencia_id": data.incidencia_id,
+        "student_id": inc["student_id"],
+        "from_user_id": user["id"],
+        "to_area": data.to_area,
+        "to_user_id": to_user_id,
+        "status": "pendiente",
+        "priority": data.priority,
+        "reason": data.reason,
+        "notes": data.notes,
+        "resolution_notes": None,
+        "status_changed_at": now,
+        "seen_by_coordinator": True,
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["id"],
+        "deleted_at": None,
+    }
+
+    await db.coordinacion_derivaciones.insert_one(derivacion)
+    del derivacion["_id"]
+
+    # Update incidencia status to "derivada"
+    await db.coordinacion_incidencias.update_one(
+        {"id": data.incidencia_id},
+        {"$set": {"status": "derivada", "updated_at": now, "updated_by": user["id"]}}
+    )
+
+    await log_coordinacion_audit(user["id"], "create", "derivacion", deriv_id, inc["student_id"], school_id)
+    logger.info(f"Derivacion created: {deriv_id} to {data.to_area} for incidencia {data.incidencia_id}")
+
+    return derivacion
+
+
+@router.get("/derivaciones")
+async def list_derivaciones(
+    status: Optional[str] = None,
+    to_area: Optional[str] = None,
+    unassigned: Optional[bool] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(COORD_VIEW_ROLES))
+):
+    school_id = user["school_id"]
+    query = {"school_id": school_id, "deleted_at": None}
+
+    if status:
+        query["status"] = status
+    if to_area:
+        query["to_area"] = to_area
+    if unassigned:
+        query["to_user_id"] = None
+
+    total = await db.coordinacion_derivaciones.count_documents(query)
+    items = await db.coordinacion_derivaciones.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    # Enrich with names
+    student_ids = list(set(i.get("student_id") for i in items if i.get("student_id")))
+    user_ids = list(set(
+        [i.get("from_user_id") for i in items if i.get("from_user_id")] +
+        [i.get("to_user_id") for i in items if i.get("to_user_id")]
+    ))
+    all_ids = list(set(student_ids + user_ids))
+
+    name_map = {}
+    if all_ids:
+        users_data = await db.users.find(
+            {"id": {"$in": all_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(100)
+        name_map = {u["id"]: f"{u.get('name','')} {u.get('last_name','')}".strip() for u in users_data}
+
+    # Enrich with incidencia titles
+    inc_ids = list(set(i.get("incidencia_id") for i in items if i.get("incidencia_id")))
+    inc_map = {}
+    if inc_ids:
+        incs = await db.coordinacion_incidencias.find(
+            {"id": {"$in": inc_ids}}, {"_id": 0, "id": 1, "title": 1}
+        ).to_list(100)
+        inc_map = {i["id"]: i.get("title", "") for i in incs}
+
+    for item in items:
+        item["student_name"] = name_map.get(item.get("student_id"), "")
+        item["from_user_name"] = name_map.get(item.get("from_user_id"), "")
+        item["to_user_name"] = name_map.get(item.get("to_user_id"), "Sin asignar")
+        item["incidencia_title"] = inc_map.get(item.get("incidencia_id"), "")
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/derivaciones/notifications")
+async def get_derivacion_notifications(user=Depends(require_role(COORD_WRITE_ROLES))):
+    """Count derivations with status changes not yet seen by coordinator"""
+    school_id = user["school_id"]
+    count = await db.coordinacion_derivaciones.count_documents({
+        "school_id": school_id,
+        "deleted_at": None,
+        "from_user_id": user["id"],
+        "seen_by_coordinator": False,
+    })
+    return {"unseen_count": count}
+
+
+@router.get("/derivaciones/{derivacion_id}")
+async def get_derivacion(derivacion_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    school_id = user["school_id"]
+    deriv = await db.coordinacion_derivaciones.find_one(
+        {"id": derivacion_id, "school_id": school_id, "deleted_at": None}, {"_id": 0}
+    )
+    if not deriv:
+        raise HTTPException(status_code=404, detail="Derivacion no encontrada")
+
+    # Enrich with names
+    ids_to_resolve = [deriv.get("student_id"), deriv.get("from_user_id"), deriv.get("to_user_id")]
+    ids_to_resolve = [i for i in ids_to_resolve if i]
+    name_map = {}
+    if ids_to_resolve:
+        users_data = await db.users.find(
+            {"id": {"$in": ids_to_resolve}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(10)
+        name_map = {u["id"]: f"{u.get('name','')} {u.get('last_name','')}".strip() for u in users_data}
+
+    deriv["student_name"] = name_map.get(deriv.get("student_id"), "")
+    deriv["from_user_name"] = name_map.get(deriv.get("from_user_id"), "")
+    deriv["to_user_name"] = name_map.get(deriv.get("to_user_id"), "Sin asignar")
+
+    # Get incidencia title
+    inc = await db.coordinacion_incidencias.find_one(
+        {"id": deriv.get("incidencia_id")}, {"_id": 0, "title": 1}
+    )
+    deriv["incidencia_title"] = inc.get("title", "") if inc else ""
+
+    # Mark as seen by coordinator
+    if deriv.get("from_user_id") == user["id"] and not deriv.get("seen_by_coordinator"):
+        await db.coordinacion_derivaciones.update_one(
+            {"id": derivacion_id},
+            {"$set": {"seen_by_coordinator": True}}
+        )
+
+    return deriv
+
+
+@router.patch("/derivaciones/{derivacion_id}")
+async def update_derivacion(derivacion_id: str, data: DerivacionUpdate, user=Depends(require_role(COORD_VIEW_ROLES))):
+    """Update derivacion - coordinators, target area users, admin, director can update"""
+    school_id = user["school_id"]
+    deriv = await db.coordinacion_derivaciones.find_one(
+        {"id": derivacion_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "student_id": 1, "from_user_id": 1, "status": 1}
+    )
+    if not deriv:
+        raise HTTPException(status_code=404, detail="Derivacion no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"updated_at": now, "updated_by": user["id"]}
+
+    if data.status:
+        if data.status not in DERIVACION_STATUSES:
+            raise HTTPException(status_code=400, detail=f"Status invalido: {data.status}")
+        update["status"] = data.status
+        update["status_changed_at"] = now
+        # If someone other than the original coordinator changes status, mark unseen
+        if user["id"] != deriv.get("from_user_id"):
+            update["seen_by_coordinator"] = False
+    if data.notes is not None:
+        update["notes"] = data.notes
+    if data.resolution_notes is not None:
+        update["resolution_notes"] = data.resolution_notes
+    if data.to_user_id is not None:
+        # Validate user exists in school
+        target_user = await db.users.find_one(
+            {"id": data.to_user_id, "school_id": school_id}, {"_id": 0, "id": 1}
+        )
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Usuario destino no encontrado")
+        update["to_user_id"] = data.to_user_id
+
+    await db.coordinacion_derivaciones.update_one({"id": derivacion_id}, {"$set": update})
+    await log_coordinacion_audit(user["id"], "update", "derivacion", derivacion_id, deriv.get("student_id"), school_id)
+
+    # If derivacion resolved/cancelled, optionally update incidencia
+    if data.status in ("resuelta", "cancelada"):
+        # Check if there are other active derivations for this incidencia
+        inc_id = deriv.get("incidencia_id") if "incidencia_id" not in update else None
+        if not inc_id:
+            d_full = await db.coordinacion_derivaciones.find_one({"id": derivacion_id}, {"_id": 0, "incidencia_id": 1})
+            inc_id = d_full.get("incidencia_id") if d_full else None
+        if inc_id:
+            active_derivs = await db.coordinacion_derivaciones.count_documents({
+                "incidencia_id": inc_id, "school_id": school_id,
+                "deleted_at": None, "status": {"$in": ["pendiente", "en_proceso"]},
+                "id": {"$ne": derivacion_id}
+            })
+            if active_derivs == 0 and data.status == "resuelta":
+                await db.coordinacion_incidencias.update_one(
+                    {"id": inc_id, "status": "derivada"},
+                    {"$set": {"status": "resuelta", "updated_at": now}}
+                )
+
+    return {"message": "Derivacion actualizada"}
+
+
+@router.get("/staff/{area}")
+async def get_staff_by_area(area: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    """Get staff members that can be assigned to a derivation area"""
+    school_id = user["school_id"]
+    role = AREA_TO_ROLE.get(area)
+    if not role:
+        return {"staff": []}
+    staff = await db.users.find(
+        {"school_id": school_id, "role": role, "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "role": 1}
+    ).to_list(50)
+    for s in staff:
+        s["full_name"] = f"{s.get('name','')} {s.get('last_name','')}".strip()
+    return {"staff": staff}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REUNIONES CON PADRES
+# ══════════════════════════════════════════════════════════════════════════════
+
+def generate_reunion_token(reunion_id, parent_id, school_id):
+    """Generate a short-lived JWT for parent confirmation (7 days)"""
+    payload = {
+        "reunion_id": reunion_id,
+        "parent_id": parent_id,
+        "school_id": school_id,
+        "purpose": "reunion_confirm",
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+@router.post("/reuniones")
+async def create_reunion(data: ReunionCreate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+
+    # Validate student exists in school
+    student = await db.users.find_one(
+        {"id": data.student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    # If no parent_ids provided, find linked parents
+    parent_ids = data.parent_ids
+    if not parent_ids:
+        parents = await db.users.find(
+            {"school_id": school_id, "role": "parent", "children": data.student_id},
+            {"_id": 0, "id": 1}
+        ).to_list(10)
+        parent_ids = [p["id"] for p in parents]
+
+    # Validate incidencia if provided
+    if data.incidencia_id:
+        inc = await db.coordinacion_incidencias.find_one(
+            {"id": data.incidencia_id, "school_id": school_id, "deleted_at": None},
+            {"_id": 0, "id": 1}
+        )
+        if not inc:
+            raise HTTPException(status_code=404, detail="Incidencia no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    reunion_id = str(uuid.uuid4())
+
+    reunion = {
+        "id": reunion_id,
+        "school_id": school_id,
+        "student_id": data.student_id,
+        "incidencia_id": data.incidencia_id,
+        "scheduled_at": data.scheduled_at,
+        "location": data.location,
+        "agenda": data.agenda,
+        "parent_ids": parent_ids,
+        "confirmed_parents": [],
+        "status": "programada",
+        "notes": data.notes,
+        "outcome": None,
+        "commitments": None,
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["id"],
+        "deleted_at": None,
+    }
+
+    await db.coordinacion_reuniones.insert_one(reunion)
+    del reunion["_id"]
+
+    # Generate confirmation tokens for each parent
+    confirmation_links = []
+    for pid in parent_ids:
+        token_str = generate_reunion_token(reunion_id, pid, school_id)
+        confirmation_links.append({
+            "parent_id": pid,
+            "token": token_str,
+        })
+
+    # Update incidencia status if linked
+    if data.incidencia_id:
+        await db.coordinacion_incidencias.update_one(
+            {"id": data.incidencia_id},
+            {"$set": {"status": "citacion_programada", "updated_at": now}}
+        )
+
+    await log_coordinacion_audit(user["id"], "create", "reunion", reunion_id, data.student_id, school_id)
+    logger.info(f"Reunion created: {reunion_id} for student {data.student_id}")
+
+    reunion["confirmation_links"] = confirmation_links
+    return reunion
+
+
+@router.post("/reuniones/confirm")
+async def confirm_reunion(token_str: str = Query(..., alias="token")):
+    """Public endpoint - parent confirms reunion attendance via JWT token"""
+    try:
+        payload = jwt.decode(token_str, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="El enlace de confirmacion ha expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=400, detail="Enlace de confirmacion invalido")
+
+    if payload.get("purpose") != "reunion_confirm":
+        raise HTTPException(status_code=400, detail="Token invalido")
+
+    reunion_id = payload["reunion_id"]
+    parent_id = payload["parent_id"]
+    school_id = payload["school_id"]
+
+    reunion = await db.coordinacion_reuniones.find_one(
+        {"id": reunion_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "parent_ids": 1, "confirmed_parents": 1, "status": 1}
+    )
+    if not reunion:
+        raise HTTPException(status_code=404, detail="Reunion no encontrada")
+
+    if parent_id not in reunion.get("parent_ids", []):
+        raise HTTPException(status_code=403, detail="No estas invitado a esta reunion")
+
+    confirmed = reunion.get("confirmed_parents", [])
+    if parent_id in confirmed:
+        return {"message": "Ya confirmaste tu asistencia", "already_confirmed": True}
+
+    confirmed.append(parent_id)
+    update = {"confirmed_parents": confirmed, "updated_at": datetime.now(timezone.utc).isoformat()}
+
+    # Auto-update status to confirmed if at least one parent confirms
+    if reunion["status"] == "programada":
+        update["status"] = "confirmada"
+
+    await db.coordinacion_reuniones.update_one({"id": reunion_id}, {"$set": update})
+
+    return {"message": "Asistencia confirmada correctamente", "already_confirmed": False}
+
+
+@router.get("/reuniones")
+async def list_reuniones(
+    status: Optional[str] = None,
+    student_id: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user=Depends(require_role(COORD_VIEW_ROLES))
+):
+    school_id = user["school_id"]
+    query = {"school_id": school_id, "deleted_at": None}
+
+    if status:
+        query["status"] = status
+    if student_id:
+        query["student_id"] = student_id
+
+    total = await db.coordinacion_reuniones.count_documents(query)
+    items = await db.coordinacion_reuniones.find(
+        query, {"_id": 0}
+    ).sort("scheduled_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    # Enrich with names
+    all_user_ids = set()
+    for item in items:
+        if item.get("student_id"):
+            all_user_ids.add(item["student_id"])
+        for pid in item.get("parent_ids", []):
+            all_user_ids.add(pid)
+        if item.get("created_by"):
+            all_user_ids.add(item["created_by"])
+
+    name_map = {}
+    if all_user_ids:
+        users_data = await db.users.find(
+            {"id": {"$in": list(all_user_ids)}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(100)
+        name_map = {u["id"]: f"{u.get('name','')} {u.get('last_name','')}".strip() for u in users_data}
+
+    for item in items:
+        item["student_name"] = name_map.get(item.get("student_id"), "")
+        item["created_by_name"] = name_map.get(item.get("created_by"), "")
+        item["parent_names"] = [name_map.get(pid, "") for pid in item.get("parent_ids", [])]
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/reuniones/{reunion_id}")
+async def get_reunion(reunion_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    school_id = user["school_id"]
+    reunion = await db.coordinacion_reuniones.find_one(
+        {"id": reunion_id, "school_id": school_id, "deleted_at": None}, {"_id": 0}
+    )
+    if not reunion:
+        raise HTTPException(status_code=404, detail="Reunion no encontrada")
+
+    # Enrich with names
+    all_ids = [reunion.get("student_id"), reunion.get("created_by")] + reunion.get("parent_ids", [])
+    all_ids = [i for i in all_ids if i]
+    name_map = {}
+    if all_ids:
+        users_data = await db.users.find(
+            {"id": {"$in": all_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(50)
+        name_map = {u["id"]: f"{u.get('name','')} {u.get('last_name','')}".strip() for u in users_data}
+
+    reunion["student_name"] = name_map.get(reunion.get("student_id"), "")
+    reunion["created_by_name"] = name_map.get(reunion.get("created_by"), "")
+    reunion["parent_names"] = [name_map.get(pid, "") for pid in reunion.get("parent_ids", [])]
+    reunion["confirmed_parent_names"] = [name_map.get(pid, "") for pid in reunion.get("confirmed_parents", [])]
+
+    # Generate confirmation links for coordinator to share
+    confirmation_links = []
+    for pid in reunion.get("parent_ids", []):
+        if pid not in reunion.get("confirmed_parents", []):
+            token_str = generate_reunion_token(reunion_id, pid, school_id)
+            confirmation_links.append({
+                "parent_id": pid,
+                "parent_name": name_map.get(pid, ""),
+                "token": token_str,
+            })
+    reunion["pending_confirmation_links"] = confirmation_links
+
+    return reunion
+
+
+@router.patch("/reuniones/{reunion_id}")
+async def update_reunion(reunion_id: str, data: ReunionUpdate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+    reunion = await db.coordinacion_reuniones.find_one(
+        {"id": reunion_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "student_id": 1}
+    )
+    if not reunion:
+        raise HTTPException(status_code=404, detail="Reunion no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"updated_at": now, "updated_by": user["id"]}
+
+    if data.status:
+        if data.status not in REUNION_STATUSES:
+            raise HTTPException(status_code=400, detail=f"Estado invalido: {data.status}")
+        update["status"] = data.status
+    if data.scheduled_at is not None:
+        update["scheduled_at"] = data.scheduled_at
+    if data.location is not None:
+        update["location"] = data.location
+    if data.agenda is not None:
+        update["agenda"] = data.agenda
+    if data.notes is not None:
+        update["notes"] = data.notes
+    if data.outcome is not None:
+        update["outcome"] = data.outcome
+    if data.commitments is not None:
+        update["commitments"] = data.commitments
+
+    await db.coordinacion_reuniones.update_one({"id": reunion_id}, {"$set": update})
+    await log_coordinacion_audit(user["id"], "update", "reunion", reunion_id, reunion.get("student_id"), school_id)
+
+    return {"message": "Reunion actualizada"}
+
+
+@router.get("/parents/{student_id}")
+async def get_student_parents(student_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    """Get parents linked to a student"""
+    school_id = user["school_id"]
+    parents = await db.users.find(
+        {"school_id": school_id, "role": "parent", "children": student_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1, "phone": 1}
+    ).to_list(20)
+    for p in parents:
+        p["full_name"] = f"{p.get('name','')} {p.get('last_name','')}".strip()
+    return {"parents": parents}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

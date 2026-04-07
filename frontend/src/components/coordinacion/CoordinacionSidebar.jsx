@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Home, Users, AlertTriangle, ClipboardList, Calendar,
   Menu, MessageSquare, ArrowRightLeft, BarChart3, BookOpen
 } from "lucide-react";
+import { coordinacionApi } from "../../api/coordinacion";
 
 const navItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/coordinacion" },
@@ -17,10 +18,24 @@ const navItems = [
   { id: "reportes", label: "Reportes", icon: BarChart3, route: "/coordinacion/reportes" },
 ];
 
-export default function CoordinacionSidebar({ active, onNavigate, expanded, onToggle, schoolName, subdomain }) {
+export default function CoordinacionSidebar({ active, onNavigate, expanded, onToggle, schoolName, subdomain, token }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [derivBadge, setDerivBadge] = useState(0);
   const isExpanded = isHovered || expanded;
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchBadge = async () => {
+      try {
+        const res = await coordinacionApi.getDerivacionNotifications(token);
+        setDerivBadge(res.unseen_count || 0);
+      } catch {}
+    };
+    fetchBadge();
+    const interval = setInterval(fetchBadge, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   const handleNavClick = (item) => {
     if (onNavigate) onNavigate(item.id);
@@ -70,11 +85,23 @@ export default function CoordinacionSidebar({ active, onNavigate, expanded, onTo
                 data-testid={`coordinacion-sidebar-${item.id}`}
                 title={item.label}
               >
-                <span className="link-icon">
+                <span className="link-icon relative">
                   <Icon className="w-[22px] h-[22px]" />
+                  {item.id === "derivaciones" && derivBadge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center" data-testid="deriv-badge">
+                      {derivBadge > 9 ? "9+" : derivBadge}
+                    </span>
+                  )}
                 </span>
                 {isExpanded && (
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium flex items-center gap-2">
+                    {item.label}
+                    {item.id === "derivaciones" && derivBadge > 0 && (
+                      <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                        {derivBadge}
+                      </span>
+                    )}
+                  </span>
                 )}
               </button>
             );

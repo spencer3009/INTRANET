@@ -135,6 +135,19 @@ const ROLE_CARDS = [
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135725.png"
   },
   { 
+    id: "coordinator", 
+    label: "Coordinadores", 
+    labelSingular: "Coordinador",
+    color: "from-teal-500 to-teal-600",
+    bgColor: "bg-teal-50",
+    iconBg: "bg-teal-100",
+    textColor: "text-teal-600",
+    borderColor: "border-teal-200",
+    gradientBg: "from-teal-500 to-cyan-600",
+    lightGradient: "from-teal-50 to-cyan-50",
+    image: "https://cdn-icons-png.flaticon.com/512/3135/3135757.png"
+  },
+  { 
     id: "auxiliar_alimentacion", 
     label: "Aux. Alimentación", 
     labelSingular: "Auxiliar de Alimentación",
@@ -989,6 +1002,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'student' ? 'Estudiante' : 
                    roleId === 'parent' ? 'Padre/Apoderado' : 
                    roleId === 'psicologo' ? 'Psicologo' : 
+                   roleId === 'coordinator' ? 'Coordinador' :
                    roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' : roleId}
                 </div>
               ) : (
@@ -1005,6 +1019,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="student">Estudiante</option>
                   <option value="parent">Padre/Apoderado</option>
                   <option value="psicologo">Psicologo</option>
+                  <option value="coordinator">Coordinador</option>
                   <option value="auxiliar_alimentacion">Auxiliar de Alimentación</option>
                 </select>
               )}
