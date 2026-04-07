@@ -2512,11 +2512,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={handleExportTeacherCredentials}
                       disabled={exportingTeacherCredentials}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="export-teacher-credentials-btn"
                     >
-                      {exportingTeacherCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      {exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                        {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                      </div>
+                      <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
                     </button>
                   )}
                 </div>
