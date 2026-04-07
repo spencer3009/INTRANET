@@ -1,153 +1,374 @@
-<analysis>**original_problem_statement**: Continuar el desarrollo de EduNet con enfoque en el sistema de Exámenes OMR y la gestión general de colegios. Se solicitó implementar un rediseño de la UI de exámenes OMR (pestañas y modales directos), optimizar el sistema eliminando el uso de Cloudinary para almacenar fotos de exámenes escaneados (procesando solo en memoria), y ajustar la lógica de vencimiento y bloqueo de suscripciones de colegios para que el bloqueo total ocurra al 3er día de deuda. PRODUCT REQUIREMENTS: Sistema de exámenes físicos rápido e intuitivo en móviles (modales fullscreen), optimización de costos en la nube, y control riguroso de accesos basado en el estado de la suscripción ().
+<analysis>**original_problem_statement**: Implementar el Módulo Coordinador (Fase 1 completada, pendientes Fases 2 y 3) basándose en una especificación técnica extensa. PRODUCT REQUIREMENTS: Integrar un nuevo rol de primer nivel ( en backend, Coordinador en UI), reutilizar infraestructura del módulo de Psicología sin duplicar lógica, implementar dashboard de KPIs, CRUD de incidencias, seguimientos, charlas, reuniones con padres y derivaciones. Todo debe respetar el sistema RBAC (), soportar aislamiento multi-tenant (), utilizar soft-delete, auditoría y mantener un entorno estricto sin TypeScript.
 
-**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
+**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only - in this case, **Spanish**).
 
 **what currently exists?**: 
-El sistema OMR fue exitosamente refactorizado: la vista principal usa un diseño de grilla para los exámenes y modales ultrarrápidos y responsivos (Fullscreen en mobile) para Clave de respuestas y Escanear. El escaneo con OpenCV procesa las imágenes en memoria y extrae las respuestas sin subir la imagen a Cloudinary, mostrando una grilla visual interactiva en el resultado del alumno. También se modificó la lógica de suscripciones ( y ) para que al 3er día de vencimiento el sistema marque , bloqueando el login a profesores/padres/alumnos y mostrando un popup ineludible al Owner. 
+La plataforma educativa es robusta (FastAPI, React, MongoDB). En esta sesión se solucionaron problemas de UI móvil en Asistencia Manual (ajuste de diseño responsivo y etiquetas) y se añadió soporte completo al botón de Exportar Credenciales para Profesores. Además, se desarrolló e integró con éxito todo el flujo para **Justificación de Asistencias con Motivo Detallado** (Backend + Modal frontend). 
+Respecto al **Módulo de Coordinador**, la **Fase 1 (Núcleo)** acaba de ser completada: se agregó el rol , se actualizaron permisos, se creó el router , el Layout con Sidebar propio, el Dashboard, y el CRUD básico de incidencias y seguimientos en frontend y backend.
 
 **Last working item**:
-    - Last item agent was working: Depurando un bug crítico en la lógica de suscripción. El usuario reportó que a un colegio en producción con 5 días de vencimiento NO le aparece el banner ni el popup de bloqueo (el owner tiene acceso total sin restricciones). El usuario sospecha que esto se debe a que el colegio tiene un precio personalizado () o modelo de facturación base + alumno. El agente estaba analizando el flujo en ,  () y  para encontrar por qué se está evadiendo el bloqueo.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use?: Backend manual testing (code review) / Frontend testing agent
+    - Last item agent was working: Validar el correcto funcionamiento de la Fase 1 del Módulo Coordinador. El agente construyó toda la estructura y acaba de llamar al subagente de testing para verificar flujos y detectar errores.
+    - Status: TESTING PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use?: NA (El reporte de testing ya se generó, el agente debe proceder a leerlo).
     - User Testing Done: N
 
-**All Pending/In progress Issue list**:
-  Issue 1: (P0) Popup/Banner de bloqueo de suscripción evadido por colegios con precio personalizado.
-     - Attempted fixes: Se actualizó la lógica general en  para bloquear al día 3, pero no aplicó para este caso en producción. El agente intentó hacer una consulta a MongoDB pero falló porque no tiene acceso a la DB de producción.
-     - Next debug checklist: Revisar  en  (ver si  o  o el cálculo de  están retornando ACTIVO por error). Revisar  en  para asegurar que el  correcto dispare el .
-     - Why fix this issue and what will be achieved with the fix?: Evita que colegios morosos sigan usando la plataforma sin pagar.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Both
-
-  Issue 2: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
-     - Attempted fixes: Ninguno.
-     - Next debug checklist: Revisar contenedores con overflow redundante en el componente de Registro Auxiliar.
-     - Why fix this issue and what will be achieved with the fix?: Mejorar UX en el manejo de notas.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
+**All Pending/In progress Issue list**: 
+  Issue 1 (P0): Procesar resultados del subagente de testing para el Módulo Coordinador (Fase 1).
+     - Attempted fixes: Se implementó la Fase 1 y se despachó a .
+     - Next debug checklist: Leer minuciosamente . Solucionar cualquier bug, error 403, de validación o UI que el testing agent haya encontrado en el CRUD de incidencias, seguimientos, dashboard o login de coordinador.
+     - Why fix this issue and what will be achieved with the fix?: Asegurar que el núcleo del Módulo Coordinador (Fase 1) sea 100% estable y cumpla con el aislamiento de tenant y permisos antes de continuar con la Fase 2.
+     - Status: TESTING PENDING
+     - Is recurring issue?: N
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on other issue: Ninguno.
 
 **In progress Task List**:
-  No hay tareas de features en progreso (todas las de OMR fueron completadas). El enfoque actual es la corrección del Issue 1.
+  Task 1: Módulo Coordinador — Fase 2 (Operativa)
+     - Where to resume:  y nuevas páginas bajo .
+     - What will be achieved with this?: Implementar reuniones con padres (reusando lógica de  con tokens de confirmación), derivaciones a otras áreas con notificaciones, pestaña de Coordinación en la Ficha del Estudiante extendida, la Agenda integrada y las vistas restringidas para perfiles de Padre y Alumno.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on something: Finalizar la revisión de  (Issue 1).
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Refactorizar páginas de Mensajes: Consolidar páginas duplicadas.
-    - P2: Indicador visual de  en lista de Exámenes/Tareas.
-    - P2: Mejoras en Gradebook: Implementar Exportar a PDF/Excel y Bloquear/Cerrar Periodo.
-    - P2: Crear la página/módulo de Encuestas en .
+    - P0: Módulo Coordinador — Fase 3 (Valor agregado: Charlas, Reportes avanzados por grado/reincidencia, Exportación a XLSX/PDF y alertas automáticas de dashboard).
+    - P1: Psicología — Log de auditoría estricto (Se sugirió parametrizar  en vez de crear uno nuevo).
+    - P1: Módulo de Matrículas (Enrollments).
+    - P1: Dashboard Owner con métricas reales.
 
     Future Tasks:
-    - Dashboard Owner con métricas reales.
-    - Construir módulo de Matrículas (Enrollments).
-    - Refactorización crítica:  (> 11,000 líneas).
-    - Refactorización crítica: .
+    - P2: Refactorización crítica:  (> 11,000 líneas).
+    - P2: Crear módulo de Encuestas.
+    - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
 
 **Completed work in this session**
-- Rediseño OMR: Vista de detalle de examen con pestañas y vista inline por alumno (DONE).
-- Rediseño de UI: Lista de exámenes transformada de filas apiladas a una grilla de tarjetas responsiva (DONE).
-- Optimización Backend: Eliminada la subida de imágenes a Cloudinary en escaneos OMR, reduciendo costos de almacenamiento. Procesamiento 100% en memoria (DONE).
-- UI/UX OMR: Reemplazo de imagen de escaneo por una grilla visual interactiva de burbujas con estado correcto/incorrecto/blanco (DONE).
-- Modales UI OMR: Flujos completos de Configurar Clave y Escanear renderizados en Dialogs fullscreen desde la grilla (DONE).
-- Bug fixes UI: Resuelto bug de z-index de modales (App.css), añadidos botones X, y corregido inicio de scrollbar en modales (DONE).
-- Feature: Habilitada la eliminación de exámenes en estado 'Cerrado' (DONE).
-- Backend Auth: Lógica de suscripción ajustada para bloquear sistema al 3er día de deuda (DONE).
+- Botón para exportar credenciales de Profesores a Excel (reutilizando el patrón de los estudiantes) (DONE).
+- Fix bug en  para rol  (asegurado que muestra items correctos) (DONE).
+- Correcciones UI móvil en Asistencia Manual (arreglo de overflow y texto descriptivo bajo iconos de status) (DONE).
+- Sistema completo de Justificación de Inasistencias con Motivo Detallado (, , Tooltip informativos) (DONE).
+- **Fase 1: Módulo Coordinador (Núcleo)** (DONE - Testing pending):
+  - Rol  añadido en configuraciones de frontend y  (backend).
+  - Modelos e índices de Mongo para  y .
+  - Backend API:  (Dashboard KPIs, CRUD básico).
+  - Frontend: , , , listas, detalles y formularios de incidencias.
 
 **Earlier issues found/mentioned but not fixed**
-- Ninguno adicional a los listados.
+   - Issue 1: Rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
+     - Debug checklist: Uvicorn corriendo con 1 solo worker, falta de índices DB en .
+     - Why to solve this issue and what will be achieved with this?: Evitar caída/timeout del servidor al procesar notas.
+     - Should Test frontend/backend/both after fix: backend
+     - Is recurring issue?: Y
 
 **Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Ninguna aplicable para este fork.
   - Recurrence count: 0
+  - Status: RESOLVED
 
 **Code Architecture**
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── exams.py                 # Flujo de exámenes OMR (sin Cloudinary logic)
-│   │   ├── subscription.py          # Lógica de estado de planes y vencimientos
-│   │   └── auth.py                  # Lógica de bloqueo de login por deuda
-└── frontend/
-    └── src/
-        ├── App.js                         # Contiene SubscriptionGuard y ruteo principal
-        ├── App.css                        # CSS global
-        ├── contexts/SubscriptionContext.jsx # Provee info de la deuda
-        ├── components/course/OMRScanComponents.jsx # UI de escaneo
-        └── pages/CourseDetailPage.jsx       # Componente masivo con grilla de exámenes y modales
+│   │   ├── coordinacion.py               # API REST Módulo Coordinador (Nuevo)
+│   │   ├── attendance.py                 # (Actualizado con endpoints de justificación)
+│   │   └── core.py                       # Configuración de SECTION_PERMISSIONS
+├── frontend/
+│   ├── src/
+│   │   ├── App.js                        # Control de Auth y rutas para /coordinacion
+│   │   ├── api/
+│   │   │   └── coordinacion.js           # Fetch API hooks para el módulo
+│   │   ├── components/
+│   │   │   └── coordinacion/             # Componentes base (Layout, Sidebar, Modales)
+│   │   │       ├── CoordinacionLayout.jsx
+│   │   │       └── CoordinacionSidebar.jsx
+│   │   └── pages/
+│   │       └── coordinacion/             # Vistas de coordinador
+│   │           ├── CoordinacionDashboardPage.jsx
+│   │           ├── IncidenciasListPage.jsx
+│   │           ├── IncidenciaFormPage.jsx
+│   │           └── IncidenciaDetailPage.jsx
 
 **Key Technical Concepts**
-- **In-Memory OMR Pipeline**: Las imágenes enviadas desde el frontend () se leen usando , se procesan en OpenCV devolviendo un JSON con la matriz de resultados, y se desechan sin hacer .
-- **Subscription Degradation**: El sistema de cobro bloquea gradualmente. El owner entra a un jail (solo ve modal de pago), los demás roles son rechazados a nivel API .
+- **RBAC mediante Require Role**: Las verificaciones se delegan centralmente en  de  pero cada endpoint llama a . No se hacen chequeos directos (ej. ) en la lógica de negocio.
+- **Roles vs UI**: El backend estrictamente maneja el rol de coordinador como la string  (para alinearse con el resto de la base de código). La UI muestra los textos en español (Coordinador).
+- **Aislamiento Multi-escuela y Soft-delete**: Todas las colecciones nuevas incluyen , e índices para .
+- **Reutilización Estratégica**: Para la próxima fase (Agenda y Charlas), se debe reutilizar la lógica de  y el uploader existente de  configurado en . No duplicar esfuerzos.
 
 **key DB schema**
-  - : Documento base del Tenant. Campos clave: , , .
+  - : 
+  - : 
+  -  (actualizado): Campos opcionales , , , .
 
 **changes in tech stack**
-  - Cloudinary ya NO SE USA para persistir resultados de los escaneos OMR ( ha sido removido).
+  - N/A
 
 **All files of reference** 
-  -  (Crítico para el bug actual)
-  -  (Crítico para el bug actual)
+  -  (REVISAR INMEDIATAMENTE: Reporte testing Fase 1).
+  - 
+  - 
   - 
   - 
 
 **Areas that need refactoring**: 
-  - : Supera las 11,000 líneas. Los nuevos modales se inyectaron directamente allí, lo que incrementó el tamaño.
+  -  (> 11,000 líneas).
+  - La función  en  puede extraerse a una librería común (ej. ) para poder ser inyectada con la colección objetivo, en vez de limitarse solo a .
 
 **key api endpoints**
   - 
+  - 
+  - 
 
 **Critical Info for New Agent** 
-  - **ESTÁS EN PRODUCCIÓN**: El usuario mencionó explícitamente recuerda que estoy en producción. NO ejecutes scripts de Python que consulten la base de datos con asunciones, y por favor NO modifiques, borres, ni insertes datos usando bash o scripts a menos que sea en un sandbox. Rastrea el problema lógicamente a través del código.
-  - La clave del issue actual parece estar en que la función  en  podría estar perdonando a los colegios con configuraciones custom como  y devolviendo estado ACTIVO en vez de PAGO_OBLIGATORIO.
+- **TAREA INICIAL**: El Job previo terminó justo enviando a testear la Fase 1 del Módulo Coordinador. Debes abrir , solucionar CUALQUIER BUG o fix propuesto en ese documento.
+- Tras validar la Fase 1, tu obligación es generar el entregable exigido por el usuario antes de proceder a la Fase 2: Mostrar capturas de pantalla de la UI funcionando, lista de archivos, y validación multi-school (aislamiento).
+- Posteriormente, inicia la **Fase 2 (Operativa)** siguiendo el Spec que el usuario detalló minuciosamente en su mega-prompt.
+- **RECORDATORIO**: Mantente estrictamente en español para tus respuestas, excepto para nombres de clases/endpoints en código. Usa  en backend.
 
 **documents and test reports created in this job** 
-  - 
-  - 
-  - 
+  -  (Exportar Profesores)
+  -  (Justificaciones Asistencia)
+  -  (Coordinador Fase 1)
+  -  (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: (Reports modal UI block from Dialog overlay).
- - Agent: (Fixes z-index via App.css).
- - User: no sale la x de cerrar (en modales).
- - Agent: (Adds X button explicitly).
- - User: al boton de escanear tambien le falta
- - Agent: (Adds X to scan modal).
- - User: el scroll debería copmenzar desde la imagen de las burburas, no desde arriba que se ve mal
- - Agent: (Fixes sticky header/progress bar layout so bubbles scroll smoothly).
- - User: debería poder también poder eliminarse un examen cerrado
- - Agent: (Removes closure restrictions in frontend and backend APIs for delete).
- - User: estoy en la plataforma de soporte y aca tengo 2 demos... ¿en que momento dejan de tener acceso las demos?
- - Agent: (Explains demo expiration based on ).
- - User: ¿en el caso de los colegios? cmo es allí el tema del vencimiento...
- - Agent: (Explains school degradation states and day 4 blockage).
- - User: en que estado debería estar este colegio, porque ya lleva 5 días vencido sin embargo se puede acceder a todo
- - Agent: (Explains Owners have access to pay, non-admins are blocked. User requests non-admins to be blocked at Day 3 and Owners to be hard-blocked at Day 3).
- - User: veo que aqui no aparece el banner y ya lleva 5 días que raro,. Derrepemnte tiene algo que ver el precio personalizado. Derrepente es porque use el mnodo de facturación : base + alumno... revisalo -> **Último mensaje, pendiente de solución.**
+1. User: Reportó bug en vista móvil de Asistencia manual (nombres ocultos, botones cortados).
+2. Agent: Reestructuró UI a diseño vertical conservando botones (Opción A).
+3. User: Solicitó agregar texto descriptivo pequeño a los iconos de estado de asistencia en móvil.
+4. Agent: Añadió textos descriptivos debajo de los iconos ().
+5. User: Mega-prompt: Sistema de Justificación de Asistencia con Motivo detallado.
+6. Agent: Implementó el backend, Modal y endpoints, superó 100% las pruebas del testing agent.
+7. User: Pidió cambiar el ícono de  a  color verde. (Luego pidió naranja, y también el botón Justificado a naranja).
+8. Agent: Aplicó los cambios de estilos en todos los lugares.
+9. User: Mega-prompt: Módulo Coordinador Spec Técnico de implementación (Fase 1, 2, 3).
+10. Agent: Desarrolló exitosamente todo el núcleo de la Fase 1 y ejecutó el . 
+**PENDING HUMAN MESSAGE**: Ninguno, pero tú debes revisar el resultado de esa última iteración (#116) y darle el reporte y pruebas visuales al usuario.
 
 **Project Health Check:**
-  - Broken: Sistema de bloqueo de suscripciones evadido por configuraciones de precio personalizado.
-  - Mocked: Ninguno.
+  - Broken: Iteration 116 puede contener fallos, es vital revisarla.
+  - Mocked: Ninguno actual.
 
 **3rd Party Integrations** 
-  - Cloudinary (Maneja PDFs OMR subidos, pero los escaneos de las respuestas de los alumnos ya no se guardan aquí).
+  -  (Para uso futuro en Fase 2 de evidencias del Coordinador). Requiere Emergent Integrations Manager si falta key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iterations 105 and 106).
-  - Troubleshoot agent used after agent stuck in loop: NO.
-  - Test files created: Ninguno en esta sesión.
-  - Known regressions: Ninguna conocida, excepto el comportamiento anómalo de las suscripciones (bug lógico).
+  - Testing agent used after significant changes: YES (Iteration 116 completada, pendiente de revisión)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: [, , ]
+  - Known regressions: Ninguna
 
 **Credentials to test flow:**
-  - **School Owner / Admin:**  /  (subdomain: )
-  - **Support Admin:**  / 
+Ver . (Para el nuevo rol, es probable que se haya creado  con password ).
+
+**What agent forgot to execute**
+El agente iba perfectamente en secuencia. Simplemente terminó la Fase 1 enviando los archivos al tester, por lo que se quedó sin contexto para recibir la respuesta y reparar eventuales errores en la iteración 116.
 
 **Debugging checklist for current issue**
-    Issue: Bloqueo de suscripción al 3er día no funciona si el colegio tiene precio personalizado (pricing_override).
+    Issue: Finalizar QA de Módulo Coordinador Fase 1 e iniciar Fase 2
     Backend files to check: 
-       -  (Revisar la función . Verifica si hay un bypass si  es evaluado a 0 o si el campo  interrumpe el cálculo de ).
-    Frontend files to check:
-       -  (Revisar el ).
-       - .
-    Acción: Revisa lógicamente el código. No hagas consultas directas a DB que muten o dependan de los datos de producción de los colegios de los usuarios. Provee una solución a la lógica del backend para asegurar que TODOS los colegios con  entren a  y desplieguen el popup de restricción, sin importar su esquema de precios.</analysis>
+    Frontend files to check: 
+    Pasos:
+    1. {
+  "summary": "Coordinacion Module V1 (Phase 1) - Complete testing of backend APIs and frontend UI. Fixed 2 bugs: 1) COORD_DELETE_ROLES missing 'owner' role, 2) Frontend using wrong API endpoints for grades/sections/students. All 23 backend tests pass. Frontend verified: coordinator login redirects to /elroble/coordinacion, dashboard shows 6 KPIs, sidebar has 9 items, incidencias CRUD works, seguimientos timeline works.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_coordinacion.py",
+    "/app/test_reports/pytest/pytest_coordinacion.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/routes/coordinacion.py",
+    "/app/frontend/src/pages/coordinacion/IncidenciaFormPage.jsx",
+    "/app/memory/test_credentials.md"
+  ],
+  "success_rate": {
+    "backend": "100% - 23/23 tests passed",
+    "frontend": "100% - All features verified"
+  },
+  "test_credentials": {
+    "admin": "admin@elroble.edu / 1234abc8 (role: owner)",
+    "coordinator": "coordinador@elroble.edu / Coord123! (role: coordinator)",
+    "teacher": "sonia3009@gmail.com / teacher123 (role: teacher, gets 403 on create)"
+  },
+  "seed_data_creation": "Test incidencias created during backend tests (prefixed with TEST_)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Coordinacion Module V1 complete. Backend endpoints at /api/coordinacion/*. New endpoints added: /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students for the incidencia form. COORD_VIEW_ROLES includes owner, admin, director, coordinator, psicologo. COORD_WRITE_ROLES includes coordinator, admin, owner. COORD_DELETE_ROLES includes admin, owner. Frontend pages: CoordinacionDashboardPage, IncidenciasListPage, IncidenciaFormPage, IncidenciaDetailPage. Sidebar component: CoordinacionSidebar with 9 items.",
+  "features_verified": {
+    "backend_api": {
+      "GET /api/coordinacion/enums": {
+        "returns_types": "PASS - 9 incidencia types",
+        "returns_severities": "PASS - 4 severities (baja, media, alta, critica)",
+        "returns_statuses": "PASS - 7 statuses"
+      },
+      "GET /api/coordinacion/dashboard": {
+        "returns_kpis": "PASS - incidencias_activas, incidencias_nuevas_hoy, estudiantes_en_seguimiento, reuniones_pendientes, charlas_proximas, derivaciones_pendientes",
+        "returns_by_severity": "PASS - breakdown by severity",
+        "returns_by_grade": "PASS - breakdown by grade",
+        "returns_reincidentes": "PASS - students with 3+ incidencias in 30 days",
+        "returns_alertas": "PASS - reincidencia alerts",
+        "returns_recent_incidencias": "PASS - last 5 incidencias"
+      },
+      "POST /api/coordinacion/incidencias": {
+        "creates_incidencia": "PASS - returns incidencia with id",
+        "validates_type": "PASS - rejects invalid type",
+        "validates_severity": "PASS - rejects invalid severity",
+        "validates_student": "PASS - verifies student belongs to school"
+      },
+      "GET /api/coordinacion/incidencias": {
+        "returns_paginated_list": "PASS - items, total, page",
+        "filters_by_status": "PASS",
+        "filters_by_severity": "PASS",
+        "search_query": "PASS - searches title/description"
+      },
+      "GET /api/coordinacion/incidencias/{id}": {
+        "returns_detail": "PASS - includes student_name, grade_name, section_name"
+      },
+      "PATCH /api/coordinacion/incidencias/{id}": {
+        "updates_fields": "PASS - severity, status, etc."
+      },
+      "DELETE /api/coordinacion/incidencias/{id}": {
+        "soft_deletes": "PASS - sets deleted_at",
+        "cascade_deletes": "PASS - soft-deletes seguimientos and derivaciones",
+        "admin_only": "PASS - coordinator gets 403, admin/owner can delete"
+      },
+      "POST /api/coordinacion/incidencias/{id}/seguimientos": {
+        "creates_seguimiento": "PASS - returns seguimiento with id",
+        "updates_incidencia_status": "PASS - atomically updates parent status"
+      },
+      "GET /api/coordinacion/incidencias/{id}/seguimientos": {
+        "returns_timeline": "PASS - items sorted by entry_date desc, includes created_by_name"
+      },
+      "GET /api/coordinacion/grades": "PASS - returns grades for coordinator's school",
+      "GET /api/coordinacion/sections": "PASS - returns sections for grade",
+      "GET /api/coordinacion/students": "PASS - returns students for section"
+    },
+    "frontend_ui": {
+      "coordinator_login": {
+        "redirects_to_coordinacion": "PASS - /elroble/coordinacion"
+      },
+      "dashboard_page": {
+        "shows_6_kpi_cards": "PASS - Incidencias activas, Nuevas hoy, En seguimiento, Reuniones pendientes, Charlas proximas, Derivaciones pendientes",
+        "shows_recent_incidencias": "PASS - clickable list",
+        "shows_severity_distribution": "PASS - bar chart",
+        "shows_reincidencia_alerts": "PASS - red alert box",
+        "shows_by_grade": "PASS - breakdown"
+      },
+      "sidebar": {
+        "has_9_items": "PASS - Inicio, Estudiantes, Incidencias, Seguimientos, Charlas, Reuniones, Derivaciones, Agenda, Reportes",
+        "navigation_works": "PASS - clicking items navigates to correct pages"
+      },
+      "incidencias_list_page": {
+        "shows_paginated_list": "PASS",
+        "has_search_input": "PASS",
+        "has_status_filter": "PASS",
+        "has_severity_filter": "PASS",
+        "has_new_incidencia_button": "PASS"
+      },
+      "incidencia_form_page": {
+        "grade_select_loads": "PASS - 14 grades",
+        "section_select_loads": "PASS - cascade from grade",
+        "student_select_loads": "PASS - cascade from section",
+        "type_select_loads": "PASS - 9 types from enums",
+        "severity_select_loads": "PASS - 4 severities",
+        "form_submission_works": "PASS"
+      },
+      "incidencia_detail_page": {
+        "shows_incidencia_details": "PASS - title, student, grade, type, date, description",
+        "shows_severity_badge": "PASS",
+        "shows_status_pill": "PASS",
+        "shows_seguimientos_timeline": "PASS - with creator name, status, timestamp",
+        "add_seguimiento_form": "PASS - observation, commitment, parent_involvement, new_status, next_review"
+      }
+    },
+    "role_access": {
+      "coordinator_can_view": "PASS",
+      "coordinator_can_create": "PASS",
+      "coordinator_can_update": "PASS",
+      "coordinator_cannot_delete": "PASS - gets 403",
+      "admin_can_delete": "PASS",
+      "teacher_cannot_create": "PASS - gets 403",
+      "teacher_cannot_view_dashboard": "PASS - gets 403"
+    }
+  },
+  "bugs_fixed": [
+    {
+      "issue": "COORD_DELETE_ROLES only included 'admin', not 'owner'",
+      "impact": "Owner users could not delete incidencias",
+      "fix": "Added 'owner' to COORD_DELETE_ROLES and COORD_WRITE_ROLES",
+      "file": "/app/backend/routes/coordinacion.py"
+    },
+    {
+      "issue": "Frontend IncidenciaFormPage using wrong API endpoints",
+      "impact": "Grade/section/student selects were empty (404 errors)",
+      "fix": "Changed from /api/grades, /api/sections, /api/users/students to /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students",
+      "file": "/app/frontend/src/pages/coordinacion/IncidenciaFormPage.jsx"
+    },
+    {
+      "issue": "Missing endpoints for coordinacion form",
+      "impact": "Coordinator couldn't load grades/sections/students",
+      "fix": "Added /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students endpoints",
+      "file": "/app/backend/routes/coordinacion.py"
+    }
+  ],
+  "data_testids_verified": [
+    "coordinacion-dashboard",
+    "kpi-grid",
+    "view-all-incidencias",
+    "recent-inc-{id}",
+    "coordinacion-sidebar",
+    "coordinacion-sidebar-toggle",
+    "coordinacion-sidebar-inicio",
+    "coordinacion-sidebar-estudiantes",
+    "coordinacion-sidebar-incidencias",
+    "coordinacion-sidebar-seguimientos",
+    "coordinacion-sidebar-charlas",
+    "coordinacion-sidebar-reuniones",
+    "coordinacion-sidebar-derivaciones",
+    "coordinacion-sidebar-agenda",
+    "coordinacion-sidebar-reportes",
+    "incidencias-list-page",
+    "search-input",
+    "filter-status",
+    "filter-severity",
+    "new-incidencia-btn",
+    "incidencia-row-{id}",
+    "incidencia-form-page",
+    "select-grade",
+    "select-section",
+    "select-student",
+    "select-type",
+    "select-severity",
+    "input-title",
+    "input-description",
+    "input-occurred-at",
+    "input-initial-action",
+    "check-confidential",
+    "check-notify-parents",
+    "submit-incidencia",
+    "incidencia-detail-page",
+    "incidencia-title",
+    "incidencia-description",
+    "delete-incidencia-btn",
+    "add-seguimiento-btn",
+    "seg-observation",
+    "seg-commitment",
+    "seg-parent-involvement",
+    "seg-new-status",
+    "seg-next-review",
+    "save-seguimiento-btn",
+    "seguimiento-{id}"
+  ]
+}
+    2. Identifica si hay fallos 403, bugs de DB, o fallos de renderizado de React en el JSON.
+    3. Si hay fixes pendientes, arréglalos con .
+    4. Comunica al usuario que la Fase 1 está estabilizada y pregunta si puedes iniciar la Fase 2 del Spec. (Ver  y usa Pantallazos de humo).</analysis>

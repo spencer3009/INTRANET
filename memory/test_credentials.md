@@ -42,5 +42,5 @@
 - Role: teacher
 
 ## App URL
-- https://alimentacion-escolar.preview.emergentagent.com
-- Login: https://alimentacion-escolar.preview.emergentagent.com/elroble/login
+- https://coordinador-fase1.preview.emergentagent.com
+- Login: https://coordinador-fase1.preview.emergentagent.com/elroble/login

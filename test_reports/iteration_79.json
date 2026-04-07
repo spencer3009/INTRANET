@@ -63,7 +63,7 @@
   "test_credentials": {
     "email": "admin@elroble.edu",
     "password": "1234abc8",
-    "login_url": "https://alimentacion-escolar.preview.emergentagent.com/elroble/login"
+    "login_url": "https://coordinador-fase1.preview.emergentagent.com/elroble/login"
   },
 
   "seed_data_for_testing": {
