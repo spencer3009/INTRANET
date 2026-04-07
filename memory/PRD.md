@@ -39,6 +39,11 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 - DashboardHeader: extraActions prop for custom header buttons
 - Auto-seed migration: `seed_pae_default_turnos` runs at server startup (idempotent, non-blocking, with [PAE Migration] logging)
 
+### Teacher Credentials Export - Completed April 7, 2026
+- GET /api/teachers/export-credentials: Excel export with metadata (colegio, fecha, total), sorted alphabetically
+- Frontend: "Exportar Credenciales" blue button in Profesores view (UsersPage.jsx)
+- Uses plain_password field from DB, same pattern as student export
+
 **Phase 3: Reportes y Exportacion** - PENDING
 
 ## Key Files
