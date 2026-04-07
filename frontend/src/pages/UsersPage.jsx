@@ -2494,6 +2494,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               {/* Add button + Import buttons for students */}
               {!roleConfig.hideAddButton && (
                 <div className="flex items-center gap-2 flex-wrap">
+                  {selectedRole === 'teacher' && (
+                    <button
+                      onClick={handleExportTeacherCredentials}
+                      disabled={exportingTeacherCredentials}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      data-testid="export-teacher-credentials-btn"
+                    >
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                        {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                      </div>
+                      <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => handleAddUser(selectedRole)}
                     className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
@@ -2507,19 +2520,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <>
                     </>
-                  )}
-                  {selectedRole === 'teacher' && (
-                    <button
-                      onClick={handleExportTeacherCredentials}
-                      disabled={exportingTeacherCredentials}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      data-testid="export-teacher-credentials-btn"
-                    >
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                        {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
-                      </div>
-                      <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
-                    </button>
                   )}
                 </div>
               )}
