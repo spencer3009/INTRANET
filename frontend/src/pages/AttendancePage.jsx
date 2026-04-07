@@ -13,7 +13,7 @@ import {
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
-  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, Info
+  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText
 } from "lucide-react";
 import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 
@@ -543,7 +543,7 @@ function StudentAttendanceTab({ token, schoolId }) {
                         title="Ver detalle de justificacion"
                         data-testid={`justification-info-${student.id}`}
                       >
-                        <Info className="w-3.5 h-3.5" />
+                        <MessageSquareText className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>

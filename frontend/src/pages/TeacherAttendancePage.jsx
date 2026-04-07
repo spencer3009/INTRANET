@@ -10,7 +10,7 @@ import autoTable from "jspdf-autotable";
 import { 
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
-  User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle, Info
+  User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle, MessageSquareText
 } from "lucide-react";
 import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 
@@ -520,7 +520,7 @@ function StudentAttendanceTab({ token, user }) {
                         title="Ver detalle de justificacion"
                         data-testid={`justification-info-${student.id}`}
                       >
-                        <Info className="w-3.5 h-3.5" />
+                        <MessageSquareText className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
