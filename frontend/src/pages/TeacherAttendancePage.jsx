@@ -382,81 +382,84 @@ function StudentAttendanceTab({ token, user }) {
               <div
                 key={student.id}
                 data-testid={`student-row-${student.id}`}
-                className={`p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${
+                className={`p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 hover:bg-slate-50 transition-colors ${
                   idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                 }`}
               >
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  {student.photo_url ? (
-                    <img src={student.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-                      {student.name?.charAt(0) || "E"}
+                {/* Avatar + Name row */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex-shrink-0">
+                    {student.photo_url ? (
+                      <img src={student.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                        {student.name?.charAt(0) || "E"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 md:w-40">
+                    <p className="font-semibold text-slate-800 text-sm truncate">{student.full_name}</p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 md:flex-nowrap md:flex-1">
+                  {/* Entry/Exit times */}
+                  <div className="flex gap-2 items-center">
+                    {/* Entry */}
+                    <div className="flex items-center gap-1.5" data-testid={`entry-${student.id}`}>
+                      {student.entry_time ? (
+                        <span className="text-xs md:text-sm font-medium text-emerald-600 bg-emerald-50 px-2 md:px-2.5 py-1 rounded-lg">
+                          Entrada {student.entry_time}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => markEntry(student.id)}
+                          disabled={markingEntry === student.id || student.status === "absent"}
+                          data-testid={`mark-entry-${student.id}`}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {markingEntry === student.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : "Marcar Entrada"}
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                {/* Name */}
-                <div className="min-w-0 w-40">
-                  <p className="font-semibold text-slate-800 text-sm truncate">{student.full_name}</p>
-                </div>
-
-                {/* Entry/Exit times */}
-                <div className="flex gap-3 items-center min-w-[220px]">
-                  {/* Entry */}
-                  <div className="flex items-center gap-1.5" data-testid={`entry-${student.id}`}>
-                    {student.entry_time ? (
-                      <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                        Entrada {student.entry_time}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => markEntry(student.id)}
-                        disabled={markingEntry === student.id || student.status === "absent"}
-                        data-testid={`mark-entry-${student.id}`}
-                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {markingEntry === student.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : "Marcar Entrada"}
-                      </button>
-                    )}
+                    {/* Exit */}
+                    <div className="flex items-center gap-1.5" data-testid={`exit-${student.id}`}>
+                      {student.exit_time ? (
+                        <span className="text-xs md:text-sm font-medium text-blue-600 bg-blue-50 px-2 md:px-2.5 py-1 rounded-lg">
+                          Salida {student.exit_time}
+                          {student.total_minutes != null && (
+                            <span className="text-xs text-blue-400 ml-1">({student.total_minutes}min)</span>
+                          )}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => markExit(student.id)}
+                          disabled={!student.entry_time || markingExit === student.id}
+                          data-testid={`mark-exit-${student.id}`}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {markingExit === student.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : "Marcar Salida"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {/* Exit */}
-                  <div className="flex items-center gap-1.5" data-testid={`exit-${student.id}`}>
-                    {student.exit_time ? (
-                      <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
-                        Salida {student.exit_time}
-                        {student.total_minutes != null && (
-                          <span className="text-xs text-blue-400 ml-1">({student.total_minutes}min)</span>
-                        )}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => markExit(student.id)}
-                        disabled={!student.entry_time || markingExit === student.id}
-                        data-testid={`mark-exit-${student.id}`}
-                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {markingExit === student.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : "Marcar Salida"}
-                      </button>
-                    )}
-                  </div>
-                </div>
 
-                {/* Status buttons */}
-                <div className="flex gap-2 flex-wrap justify-end ml-auto">
-                  {STUDENT_STATUSES.map(status => (
-                    <StatusButton
-                      key={status.id}
-                      status={status}
-                      isActive={student.status === status.id}
-                      onClick={(newStatus) => handleStatusChange(student.id, newStatus)}
-                    />
-                  ))}
+                  {/* Status buttons */}
+                  <div className="flex gap-2 flex-wrap md:flex-nowrap md:ml-auto">
+                    {STUDENT_STATUSES.map(status => (
+                      <StatusButton
+                        key={status.id}
+                        status={status}
+                        isActive={student.status === status.id}
+                        onClick={(newStatus) => handleStatusChange(student.id, newStatus)}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
