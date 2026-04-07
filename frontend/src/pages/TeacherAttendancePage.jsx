@@ -516,7 +516,7 @@ function StudentAttendanceTab({ token, user }) {
                     {student.status === "justified" && student.justification_reason && (
                       <button
                         onClick={() => setJustificationInfo(student)}
-                        className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 flex items-center justify-center transition-colors flex-shrink-0"
+                        className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 flex items-center justify-center transition-colors flex-shrink-0"
                         title="Ver detalle de justificacion"
                         data-testid={`justification-info-${student.id}`}
                       >
