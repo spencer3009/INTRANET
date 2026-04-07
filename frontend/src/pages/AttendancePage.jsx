@@ -25,7 +25,7 @@ const STUDENT_STATUSES = [
   { id: "present", label: "Presente", icon: CheckCircle2, color: "emerald", bgColor: "bg-emerald-100", textColor: "text-emerald-700", borderColor: "border-emerald-500" },
   { id: "late", label: "Tardanza", icon: Clock, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-700", borderColor: "border-amber-500" },
   { id: "absent", label: "Ausente", icon: XCircle, color: "red", bgColor: "bg-red-100", textColor: "text-red-700", borderColor: "border-red-500" },
-  { id: "justified", label: "Justificado", icon: AlertTriangle, color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-700", borderColor: "border-blue-500" }
+  { id: "justified", label: "Justificado", icon: AlertTriangle, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-700", borderColor: "border-amber-500" }
 ];
 
 const TEACHER_STATUSES = STUDENT_STATUSES;
