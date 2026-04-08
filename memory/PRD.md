@@ -1,7 +1,7 @@
 # EduNet - School Management Platform PRD
 
 ## Original Problem Statement
-Implementar el "Modulo Coordinador" (Fases 1, 2, 3) en la plataforma educativa EduNet. El modulo integra un rol de primer nivel (`coordinator`), reutiliza infraestructura del modulo de Psicologia sin duplicar logica, implementa dashboard de KPIs, CRUD de incidencias, seguimientos, derivaciones, reuniones con padres, charlas y reportes avanzados. Todo respeta RBAC (`SECTION_PERMISSIONS`), soporta aislamiento multi-tenant (`school_id`), soft-delete y auditoria.
+Implementar el "Modulo Coordinador" (Fases 1, 2, 3) en la plataforma educativa EduNet. El modulo integra un rol de primer nivel (`coordinator`), reutiliza infraestructura del modulo de Psicologia sin duplicar logica, implementa dashboard de KPIs, CRUD de incidencias, seguimientos, derivaciones, reuniones con padres, charlas, reportes avanzados, exportaciones y alertas automaticas. Todo respeta RBAC, aislamiento multi-tenant (`school_id`), soft-delete y auditoria.
 
 ## Architecture
 - Backend: FastAPI + MongoDB (Motor)
@@ -9,50 +9,64 @@ Implementar el "Modulo Coordinador" (Fases 1, 2, 3) en la plataforma educativa E
 - Auth: JWT-based, RBAC via `require_role()`
 - Multi-tenant via `school_id` from JWT token
 - Cloudinary for file uploads (signature-based, direct client upload)
+- Export: openpyxl 3.1.5 (XLSX), reportlab 4.4.10 (PDF)
 
 ## What's Been Implemented
 
 ### Fase 1 (Nucleo) - COMPLETED
-- Rol `coordinator` en `SECTION_PERMISSIONS` y frontend
-- Modelos e indices MongoDB: `coordinacion_incidencias`, `coordinacion_seguimientos`
-- Backend: CRUD incidencias, seguimientos, dashboard KPIs
-- Frontend: CoordinacionLayout, CoordinacionSidebar, Dashboard, CRUD incidencias con formulario y detalle
-- Tarjeta Coordinadores en gestion de usuarios + dropdown creacion
-- Testing: 23/23 backend (iteration_116)
+- Rol `coordinator` en RBAC y frontend
+- CRUD incidencias, seguimientos, dashboard KPIs
+- CoordinacionLayout, CoordinacionSidebar, Dashboard
 
 ### Fase 2 (Operativa) - COMPLETED (Apr 2026)
 - Derivaciones: CRUD, auto-asignacion, badge notificaciones
-- Reuniones con Padres: CRUD, JWT stateless 7 dias, confirmacion publica
+- Reuniones con Padres: CRUD, JWT stateless 7 dias
 - Ficha Extendida del Estudiante: timeline unificada paginada
 - Agenda Integrada: event_source (reunion, derivacion, review, charla)
 - Vistas Padre/Alumno: endpoints /parent/*, filtros de confidencialidad
 - Tests de Aislamiento: 6 bloqueantes pasados (iteration_118)
 
-### Fase 3 (Valor Agregado) - IN PROGRESS
+### Fase 3 (Valor Agregado) - COMPLETED (Apr 2026)
 
-**Charlas Grupales** - DONE (Apr 2026)
+**Charlas Grupales** - DONE
 - CRUD backend (6 endpoints), materiales (imagen/PDF/video/link con Cloudinary)
 - Asistencia: Modelo A (manual al cierre)
-- Carpeta Cloudinary: edunet/coordinacion/charlas
 - Frontend: CharlasListPage, CharlaDetailPage, CharlaMaterialUploader.jsx
-- Integracion con Agenda: event_source="charla"
 - Testing: 24/24 (iteration_119)
 
-**Seguimientos — Vista Global** - DONE (Apr 2026)
-- Backend: GET /api/coordinacion/seguimientos con filtros, summary KPIs, enrichment
-- Frontend: SeguimientosListPage con 4 KPI cards, filtros por estado, busqueda, tabla cronologica
-- Click → navega a incidencia padre (solo lectura, edicion vive en IncidenciaDetailPage)
-- Visual: fila vencida con highlight rojo, badges de estado
+**Seguimientos - Vista Global** - DONE
+- GET /api/coordinacion/seguimientos con filtros, summary KPIs, enrichment
+- SeguimientosListPage: 4 KPI cards, filtros de estado, tabla cronologica
 
-**Reportes Avanzados** - NOT STARTED
-**Exportacion XLSX/PDF** - NOT STARTED
-**Alertas Automaticas Widget** - NOT STARTED
+**Reportes Avanzados (4 reportes)** - DONE
+- GET /api/coordinacion/reportes/incidencias-por-grado (agrupacion por grado con desglose severidad)
+- GET /api/coordinacion/reportes/reincidentes (>=3 inc en 30d, shared pipeline con dashboard)
+- GET /api/coordinacion/reportes/cobertura-charlas (% asistentes/convocados)
+- GET /api/coordinacion/reportes/efectividad-seguimientos (% cerradas/abiertas, desglose por estado)
+- Frontend: ReportesPage.jsx con 4 tabs, filtros, exportacion
 
-## Auditoría de Rutas (13 paths verificados visualmente - Apr 8 2026)
+**Exportacion XLSX/PDF** - DONE
+- GET /api/coordinacion/reportes/{type}/export?format=xlsx|pdf
+- XLSX: openpyxl con metadata, styled headers, StreamingResponse
+- PDF: reportlab.platypus con tabla estilizada, header/footer
+- Ambos formatos validados (ZIP archive y %PDF- header)
+
+**Widget Alertas Activas en Dashboard** - DONE
+- Reutiliza _get_reincidentes() compartida (sin duplicacion pipeline)
+- Top 5 reincidentes con link directo a ficha
+- Boton "Ver todos" → /coordinacion/reportes?tab=reincidentes
+- data-testid: alertas-widget
+
+**Testing Final** - DONE
+- iteration_120: 22/22 backend + frontend pasados
+- Auditoria visual: 13/13 rutas REALES, 0 placeholders
+
+## Auditoria de Rutas (13 paths - Apr 8 2026)
 | Ruta | Estado |
 |------|--------|
-| /coordinacion | REAL (Dashboard) |
+| /coordinacion | REAL (Dashboard + Alertas widget) |
 | /coordinacion/estudiantes | REAL (EstudiantesFichaPage) |
+| /coordinacion/estudiantes/:id | REAL (Ficha detalle) |
 | /coordinacion/incidencias | REAL (IncidenciasListPage) |
 | /coordinacion/incidencias/:id | REAL (IncidenciaDetailPage) |
 | /coordinacion/seguimientos | REAL (SeguimientosListPage) |
@@ -63,25 +77,26 @@ Implementar el "Modulo Coordinador" (Fases 1, 2, 3) en la plataforma educativa E
 | /coordinacion/derivaciones | REAL (DerivacionesListPage) |
 | /coordinacion/derivaciones/:id | REAL (DerivacionDetailPage) |
 | /coordinacion/agenda | REAL (AgendaPage) |
-| /coordinacion/reportes | PLACEHOLDER (legitimo, pendiente Fase 3) |
+| /coordinacion/reportes | REAL (ReportesPage - 4 tabs) |
 
 ## Decisions Log
-- Alertas de reincidencia: Opcion A (on-demand, pipeline de Mongo). Sin cron.
-- Asistencia de charlas: Modelo A (manual al cierre). QR queda para Fase 4.
-- Uploader de charlas: Componente local CharlaMaterialUploader.jsx.
-- Carpeta Cloudinary: edunet/coordinacion (subcarpetas /charlas, extensible).
-- Seguimientos globales: Vista solo-lectura. Edicion permanece en IncidenciaDetailPage.
+- Alertas: Opcion A (on-demand, pipeline Mongo). Sin cron.
+- Asistencia charlas: Modelo A (manual). QR en Fase 4.
+- Uploader charlas: Componente local CharlaMaterialUploader.jsx.
+- Carpeta Cloudinary: edunet/coordinacion/charlas.
+- Seguimientos globales: Solo-lectura. Edicion en IncidenciaDetailPage.
+- Reincidencia: >= 3 incidencias en 30d, misma escuela, no soft-deleted, severidad no influye.
+- Export: openpyxl (XLSX) + reportlab (PDF), ambos ya instalados.
 
 ## Backlog
-- P0: Reportes avanzados (por grado, reincidencia, cobertura charlas)
-- P0: Exportacion XLSX/PDF
-- P0: Widget "Alertas activas" en dashboard (reincidentes >= 3 incidencias 30d)
-- P1: Psicologia - Log de auditoria estricto
+- P1: Psicologia - Log de auditoria estricto (parametrizar log_audit)
 - P1: Modulo de Matriculas (Enrollments)
 - P1: Dashboard Owner con metricas reales
 - P2: Refactorizacion CourseDetailPage.jsx (>11,000 lineas)
 - P2: Modulo de Encuestas
 - P2: Optimizacion rendimiento examenes masivos (3000 estudiantes)
+- P3: QR asistencia charlas (Fase 4)
+- P3: Mas tipos de alerta (Opcion B si necesario)
 
 ## Test Accounts
 See /app/memory/test_credentials.md
