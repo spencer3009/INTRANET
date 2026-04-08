@@ -2,21 +2,23 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { coordinacionApi } from "../../api/coordinacion";
 import CoordinacionLayout from "../../components/coordinacion/CoordinacionLayout";
-import { ArrowLeft, User, Clock, MapPin, CheckCircle, Copy, ExternalLink, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft, User, Clock, MapPin, CheckCircle, Copy, ExternalLink,
+  MessageSquare, Loader2, Calendar, FileText, Handshake, Users, XCircle, RefreshCw
+} from "lucide-react";
 import { toast } from "sonner";
 
-const STATUS_COLORS = {
-  programada: "bg-blue-100 text-blue-800",
-  confirmada: "bg-green-100 text-green-700",
-  realizada: "bg-slate-200 text-slate-700",
-  cancelada: "bg-red-100 text-red-600",
-  no_asistio: "bg-orange-100 text-orange-700",
+/* ─── Status configs ─── */
+const STS_CFG = {
+  programada: { cls: "bg-gradient-to-br from-blue-100/70 to-blue-50/50 text-blue-700 border-blue-200/70", label: "Programada", from: "#3b82f6", to: "#2563eb" },
+  confirmada: { cls: "bg-gradient-to-br from-emerald-100/70 to-emerald-50/50 text-emerald-700 border-emerald-200/70", label: "Confirmada", from: "#10b981", to: "#059669" },
+  realizada:  { cls: "bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 border-slate-200", label: "Realizada", from: "#64748b", to: "#475569" },
+  cancelada:  { cls: "bg-gradient-to-br from-red-100/70 to-red-50/50 text-red-700 border-red-200/70", label: "Cancelada", from: "#ef4444", to: "#dc2626" },
+  no_asistio: { cls: "bg-gradient-to-br from-amber-100/70 to-amber-50/50 text-amber-700 border-amber-200/70", label: "No asistio", from: "#f59e0b", to: "#d97706" },
 };
 
-const STATUS_LABELS = {
-  programada: "Programada", confirmada: "Confirmada", realizada: "Realizada",
-  cancelada: "Cancelada", no_asistio: "No asistio",
-};
+const inputCls = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all outline-none";
+const labelCls = "block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wider";
 
 export default function ReunionDetailPage({ token, subdomain, user: currentUser, onLogout }) {
   const { id } = useParams();
@@ -29,10 +31,9 @@ export default function ReunionDetailPage({ token, subdomain, user: currentUser,
 
   const base = subdomain ? `/${subdomain}` : "";
   const APP_URL = process.env.REACT_APP_BACKEND_URL;
+  const canWrite = ["coordinator", "admin", "owner"].includes(currentUser?.role);
 
-  useEffect(() => {
-    loadReunion();
-  }, [id]);
+  useEffect(() => { loadReunion(); }, [id]);
 
   const loadReunion = async () => {
     setLoading(true);
@@ -71,188 +72,270 @@ export default function ReunionDetailPage({ token, subdomain, user: currentUser,
     toast.success("Enlace copiado al portapapeles");
   };
 
-  const canWrite = ["coordinator", "admin", "owner"].includes(currentUser?.role);
-
   if (loading) return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="reuniones">
-      <div className="p-6 text-center text-slate-400">Cargando...</div>
+      <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 animate-spin text-indigo-400" /></div>
     </CoordinacionLayout>
   );
   if (!reunion) return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="reuniones">
-      <div className="p-6 text-center text-red-500">Reunion no encontrada</div>
+      <div className="text-center py-20 text-slate-400">Reunion no encontrada</div>
     </CoordinacionLayout>
   );
 
+  const sts = STS_CFG[reunion.status] || STS_CFG.programada;
+
   return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="reuniones">
-    <div className="p-4 md:p-6" data-testid="reunion-detail-page">
-      <button onClick={() => navigate(`${base}/coordinacion/reuniones`)}
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 mb-4">
-        <ArrowLeft className="w-4 h-4" /> Volver a reuniones
-      </button>
+      <div className="px-6 md:px-8 py-8 min-h-full space-y-6" data-testid="reunion-detail-page">
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[reunion.status]}`}>
-            {STATUS_LABELS[reunion.status]}
-          </span>
-        </div>
+        {/* Back */}
+        <button onClick={() => navigate(`${base}/coordinacion/reuniones`)}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Volver a reuniones
+        </button>
 
-        <h1 className="text-xl font-bold text-slate-800 mb-1" data-testid="reunion-title">
-          Reunion: {reunion.student_name}
-        </h1>
+        {/* ══════════ HEADER CARD ══════════ */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-visible" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          <div className="h-3 relative" style={{ background: `linear-gradient(90deg, ${sts.from} 0%, ${sts.to} 100%)` }} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Clock className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Fecha:</span>
-            {reunion.scheduled_at ? new Date(reunion.scheduled_at).toLocaleString("es-PE") : ""}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <MapPin className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Lugar:</span> {reunion.location}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <User className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Creado por:</span> {reunion.created_by_name}
-          </div>
-        </div>
+          <div className="p-6">
+            {/* Status badge */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sts.cls}`}>{sts.label}</span>
+            </div>
 
-        <div className="mt-4 pt-4 border-t border-slate-100">
-          <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Agenda</p>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{reunion.agenda}</p>
-        </div>
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2" data-testid="reunion-title">
+              <MessageSquare className="w-5 h-5 text-indigo-600" /> Reunion: {reunion.student_name}
+            </h1>
 
-        {reunion.notes && (
-          <div className="mt-3">
-            <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Notas</p>
-            <p className="text-sm text-slate-700">{reunion.notes}</p>
-          </div>
-        )}
-
-        {reunion.outcome && (
-          <div className="mt-3">
-            <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Resultado</p>
-            <p className="text-sm text-slate-700">{reunion.outcome}</p>
-          </div>
-        )}
-
-        {reunion.commitments && (
-          <div className="mt-3">
-            <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Compromisos</p>
-            <p className="text-sm text-slate-700">{reunion.commitments}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Parents section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-4">
-        <h3 className="font-bold text-slate-800 mb-3">Padres convocados ({reunion.parent_ids?.length || 0})</h3>
-        {reunion.parent_names?.length > 0 ? (
-          <div className="space-y-2">
-            {reunion.parent_names.map((name, idx) => {
-              const pid = reunion.parent_ids[idx];
-              const isConfirmed = reunion.confirmed_parents?.includes(pid);
-              return (
-                <div key={pid} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm text-slate-700">{name}</span>
-                    {isConfirmed ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-medium flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Confirmado
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-medium">
-                        Pendiente
-                      </span>
-                    )}
-                  </div>
+            {/* Details grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 mb-5">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", boxShadow: "0 2px 8px rgba(59,130,246,0.20)" }}>
+                  <Calendar className="w-4 h-4 text-white" strokeWidth={2.5} />
                 </div>
-              );
-            })}
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Fecha</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">
+                    {reunion.scheduled_at ? new Date(reunion.scheduled_at).toLocaleString("es-PE") : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", boxShadow: "0 2px 8px rgba(245,158,11,0.20)" }}>
+                  <MapPin className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lugar</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">{reunion.location}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 2px 8px rgba(99,102,241,0.20)" }}>
+                  <User className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Creado por</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">{reunion.created_by_name}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Agenda */}
+            <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 mb-3">
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Agenda</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{reunion.agenda}</p>
+            </div>
+
+            {reunion.notes && (
+              <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 mb-3">
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Notas</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{reunion.notes}</p>
+              </div>
+            )}
+
+            {reunion.outcome && (
+              <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100 mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                  <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wider">Resultado</p>
+                </div>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{reunion.outcome}</p>
+              </div>
+            )}
+
+            {reunion.commitments && (
+              <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Handshake className="w-3.5 h-3.5 text-blue-500" />
+                  <p className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Compromisos</p>
+                </div>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{reunion.commitments}</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <p className="text-sm text-slate-400">No hay padres convocados</p>
+        </div>
+
+        {/* ══════════ PARENTS SECTION ══════════ */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-visible" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3"
+               style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                 style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}>
+              <Users className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-slate-900">Padres convocados ({reunion.parent_ids?.length || 0})</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Estado de confirmacion</p>
+            </div>
+          </div>
+
+          <div className="p-4">
+            {reunion.parent_names?.length > 0 ? (
+              <div className="space-y-2">
+                {reunion.parent_names.map((name, idx) => {
+                  const pid = reunion.parent_ids[idx];
+                  const isConfirmed = reunion.confirmed_parents?.includes(pid);
+                  return (
+                    <div key={pid} className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                        <span className="text-sm font-medium text-slate-700">{name}</span>
+                      </div>
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                        isConfirmed
+                          ? "bg-gradient-to-br from-emerald-100/70 to-emerald-50/50 text-emerald-700 border-emerald-200/70"
+                          : "bg-gradient-to-br from-amber-100/70 to-amber-50/50 text-amber-700 border-amber-200/70"
+                      }`}>
+                        {isConfirmed ? "Confirmado" : "Pendiente"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                  <Users className="w-5 h-5 text-slate-300" />
+                </div>
+                <p className="text-sm text-slate-400">No hay padres convocados</p>
+              </div>
+            )}
+
+            {/* Confirmation links */}
+            {reunion.pending_confirmation_links?.length > 0 && canWrite && (
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-3">Enlaces de confirmacion pendientes</p>
+                <div className="space-y-2">
+                  {reunion.pending_confirmation_links.map((link) => (
+                    <div key={link.parent_id} className="flex items-center justify-between p-3.5 rounded-xl bg-blue-50/60 border border-blue-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-slate-700">{link.parent_name}</span>
+                      </div>
+                      <button
+                        onClick={() => copyConfirmLink(link.token)}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 text-white rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
+                        style={{ background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", boxShadow: "0 2px 6px rgba(59,130,246,0.25)" }}
+                        data-testid={`copy-link-${link.parent_id}`}
+                      >
+                        <Copy className="w-3 h-3" /> Copiar enlace
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 mt-3">Comparta este enlace por WhatsApp. Expira en 7 dias.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ══════════ ACTIONS ══════════ */}
+        {canWrite && reunion.status !== "realizada" && reunion.status !== "cancelada" && (
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => setShowStatusForm(!showStatusForm)}
+              className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}
+              data-testid="update-reunion-status-btn"
+            >
+              <RefreshCw className="w-4 h-4" /> Actualizar estado
+            </button>
+            {reunion.incidencia_id && (
+              <button
+                onClick={() => navigate(`${base}/coordinacion/incidencias/${reunion.incidencia_id}`)}
+                className="flex items-center gap-2 px-5 py-2.5 text-slate-700 hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" /> Ver incidencia
+              </button>
+            )}
+          </div>
         )}
 
-        {/* Confirmation links */}
-        {reunion.pending_confirmation_links?.length > 0 && canWrite && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs font-semibold text-slate-500 mb-2">Enlaces de confirmacion pendientes</p>
-            {reunion.pending_confirmation_links.map((link) => (
-              <div key={link.parent_id} className="flex items-center justify-between p-2 rounded-lg bg-blue-50 mb-2">
-                <span className="text-sm text-slate-700">{link.parent_name}</span>
-                <button
-                  onClick={() => copyConfirmLink(link.token)}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
-                  data-testid={`copy-link-${link.parent_id}`}
-                >
-                  <Copy className="w-3 h-3" /> Copiar enlace
+        {/* ══════════ STATUS UPDATE FORM ══════════ */}
+        {showStatusForm && (
+          <div className="bg-white border border-indigo-200 rounded-2xl overflow-visible" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+            <div className="px-6 py-4 border-b border-indigo-100 flex items-center gap-3"
+                 style={{ background: "linear-gradient(180deg, rgba(238,242,255,0.6) 0%, white 100%)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                   style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 2px 8px rgba(99,102,241,0.25)" }}>
+                <RefreshCw className="w-4 h-4 text-white" strokeWidth={2.5} />
+              </div>
+              <h3 className="text-[15px] font-semibold text-slate-900">Actualizar estado de la reunion</h3>
+            </div>
+            <div className="p-6 space-y-4" data-testid="reunion-status-form">
+              <div>
+                <label className={labelCls}>Nuevo estado *</label>
+                <select value={statusForm.status} onChange={(e) => setStatusForm(p => ({ ...p, status: e.target.value }))}
+                  className={inputCls} data-testid="select-reunion-status">
+                  <option value="">Seleccionar estado</option>
+                  <option value="realizada">Realizada</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="no_asistio">No asistio el padre</option>
+                </select>
+              </div>
+              {statusForm.status === "realizada" && (
+                <>
+                  <div>
+                    <label className={labelCls}>Resultado de la reunion</label>
+                    <textarea value={statusForm.outcome} onChange={(e) => setStatusForm(p => ({ ...p, outcome: e.target.value }))}
+                      placeholder="Que se discutio y resolvio..." rows={3}
+                      className={`${inputCls} resize-none`} data-testid="reunion-outcome" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Compromisos acordados</label>
+                    <textarea value={statusForm.commitments} onChange={(e) => setStatusForm(p => ({ ...p, commitments: e.target.value }))}
+                      placeholder="Compromisos del padre/estudiante..." rows={3}
+                      className={`${inputCls} resize-none`} data-testid="reunion-commitments" />
+                  </div>
+                </>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button onClick={() => setShowStatusForm(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-semibold transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleStatusUpdate} disabled={!statusForm.status || updating}
+                  className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-[1.02]"
+                  style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}
+                  data-testid="save-reunion-status">
+                  {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Guardar
                 </button>
               </div>
-            ))}
-            <p className="text-xs text-slate-400 mt-1">Comparta este enlace por WhatsApp. Expira en 7 dias.</p>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Action buttons */}
-      {canWrite && reunion.status !== "realizada" && reunion.status !== "cancelada" && (
-        <div className="flex gap-3 mb-4">
-          <button
-            onClick={() => setShowStatusForm(!showStatusForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
-            data-testid="update-reunion-status-btn"
-          >
-            <CheckCircle className="w-4 h-4" /> Actualizar estado
-          </button>
-          {reunion.incidencia_id && (
-            <button
-              onClick={() => navigate(`${base}/coordinacion/incidencias/${reunion.incidencia_id}`)}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
-              <ExternalLink className="w-4 h-4" /> Ver incidencia
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Status form */}
-      {showStatusForm && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4" data-testid="reunion-status-form">
-          <h3 className="font-semibold text-slate-800 mb-3">Actualizar estado de la reunion</h3>
-          <select value={statusForm.status} onChange={(e) => setStatusForm(p => ({ ...p, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" data-testid="select-reunion-status">
-            <option value="">Seleccionar estado</option>
-            <option value="realizada">Realizada</option>
-            <option value="cancelada">Cancelada</option>
-            <option value="no_asistio">No asistio el padre</option>
-          </select>
-          {statusForm.status === "realizada" && (
-            <>
-              <textarea value={statusForm.outcome} onChange={(e) => setStatusForm(p => ({ ...p, outcome: e.target.value }))}
-                placeholder="Resultado de la reunion" rows={2}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3 resize-none" data-testid="reunion-outcome" />
-              <textarea value={statusForm.commitments} onChange={(e) => setStatusForm(p => ({ ...p, commitments: e.target.value }))}
-                placeholder="Compromisos acordados" rows={2}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3 resize-none" data-testid="reunion-commitments" />
-            </>
-          )}
-          <div className="flex gap-2">
-            <button onClick={handleStatusUpdate} disabled={!statusForm.status || updating}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
-              data-testid="save-reunion-status">
-              {updating ? "Guardando..." : "Guardar"}
-            </button>
-            <button onClick={() => setShowStatusForm(false)}
-              className="px-4 py-2 border border-slate-200 rounded-lg text-sm">Cancelar</button>
-          </div>
-        </div>
-      )}
-    </div>
     </CoordinacionLayout>
   );
 }

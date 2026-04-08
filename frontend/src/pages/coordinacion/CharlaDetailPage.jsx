@@ -6,16 +6,17 @@ import CharlaMaterialUploader from "../../components/coordinacion/CharlaMaterial
 import {
   ArrowLeft, Presentation, Clock, MapPin, User, Tag, CheckCircle,
   XCircle, FileText, Image, Film, Link2, Trash2, ExternalLink,
+  Loader2, Play, Check, X, Users, Calendar, Paperclip
 } from "lucide-react";
 import { toast } from "sonner";
 
-const STATUS_COLORS = {
-  programada: "bg-blue-100 text-blue-800",
-  en_curso: "bg-amber-100 text-amber-800",
-  realizada: "bg-green-100 text-green-700",
-  cancelada: "bg-red-100 text-red-600",
+/* ─── Status configs ─── */
+const STS_CFG = {
+  programada: { cls: "bg-gradient-to-br from-blue-100/70 to-blue-50/50 text-blue-700 border-blue-200/70", label: "Programada", from: "#3b82f6", to: "#2563eb", rgb: "59,130,246" },
+  en_curso:   { cls: "bg-gradient-to-br from-amber-100/70 to-amber-50/50 text-amber-700 border-amber-200/70", label: "En curso", from: "#f59e0b", to: "#d97706", rgb: "245,158,11" },
+  realizada:  { cls: "bg-gradient-to-br from-emerald-100/70 to-emerald-50/50 text-emerald-700 border-emerald-200/70", label: "Realizada", from: "#10b981", to: "#059669", rgb: "16,185,129" },
+  cancelada:  { cls: "bg-gradient-to-br from-red-100/70 to-red-50/50 text-red-700 border-red-200/70", label: "Cancelada", from: "#ef4444", to: "#dc2626", rgb: "239,68,68" },
 };
-const STATUS_LABELS = { programada: "Programada", en_curso: "En curso", realizada: "Realizada", cancelada: "Cancelada" };
 
 const MATERIAL_ICONS = { image: Image, pdf: FileText, video: Film, link: Link2 };
 
@@ -131,231 +132,345 @@ export default function CharlaDetailPage({ token, subdomain, user: currentUser, 
 
   if (loading) return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="charlas">
-      <div className="p-6 text-center text-slate-400">Cargando...</div>
+      <div className="flex items-center justify-center py-20"><Loader2 className="w-7 h-7 animate-spin text-teal-400" /></div>
     </CoordinacionLayout>
   );
   if (!charla) return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="charlas">
-      <div className="p-6 text-center text-red-500">Charla no encontrada</div>
+      <div className="text-center py-20 text-slate-400">Charla no encontrada</div>
     </CoordinacionLayout>
   );
 
+  const sts = STS_CFG[charla.status] || STS_CFG.programada;
   const presentCount = Object.values(attendance).filter(Boolean).length;
 
   return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="charlas">
-    <div className="p-4 md:p-6" data-testid="charla-detail-page">
-      <button onClick={() => navigate(`${base}/coordinacion/charlas`)}
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 mb-4">
-        <ArrowLeft className="w-4 h-4" /> Volver a charlas
-      </button>
+      <div className="px-6 md:px-8 py-8 min-h-full space-y-6" data-testid="charla-detail-page">
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[charla.status]}`}>
-            {STATUS_LABELS[charla.status]}
-          </span>
-          {charla.topics?.map(t => (
-            <span key={t} className="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600 flex items-center gap-1">
-              <Tag className="w-3 h-3" /> {t}
-            </span>
-          ))}
-        </div>
+        {/* Back */}
+        <button onClick={() => navigate(`${base}/coordinacion/charlas`)}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Volver a charlas
+        </button>
 
-        <h1 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2" data-testid="charla-title">
-          <Presentation className="w-5 h-5 text-teal-600" /> {charla.title}
-        </h1>
+        {/* ══════════ HEADER CARD ══════════ */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-visible" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          {/* Status gradient banner */}
+          <div className="h-3 relative" style={{ background: `linear-gradient(90deg, ${sts.from} 0%, ${sts.to} 100%)` }} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Clock className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Fecha:</span>
-            {charla.scheduled_at ? new Date(charla.scheduled_at).toLocaleString("es-PE") : ""}
-            <span className="text-slate-400">({charla.duration_minutes}min)</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <MapPin className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Lugar:</span> {charla.location}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <User className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">Creado por:</span> {charla.created_by_name}
-          </div>
-        </div>
-
-        {/* Target grades/sections */}
-        {(charla.target_grade_names || charla.target_section_names) && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Dirigido a</p>
-            <div className="flex flex-wrap gap-1.5">
-              {charla.target_grade_names && Object.values(charla.target_grade_names).map(n => (
-                <span key={n} className="px-2 py-0.5 rounded-full text-xs bg-teal-50 text-teal-700 font-medium">{n}</span>
-              ))}
-              {charla.target_section_names && Object.values(charla.target_section_names).map(n => (
-                <span key={n} className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 font-medium">{n}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4 pt-4 border-t border-slate-100">
-          <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Descripción</p>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{charla.description}</p>
-        </div>
-
-        {charla.notes && (
-          <div className="mt-3">
-            <p className="text-xs uppercase font-semibold text-slate-400 mb-1">Notas</p>
-            <p className="text-sm text-slate-700">{charla.notes}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      {canWrite && charla.status !== "cancelada" && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {charla.status === "programada" && (
-            <button onClick={() => handleStatusChange("en_curso")}
-              className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
-              data-testid="start-charla-btn">
-              Iniciar charla
-            </button>
-          )}
-          {(charla.status === "programada" || charla.status === "en_curso") && (
-            <button onClick={() => handleStatusChange("realizada")}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-              data-testid="finish-charla-btn">
-              Marcar como realizada
-            </button>
-          )}
-          <button onClick={toggleAttendance}
-            className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
-            data-testid="toggle-attendance-btn">
-            Registrar asistencia
-          </button>
-          {charla.status !== "realizada" && (
-            <button onClick={() => handleStatusChange("cancelada")}
-              className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-              data-testid="cancel-charla-btn">
-              Cancelar charla
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Attendance Panel */}
-      {showAttendance && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4" data-testid="attendance-panel">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-slate-800">Asistencia ({presentCount}/{students.length})</h3>
-            <div className="flex gap-2">
-              <button onClick={() => toggleAll(true)} className="text-xs text-green-600 hover:underline" data-testid="mark-all-present">Todos presentes</button>
-              <button onClick={() => toggleAll(false)} className="text-xs text-red-600 hover:underline" data-testid="mark-all-absent">Todos ausentes</button>
-            </div>
-          </div>
-          {students.length === 0 ? (
-            <p className="text-sm text-slate-400">No se encontraron estudiantes para los grados/secciones seleccionados.</p>
-          ) : (
-            <div className="max-h-80 overflow-y-auto space-y-1">
-              {students.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                  <span className="text-sm text-slate-700">{s.name} {s.last_name}</span>
-                  <button
-                    onClick={() => setAttendance(p => ({ ...p, [s.id]: !p[s.id] }))}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                      attendance[s.id]
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                    data-testid={`attendance-toggle-${s.id}`}
-                  >
-                    {attendance[s.id] ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                    {attendance[s.id] ? "Presente" : "Ausente"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-            <button onClick={saveAttendance} disabled={savingAttendance || students.length === 0}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-teal-700 transition-colors"
-              data-testid="save-attendance-btn">
-              {savingAttendance ? "Guardando..." : "Guardar asistencia"}
-            </button>
-            <button onClick={() => setShowAttendance(false)}
-              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm">Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      {/* Materials */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-slate-800">Materiales ({charla.materials?.length || 0})</h3>
-        </div>
-
-        {charla.materials?.length > 0 && (
-          <div className="space-y-2 mb-4">
-            {charla.materials.map(m => {
-              const Icon = MATERIAL_ICONS[m.type] || FileText;
-              return (
-                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 group" data-testid={`material-${m.id}`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Icon className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <a href={m.url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm font-medium text-slate-700 hover:text-indigo-600 flex items-center gap-1">
-                        {m.name} <ExternalLink className="w-3 h-3" />
-                      </a>
-                      <p className="text-xs text-slate-400">
-                        {m.type === "link" ? "Enlace externo" : formatBytes(m.size_bytes)}
-                        {m.uploaded_at && ` - ${new Date(m.uploaded_at).toLocaleDateString("es-PE")}`}
-                      </p>
-                    </div>
-                  </div>
-                  {canWrite && (
-                    <button
-                      onClick={() => handleDeleteMaterial(m.id)}
-                      disabled={deletingMaterial === m.id}
-                      className="p-1.5 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                      data-testid={`delete-material-${m.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {canWrite && (
-          <CharlaMaterialUploader token={token} charlaId={id} onMaterialAdded={onMaterialAdded} />
-        )}
-      </div>
-
-      {/* Saved attendance summary */}
-      {charla.attendance?.length > 0 && !showAttendance && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="font-bold text-slate-800 mb-3">
-            Asistencia registrada ({charla.attendance.filter(a => a.present).length}/{charla.attendance.length})
-          </h3>
-          <div className="max-h-60 overflow-y-auto space-y-1">
-            {charla.attendance.map(a => (
-              <div key={a.student_id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
-                <span className="text-sm text-slate-700">{a.student_name}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  a.present ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                }`}>
-                  {a.present ? "Presente" : "Ausente"}
+          <div className="p-6">
+            {/* Top row: badges */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sts.cls}`}>{sts.label}</span>
+              {charla.topics?.map(t => (
+                <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-600">
+                  <Tag className="w-3 h-3" /> {t}
                 </span>
+              ))}
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2" data-testid="charla-title">
+              <Presentation className="w-5 h-5 text-teal-600" /> {charla.title}
+            </h1>
+
+            {/* Details grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 mb-5">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", boxShadow: "0 2px 8px rgba(59,130,246,0.20)" }}>
+                  <Calendar className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Fecha</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">
+                    {charla.scheduled_at ? new Date(charla.scheduled_at).toLocaleString("es-PE") : ""}
+                    <span className="text-slate-400 ml-1">({charla.duration_minutes}min)</span>
+                  </p>
+                </div>
               </div>
-            ))}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", boxShadow: "0 2px 8px rgba(245,158,11,0.20)" }}>
+                  <MapPin className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lugar</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">{charla.location}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 2px 8px rgba(99,102,241,0.20)" }}>
+                  <User className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Creado por</p>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">{charla.created_by_name}</p>
+                </div>
+              </div>
+              {charla.attendance?.length > 0 && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", boxShadow: "0 2px 8px rgba(16,185,129,0.20)" }}>
+                    <Users className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Asistencia</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">
+                      {charla.attendance.filter(a => a.present).length}/{charla.attendance.length} presentes
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Target grades/sections */}
+            {(charla.target_grade_names || charla.target_section_names) && (
+              <div className="mb-5 pt-4 border-t border-slate-100">
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Dirigido a</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {charla.target_grade_names && Object.values(charla.target_grade_names).map(n => (
+                    <span key={n} className="px-2.5 py-1 rounded-lg text-[11px] bg-teal-50 text-teal-700 border border-teal-200 font-semibold">{n}</span>
+                  ))}
+                  {charla.target_section_names && Object.values(charla.target_section_names).map(n => (
+                    <span key={n} className="px-2.5 py-1 rounded-lg text-[11px] bg-blue-50 text-blue-700 border border-blue-200 font-semibold">{n}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Descripcion</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{charla.description}</p>
+            </div>
+
+            {charla.notes && (
+              <div className="mt-3 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Notas</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{charla.notes}</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        {/* ══════════ ACTIONS ══════════ */}
+        {canWrite && charla.status !== "cancelada" && (
+          <div className="flex flex-wrap gap-3">
+            {charla.status === "programada" && (
+              <button onClick={() => handleStatusChange("en_curso")}
+                className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02]"
+                style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", boxShadow: "0 4px 12px rgba(245,158,11,0.25)" }}
+                data-testid="start-charla-btn">
+                <Play className="w-4 h-4" /> Iniciar charla
+              </button>
+            )}
+            {(charla.status === "programada" || charla.status === "en_curso") && (
+              <button onClick={() => handleStatusChange("realizada")}
+                className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02]"
+                style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}
+                data-testid="finish-charla-btn">
+                <Check className="w-4 h-4" /> Marcar como realizada
+              </button>
+            )}
+            <button onClick={toggleAttendance}
+              className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}
+              data-testid="toggle-attendance-btn">
+              <Users className="w-4 h-4" /> Registrar asistencia
+            </button>
+            {charla.status !== "realizada" && (
+              <button onClick={() => handleStatusChange("cancelada")}
+                className="flex items-center gap-2 px-5 py-2.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-xl text-sm font-semibold transition-colors"
+                data-testid="cancel-charla-btn">
+                <X className="w-4 h-4" /> Cancelar charla
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ══════════ ATTENDANCE PANEL ══════════ */}
+        {showAttendance && (
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between"
+                 style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                     style={{ background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}>
+                  <Users className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-slate-900">Asistencia ({presentCount}/{students.length})</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Marcar presentes y ausentes</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => toggleAll(true)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  data-testid="mark-all-present">
+                  Todos presentes
+                </button>
+                <button onClick={() => toggleAll(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
+                  data-testid="mark-all-absent">
+                  Todos ausentes
+                </button>
+              </div>
+            </div>
+
+            <div data-testid="attendance-panel">
+              {students.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                    <Users className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <p className="text-sm text-slate-400">No se encontraron estudiantes para los grados/secciones seleccionados</p>
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto p-4 space-y-1.5">
+                  {students.map(s => (
+                    <div key={s.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                        <span className="text-sm font-medium text-slate-700">{s.name} {s.last_name}</span>
+                      </div>
+                      <button
+                        onClick={() => setAttendance(p => ({ ...p, [s.id]: !p[s.id] }))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${
+                          attendance[s.id]
+                            ? "bg-gradient-to-br from-emerald-100/70 to-emerald-50/50 text-emerald-700 border-emerald-200/70"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                        }`}
+                        data-testid={`attendance-toggle-${s.id}`}
+                      >
+                        {attendance[s.id] ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {attendance[s.id] ? "Presente" : "Ausente"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+                <button onClick={saveAttendance} disabled={savingAttendance || students.length === 0}
+                  className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-[1.02]"
+                  style={{ background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)", boxShadow: "0 4px 12px rgba(20,184,166,0.25)" }}
+                  data-testid="save-attendance-btn">
+                  {savingAttendance ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Guardar asistencia
+                </button>
+                <button onClick={() => setShowAttendance(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-semibold transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════ MATERIALS ══════════ */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-visible" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3"
+               style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                 style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)", boxShadow: "0 4px 12px rgba(139,92,246,0.25)" }}>
+              <Paperclip className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-slate-900">Materiales ({charla.materials?.length || 0})</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Archivos y enlaces adjuntos</p>
+            </div>
+          </div>
+
+          <div className="p-4">
+            {charla.materials?.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {charla.materials.map(m => {
+                  const Icon = MATERIAL_ICONS[m.type] || FileText;
+                  return (
+                    <div key={m.id}
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 group hover:border-slate-200 transition-all"
+                      data-testid={`material-${m.id}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                             style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)", boxShadow: "0 2px 6px rgba(139,92,246,0.20)" }}>
+                          <Icon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <a href={m.url} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium text-slate-700 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+                            {m.name} <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                          </a>
+                          <p className="text-xs text-slate-400">
+                            {m.type === "link" ? "Enlace externo" : formatBytes(m.size_bytes)}
+                            {m.uploaded_at && ` · ${new Date(m.uploaded_at).toLocaleDateString("es-PE")}`}
+                          </p>
+                        </div>
+                      </div>
+                      {canWrite && (
+                        <button
+                          onClick={() => handleDeleteMaterial(m.id)}
+                          disabled={deletingMaterial === m.id}
+                          className="p-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50"
+                          data-testid={`delete-material-${m.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {canWrite && (
+              <CharlaMaterialUploader token={token} charlaId={id} onMaterialAdded={onMaterialAdded} />
+            )}
+          </div>
+        </div>
+
+        {/* ══════════ SAVED ATTENDANCE SUMMARY ══════════ */}
+        {charla.attendance?.length > 0 && !showAttendance && (
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3"
+                 style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                   style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", boxShadow: "0 4px 12px rgba(16,185,129,0.25)" }}>
+                <CheckCircle className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-semibold text-slate-900">
+                  Asistencia registrada ({charla.attendance.filter(a => a.present).length}/{charla.attendance.length})
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Registro de asistencia guardado</p>
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto p-4 space-y-1.5">
+              {charla.attendance.map(a => (
+                <div key={a.student_id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{a.student_name}</span>
+                  </div>
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                    a.present
+                      ? "bg-gradient-to-br from-emerald-100/70 to-emerald-50/50 text-emerald-700 border-emerald-200/70"
+                      : "bg-gradient-to-br from-red-100/70 to-red-50/50 text-red-700 border-red-200/70"
+                  }`}>
+                    {a.present ? "Presente" : "Ausente"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </CoordinacionLayout>
   );
 }
