@@ -122,10 +122,10 @@ export default function IncidenciaFormPage({ user, token, onLogout }) {
           <p className="text-sm text-slate-500 mt-1">Registra un nuevo incidente de conducta o convivencia</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* ══════════ Section 1: Alumno ══════════ */}
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+          <div className="bg-white border border-slate-200 rounded-2xl" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)", overflow: "visible" }}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3"
                  style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -134,7 +134,7 @@ export default function IncidenciaFormPage({ user, token, onLogout }) {
               </div>
               <h2 className="text-[15px] font-semibold text-slate-900">Identificación del alumno</h2>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-visible relative" style={{ zIndex: 20 }}>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className={labelCls}>Grado *</label>
