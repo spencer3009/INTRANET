@@ -25,6 +25,7 @@ const ROLE_DISPLAY_MAP = {
   student: "Alumno",
   parent: "Padre de Familia",
   psicologo: "Psicologo/a",
+  coordinator: "Coordinador/a",
   auxiliar_alimentacion: "Aux. Alimentacion",
 };
 
