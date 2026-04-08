@@ -85,7 +85,7 @@ export default function EstudiantesFichaPage({ token, subdomain, user, onLogout 
 
   return (
     <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="estudiantes">
-    <div className="p-4 md:p-6 max-w-6xl mx-auto" data-testid="estudiantes-ficha-page">
+    <div className="p-4 md:p-6" data-testid="estudiantes-ficha-page">
       <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-6">
         <Users className="w-6 h-6 text-teal-600" /> Ficha del Estudiante
       </h1>

@@ -320,7 +320,7 @@ export default function ReportesPage({ token, subdomain, user, onLogout }) {
 
   return (
     <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="reportes">
-    <div className="p-4 md:p-6 max-w-6xl mx-auto" data-testid="reportes-page">
+    <div className="p-4 md:p-6" data-testid="reportes-page">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-violet-600" />

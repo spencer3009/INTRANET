@@ -148,7 +148,7 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
 
   return (
     <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="incidencias">
-      <div className="max-w-4xl mx-auto space-y-5" data-testid="incidencia-detail-page">
+      <div className="p-4 md:p-6 space-y-5" data-testid="incidencia-detail-page">
         {/* Back */}
         <button onClick={() => navigate(`/${sub}/coordinacion/incidencias`)}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm font-medium">

@@ -144,7 +144,7 @@ export default function CharlaDetailPage({ token, subdomain, user: currentUser, 
 
   return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="charlas">
-    <div className="p-4 md:p-6 max-w-4xl mx-auto" data-testid="charla-detail-page">
+    <div className="p-4 md:p-6" data-testid="charla-detail-page">
       <button onClick={() => navigate(`${base}/coordinacion/charlas`)}
         className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 mb-4">
         <ArrowLeft className="w-4 h-4" /> Volver a charlas

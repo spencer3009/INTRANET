@@ -133,7 +133,7 @@ export default function ReunionesListPage({ token, subdomain, user, onLogout }) 
 
   return (
     <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="reuniones">
-    <div className="p-4 md:p-6 max-w-6xl mx-auto" data-testid="reuniones-list-page">
+    <div className="p-4 md:p-6" data-testid="reuniones-list-page">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">

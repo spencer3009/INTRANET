@@ -86,7 +86,7 @@ export default function ReunionDetailPage({ token, subdomain, user: currentUser,
 
   return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="reuniones">
-    <div className="p-4 md:p-6 max-w-4xl mx-auto" data-testid="reunion-detail-page">
+    <div className="p-4 md:p-6" data-testid="reunion-detail-page">
       <button onClick={() => navigate(`${base}/coordinacion/reuniones`)}
         className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 mb-4">
         <ArrowLeft className="w-4 h-4" /> Volver a reuniones

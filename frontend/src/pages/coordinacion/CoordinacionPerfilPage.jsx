@@ -73,7 +73,7 @@ export default function CoordinacionPerfilPage({ user, token, onLogout, onUserUp
 
   return (
     <CoordinacionLayout user={user} token={token} onLogout={onLogout} activeSection="">
-    <div className="p-4 md:p-6 max-w-2xl mx-auto" data-testid="coordinacion-perfil-page">
+    <div className="p-4 md:p-6" data-testid="coordinacion-perfil-page">
       <h1 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
         <User className="w-6 h-6 text-indigo-600" /> Mi perfil
       </h1>

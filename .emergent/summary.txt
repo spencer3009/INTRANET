@@ -1,60 +1,23 @@
-<analysis>**original_problem_statement**: Implementar el Módulo Coordinador (Fase 1 y Fase 2 completadas, pendiente Fase 3) basándose en una especificación técnica extensa. PRODUCT REQUIREMENTS: Integrar el rol , reutilizar infraestructura del módulo de Psicología sin duplicar lógica. El módulo incluye dashboard de KPIs, CRUD de incidencias, seguimientos, charlas, reuniones con padres y derivaciones. Todo debe respetar el sistema RBAC, soportar aislamiento multi-tenant (), utilizar soft-delete, auditoría y mantener un entorno estricto sin TypeScript. La Fase 2 está terminada y validada; la misión ahora es arrancar la Fase 3 (Charlas, Reportes, Exportaciones, Alertas automáticas).
+<analysis>**original_problem_statement**: Implementar el Módulo Coordinador (Fases 1, 2 y 3 completadas). PRODUCT REQUIREMENTS: Integrar el rol , reutilizar infraestructura existente sin duplicar lógica. El módulo incluye dashboard de KPIs, CRUD de incidencias, seguimientos, charlas, reuniones con padres y derivaciones. Todo debe respetar el sistema RBAC, soportar aislamiento multi-tenant (), utilizar soft-delete y mantener un entorno estricto sin TypeScript. La Fase 3 (Charlas, Reportes, Alertas) acaba de ser construida y probada, completando la totalidad de los requerimientos de este módulo. 
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish**).
 
-**what currently exists?**: 
-Aplicación full-stack robusta en FastAPI + React + MongoDB. Las Fases 1 y 2 del Módulo Coordinador están 100% completadas y testeadas ( e  pasaron sin errores). 
-Actualmente existe: 
-- Tarjeta de Coordinadores en la grilla de gestión de usuarios.
-- Derivaciones (CRUD, auto-asignación, notificaciones badge en sidebar).
-- Reuniones con padres (CRUD, tokens JWT stateless de 7 días, endpoint de confirmación público).
-- Ficha extendida del estudiante (timeline unificada y paginada).
-- Agenda integrada (incluye reuniones, derivaciones y próximas revisiones de seguimientos).
-- Vistas Padre/Alumno (endpoints dedicados en  y , filtros estrictos de confidencialidad).
-- Guardias de rol y aislamiento multi-escuela garantizado.
+**what currently exists?**: Aplicación full-stack robusta en FastAPI + React + MongoDB. El Módulo Coordinador (Fases 1, 2 y 3) está 100% completado, testeado y auditado visualmente. Existen flujos comprobados para incidencias, derivaciones, reuniones con aislamiento parental, agenda, charlas con carga de material en Cloudinary, vista cronológica de seguimientos, 4 reportes avanzados exportables a XLSX/PDF, y alertas on-demand. Todo el portal del Coordinador está optimizado para usar el ancho completo de la pantalla (full-width) y mantiene su propio sidebar asilado incluso en la vista de perfil.
 
 **Last working item**:
-    - Last item agent was working: Validaciones previas (warm-up) antes de iniciar código de la Fase 3. El usuario solicitó crear datos manuales en una escuela demo (3 incidencias, 1 derivación, 1 reunión) e iniciar sesión como padre para verificar visualmente que el aislamiento funciona. El agente ya creó las 3 incidencias (, , ) vía bash.
-    - Status: IN PROGRESS
-    - Agent Testing Done: Y (pruebas automatizadas), N (verificación manual en curso)
-    - Which testing method agent to use?: screenshot tool (para capturar la vista del padre con los datos demo).
+    - Last item agent was working: Corrección UX visual — Se modificó el layout de todas las páginas del portal del Coordinador para usar el ancho completo de la pantalla (), eliminando restricciones de márgenes laterales () para evitar espacios vacíos en resoluciones grandes (≥1280px). 
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y (Smoke tests manuales visuales tomados a 1920px en las 13 rutas).
+    - Which testing method agent to use?: NA (Esperar el feedback del usuario, si pide ajustes adicionales de padding, usar screenshot tool).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1 (P0): Finalizar la verificación visual manual del Padre (Warm-up Fase 3)
-     - Attempted fixes: Se crearon las incidencias. Falta crear 1 derivación y 1 reunión vinculadas, luego iniciar sesión con la cuenta de padre (ej. ) y tomar un screenshot de la UI.
-     - Next debug checklist: Usar scripts de consola para crear la derivación y reunión. Hacer login en frontend como el padre vinculado a ese estudiante y usar  en la vista de incidencias/reuniones.
-     - Why fix this issue and what will be achieved with the fix?: Es un pre-requisito solicitado por el usuario para confirmar la seguridad visualmente antes de construir la Fase 3.
-     - Status: IN PROGRESS
-     - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: Ninguno.
-
-  Issue 2 (P0): Confirmar diseño de Alertas de Dashboard para Fase 3
-     - Attempted fixes: N/A.
-     - Next debug checklist: El usuario preguntó si las alertas por reincidencia (≥3 incidencias en 30 días) deben hacerse con cálculo on-demand (Opción A) o cron job (Opción B). Confirmarle explícitamente en tu plan que procederás con la **Opción A** (Cálculo on-demand con pipeline de Mongo) como él recomendó.
-     - Why fix this issue and what will be achieved with the fix?: Define la arquitectura de métricas para la Fase 3.
-     - Status: NOT STARTED
-     - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: NA
+Ningún issue bloqueante actualmente. Esperar confirmación del usuario sobre el último fix de layout (full-width).
 
 **In progress Task List**:
-  Task 1: Módulo Coordinador — Fase 3 (Valor agregado)
-     - Where to resume:  y nuevas páginas bajo .
-     - What will be achieved with this?: 
-        1. **Charlas grupales**: CRUD, asistencia, materiales (reutilizando  configurado en ).
-        2. **Reportes avanzados**: Por grado, reincidencia y cobertura de charlas.
-        3. **Exportación XLSX/PDF**: Reutilizando patrones existentes (XLSX de estudiantes, ReportLab PDF de OMR).
-        4. **Alertas automáticas**: Dashboard flags (Opción A).
-        5. **Integración Charlas → Agenda**: Añadir .
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: Completar el warm-up (Issue 1 y Issue 2).
+Ninguna. La Fase 3 del Módulo Coordinador está completamente terminada.
 
 **Upcoming and Future Tasks**
-    Upcoming Tasks:
-    - Ejecutar Fase 3 en el orden indicado en Task 1.
-
     Future Tasks:
     - P1: Psicología — Log de auditoría estricto (parametrizar ).
     - P1: Módulo de Matrículas (Enrollments).
@@ -64,65 +27,58 @@ Actualmente existe:
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
 
 **Completed work in this session**
-- Bug fix: Tarjeta Coordinadores añadida al Grid de Usuarios y ajustes de tamaño de avatar (DONE).
-- Bug fix: Logo del colegio implementado en  llamando a  (DONE).
-- 5 Placeholders () implementados para rutas vacías en sidebar con copys personalizados y guards (DONE).
-- Fase 2 completa: Derivaciones (CRUD, asignación), Reuniones (CRUD, JWT stateless 7 días) (DONE).
-- Fase 2 completa: Ficha de estudiante (timeline unificada paginada de eventos) y Agenda integrada (DONE).
-- Fase 2 completa: Vistas dedicadas de Padres/Alumnos en endpoints  asegurando confidencialidad estricta (DONE).
-- **Testing bloqueante superado**:  y  confirmaron que el aislamiento de datos parentales y multi-tenant funciona perfectamente (DONE).
+- QA Visual (Warm-up): Verificación de aislamiento parental con datos mock y capturas de pantalla (DONE).
+- Fase 3: Módulo de Charlas Grupales con materiales vía Cloudinary () y registro manual de asistencia (DONE).
+- Fase 3: Reportes Avanzados (Incidencias por grado, Reincidentes, Cobertura charlas, Efectividad seguimientos) (DONE).
+- Fase 3: Exportación on-demand en XLSX (openpyxl) y PDF (reportlab) reutilizando infraestructura existente (DONE).
+- Fase 3: Widget de Alertas activas en el dashboard de coordinador calculando incidencias de reincidentes (DONE).
+- Bug fix crítico: Rutas como  mostraban un Placeholder porque el dev server de React quedó en estado stale. Reiniciado y validado (DONE).
+- Feature/Bug fix:  creada como vista cronológica global en lugar de usar un placeholder (DONE).
+- Bug fix UX: La vista de Mi Perfil para el coordinador ahora retiene el Sidebar de coordinación, integrándolo a  en  (DONE).
+- Bug fix UX: Removidas restricciones de ancho () en las 13 páginas del coordinador para utilizar toda la ventana horizontal (DONE).
 
 **Earlier issues found/mentioned but not fixed**
    - Issue 1: Rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
      - Debug checklist: Uvicorn corriendo con 1 solo worker, falta de índices DB en .
-     - Why to solve this issue and what will be achieved with this?: Evitar caída/timeout del servidor al procesar notas.
+     - Why to solve this issue and what will be achieved with this?: Evitar caída/timeout del servidor al procesar notas masivas.
      - Should Test frontend/backend/both after fix: backend
      - Is recurring issue?: Y
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: N/A.
-  - Recurrence count: 0
+  - Issue recurrence in previous fork: Tests de API verdes en frontend pero el Router renderizaba Placeholders debido a bundles cacheados o configuraciones perdidas en React (). Ocurrió en Charlas y en Seguimientos.
+  - Recurrence count: 2
   - Status: RESOLVED
+  - Note: Se integró una regla obligatoria en el workflow: ningún módulo se considera terminado hasta hacer un smoke-test de navegación real verificando la ausencia de placeholders con screenshots.
 
 **Code Architecture**
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── coordinacion.py               # REST API Módulo Coordinador
-│   │   ├── core.py                       # DB, roles y Cloudinary setup
-│   │   └── psychology_agenda.py          # Lógica base de conflictos de agenda
+│   │   ├── coordinacion.py               # Lógica, CRUDs, Reportes y cálculos on-demand
+│   │   ├── system.py                     # Firmas de Cloudinary y variables de entorno
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js                        # Control de Auth y rutas para /coordinacion y /parent
-│   │   └── pages/
-│   │       ├── coordinacion/             # Vistas de coordinador y vistas padre
-│   │       │   ├── AgendaPage.jsx
-│   │       │   ├── ParentCoordinacionView.jsx
-│   │       │   ├── EstudiantesFichaPage.jsx
-│   │       │   ├── CoordinacionPlaceholderPage.jsx
-│   │       │   └── ...
-│   │       └── UsersPage.jsx             # Grid de tarjetas de usuarios
+│   │   ├── App.js                        # Control estricto de rutas /coordinacion/*
+│   │   ├── components/coordinacion/      # Layout (CoordinacionLayout), Sidebar, MaterialUploader
+│   │   └── pages/coordinacion/           # 13 páginas reales (Listas, Detalles, Perfil y Dashboard full-width)
 
 **Key Technical Concepts**
-- **Aislamiento Parental Estricto**: Todo lo que consume el padre pasa por endpoints . Si  o , el backend omite el dato automáticamente.
-- **Agenda Integrada**: El endpoint de agenda devuelve una lista fusionada identificada por  (, , ). Charlas se unirá allí fácilmente.
-- **Cloudinary**: Ya está implementado globalmente. Sus imports y secretos residen en ,  y . No hace falta reinventar la rueda para las evidencias de charlas.
-- **Tokens Reuniones**: Stateless JWTs válidos por 7 días generados al confirmar reuniones. El chequeo es  dentro del token coincide con  del meeting.
+- **Reportes y Alertas On-Demand**: Los datos de reincidentes (≥3 en 30 días) se calculan usando pipelines de agregación al vuelo en MongoDB dentro de , evitando CRON jobs y duplicación de datos.
+- **Exportaciones sin nuevas dependencias**: Generación en RAM () de XLSX con  y PDFs simples usando tabla de , imitando módulos pre-existentes (Usuarios y OMR).
+- **Layout estricto full-width**: Toda pantalla de coordinación ahora depende de  asumiendo todo el espacio . El padding base se gestiona dentro del div superior de cada página específica.
 
 **key DB schema**
   - : 
-  - : 
-  - : 
+  -  / 
 
 **changes in tech stack**
-  - N/A
+  - Ninguno. Se evitó instalar bibliotecas de PDF adicionales, reutilizando las existentes.
 
 **All files of reference** 
-  - 
-  - 
-  - 
-  -  (Validación total Fase 2)
-  - 
+  -  (Modificado: Removido paddings/max-w para permitir full width)
+  -  (Modificado: Rutas de perfil y seguimientos reconectadas)
+  -  (Endpoints nuevos para Charlas y Reportes)
+  -  (Modificado: Enrutamiento seguro para mantener contexto del sidebar al clickear Perfil)
 
 **Areas that need refactoring**: 
   -  (> 11,000 líneas).
@@ -133,53 +89,45 @@ Actualmente existe:
   - 
 
 **Critical Info for New Agent** 
-- **ANTES DE PROGRAMAR FASE 3**: Termina la validación visual (warm-up) que pidió el usuario. Ya creaste 3 incidencias en backend vía bash. Crea 1 derivación y 1 reunión, inicia sesión como Padre (revisa los logs para el usuario correcto, ej. ) y saca captura de pantalla en la app para demostrar lo que ve el apoderado. Además, infórmale formalmente al usuario que escogiste la **Opción A** para las alertas.
-- Luego, elabora tu plan para la **Fase 3** y pide confirmación usando .
-- Recuerda que la infraestructura de subida de imágenes (Cloudinary) ya está detectada en  y no debes instalar librerías nuevas.
-- Continúa respondiendo estrictamente en español.
+- **Regla Estricta de UI:** NUNCA integres clases de Tailwind de limitación de ancho (, , ) en ninguna página nueva o existente bajo el folder . Todas las pantallas asumen .
+- **Regla Estricta de QA Front-End:** El hecho de que Playwright localice un  no significa que la navegación funciona vía Sidebar ni que el Router conectó bien. Siempre toma capturas de pantalla de la navegación final como el usuario real.
 
 **documents and test reports created in this job** 
-  -  (Derivaciones y Reuniones)
-  -  (Ficha, Agenda, Parent views - 6 Blocker tests pasados)
-  -  (Updated)
+  -  (Charlas Grupales)
+  -  (Reportes y Widgets)
+  -  (Actualizado: Fase 3 concluida)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. User: Pidió poner ícono de coordinador (proporcionó imagen).
-2. Agent: Reemplazó la imagen y envió screenshot.
-3. User: Pidió agrandar el ícono.
-4. Agent: Modificó márgenes, probó tamaños.
-5. User: Confirmó el tamaño pero reportó que el Logo del Colegio no aparecía en el Header del Módulo Coordinador.
-6. Agent: Usó  para restaurar el logo en .
-7. User: Notó errores 404 en el sidebar (Estudiantes, Seguimientos, Charlas, Agenda, Reportes).
-8. Agent: Creó  y alambró el enrutador.
-9. User: Dio luz verde final a la Fase 2 con 6 pruebas automatizadas estrictas como bloqueantes.
-10. Agent: Implementó el resto de la Fase 2 (Agenda, Ficha Estudiante, Vista Padres) y el testing agent validó exitosamente los bloqueos de privacidad.
-11. User: Aprobó el cierre de la Fase 2. Instruyó hacer una validación visual manual final (Warm-up) como padre y decidir sobre la arquitectura de Alertas antes de empezar con Fase 3.
-**PENDING HUMAN MESSAGE**: Terminar el screenshot de la cuenta Padre y confirmar la Opción A para Alertas. 
+ -  [User] Aprobó plan de warm-up y pidió realizar capturas de aislación parental. Pidió inventario de Cloudinary antes de iniciar Charlas. (Done)
+ -  [User] Confirmó Cloudinary y fijó reglas para la subida de materiales en Charlas (Modelo A de asistencia, max files). Aprobó iniciar Charlas. (Done)
+ -  [User] BUG: La ruta  sigue mostrando un placeholder a pesar del reporte del test en 100%. Exigió auditoría visual. (Fixed)
+ -  [User] BUG: La ruta  también muestra un placeholder no conectado. Solicitó crear la vista global cronológica. (Fixed)
+ -  [User] Aprobó las últimas vistas. Instó a proceder con 4 Reportes Avanzados, Exportaciones sin librerías nuevas y Widget de Alertas. (Done)
+ -  [User] BUG (Imagen): El menú del coordinador desaparece al entrar a Mi Perfil, mostrando el sidebar general de admin. (Fixed)
+ -  [User] Feedback UI: Todo el módulo coordinador desperdicia espacio horizontal en monitores grandes. Solicitó remover max-widths en el Layout y las 12 páginas para volver el diseño Full-width. (Fixed).
+ - *Pendiente:* Esperar la verificación y aprobación del usuario tras confirmar visualmente que el layout Full-width es de su agrado.
 
 **Project Health Check:**
-  - Broken: Ninguno. Tests en estado verde 100%.
-  - Mocked: Se crearon 3 incidencias  vía bash solo para la comprobación manual visual en curso.
+  - Broken: Ninguno. Tests en verde.
+  - Mocked: Ninguno crítico.
 
 **3rd Party Integrations** 
-  -  (Detectado y listo para usar en Fase 3 - Charlas).
+  -  (Implementado: subida de archivos en Charlas validado y aislado en su folder correspondiente).
 
 **Testing status**
-  - Testing agent used after significant changes: YES ( y )
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: [, ]
-  - Known regressions: Ninguna
+  - Testing agent used after significant changes: YES ( y ).
+  - Troubleshoot agent used after agent stuck in loop: NO.
+  - Test files created: , , .
+  - Known regressions: Ninguna viva.
 
 **Credentials to test flow:**
-Ver . (Padre demo sugerido en logs pasados: ).
+Consúltalas en . (Coordinadora principal:  - Check logs por token si no está documentado el pw).
 
 **What agent forgot to execute**
-El agente iba a crear vía Bash la derivación y la reunión de prueba final y tomar la screenshot logueado como padre, pero el job fue finalizado antes de ejecutar esos últimos comandos. Termina esta validación visual manual como primera prioridad.
+Nada pendiente. El agente terminó todas las tareas de la Fase 3, arregló bugs de placeholders, perfil de usuario, y ejecutó refactorización full-width.
 
 **Debugging checklist for current issue**
-    Issue: Finalizar QA visual manual como Padre (Warm-up pre-Fase 3).
+    Issue: Esperar feedback del UX visual de full-width a 1920px. 
     Pasos:
-    1. Vía bash en backend, inserta 1 documento en  y 1 en  asociadas a uno de los alumnos demo (vinculado a un padre conocido, ej. ).
-    2. Haz un set manual de password para el padre (ej. ) si no lo conoces.
-    3. Usa  para navegar a la ruta del apoderado ( o donde hayas configurado la UI del padre).
-    4. Muestra al usuario la captura y confirma verbalmente Usaremos la Opción A para las Alertas para dar inicio a Fase 3.</analysis>
+    1. Si el usuario aprueba, pregunta explícitamente cuál de las tareas de la lista P1 prefiere abordar ahora (Matrículas, Dashboard Owner o Refactorización).
+    2. Si el usuario quiere más padding, ajusta las clases de Tailwind en los top-div de páginas específicas y vuelve a mostrar screenshot en resoluciones amplias.</analysis>

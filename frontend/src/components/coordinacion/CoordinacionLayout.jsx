@@ -37,7 +37,7 @@ export default function CoordinacionLayout({ children, user, token, onLogout, ac
           subdomain={user?.subdomain}
           token={token}
         />
-        <main className="flex-1 p-4 md:p-6 pb-24 lg:pb-6">
+        <main className="flex-1 w-full pb-24 lg:pb-6">
           {children}
         </main>
       </div>
