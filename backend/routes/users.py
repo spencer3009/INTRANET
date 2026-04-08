@@ -1666,11 +1666,30 @@ async def export_teacher_credentials(current_user=Depends(get_current_user)):
 
     teachers = await db.users.find(
         {"role": "teacher", "school_id": school_id},
-        {"_id": 0, "name": 1, "last_name": 1, "username": 1, "plain_password": 1}
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "username": 1, "plain_password": 1}
     ).sort([("last_name", 1), ("name", 1)]).to_list(5000)
 
     if not teachers:
         raise HTTPException(status_code=404, detail="No hay profesores para exportar")
+
+    # Backfill: generate new passwords for teachers missing plain_password
+    import random, string
+    def _gen_pwd(length=10):
+        chars = string.ascii_letters + string.digits
+        while True:
+            pwd = "".join(random.choices(chars, k=length))
+            if any(c.isupper() for c in pwd) and any(c.islower() for c in pwd) and any(c.isdigit() for c in pwd):
+                return pwd
+
+    for t in teachers:
+        if not t.get("plain_password"):
+            new_pwd = _gen_pwd()
+            await db.users.update_one(
+                {"id": t["id"], "school_id": school_id},
+                {"$set": {"plain_password": new_pwd, "password": hash_password(new_pwd), "updated_at": now_iso()}}
+            )
+            t["plain_password"] = new_pwd
+            logger.info(f"Backfilled plain_password for teacher {t.get('username')} ({t['id']})")
 
     # Get school name for metadata
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1})
