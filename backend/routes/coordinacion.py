@@ -2066,6 +2066,407 @@ async def student_get_compromisos(
     return {"items": incidencias, "total": total, "page": page, "page_size": page_size}
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SHARED HELPER: REINCIDENTES PIPELINE
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _get_reincidentes(school_id: str, days: int = 30, threshold: int = 3, limit: int = None):
+    """Shared pipeline: students with >= threshold incidencias in last N days."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    pipeline = [
+        {"$match": {"school_id": school_id, "deleted_at": None, "created_at": {"$gte": cutoff}}},
+        {"$group": {"_id": "$student_id", "count": {"$sum": 1}}},
+        {"$match": {"count": {"$gte": threshold}}},
+        {"$sort": {"count": -1}},
+    ]
+    if limit:
+        pipeline.append({"$limit": limit})
+    results = await db.coordinacion_incidencias.aggregate(pipeline).to_list(500)
+    student_ids = [r["_id"] for r in results]
+    student_map = {}
+    if student_ids:
+        students = await db.users.find(
+            {"id": {"$in": student_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1}
+        ).to_list(500)
+        g_ids = list({s.get("grado_id") for s in students if s.get("grado_id")})
+        s_ids = list({s.get("seccion_id") for s in students if s.get("seccion_id")})
+        grade_map, section_map = {}, {}
+        if g_ids:
+            grades = await db.grades.find({"id": {"$in": g_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
+            grade_map = {g["id"]: g["nombre"] for g in grades}
+        if s_ids:
+            secs = await db.sections.find({"id": {"$in": s_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+            section_map = {s["id"]: s["nombre"] for s in secs}
+        for st in students:
+            gname = grade_map.get(st.get("grado_id"), "")
+            sname = section_map.get(st.get("seccion_id"), "")
+            student_map[st["id"]] = {
+                "full_name": f"{st.get('name','')} {st.get('last_name','')}".strip(),
+                "grade": f"{gname} {sname}".strip() if gname else "",
+            }
+    return [
+        {
+            "student_id": r["_id"],
+            "full_name": student_map.get(r["_id"], {}).get("full_name", ""),
+            "grade": student_map.get(r["_id"], {}).get("grade", ""),
+            "count": r["count"],
+        }
+        for r in results
+    ]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REPORTES AVANZADOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/reportes/incidencias-por-grado")
+async def report_incidencias_por_grado(
+    periodo: Optional[str] = None,
+    severidad: Optional[str] = None,
+    tipo: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    school_id = user["school_id"]
+    match = {"school_id": school_id, "deleted_at": None}
+    if periodo:
+        match["created_at"] = {"$gte": periodo}
+    if severidad:
+        match["severity"] = severidad
+    if tipo:
+        match["type"] = tipo
+
+    pipeline = [
+        {"$match": match},
+        {"$lookup": {
+            "from": "users", "localField": "student_id", "foreignField": "id",
+            "pipeline": [{"$project": {"_id": 0, "grado_id": 1, "seccion_id": 1}}],
+            "as": "student_info"
+        }},
+        {"$unwind": {"path": "$student_info", "preserveNullAndEmptyArrays": True}},
+        {"$group": {
+            "_id": {"grado_id": "$student_info.grado_id", "seccion_id": "$student_info.seccion_id"},
+            "count": {"$sum": 1},
+            "by_severity": {"$push": "$severity"},
+        }},
+        {"$sort": {"count": -1}},
+    ]
+    results = await db.coordinacion_incidencias.aggregate(pipeline).to_list(200)
+
+    # Resolve grade/section names
+    g_ids = list({r["_id"].get("grado_id") for r in results if r["_id"].get("grado_id")})
+    s_ids = list({r["_id"].get("seccion_id") for r in results if r["_id"].get("seccion_id")})
+    grade_map, section_map = {}, {}
+    if g_ids:
+        grades = await db.grades.find({"id": {"$in": g_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
+        grade_map = {g["id"]: g["nombre"] for g in grades}
+    if s_ids:
+        secs = await db.sections.find({"id": {"$in": s_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        section_map = {s["id"]: s["nombre"] for s in secs}
+
+    items = []
+    total_count = 0
+    for r in results:
+        gid = r["_id"].get("grado_id", "")
+        sid = r["_id"].get("seccion_id", "")
+        sev_counts = {}
+        for s in r.get("by_severity", []):
+            sev_counts[s] = sev_counts.get(s, 0) + 1
+        items.append({
+            "grado_id": gid, "seccion_id": sid,
+            "grado_nombre": grade_map.get(gid, "Sin grado"),
+            "seccion_nombre": section_map.get(sid, ""),
+            "label": f"{grade_map.get(gid, 'Sin grado')} {section_map.get(sid, '')}".strip(),
+            "count": r["count"],
+            "by_severity": sev_counts,
+        })
+        total_count += r["count"]
+
+    return {"items": items, "total": total_count}
+
+
+@router.get("/reportes/reincidentes")
+async def report_reincidentes(
+    periodo: int = Query(30, ge=1, le=365),
+    umbral: int = Query(3, ge=2, le=20),
+    limit: Optional[int] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    items = await _get_reincidentes(user["school_id"], days=periodo, threshold=umbral, limit=limit)
+    return {"items": items, "total": len(items), "periodo_dias": periodo, "umbral": umbral}
+
+
+@router.get("/reportes/cobertura-charlas")
+async def report_cobertura_charlas(
+    periodo: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    school_id = user["school_id"]
+    match = {"school_id": school_id, "deleted_at": None, "status": "realizada"}
+    if periodo:
+        match["scheduled_at"] = {"$gte": periodo}
+
+    charlas = await db.coordinacion_charlas.find(match, {"_id": 0}).to_list(500)
+    if not charlas:
+        return {"items": [], "total_charlas": 0, "total_convocados": 0, "total_asistentes": 0, "cobertura_pct": 0}
+
+    items = []
+    total_convocados = 0
+    total_asistentes = 0
+    for c in charlas:
+        att = c.get("attendance", [])
+        convocados = len(att)
+        asistentes = len([a for a in att if a.get("present")])
+        pct = round((asistentes / convocados * 100), 1) if convocados > 0 else 0
+        total_convocados += convocados
+        total_asistentes += asistentes
+        items.append({
+            "charla_id": c["id"],
+            "title": c.get("title", ""),
+            "scheduled_at": c.get("scheduled_at", ""),
+            "topics": c.get("topics", []),
+            "convocados": convocados,
+            "asistentes": asistentes,
+            "cobertura_pct": pct,
+        })
+
+    global_pct = round((total_asistentes / total_convocados * 100), 1) if total_convocados > 0 else 0
+    return {
+        "items": items, "total_charlas": len(charlas),
+        "total_convocados": total_convocados, "total_asistentes": total_asistentes,
+        "cobertura_pct": global_pct,
+    }
+
+
+@router.get("/reportes/efectividad-seguimientos")
+async def report_efectividad_seguimientos(
+    periodo: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    school_id = user["school_id"]
+    match = {"school_id": school_id, "deleted_at": None}
+    if periodo:
+        match["created_at"] = {"$gte": periodo}
+
+    total = await db.coordinacion_incidencias.count_documents(match)
+    closed_match = {**match, "status": {"$in": ["resuelta", "cerrada", "archivada"]}}
+    cerradas = await db.coordinacion_incidencias.count_documents(closed_match)
+    abiertas = total - cerradas
+    pct = round((cerradas / total * 100), 1) if total > 0 else 0
+
+    # By status breakdown
+    pipeline = [
+        {"$match": match},
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+    ]
+    by_status = await db.coordinacion_incidencias.aggregate(pipeline).to_list(20)
+    status_breakdown = {r["_id"]: r["count"] for r in by_status}
+
+    return {
+        "total": total, "cerradas": cerradas, "abiertas": abiertas,
+        "efectividad_pct": pct, "by_status": status_breakdown,
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXPORTACIÓN XLSX / PDF
+# ══════════════════════════════════════════════════════════════════════════════
+
+REPORT_TYPES = ["incidencias-por-grado", "reincidentes", "cobertura-charlas", "efectividad-seguimientos"]
+
+@router.get("/reportes/{report_type}/export")
+async def export_report(
+    report_type: str,
+    format: str = Query("xlsx", regex="^(xlsx|pdf)$"),
+    periodo: Optional[str] = None,
+    severidad: Optional[str] = None,
+    tipo: Optional[str] = None,
+    umbral: int = 3,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    if report_type not in REPORT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Tipo de reporte invalido. Opciones: {REPORT_TYPES}")
+
+    from fastapi.responses import StreamingResponse
+    import io
+
+    user_name = f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+    # Fetch report data using the same endpoints
+    if report_type == "incidencias-por-grado":
+        data = await report_incidencias_por_grado(periodo=periodo, severidad=severidad, tipo=tipo, user=user)
+        title = "Incidencias por Grado"
+        headers_list = ["Grado/Seccion", "Total", "Baja", "Media", "Alta", "Critica"]
+        rows = []
+        for item in data["items"]:
+            rows.append([
+                item["label"], item["count"],
+                item["by_severity"].get("baja", 0), item["by_severity"].get("media", 0),
+                item["by_severity"].get("alta", 0), item["by_severity"].get("critica", 0),
+            ])
+    elif report_type == "reincidentes":
+        periodo_days = int(periodo) if periodo and periodo.isdigit() else 30
+        data = await report_reincidentes(periodo=periodo_days, umbral=umbral, user=user)
+        title = "Estudiantes Reincidentes"
+        headers_list = ["Estudiante", "Grado", "Incidencias (30d)"]
+        rows = [[r["full_name"], r["grade"], r["count"]] for r in data["items"]]
+    elif report_type == "cobertura-charlas":
+        data = await report_cobertura_charlas(periodo=periodo, user=user)
+        title = "Cobertura de Charlas"
+        headers_list = ["Charla", "Fecha", "Convocados", "Asistentes", "Cobertura %"]
+        rows = [[c["title"], c["scheduled_at"][:10] if c["scheduled_at"] else "", c["convocados"], c["asistentes"], f"{c['cobertura_pct']}%"] for c in data["items"]]
+    else:  # efectividad-seguimientos
+        data = await report_efectividad_seguimientos(periodo=periodo, user=user)
+        title = "Efectividad de Seguimientos"
+        headers_list = ["Metrica", "Valor"]
+        rows = [
+            ["Total incidencias", data["total"]],
+            ["Cerradas/Resueltas", data["cerradas"]],
+            ["Abiertas", data["abiertas"]],
+            ["Efectividad", f"{data['efectividad_pct']}%"],
+        ]
+        for status, count in data.get("by_status", {}).items():
+            label = STATUS_LABELS.get(status, status)
+            rows.append([f"  Estado: {label}", count])
+
+    filters_text = f"Periodo: {periodo or 'Todo'}"
+    if severidad:
+        filters_text += f" | Severidad: {severidad}"
+    if tipo:
+        filters_text += f" | Tipo: {tipo}"
+
+    if format == "xlsx":
+        return _generate_xlsx(title, headers_list, rows, filters_text, user_name, now_str)
+    else:
+        return _generate_pdf(title, headers_list, rows, filters_text, user_name, now_str)
+
+
+def _generate_xlsx(title, headers, rows, filters_text, user_name, now_str):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from fastapi.responses import StreamingResponse
+    import io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = title[:31]
+
+    # Metadata rows
+    header_font = Font(bold=True, size=14, color="1a365d")
+    meta_font = Font(italic=True, size=10, color="4a5568")
+    ws.append([title])
+    ws["A1"].font = header_font
+    ws.append([filters_text])
+    ws["A2"].font = meta_font
+    ws.append([f"Generado: {now_str} por {user_name}"])
+    ws["A3"].font = meta_font
+    ws.append([])
+
+    # Column headers
+    col_header_fill = PatternFill(start_color="1a365d", end_color="1a365d", fill_type="solid")
+    col_header_font = Font(bold=True, color="ffffff", size=10)
+    thin_border = Border(
+        left=Side(style="thin", color="d1d5db"),
+        right=Side(style="thin", color="d1d5db"),
+        top=Side(style="thin", color="d1d5db"),
+        bottom=Side(style="thin", color="d1d5db"),
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=5, column=col_idx, value=h)
+        cell.font = col_header_font
+        cell.fill = col_header_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = thin_border
+
+    # Data rows
+    alt_fill = PatternFill(start_color="f7fafc", end_color="f7fafc", fill_type="solid")
+    for row_idx, row_data in enumerate(rows, 6):
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal="center" if col_idx > 1 else "left")
+            if (row_idx - 6) % 2 == 1:
+                cell.fill = alt_fill
+
+    # Auto-width
+    for col_idx in range(1, len(headers) + 1):
+        max_len = max(len(str(headers[col_idx - 1])), *[len(str(r[col_idx - 1])) if col_idx - 1 < len(r) else 0 for r in rows], 8)
+        ws.column_dimensions[chr(64 + col_idx) if col_idx <= 26 else "AA"].width = min(max_len + 4, 40)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"{title.replace(' ', '_')}_{now_str[:10]}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+def _generate_pdf(title, headers, rows, filters_text, user_name, now_str):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from fastapi.responses import StreamingResponse
+    import io
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20*mm, bottomMargin=20*mm, leftMargin=15*mm, rightMargin=15*mm)
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle("CustomTitle", parent=styles["Title"], fontSize=16, textColor=colors.HexColor("#1a365d"))
+    meta_style = ParagraphStyle("Meta", parent=styles["Normal"], fontSize=9, textColor=colors.HexColor("#4a5568"), spaceAfter=4)
+
+    elements = [
+        Paragraph(title, title_style),
+        Paragraph(filters_text, meta_style),
+        Paragraph(f"Generado: {now_str} por {user_name}", meta_style),
+        Spacer(1, 10*mm),
+    ]
+
+    # Table
+    table_data = [headers] + [[str(v) for v in row] for row in rows]
+    num_cols = len(headers)
+    col_widths = [max(60, min(180, 500 // num_cols))] * num_cols
+
+    t = Table(table_data, colWidths=col_widths)
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a365d")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
+        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d1d5db")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7fafc")]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(t)
+
+    # Footer
+    elements.append(Spacer(1, 15*mm))
+    footer_style = ParagraphStyle("Footer", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#9ca3af"))
+    elements.append(Paragraph(f"EduNet - Modulo Coordinacion | {now_str}", footer_style))
+
+    doc.build(elements)
+    buf.seek(0)
+    filename = f"{title.replace(' ', '_')}_{now_str[:10]}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2127,37 +2528,7 @@ async def get_dashboard(user=Depends(require_role(COORD_VIEW_ROLES))):
         return [{"grade_id": r["_id"], "grade_name": grade_map.get(r["_id"], ""), "count": r["count"]} for r in results]
 
     async def get_reincidentes():
-        from datetime import timedelta
-        thirty_days_ago = (now - timedelta(days=30)).isoformat()
-        pipeline = [
-            {"$match": {"school_id": school_id, "deleted_at": None, "created_at": {"$gte": thirty_days_ago}}},
-            {"$group": {"_id": "$student_id", "count": {"$sum": 1}}},
-            {"$match": {"count": {"$gte": 3}}},
-            {"$sort": {"count": -1}},
-            {"$limit": 10}
-        ]
-        results = await db.coordinacion_incidencias.aggregate(pipeline).to_list(10)
-        student_ids = [r["_id"] for r in results]
-        student_map = {}
-        if student_ids:
-            students = await db.users.find(
-                {"id": {"$in": student_ids}},
-                {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1}
-            ).to_list(10)
-            for s in students:
-                student_map[s["id"]] = {
-                    "full_name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(),
-                    "grade": s.get("grado_id", "")
-                }
-        return [
-            {
-                "student_id": r["_id"],
-                "full_name": student_map.get(r["_id"], {}).get("full_name", ""),
-                "grade": student_map.get(r["_id"], {}).get("grade", ""),
-                "count": r["count"]
-            }
-            for r in results
-        ]
+        return await _get_reincidentes(school_id, days=30, threshold=3, limit=10)
 
     async def get_recent_incidencias():
         items = await db.coordinacion_incidencias.find(

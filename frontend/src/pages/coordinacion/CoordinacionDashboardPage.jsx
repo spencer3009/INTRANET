@@ -115,20 +115,48 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                   </div>
                 </div>
 
-                {/* Alerts */}
-                {data.alertas?.length > 0 && (
-                  <div className="bg-red-50 rounded-2xl border border-red-200 p-5">
-                    <h2 className="font-bold text-red-700 mb-3 flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5" />
-                      Alertas de reincidencia
-                    </h2>
+                {/* Alerts Widget - Reincidentes */}
+                <div className={`rounded-2xl border p-5 ${data.reincidentes?.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white shadow-sm border-slate-100'}`}
+                  data-testid="alertas-widget">
+                  <h2 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Alertas activas
+                    {data.reincidentes?.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-red-200 text-red-800 font-bold">{data.reincidentes.length}</span>
+                    )}
+                  </h2>
+                  {data.reincidentes?.length > 0 ? (
                     <div className="space-y-2">
-                      {data.alertas.map((a, i) => (
-                        <p key={i} className="text-sm text-red-600">{a.message}</p>
+                      {data.reincidentes.slice(0, 5).map(r => (
+                        <button
+                          key={r.student_id}
+                          onClick={() => navigate(`/${sub}/coordinacion/estudiantes/${r.student_id}`)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-lg bg-white/70 hover:bg-white transition-colors text-left"
+                          data-testid={`alerta-${r.student_id}`}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">{r.full_name}</p>
+                            <p className="text-xs text-slate-500">{r.grade}</p>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                            {r.count} inc.
+                          </span>
+                        </button>
                       ))}
+                      {data.reincidentes.length > 5 && (
+                        <button
+                          onClick={() => navigate(`/${sub}/coordinacion/reportes?tab=reincidentes`)}
+                          className="w-full text-center py-2 text-xs font-medium text-red-600 hover:text-red-800 hover:underline"
+                          data-testid="ver-todos-reincidentes"
+                        >
+                          Ver todos ({data.reincidentes.length}) →
+                        </button>
+                      )}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-sm text-slate-400">Sin alertas de reincidencia</p>
+                  )}
+                </div>
 
                 {/* By Grade */}
                 {data.by_grade?.length > 0 && (

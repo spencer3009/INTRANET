@@ -132,6 +132,7 @@ import ParentCoordinacionView from "@/pages/coordinacion/ParentCoordinacionView"
 import CharlasListPage from "@/pages/coordinacion/CharlasListPage";
 import CharlaDetailPage from "@/pages/coordinacion/CharlaDetailPage";
 import SeguimientosListPage from "@/pages/coordinacion/SeguimientosListPage";
+import ReportesPage from "@/pages/coordinacion/ReportesPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1841,6 +1842,14 @@ function App() {
             }
           />
           <Route
+            path="/:subdomain/coordinacion/estudiantes/:studentId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <EstudiantesFichaPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/:subdomain/coordinacion/seguimientos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -1876,7 +1885,7 @@ function App() {
             path="/:subdomain/coordinacion/reportes"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CoordinacionPlaceholderPage title="Reportes" description="Reportes filtrables por grado, seccion y reincidencia. Exportacion a Excel y PDF." user={user} token={token} onLogout={handleLogout} activeSection="reportes" iconName="BarChart3" />
+                <ReportesPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

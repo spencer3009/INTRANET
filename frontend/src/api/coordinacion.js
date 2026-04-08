@@ -95,4 +95,10 @@ export const coordinacionApi = {
   getCharlaStudents: (token, id) => axios.get(`${API}/charlas/${id}/estudiantes`, authHeaders(token)).then(r => r.data),
   saveCharlaAttendance: (token, id, attendance) => axios.post(`${API}/charlas/${id}/asistencia`, { attendance }, authHeaders(token)).then(r => r.data),
   deleteCharlaMaterial: (token, charlaId, materialId) => axios.delete(`${API}/charlas/${charlaId}/materiales/${materialId}`, authHeaders(token)).then(r => r.data),
+
+  // Reportes
+  getReport: (token, reportType, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/reportes/${reportType}?${qs}`, authHeaders(token)).then(r => r.data);
+  },
 };

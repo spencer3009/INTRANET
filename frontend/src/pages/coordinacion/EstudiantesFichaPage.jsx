@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { coordinacionApi } from "../../api/coordinacion";
 import CoordinacionLayout from "../../components/coordinacion/CoordinacionLayout";
 import { Users, Search, AlertTriangle, ArrowRightLeft, MessageSquare, ClipboardList, ChevronRight, Clock, Shield, CalendarCheck } from "lucide-react";
@@ -13,6 +13,7 @@ const EVENT_CONFIG = {
 
 export default function EstudiantesFichaPage({ token, subdomain, user, onLogout }) {
   const navigate = useNavigate();
+  const { studentId: urlStudentId } = useParams();
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [students, setStudents] = useState([]);
@@ -30,6 +31,14 @@ export default function EstudiantesFichaPage({ token, subdomain, user, onLogout 
     fetch(`${API_URL}/api/coordinacion/grades`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setGrades(d.grades || d || [])).catch(() => {});
   }, []);
+
+  // Auto-load ficha if studentId is in URL
+  useEffect(() => {
+    if (urlStudentId && token) {
+      setSelectedStudent(urlStudentId);
+      loadFicha(urlStudentId, 1);
+    }
+  }, [urlStudentId, token]);
 
   const loadSections = async (gradeId) => {
     setSelectedGrade(gradeId);
