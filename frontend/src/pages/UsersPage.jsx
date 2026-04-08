@@ -1884,10 +1884,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   const [downloadingTeacherQR, setDownloadingTeacherQR] = useState(false);
+  const [qrDownloadProgress, setQrDownloadProgress] = useState(0);
   const handleDownloadTeacherQR = async () => {
     setDownloadingTeacherQR(true);
+    setQrDownloadProgress(0);
     try {
-      const res = await axios.get(`${API}/teachers/qr/bulk-download`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const res = await axios.get(`${API}/teachers/qr/bulk-download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+        timeout: 120000,
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setQrDownloadProgress(pct);
+          } else {
+            // Estimate based on loaded bytes (assume ~50KB per teacher)
+            const estimatedPct = Math.min(95, Math.round(progressEvent.loaded / 1000));
+            setQrDownloadProgress(estimatedPct);
+          }
+        }
+      });
+      setQrDownloadProgress(100);
       const disposition = res.headers["content-disposition"] || "";
       const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
       const filename = filenameMatch ? filenameMatch[1] : "qr_profesores.pdf";
@@ -1899,10 +1916,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     } catch (err) {
       if (err.response?.status === 404) {
         toast.error("No hay profesores para generar QR");
+      } else if (err.code === "ECONNABORTED") {
+        toast.error("La descarga tardo demasiado. Intente nuevamente.");
       } else {
         toast.error("Error al descargar QR. Intente nuevamente.");
       }
-    } finally { setDownloadingTeacherQR(false); }
+    } finally {
+      setDownloadingTeacherQR(false);
+      setTimeout(() => setQrDownloadProgress(0), 1000);
+    }
   };
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2547,13 +2569,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <button
                         onClick={handleDownloadTeacherQR}
                         disabled={downloadingTeacherQR}
-                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden"
                         data-testid="download-teacher-qr-btn"
                       >
+                        {downloadingTeacherQR && qrDownloadProgress > 0 && (
+                          <div className="absolute bottom-0 left-0 h-1 bg-violet-500 transition-all duration-300 rounded-b-xl" style={{ width: `${qrDownloadProgress}%` }} />
+                        )}
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center`}>
                           {downloadingTeacherQR ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <QrCode className="w-5 h-5 text-white" />}
                         </div>
-                        <span className="hidden sm:inline">{downloadingTeacherQR ? "Generando..." : "Descargar QR"}</span>
+                        <span className="hidden sm:inline">{downloadingTeacherQR ? `Generando... ${qrDownloadProgress}%` : "Descargar QR"}</span>
                       </button>
                     </>
                   )}

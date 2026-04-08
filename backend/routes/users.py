@@ -1793,7 +1793,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     from reportlab.pdfgen import canvas as pdf_canvas
     from reportlab.lib.utils import ImageReader
     from reportlab.lib.colors import HexColor
-    import requests as http_requests
+    import httpx
 
     user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
@@ -1814,32 +1814,51 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     # Backfill qr_token for teachers that don't have one
     for t in teachers:
         if not t.get("qr_token"):
-            qr_data = await generate_user_qr(db, t["id"])
-            t["qr_token"] = qr_data.get("qr_token", "")
+            try:
+                qr_data = await generate_user_qr(db, t["id"])
+                t["qr_token"] = qr_data.get("qr_token", "")
+            except Exception:
+                pass
 
     # Get school info
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1})
     school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
     school_logo_url = (school or {}).get("logo_url")
 
-    def fetch_image(url):
-        if not url:
-            return None
+    # Pre-fetch logo once (async, with short timeout)
+    logo_img = None
+    if school_logo_url:
         try:
-            resp = http_requests.get(url, timeout=5)
-            if resp.status_code == 200:
-                return BytesIO(resp.content)
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(school_logo_url)
+                if resp.status_code == 200:
+                    logo_img = BytesIO(resp.content)
         except Exception:
             pass
-        return None
+
+    # Pre-fetch all teacher photos in parallel (async, with short timeout)
+    photo_cache = {}
+    async def fetch_photo(teacher_id, url):
+        if not url:
+            return
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    photo_cache[teacher_id] = BytesIO(resp.content)
+        except Exception:
+            pass
+
+    import asyncio as _asyncio
+    photo_tasks = [fetch_photo(t["id"], t.get("photo_url")) for t in teachers if t.get("photo_url")]
+    if photo_tasks:
+        await _asyncio.gather(*photo_tasks, return_exceptions=True)
 
     def make_qr_image(token_data, size=250):
         qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
         qr.add_data(token_data)
         qr.make(fit=True)
         return qr.make_image(fill_color="black", back_color="white").resize((size, size))
-
-    logo_img = fetch_image(school_logo_url)
 
     buf = BytesIO()
     c = pdf_canvas.Canvas(buf, pagesize=A4)
@@ -1876,7 +1895,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
         c.setLineWidth(0.5)
         c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
 
-        # Top teal bar (for teachers)
+        # Top teal bar
         c.setFillColor(teal)
         c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
 
@@ -1905,7 +1924,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
         photo_size = 20 * mm
         photo_x = x + (card_w - photo_size) / 2
         photo_y = logo_y - 5 * mm - photo_size
-        teacher_photo = fetch_image(t.get("photo_url"))
+        teacher_photo = photo_cache.get(t["id"])
         if teacher_photo:
             try:
                 teacher_photo.seek(0)
@@ -1935,7 +1954,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
             c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (t.get("name", "?")[:1]).upper())
         content_top = photo_y - 4 * mm
 
-        # Teacher name (centered, bold)
+        # Teacher name
         info_y = content_top
         c.setFillColor(navy)
         c.setFont("Helvetica-Bold", 7)
