@@ -1882,6 +1882,28 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       }
     } finally { setExportingTeacherCredentials(false); }
   };
+
+  const [downloadingTeacherQR, setDownloadingTeacherQR] = useState(false);
+  const handleDownloadTeacherQR = async () => {
+    setDownloadingTeacherQR(true);
+    try {
+      const res = await axios.get(`${API}/teachers/qr/bulk-download`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const disposition = res.headers["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : "qr_profesores.pdf";
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("QR de profesores descargados correctamente");
+    } catch (err) {
+      if (err.response?.status === 404) {
+        toast.error("No hay profesores para generar QR");
+      } else {
+        toast.error("Error al descargar QR. Intente nuevamente.");
+      }
+    } finally { setDownloadingTeacherQR(false); }
+  };
   
   // ═══════════════════════════════════════════════════════════════════════════════
   // STUDENT FILTERS & GROUPED VIEW STATES (Premium Feature)
@@ -2510,17 +2532,30 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               {!roleConfig.hideAddButton && (
                 <div className="flex items-center gap-2 flex-wrap">
                   {selectedRole === 'teacher' && (
-                    <button
-                      onClick={handleExportTeacherCredentials}
-                      disabled={exportingTeacherCredentials}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      data-testid="export-teacher-credentials-btn"
-                    >
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                        {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
-                      </div>
-                      <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={handleExportTeacherCredentials}
+                        disabled={exportingTeacherCredentials}
+                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        data-testid="export-teacher-credentials-btn"
+                      >
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                          {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                        </div>
+                        <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
+                      </button>
+                      <button
+                        onClick={handleDownloadTeacherQR}
+                        disabled={downloadingTeacherQR}
+                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        data-testid="download-teacher-qr-btn"
+                      >
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center`}>
+                          {downloadingTeacherQR ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <QrCode className="w-5 h-5 text-white" />}
+                        </div>
+                        <span className="hidden sm:inline">{downloadingTeacherQR ? "Generando..." : "Descargar QR"}</span>
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleAddUser(selectedRole)}
