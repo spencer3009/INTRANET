@@ -1914,12 +1914,23 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       window.URL.revokeObjectURL(url);
       toast.success("QR de profesores descargados correctamente");
     } catch (err) {
+      // El responseType es blob, así que el detail del error viene como Blob
+      let backendDetail = null;
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          try {
+            backendDetail = JSON.parse(text)?.detail;
+          } catch { backendDetail = text; }
+        } catch {}
+      }
+
       if (err.response?.status === 404) {
         toast.error("No hay profesores para generar QR");
       } else if (err.code === "ECONNABORTED") {
         toast.error("La descarga tardo demasiado. Intente nuevamente.");
       } else {
-        toast.error("Error al descargar QR. Intente nuevamente.");
+        toast.error(backendDetail || "Error al descargar QR. Intente nuevamente.");
       }
     } finally {
       setDownloadingTeacherQR(false);

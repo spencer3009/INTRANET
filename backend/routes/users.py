@@ -1803,204 +1803,214 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    teachers = await db.users.find(
-        {"role": "teacher", "school_id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "username": 1, "photo_url": 1}
-    ).sort([("last_name", 1), ("name", 1)]).to_list(5000)
+    try:
+        teachers = await db.users.find(
+            {"role": "teacher", "school_id": school_id},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "username": 1, "photo_url": 1}
+        ).sort([("last_name", 1), ("name", 1)]).to_list(5000)
 
-    if not teachers:
-        raise HTTPException(status_code=404, detail="No hay profesores para generar QR")
+        if not teachers:
+            raise HTTPException(status_code=404, detail="No hay profesores para generar QR")
 
-    # Backfill qr_token for teachers that don't have one
-    for t in teachers:
-        if not t.get("qr_token"):
+        # Backfill qr_token for teachers that don't have one (and persist to DB)
+        for t in teachers:
+            if not t.get("qr_token"):
+                try:
+                    qr_id, qr_token = await generate_user_qr(db)
+                    await db.users.update_one(
+                        {"id": t["id"]},
+                        {"$set": {"qr_id": qr_id, "qr_token": qr_token}}
+                    )
+                    t["qr_token"] = qr_token
+                except Exception as e:
+                    logger.warning(f"Failed to backfill qr_token for teacher {t.get('id')}: {e}")
+
+        # Get school info
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1})
+        school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
+        school_logo_url = (school or {}).get("logo_url")
+
+        # Pre-fetch logo once (async, with short timeout)
+        logo_img = None
+        if school_logo_url:
             try:
-                qr_data = await generate_user_qr(db, t["id"])
-                t["qr_token"] = qr_data.get("qr_token", "")
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get(school_logo_url)
+                    if resp.status_code == 200:
+                        logo_img = BytesIO(resp.content)
             except Exception:
                 pass
 
-    # Get school info
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1})
-    school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
-    school_logo_url = (school or {}).get("logo_url")
-
-    # Pre-fetch logo once (async, with short timeout)
-    logo_img = None
-    if school_logo_url:
-        try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                resp = await client.get(school_logo_url)
-                if resp.status_code == 200:
-                    logo_img = BytesIO(resp.content)
-        except Exception:
-            pass
-
-    # Pre-fetch all teacher photos in parallel (async, with short timeout)
-    photo_cache = {}
-    async def fetch_photo(teacher_id, url):
-        if not url:
-            return
-        try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                resp = await client.get(url)
-                if resp.status_code == 200:
-                    photo_cache[teacher_id] = BytesIO(resp.content)
-        except Exception:
-            pass
-
-    import asyncio as _asyncio
-    photo_tasks = [fetch_photo(t["id"], t.get("photo_url")) for t in teachers if t.get("photo_url")]
-    if photo_tasks:
-        await _asyncio.gather(*photo_tasks, return_exceptions=True)
-
-    def make_qr_image(token_data, size=250):
-        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
-        qr.add_data(token_data)
-        qr.make(fit=True)
-        return qr.make_image(fill_color="black", back_color="white").resize((size, size))
-
-    buf = BytesIO()
-    c = pdf_canvas.Canvas(buf, pagesize=A4)
-    w, h = A4
-
-    cols, rows = 3, 3
-    card_w = 60 * mm
-    card_h = 88 * mm
-    margin_x = (w - cols * card_w) / (cols + 1)
-    margin_y = (h - rows * card_h) / (rows + 1)
-
-    navy = HexColor("#001f4b")
-    teal = HexColor("#0d9488")
-    gray = HexColor("#64748b")
-    light_bg = HexColor("#f1f5f9")
-    border_color = HexColor("#d1d5db")
-
-    card_idx = 0
-    for t in teachers:
-        if not t.get("qr_token"):
-            continue
-        if card_idx > 0 and card_idx % (cols * rows) == 0:
-            c.showPage()
-
-        pos = card_idx % (cols * rows)
-        col = pos % cols
-        row = pos // cols
-        x = margin_x + col * (card_w + margin_x)
-        y = h - margin_y - (row + 1) * card_h - row * margin_y
-
-        # Card border
-        c.setFillColor(HexColor("#ffffff"))
-        c.setStrokeColor(border_color)
-        c.setLineWidth(0.5)
-        c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
-
-        # Top teal bar
-        c.setFillColor(teal)
-        c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
-
-        # Logo + School name header
-        logo_y = y + card_h - 19 * mm
-        if logo_img:
+        # Pre-fetch all teacher photos in parallel (async, with short timeout)
+        photo_cache = {}
+        async def fetch_photo(teacher_id, url):
+            if not url:
+                return
             try:
-                logo_img.seek(0)
-                c.drawImage(ImageReader(logo_img), x + (card_w - 10 * mm) / 2, logo_y + 2 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        photo_cache[teacher_id] = BytesIO(resp.content)
             except Exception:
                 pass
 
-        c.setFillColor(navy)
-        c.setFont("Helvetica-Bold", 6)
-        display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
-        name_trunc = display_name[:30]
-        tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
-        c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
+        import asyncio as _asyncio
+        photo_tasks = [fetch_photo(t["id"], t.get("photo_url")) for t in teachers if t.get("photo_url")]
+        if photo_tasks:
+            await _asyncio.gather(*photo_tasks, return_exceptions=True)
 
-        # Divider
-        c.setStrokeColor(HexColor("#e2e8f0"))
-        c.setLineWidth(0.4)
-        c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
+        def make_qr_image(token_data, size=250):
+            qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
+            qr.add_data(token_data)
+            qr.make(fit=True)
+            return qr.make_image(fill_color="black", back_color="white").resize((size, size))
 
-        # Teacher photo or initial
-        photo_size = 20 * mm
-        photo_x = x + (card_w - photo_size) / 2
-        photo_y = logo_y - 5 * mm - photo_size
-        teacher_photo = photo_cache.get(t["id"])
-        if teacher_photo:
-            try:
-                teacher_photo.seek(0)
-                c.saveState()
-                path = c.beginPath()
-                cx_p = photo_x + photo_size / 2
-                cy_p = photo_y + photo_size / 2
-                path.circle(cx_p, cy_p, photo_size / 2)
-                path.close()
-                c.clipPath(path, stroke=0)
-                c.drawImage(ImageReader(teacher_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
-                c.restoreState()
-                c.setStrokeColor(HexColor("#cbd5e1"))
-                c.setLineWidth(0.8)
-                c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
-            except Exception:
+        buf = BytesIO()
+        c = pdf_canvas.Canvas(buf, pagesize=A4)
+        w, h = A4
+
+        cols, rows = 3, 3
+        card_w = 60 * mm
+        card_h = 88 * mm
+        margin_x = (w - cols * card_w) / (cols + 1)
+        margin_y = (h - rows * card_h) / (rows + 1)
+
+        navy = HexColor("#001f4b")
+        teal = HexColor("#0d9488")
+        gray = HexColor("#64748b")
+        light_bg = HexColor("#f1f5f9")
+        border_color = HexColor("#d1d5db")
+
+        card_idx = 0
+        for t in teachers:
+            if not t.get("qr_token"):
+                continue
+            if card_idx > 0 and card_idx % (cols * rows) == 0:
+                c.showPage()
+
+            pos = card_idx % (cols * rows)
+            col = pos % cols
+            row = pos // cols
+            x = margin_x + col * (card_w + margin_x)
+            y = h - margin_y - (row + 1) * card_h - row * margin_y
+
+            # Card border
+            c.setFillColor(HexColor("#ffffff"))
+            c.setStrokeColor(border_color)
+            c.setLineWidth(0.5)
+            c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
+
+            # Top teal bar
+            c.setFillColor(teal)
+            c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
+
+            # Logo + School name header
+            logo_y = y + card_h - 19 * mm
+            if logo_img:
+                try:
+                    logo_img.seek(0)
+                    c.drawImage(ImageReader(logo_img), x + (card_w - 10 * mm) / 2, logo_y + 2 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    pass
+
+            c.setFillColor(navy)
+            c.setFont("Helvetica-Bold", 6)
+            display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+            name_trunc = display_name[:30]
+            tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
+            c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
+
+            # Divider
+            c.setStrokeColor(HexColor("#e2e8f0"))
+            c.setLineWidth(0.4)
+            c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
+
+            # Teacher photo or initial
+            photo_size = 20 * mm
+            photo_x = x + (card_w - photo_size) / 2
+            photo_y = logo_y - 5 * mm - photo_size
+            teacher_photo = photo_cache.get(t["id"])
+            if teacher_photo:
+                try:
+                    teacher_photo.seek(0)
+                    c.saveState()
+                    path = c.beginPath()
+                    cx_p = photo_x + photo_size / 2
+                    cy_p = photo_y + photo_size / 2
+                    path.circle(cx_p, cy_p, photo_size / 2)
+                    path.close()
+                    c.clipPath(path, stroke=0)
+                    c.drawImage(ImageReader(teacher_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.restoreState()
+                    c.setStrokeColor(HexColor("#cbd5e1"))
+                    c.setLineWidth(0.8)
+                    c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
+                except Exception:
+                    c.setFillColor(light_bg)
+                    c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
+                    c.setFillColor(navy)
+                    c.setFont("Helvetica-Bold", 16)
+                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (t.get("name", "?")[:1]).upper())
+            else:
                 c.setFillColor(light_bg)
                 c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                 c.setFillColor(navy)
                 c.setFont("Helvetica-Bold", 16)
                 c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (t.get("name", "?")[:1]).upper())
-        else:
-            c.setFillColor(light_bg)
-            c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
+            content_top = photo_y - 4 * mm
+
+            # Teacher name
+            info_y = content_top
             c.setFillColor(navy)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (t.get("name", "?")[:1]).upper())
-        content_top = photo_y - 4 * mm
+            c.setFont("Helvetica-Bold", 7)
+            full_name = f"{t.get('name', '')} {t.get('last_name', '')}".strip()
+            if len(full_name) > 22:
+                full_name = full_name[:21] + "."
+            tw = c.stringWidth(full_name, "Helvetica-Bold", 7)
+            c.drawString(x + (card_w - tw) / 2, info_y, full_name)
 
-        # Teacher name
-        info_y = content_top
-        c.setFillColor(navy)
-        c.setFont("Helvetica-Bold", 7)
-        full_name = f"{t.get('name', '')} {t.get('last_name', '')}".strip()
-        if len(full_name) > 22:
-            full_name = full_name[:21] + "."
-        tw = c.stringWidth(full_name, "Helvetica-Bold", 7)
-        c.drawString(x + (card_w - tw) / 2, info_y, full_name)
+            # Role label
+            c.setFillColor(gray)
+            c.setFont("Helvetica", 5.5)
+            role_line = "PROFESOR"
+            tw2 = c.stringWidth(role_line, "Helvetica", 5.5)
+            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, role_line)
 
-        # Role label
-        c.setFillColor(gray)
-        c.setFont("Helvetica", 5.5)
-        role_line = "PROFESOR"
-        tw2 = c.stringWidth(role_line, "Helvetica", 5.5)
-        c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, role_line)
+            # QR code
+            footer_y = y + 2 * mm
+            qr_top = info_y - 7 * mm
+            qr_bottom = footer_y + 4 * mm
+            available = qr_top - qr_bottom
+            qr_size_px = min(available, 32 * mm)
+            qr_size_px = max(qr_size_px, 18 * mm)
 
-        # QR code
-        footer_y = y + 2 * mm
-        qr_top = info_y - 7 * mm
-        qr_bottom = footer_y + 4 * mm
-        available = qr_top - qr_bottom
-        qr_size_px = min(available, 32 * mm)
-        qr_size_px = max(qr_size_px, 18 * mm)
+            qr_img = make_qr_image(t["qr_token"], 250)
+            qr_buf = BytesIO()
+            qr_img.save(qr_buf, format="PNG")
+            qr_buf.seek(0)
+            qr_x = x + (card_w - qr_size_px) / 2
+            qr_y = qr_bottom + (available - qr_size_px) / 2
+            c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
 
-        qr_img = make_qr_image(t["qr_token"], 250)
-        qr_buf = BytesIO()
-        qr_img.save(qr_buf, format="PNG")
-        qr_buf.seek(0)
-        qr_x = x + (card_w - qr_size_px) / 2
-        qr_y = qr_bottom + (available - qr_size_px) / 2
-        c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
+            # Footer
+            c.setFillColor(HexColor("#94a3b8"))
+            c.setFont("Helvetica", 4)
+            c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
 
-        # Footer
-        c.setFillColor(HexColor("#94a3b8"))
-        c.setFont("Helvetica", 4)
-        c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
+            card_idx += 1
 
-        card_idx += 1
+        c.save()
+        buf.seek(0)
 
-    c.save()
-    buf.seek(0)
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        filename = f"qr_profesores_{now_str}.pdf"
 
-    now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    filename = f"qr_profesores_{now_str}.pdf"
+        logger.info(f"Teacher QR PDF exported by user {user.get('id')} — {card_idx} teachers, school {school_id}")
 
-    logger.info(f"Teacher QR PDF exported by user {user.get('id')} — {card_idx} teachers, school {school_id}")
-
-    return StreamingResponse(buf, media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"})
+        return StreamingResponse(buf, media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error generating teacher QR PDF for school {school_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generando PDF de QR: {str(e)}")
