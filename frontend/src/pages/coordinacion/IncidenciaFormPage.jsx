@@ -130,7 +130,7 @@ export default function IncidenciaFormPage({ user, token, onLogout }) {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Titulo *</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Título *</label>
             <input type="text" maxLength={140} value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="Descripcion breve del incidente"
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" data-testid="input-title" />
@@ -154,7 +154,7 @@ export default function IncidenciaFormPage({ user, token, onLogout }) {
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" data-testid="input-occurred-at" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Accion inmediata tomada</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Acción inmediata tomada</label>
               <input type="text" value={form.initial_action} onChange={e => set("initial_action", e.target.value)}
                 placeholder="Ej: Se separo al alumno, se llamo a los padres..."
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" data-testid="input-initial-action" />

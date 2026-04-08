@@ -12,7 +12,7 @@ const SEVERITY_STYLE = {
   baja:    { label: "Baja",    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/60" },
   media:   { label: "Media",   cls: "bg-amber-50 text-amber-700 border border-amber-200/60" },
   alta:    { label: "Alta",    cls: "bg-orange-50 text-orange-700 border border-orange-200/60" },
-  critica: { label: "Critica", cls: "bg-red-50 text-red-700 border border-red-200/60" },
+  critica: { label: "Crítica", cls: "bg-red-50 text-red-700 border border-red-200/60" },
 };
 
 function PremiumSeverityBadge({ severity }) {
@@ -27,9 +27,9 @@ function PremiumSeverityBadge({ severity }) {
 /* ─── Premium Status Pill (dashboard-only) ─── */
 const STATUS_STYLE = {
   nueva:               { label: "Nueva",               cls: "bg-blue-50 text-blue-700 border border-blue-200/60" },
-  en_revision:         { label: "En revision",         cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/60" },
+  en_revision:         { label: "En revisión",         cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/60" },
   en_seguimiento:      { label: "En seguimiento",      cls: "bg-violet-50 text-violet-700 border border-violet-200/60" },
-  citacion_programada: { label: "Citacion programada", cls: "bg-amber-50 text-amber-700 border border-amber-200/60" },
+  citacion_programada: { label: "Citación programada", cls: "bg-amber-50 text-amber-700 border border-amber-200/60" },
   derivada:            { label: "Derivada",            cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/60" },
   resuelta:            { label: "Resuelta",            cls: "bg-slate-100 text-slate-600 border border-slate-200/60" },
   cerrada:             { label: "Cerrada",             cls: "bg-slate-100 text-slate-600 border border-slate-200/60" },
@@ -50,7 +50,7 @@ const KPI_CONFIG = [
   { key: "incidencias_nuevas_hoy",    label: "Nuevas hoy",            icon: Clock,          color: "amber",   path: "/coordinacion/incidencias?from=today" },
   { key: "estudiantes_en_seguimiento",label: "En seguimiento",        icon: Users,          color: "violet",  path: "/coordinacion/seguimientos" },
   { key: "reuniones_pendientes",      label: "Reuniones pendientes",  icon: Calendar,       color: "blue",    path: "/coordinacion/reuniones?status=pendientes" },
-  { key: "charlas_proximas",          label: "Charlas proximas",      icon: BookOpen,       color: "emerald", path: "/coordinacion/charlas?status=programada" },
+  { key: "charlas_proximas",          label: "Charlas próximas",      icon: BookOpen,       color: "emerald", path: "/coordinacion/charlas?status=programada" },
   { key: "derivaciones_pendientes",   label: "Derivaciones pendientes", icon: ArrowRightLeft, color: "indigo", path: "/coordinacion/derivaciones?status=pendiente" },
 ];
 
@@ -63,12 +63,12 @@ const KPI_COLORS = {
   indigo:  { iconBg: "bg-indigo-50",  iconText: "text-indigo-600" },
 };
 
-/* ─── Severity bar colors (for distribution section) ─── */
-const BAR_COLORS = {
-  baja:    "bg-emerald-500",
-  media:   "bg-amber-500",
-  alta:    "bg-orange-500",
-  critica: "bg-red-500",
+/* ─── Severity bar config (for distribution section) ─── */
+const BAR_CONFIG = {
+  baja:    { color: "bg-emerald-500", label: "Baja" },
+  media:   { color: "bg-amber-500",   label: "Media" },
+  alta:    { color: "bg-orange-500",  label: "Alta" },
+  critica: { color: "bg-red-500",     label: "Crítica" },
 };
 
 /* ─── Main component ─── */
@@ -96,7 +96,7 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
         {/* ── Header ── */}
         <div>
           <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
-            Panel de Coordinacion
+            Panel de Coordinación
           </h1>
           <p className="text-sm text-slate-500 mt-1">Bienvenido/a, {user?.name}</p>
         </div>
@@ -185,19 +185,20 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
               {/* ── Right column: Severity + Alerts + By Grade ── */}
               <div className="space-y-6">
 
-                {/* Distribucion por severidad */}
+                {/* Distribución por severidad */}
                 <div className="bg-white border border-slate-200/60 rounded-xl p-5">
-                  <h2 className="text-base font-semibold text-slate-900 mb-4">Distribucion por severidad</h2>
+                  <h2 className="text-base font-semibold text-slate-900 mb-4">Distribución por severidad</h2>
                   <div className="space-y-3">
                     {Object.entries(data.by_severity).map(([sev, count]) => {
                       const total = Object.values(data.by_severity).reduce((a, b) => a + b, 0) || 1;
                       const pct = Math.round((count / total) * 100);
+                      const cfg = BAR_CONFIG[sev] || { color: "bg-slate-400", label: sev };
                       return (
                         <div key={sev} className="flex items-center gap-3">
-                          <span className="text-sm text-slate-600 w-16 capitalize">{sev}</span>
+                          <span className="text-sm text-slate-600 w-16">{cfg.label}</span>
                           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ${BAR_COLORS[sev] || "bg-slate-400"}`}
+                              className={`h-full rounded-full transition-all duration-500 ${cfg.color}`}
                               style={{ width: `${pct}%` }}
                             />
                           </div>

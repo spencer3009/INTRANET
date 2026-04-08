@@ -170,7 +170,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
         <form onSubmit={handleCreate} className="bg-white rounded-xl border border-teal-200 p-5 mb-5 space-y-4" data-testid="charla-form">
           <h3 className="font-bold text-slate-800">Programar charla</h3>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Titulo *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Título *</label>
             <input type="text" value={form.title} maxLength={200}
               onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
@@ -193,7 +193,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" data-testid="charla-datetime" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Duracion (min)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Duración (min)</label>
               <input type="number" value={form.duration_minutes} min={15} max={480}
                 onChange={(e) => setForm(p => ({ ...p, duration_minutes: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" data-testid="charla-duration" />
@@ -323,7 +323,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
         <div className="flex justify-center gap-2 mt-6">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm disabled:opacity-40">Anterior</button>
-          <span className="px-3 py-1.5 text-sm text-slate-600">Pagina {page}</span>
+          <span className="px-3 py-1.5 text-sm text-slate-600">Página {page}</span>
           <button onClick={() => setPage(p => p + 1)} disabled={charlas.length < 20}
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm disabled:opacity-40">Siguiente</button>
         </div>

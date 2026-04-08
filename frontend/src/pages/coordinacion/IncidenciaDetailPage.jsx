@@ -14,12 +14,12 @@ const TYPE_LABELS = {
   agresion_verbal: "Agresion verbal", agresion_fisica: "Agresion fisica",
   incumplimiento_normas: "Incumplimiento de normas", conflicto_companeros: "Conflicto entre companeros",
   ausencias_reiteradas: "Ausencias reiteradas", incumplimiento_academico: "Incumplimiento academico",
-  observacion_preventiva: "Observacion preventiva"
+  observacion_preventiva: "Observación preventiva"
 };
 
 const STATUS_OPTIONS = [
   { id: "nueva", label: "Nueva" }, { id: "en_revision", label: "En revision" },
-  { id: "en_seguimiento", label: "En seguimiento" }, { id: "citacion_programada", label: "Citacion programada" },
+  { id: "en_seguimiento", label: "En seguimiento" }, { id: "citacion_programada", label: "Citación programada" },
   { id: "derivada", label: "Derivada" }, { id: "resuelta", label: "Resuelta" }, { id: "cerrada", label: "Cerrada" }
 ];
 
@@ -222,7 +222,7 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
 
           {/* Description */}
           <div className="mt-5">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Descripcion</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Descripción</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed" data-testid="incidencia-description">
               {inc.description}
             </p>
@@ -390,7 +390,7 @@ export default function IncidenciaDetailPage({ user, token, onLogout }) {
                     )}
                     {seg.next_steps && (
                       <p className="text-xs text-slate-500 mt-1">
-                        <span className="font-semibold">Proximos pasos:</span> {seg.next_steps}
+                        <span className="font-semibold">Próximos pasos:</span> {seg.next_steps}
                       </p>
                     )}
                   </div>

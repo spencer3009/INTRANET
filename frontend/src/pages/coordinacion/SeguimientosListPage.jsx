@@ -152,7 +152,7 @@ export default function SeguimientosListPage({ token, subdomain, user, onLogout 
             <div className="col-span-1">Severidad</div>
             <div className="col-span-2">Proxima revision</div>
             <div className="col-span-2">Estado</div>
-            <div className="col-span-1">Observacion</div>
+            <div className="col-span-1">Observación</div>
             <div className="col-span-1"></div>
           </div>
 
@@ -199,7 +199,7 @@ export default function SeguimientosListPage({ token, subdomain, user, onLogout 
         <div className="flex justify-center gap-2 mt-6">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm disabled:opacity-40">Anterior</button>
-          <span className="px-3 py-1.5 text-sm text-slate-600">Pagina {page}</span>
+          <span className="px-3 py-1.5 text-sm text-slate-600">Página {page}</span>
           <button onClick={() => setPage(p => p + 1)} disabled={filteredItems.length < 25}
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm disabled:opacity-40">Siguiente</button>
         </div>

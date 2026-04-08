@@ -7,8 +7,8 @@ import { Users, Search, AlertTriangle, ArrowRightLeft, MessageSquare, ClipboardL
 const EVENT_CONFIG = {
   incidencia: { color: "bg-red-100 text-red-700 border-red-200", icon: AlertTriangle, label: "Incidencia" },
   seguimiento: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: ClipboardList, label: "Seguimiento" },
-  derivacion: { color: "bg-teal-100 text-teal-700 border-teal-200", icon: ArrowRightLeft, label: "Derivacion" },
-  reunion: { color: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: MessageSquare, label: "Reunion" },
+  derivacion: { color: "bg-teal-100 text-teal-700 border-teal-200", icon: ArrowRightLeft, label: "Derivación" },
+  reunion: { color: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: MessageSquare, label: "Reunión" },
 };
 
 export default function EstudiantesFichaPage({ token, subdomain, user, onLogout }) {
@@ -217,7 +217,7 @@ export default function EstudiantesFichaPage({ token, subdomain, user, onLogout 
               <div className="flex justify-center gap-2 mt-4">
                 <button onClick={() => handlePageChange(Math.max(1, page - 1))} disabled={page <= 1}
                   className="px-4 py-2 text-sm rounded-lg border border-slate-200 disabled:opacity-50">Anterior</button>
-                <span className="px-4 py-2 text-sm text-slate-600">Pagina {page} de {Math.ceil(ficha.total / 20)}</span>
+                <span className="px-4 py-2 text-sm text-slate-600">Página {page} de {Math.ceil(ficha.total / 20)}</span>
                 <button onClick={() => handlePageChange(page + 1)} disabled={page >= Math.ceil(ficha.total / 20)}
                   className="px-4 py-2 text-sm rounded-lg border border-slate-200 disabled:opacity-50">Siguiente</button>
               </div>

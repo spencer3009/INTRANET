@@ -2,7 +2,7 @@ const SEVERITY_CONFIG = {
   baja: { label: "Baja", bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300", dot: "bg-emerald-500" },
   media: { label: "Media", bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", dot: "bg-amber-500" },
   alta: { label: "Alta", bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300", dot: "bg-orange-500" },
-  critica: { label: "Critica", bg: "bg-red-100", text: "text-red-700", border: "border-red-300", dot: "bg-red-500" },
+  critica: { label: "Crítica", bg: "bg-red-100", text: "text-red-700", border: "border-red-300", dot: "bg-red-500" },
 };
 
 export function SeverityBadge({ severity }) {
@@ -17,9 +17,9 @@ export function SeverityBadge({ severity }) {
 
 const STATUS_CONFIG = {
   nueva: { label: "Nueva", bg: "bg-blue-100", text: "text-blue-700" },
-  en_revision: { label: "En revision", bg: "bg-indigo-100", text: "text-indigo-700" },
+  en_revision: { label: "En revisión", bg: "bg-indigo-100", text: "text-indigo-700" },
   en_seguimiento: { label: "En seguimiento", bg: "bg-purple-100", text: "text-purple-700" },
-  citacion_programada: { label: "Citacion programada", bg: "bg-amber-100", text: "text-amber-700" },
+  citacion_programada: { label: "Citación programada", bg: "bg-amber-100", text: "text-amber-700" },
   derivada: { label: "Derivada", bg: "bg-cyan-100", text: "text-cyan-700" },
   resuelta: { label: "Resuelta", bg: "bg-emerald-100", text: "text-emerald-700" },
   cerrada: { label: "Cerrada", bg: "bg-slate-200", text: "text-slate-600" },

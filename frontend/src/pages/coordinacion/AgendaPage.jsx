@@ -5,8 +5,8 @@ import CoordinacionLayout from "../../components/coordinacion/CoordinacionLayout
 import { Calendar, ChevronLeft, ChevronRight, MessageSquare, ArrowRightLeft, ClipboardList, Clock } from "lucide-react";
 
 const SOURCE_CONFIG = {
-  reunion: { color: "bg-indigo-500", border: "border-indigo-200", text: "text-indigo-700", bg: "bg-indigo-50", icon: MessageSquare, label: "Reunion" },
-  derivacion: { color: "bg-teal-500", border: "border-teal-200", text: "text-teal-700", bg: "bg-teal-50", icon: ArrowRightLeft, label: "Derivacion" },
+  reunion: { color: "bg-indigo-500", border: "border-indigo-200", text: "text-indigo-700", bg: "bg-indigo-50", icon: MessageSquare, label: "Reunión" },
+  derivacion: { color: "bg-teal-500", border: "border-teal-200", text: "text-teal-700", bg: "bg-teal-50", icon: ArrowRightLeft, label: "Derivación" },
   review: { color: "bg-amber-500", border: "border-amber-200", text: "text-amber-700", bg: "bg-amber-50", icon: ClipboardList, label: "Revision" },
   charla: { color: "bg-purple-500", border: "border-purple-200", text: "text-purple-700", bg: "bg-purple-50", icon: Calendar, label: "Charla" },
 };

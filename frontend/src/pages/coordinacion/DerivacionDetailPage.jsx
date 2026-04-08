@@ -13,7 +13,7 @@ const STATUS_COLORS = {
 
 const AREA_LABELS = {
   psicologia: "Psicologia",
-  direccion: "Direccion",
+  direccion: "Dirección",
   tutoria: "Tutoria",
   orientacion_familiar: "Orientacion familiar",
   externa: "Derivacion externa",

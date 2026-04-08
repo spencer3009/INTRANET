@@ -96,7 +96,7 @@ function TabIncidenciasPorGrado({ token }) {
           className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white" data-testid="filter-severidad">
           <option value="">Todas las severidades</option>
           <option value="baja">Baja</option><option value="media">Media</option>
-          <option value="alta">Alta</option><option value="critica">Critica</option>
+          <option value="alta">Alta</option><option value="critica">Crítica</option>
         </select>
         <ExportButtons reportType="incidencias-por-grado" token={token} filters={filters} />
       </div>
@@ -161,7 +161,7 @@ function TabReincidentes({ token, subdomain }) {
           <div className="col-span-5">Estudiante</div>
           <div className="col-span-3">Grado</div>
           <div className="col-span-2 text-center">Incidencias</div>
-          <div className="col-span-2 text-center">Accion</div>
+          <div className="col-span-2 text-center">Acción</div>
         </div>
         {data.items.map((r, idx) => (
           <div key={r.student_id} className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-100 items-center" data-testid={`reincident-row-${idx}`}>
