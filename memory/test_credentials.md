@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://fase3-coordinacion.preview.emergentagent.com/elroble/login
+- Login URL: https://charlas-premium-ui.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu

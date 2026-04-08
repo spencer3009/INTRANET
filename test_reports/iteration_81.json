@@ -49,8 +49,8 @@
   "test_credentials": {
     "email": "admin@elroble.edu",
     "password": "1234abc8",
-    "login_url": "https://fase3-coordinacion.preview.emergentagent.com/elroble/login",
-    "consolidated_url": "https://fase3-coordinacion.preview.emergentagent.com/elroble/consolidado-notas"
+    "login_url": "https://charlas-premium-ui.preview.emergentagent.com/elroble/login",
+    "consolidated_url": "https://charlas-premium-ui.preview.emergentagent.com/elroble/consolidado-notas"
   },
 
   "seed_data_for_testing": {
