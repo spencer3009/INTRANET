@@ -242,14 +242,14 @@ export default function EstudiantesFichaPage({ token, subdomain, user, onLogout 
             {/* ══════════ Student Profile Card ══════════ */}
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden mb-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
               {/* Gradient banner */}
-              <div className="h-24 relative" style={{ background: "linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a78bfa 100%)" }}>
+              <div className="h-28 relative" style={{ background: "linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a78bfa 100%)" }}>
                 <div className="absolute -bottom-10 -right-10 w-48 h-48 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,0.08)" }} />
                 <div className="absolute -top-5 -left-5 w-32 h-32 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,0.06)" }} />
               </div>
 
               <div className="px-6 pb-6">
                 {/* Avatar overlapping banner */}
-                <div className="flex items-end gap-5 -mt-10 mb-5">
+                <div className="-mt-10 mb-3">
                   {ficha.student.photo_url ? (
                     <img src={ficha.student.photo_url} alt="" className="w-20 h-20 rounded-2xl object-cover border-4 border-white relative z-10" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }} />
                   ) : (
@@ -258,13 +258,12 @@ export default function EstudiantesFichaPage({ token, subdomain, user, onLogout 
                       <Users className="w-8 h-8 text-white" />
                     </div>
                   )}
-                  <div className="pb-1">
-                    <h2 className="text-xl font-bold text-slate-900" data-testid="ficha-student-name">{ficha.student.full_name}</h2>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <GraduationCap className="w-4 h-4 text-indigo-500" />
-                      <span className="text-sm text-slate-500">{ficha.student.grade} - {ficha.student.section}</span>
-                    </div>
-                  </div>
+                </div>
+                {/* Name + grade below avatar, fully on white bg */}
+                <h2 className="text-xl font-bold text-slate-900 leading-tight mb-1" data-testid="ficha-student-name">{ficha.student.full_name}</h2>
+                <div className="flex items-center gap-2 mb-5">
+                  <GraduationCap className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  <span className="text-sm text-slate-500">{ficha.student.grade} - {ficha.student.section}</span>
                 </div>
 
                 {/* Reincidencia alert */}
