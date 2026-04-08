@@ -255,8 +255,8 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                   </button>
                 </div>
 
-                {/* List */}
-                <div className="py-2">
+                {/* List — mini-card per row */}
+                <div className="p-4 space-y-2.5">
                   {data.recent_incidencias?.length > 0 ? data.recent_incidencias.map(inc => {
                     const sev = SEV_CFG[inc.severity] || SEV_CFG.baja;
                     const dateField = inc.occurred_at || inc.created_at;
@@ -266,51 +266,54 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                       <div
                         key={inc.id}
                         onClick={() => go(`/coordinacion/incidencias/${inc.id}`)}
-                        className="px-6 py-3.5 flex items-center gap-3.5 cursor-pointer hover:bg-slate-50/80 transition-colors relative"
-                        style={{ borderLeft: `3px solid ${sev.color}` }}
+                        className="group flex items-center gap-4 p-4 rounded-xl border border-slate-100 cursor-pointer hover:border-slate-200 hover:shadow-sm transition-all bg-white"
                         data-testid={`recent-inc-${inc.id}`}
                       >
-                        {/* Pulse dot */}
-                        <div
-                          className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
-                          style={{
-                            background: sev.color,
-                            boxShadow: `0 0 0 4px rgba(${sev.borderRGB}, 0.12)`,
-                          }}
-                        />
+                        {/* Severity color indicator */}
+                        <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ background: sev.color, boxShadow: `0 0 0 3px rgba(${sev.borderRGB}, 0.15)` }}
+                          />
+                          <div className="w-0.5 flex-1 rounded-full bg-slate-100" />
+                        </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           {isConfidential && (
-                            <div className="flex items-center gap-1 mb-1">
-                              <Lock className="w-3 h-3 text-red-600" strokeWidth={2.5} />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 border border-red-100 mb-1.5">
+                              <Lock className="w-2.5 h-2.5 text-red-500" strokeWidth={2.5} />
                               <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Confidencial</span>
-                            </div>
+                            </span>
                           )}
-                          <div className="text-sm font-semibold text-slate-900 mb-0.5 truncate">{cleanTitle}</div>
-                          <div className="flex items-center gap-2">
-                            <User className="w-3 h-3 text-slate-400" strokeWidth={2} />
+                          <div className="text-[13px] font-semibold text-slate-900 truncate group-hover:text-slate-700">{cleanTitle}</div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                              <User className="w-3 h-3 text-slate-400" strokeWidth={2} />
+                            </div>
                             <span className="text-xs text-slate-500 truncate">{inc.student_name}</span>
-                            <span className="text-[10px] text-slate-300">&bull;</span>
-                            <span className="text-xs text-slate-400">{formatRelativeTime(dateField)}</span>
+                            <span className="text-slate-300 text-[10px]">&bull;</span>
+                            <span className="text-xs text-slate-400 flex-shrink-0">{formatRelativeTime(dateField)}</span>
                           </div>
                         </div>
 
                         {/* Badges */}
                         <div className="flex gap-1.5 flex-shrink-0">
                           <span
-                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border ${SEV_BADGE[inc.severity] || SEV_BADGE.baja}`}
+                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${SEV_BADGE[inc.severity] || SEV_BADGE.baja}`}
                             data-testid={`severity-badge-${inc.severity}`}
                           >
                             {sev.label}
                           </span>
                           <span
-                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border ${STS_BADGE[inc.status] || STS_BADGE.nueva}`}
+                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${STS_BADGE[inc.status] || STS_BADGE.nueva}`}
                             data-testid={`status-pill-${inc.status}`}
                           >
                             {formatStatus(inc.status)}
                           </span>
                         </div>
+
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 flex-shrink-0 transition-colors" />
                       </div>
                     );
                   }) : (
@@ -336,21 +339,27 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                     </div>
                     <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Distribución por severidad</h2>
                   </div>
-                  <div className="space-y-3.5">
+                  <div className="space-y-3">
                     {BAR_SEV.map(s => {
                       const total = Object.values(data.by_severity).reduce((a, b) => a + b, 0) || 1;
                       const val = data.by_severity[s.key] || 0;
-                      const pct = Math.round((val / total) * 100);
+                      const pct = total > 0 ? Math.round((val / total) * 100) : 0;
                       return (
-                        <div key={s.key}>
-                          <div className="flex justify-between mb-1.5">
-                            <span className="text-[13px] text-slate-600 font-medium">{s.label}</span>
-                            <span className="text-[13px] text-slate-900 font-semibold tabular-nums">{val}</span>
+                        <div key={s.key} className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2.5 h-2.5 rounded-full bg-gradient-to-br ${s.grad}`} />
+                              <span className="text-[13px] text-slate-700 font-medium">{s.label}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-slate-400 font-medium tabular-nums">{pct}%</span>
+                              <span className="text-[15px] text-slate-900 font-bold tabular-nums">{val}</span>
+                            </div>
                           </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full bg-gradient-to-r ${s.grad} transition-all duration-700`}
-                              style={{ width: `${pct}%` }}
+                              style={{ width: `${Math.max(pct, 2)}%` }}
                             />
                           </div>
                         </div>
@@ -361,20 +370,23 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
 
                 {/* Alertas activas */}
                 <div
-                  className="rounded-2xl p-6 border"
+                  className="rounded-2xl border overflow-hidden"
                   style={{
-                    background: data.reincidentes?.length > 0
-                      ? "linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(220,38,38,0.02) 100%)"
-                      : "white",
-                    borderColor: data.reincidentes?.length > 0
-                      ? "rgba(239,68,68,0.18)"
-                      : "rgb(226,232,240)",
+                    borderColor: data.reincidentes?.length > 0 ? "rgba(239,68,68,0.18)" : "rgb(226,232,240)",
                   }}
                   data-testid="alertas-widget"
                 >
-                  <div className="flex items-center gap-2.5 mb-4">
+                  {/* Alert header with gradient */}
+                  <div
+                    className="px-5 py-4 flex items-center gap-2.5"
+                    style={{
+                      background: data.reincidentes?.length > 0
+                        ? "linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(220,38,38,0.03) 100%)"
+                        : "linear-gradient(180deg, #fafbfc 0%, white 100%)",
+                    }}
+                  >
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center"
                       style={{
                         background: data.reincidentes?.length > 0
                           ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
@@ -384,58 +396,69 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                           : "0 4px 12px rgba(100, 116, 139, 0.15)",
                       }}
                     >
-                      <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      <AlertTriangle className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
                     </div>
                     <h2 className="text-[15px] font-semibold text-slate-900 flex-1">Alertas activas</h2>
                     {data.reincidentes?.length > 0 && (
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-500 text-white">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                        style={{ background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", boxShadow: "0 2px 6px rgba(239,68,68,0.30)" }}>
                         {data.reincidentes.length}
                       </span>
                     )}
                   </div>
 
-                  {data.reincidentes?.length > 0 ? (
-                    <div className="space-y-2">
-                      {data.reincidentes.slice(0, 5).map(a => (
-                        <div
-                          key={a.student_id}
-                          onClick={() => go(`/coordinacion/estudiantes/${a.student_id}`)}
-                          className="bg-white border border-red-100 rounded-xl p-3 px-3.5 flex items-center justify-between cursor-pointer hover:border-red-200 hover:shadow-sm transition-all"
-                          data-testid={`alerta-${a.student_id}`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-semibold text-slate-900 truncate">{a.full_name}</div>
-                            <div className="text-[11px] text-slate-400">{a.grade}</div>
-                          </div>
-                          <span
-                            className="text-[11px] font-semibold px-2.5 py-1 rounded-full border tabular-nums"
-                            style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.20)", color: "#b91c1c" }}
+                  <div className="p-4 bg-white">
+                    {data.reincidentes?.length > 0 ? (
+                      <div className="space-y-2.5">
+                        {data.reincidentes.slice(0, 5).map(a => (
+                          <div
+                            key={a.student_id}
+                            onClick={() => go(`/coordinacion/estudiantes/${a.student_id}`)}
+                            className="group flex items-center gap-3 p-3 rounded-xl border border-red-100 cursor-pointer hover:border-red-200 hover:shadow-sm transition-all bg-gradient-to-r from-red-50/40 to-white"
+                            data-testid={`alerta-${a.student_id}`}
                           >
-                            {a.count} inc.
-                          </span>
-                        </div>
-                      ))}
-                      {data.reincidentes.length > 5 && (
-                        <button
-                          onClick={() => go("/coordinacion/reportes?tab=reincidentes")}
-                          className="w-full mt-3 text-[12px] text-red-700 font-semibold hover:text-red-800 transition-colors"
-                          data-testid="ver-todos-reincidentes"
-                        >
-                          Ver todos los reincidentes &rarr;
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-400">Sin alertas de reincidencia</p>
-                  )}
+                            {/* Avatar circle with initial */}
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-red-100 border border-red-200/50">
+                              <span className="text-xs font-bold text-red-700">{a.full_name?.charAt(0) || "?"}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[13px] font-semibold text-slate-900 truncate">{a.full_name}</div>
+                              <div className="text-[11px] text-slate-400">{a.grade}</div>
+                            </div>
+                            <span
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg border tabular-nums flex-shrink-0"
+                              style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.20)", color: "#dc2626" }}
+                            >
+                              {a.count} inc.
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 flex-shrink-0 transition-colors" />
+                          </div>
+                        ))}
+                        {data.reincidentes.length > 5 && (
+                          <button
+                            onClick={() => go("/coordinacion/reportes?tab=reincidentes")}
+                            className="w-full mt-2 text-[12px] text-red-600 font-semibold hover:text-red-700 transition-colors flex items-center justify-center gap-1"
+                            data-testid="ver-todos-reincidentes"
+                          >
+                            Ver todos los reincidentes <ChevronRight className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400 py-4 text-center">Sin alertas de reincidencia</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* ══════════ INCIDENCIAS POR GRADO (full width) ══════════ */}
             {data.by_grade?.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
-                <div className="flex items-center gap-3 mb-5">
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+                <div
+                  className="px-6 py-5 border-b border-slate-100 flex items-center gap-3"
+                  style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}
+                >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center"
                     style={{
@@ -445,22 +468,34 @@ export default function CoordinacionDashboardPage({ user, token, onLogout }) {
                   >
                     <School className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
                   </div>
-                  <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Incidencias por grado</h2>
+                  <div>
+                    <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Incidencias por grado</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Distribución por nivel educativo</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {data.by_grade.map(g => {
+                <div className="p-4 space-y-2">
+                  {data.by_grade.map((g, idx) => {
                     const maxCount = Math.max(...data.by_grade.map(x => x.count), 1);
                     const pct = Math.round((g.count / maxCount) * 100);
+                    const rankColors = ["bg-indigo-500 text-white", "bg-indigo-400 text-white", "bg-indigo-300 text-white"];
+                    const rankCls = idx < 3 ? rankColors[idx] : "bg-slate-200 text-slate-600";
                     return (
-                      <div key={g.grade_id} className="flex items-center gap-4 px-2 py-2 rounded-lg hover:bg-slate-50/50 transition-colors">
-                        <span className="text-[13px] text-slate-600 font-medium w-40 truncate">{g.grade_name || "Sin grado"}</span>
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div key={g.grade_id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/60 border border-slate-100 hover:border-slate-200 transition-colors">
+                        {/* Rank badge */}
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${rankCls}`}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[13px] text-slate-700 font-medium min-w-[100px] truncate">{g.grade_name || "Sin grado"}</span>
+                        <div className="flex-1 h-2.5 bg-slate-200/50 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-700"
-                            style={{ width: `${pct}%` }}
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${Math.max(pct, 4)}%`,
+                              background: `linear-gradient(90deg, #6366f1 0%, #818cf8 100%)`,
+                            }}
                           />
                         </div>
-                        <span className="text-[13px] font-semibold text-slate-900 tabular-nums w-8 text-right">{g.count}</span>
+                        <span className="text-[15px] font-bold text-slate-900 tabular-nums w-8 text-right">{g.count}</span>
                       </div>
                     );
                   })}
