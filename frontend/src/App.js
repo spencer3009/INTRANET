@@ -131,6 +131,7 @@ import AgendaPage from "@/pages/coordinacion/AgendaPage";
 import ParentCoordinacionView from "@/pages/coordinacion/ParentCoordinacionView";
 import CharlasListPage from "@/pages/coordinacion/CharlasListPage";
 import CharlaDetailPage from "@/pages/coordinacion/CharlaDetailPage";
+import SeguimientosListPage from "@/pages/coordinacion/SeguimientosListPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1843,7 +1844,7 @@ function App() {
             path="/:subdomain/coordinacion/seguimientos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CoordinacionPlaceholderPage title="Seguimientos" description="Vista cronologica de todos los seguimientos activos con tareas pendientes y proximas revisiones." user={user} token={token} onLogout={handleLogout} activeSection="seguimientos" iconName="ClipboardList" />
+                <SeguimientosListPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

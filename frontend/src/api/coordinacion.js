@@ -20,7 +20,13 @@ export const coordinacionApi = {
   updateIncidencia: (token, id, data) => axios.patch(`${API}/incidencias/${id}`, data, authHeaders(token)).then(r => r.data),
   deleteIncidencia: (token, id) => axios.delete(`${API}/incidencias/${id}`, authHeaders(token)).then(r => r.data),
 
-  // Seguimientos
+  // Seguimientos (global)
+  listSeguimientosGlobal: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/seguimientos?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+
+  // Seguimientos (per-incidencia)
   listSeguimientos: (token, incidenciaId) =>
     axios.get(`${API}/incidencias/${incidenciaId}/seguimientos`, authHeaders(token)).then(r => r.data),
   createSeguimiento: (token, incidenciaId, data) =>

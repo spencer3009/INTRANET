@@ -544,6 +544,158 @@ async def delete_incidencia(incidencia_id: str, user=Depends(require_role(COORD_
 # SEGUIMIENTOS CRUD
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+@router.get("/seguimientos")
+async def list_seguimientos_global(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    status: Optional[str] = None,
+    from_date: Optional[str] = Query(None, alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+    student_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES)),
+):
+    """Global chronological view of all seguimientos for the school."""
+    school_id = user["school_id"]
+    now_str = datetime.now(timezone.utc).isoformat()
+
+    # Build base query
+    query = {"school_id": school_id, "deleted_at": None}
+    if student_id:
+        query["student_id"] = student_id
+
+    # Date range on next_review_at
+    if from_date or to_date:
+        date_filter = {}
+        if from_date:
+            date_filter["$gte"] = from_date
+        if to_date:
+            date_filter["$lte"] = to_date + "T23:59:59"
+        query["next_review_at"] = date_filter
+
+    # Status filter: pendiente (future), vencido (past, incidencia not closed), completado (incidencia closed)
+    # We'll compute this after fetching, but filter by grade requires a lookup first
+    grade_student_ids = None
+    if grade_id:
+        grade_students = await db.users.find(
+            {"school_id": school_id, "grado_id": grade_id, "role": "student"},
+            {"_id": 0, "id": 1}
+        ).to_list(500)
+        grade_student_ids = [s["id"] for s in grade_students]
+        query["student_id"] = {"$in": grade_student_ids}
+
+    # Count for summary (before pagination)
+    all_segs = await db.coordinacion_seguimientos.find(
+        {"school_id": school_id, "deleted_at": None},
+        {"_id": 0, "id": 1, "next_review_at": 1, "incidencia_id": 1}
+    ).to_list(5000)
+
+    # Get closed incidencia ids for summary
+    closed_statuses = ["resuelta", "cerrada", "archivada"]
+    closed_inc_ids = set()
+    inc_ids = list({s["incidencia_id"] for s in all_segs if s.get("incidencia_id")})
+    if inc_ids:
+        closed_incs = await db.coordinacion_incidencias.find(
+            {"id": {"$in": inc_ids}, "status": {"$in": closed_statuses}},
+            {"_id": 0, "id": 1}
+        ).to_list(5000)
+        closed_inc_ids = {i["id"] for i in closed_incs}
+
+    # Week range
+    from datetime import date as date_type
+    today = date_type.today()
+    week_start = today.isoformat()
+    week_end = (today + timedelta(days=7)).isoformat()
+
+    summary = {"total": len(all_segs), "pendientes": 0, "vencidos": 0, "esta_semana": 0}
+    for s in all_segs:
+        review = s.get("next_review_at", "")
+        is_closed = s.get("incidencia_id") in closed_inc_ids
+        if is_closed:
+            pass  # completed, skip for pendiente/vencido counts
+        elif review and review < now_str:
+            summary["vencidos"] += 1
+        elif review and review >= now_str:
+            summary["pendientes"] += 1
+        if review and week_start <= review[:10] <= week_end:
+            summary["esta_semana"] += 1
+
+    # Paginated query with sort by next_review_at asc
+    total_filtered = await db.coordinacion_seguimientos.count_documents(query)
+    items = await db.coordinacion_seguimientos.find(
+        query, {"_id": 0}
+    ).sort("next_review_at", 1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+
+    # Enrich with student, incidencia, and grade data
+    student_ids = list({s["student_id"] for s in items if s.get("student_id")})
+    inc_ids_page = list({s["incidencia_id"] for s in items if s.get("incidencia_id")})
+
+    student_map = {}
+    if student_ids:
+        students = await db.users.find(
+            {"id": {"$in": student_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1}
+        ).to_list(200)
+        # Get grade/section names
+        g_ids = list({s.get("grado_id") for s in students if s.get("grado_id")})
+        s_ids = list({s.get("seccion_id") for s in students if s.get("seccion_id")})
+        grade_map = {}
+        section_map = {}
+        if g_ids:
+            grades = await db.grades.find({"id": {"$in": g_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
+            grade_map = {g["id"]: g["nombre"] for g in grades}
+        if s_ids:
+            sections = await db.sections.find({"id": {"$in": s_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+            section_map = {s["id"]: s["nombre"] for s in sections}
+        for st in students:
+            gname = grade_map.get(st.get("grado_id"), "")
+            sname = section_map.get(st.get("seccion_id"), "")
+            grade_label = f"{gname} {sname}".strip() if gname else ""
+            student_map[st["id"]] = {
+                "name": f"{st.get('name','')} {st.get('last_name','')}".strip(),
+                "grade": grade_label,
+            }
+
+    inc_map = {}
+    if inc_ids_page:
+        incs = await db.coordinacion_incidencias.find(
+            {"id": {"$in": inc_ids_page}},
+            {"_id": 0, "id": 1, "type": 1, "severity": 1, "status": 1}
+        ).to_list(200)
+        type_labels = INCIDENCIA_TYPE_LABELS
+        inc_map = {i["id"]: {"title": type_labels.get(i.get("type"), i.get("type", "")), "severity": i.get("severity", ""), "status": i.get("status", "")} for i in incs}
+
+    # Apply status filter post-fetch if needed and enrich items
+    result_items = []
+    for item in items:
+        review = item.get("next_review_at", "")
+        inc_info = inc_map.get(item.get("incidencia_id"), {})
+        is_closed = inc_info.get("status") in closed_statuses
+        is_overdue = not is_closed and review and review < now_str
+        computed_status = "completado" if is_closed else ("vencido" if is_overdue else "pendiente")
+
+        if status and computed_status != status:
+            continue
+
+        st_info = student_map.get(item.get("student_id"), {})
+        item["student_name"] = st_info.get("name", "")
+        item["student_grade"] = st_info.get("grade", "")
+        item["incidencia_title"] = inc_info.get("title", "")
+        item["incidencia_severity"] = inc_info.get("severity", "")
+        item["is_overdue"] = is_overdue
+        item["computed_status"] = computed_status
+        result_items.append(item)
+
+    return {
+        "items": result_items,
+        "summary": summary,
+        "total": total_filtered,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
 @router.get("/incidencias/{incidencia_id}/seguimientos")
 async def list_seguimientos(incidencia_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
     school_id = user["school_id"]
