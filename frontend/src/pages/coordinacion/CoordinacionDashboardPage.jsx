@@ -49,32 +49,32 @@ function stripConfidentialPrefix(title) {
 const KPI_CARDS = [
   {
     key: "incidencias_activas", titleShort: "Incidencias", subtitle: "Activas",
-    icon: AlertTriangle, from: "#f9a8a8", to: "#f08080", rgb: "240, 128, 128",
+    icon: AlertTriangle, from: "#ef4444", to: "#dc2626", rgb: "239, 68, 68",
     path: "/coordinacion/incidencias?status=activas",
   },
   {
     key: "incidencias_nuevas_hoy", titleShort: "Hoy", subtitle: "Nuevas",
-    icon: Clock, from: "#fcd59e", to: "#f5b97a", rgb: "245, 185, 122",
+    icon: Clock, from: "#f59e0b", to: "#d97706", rgb: "245, 158, 11",
     path: "/coordinacion/incidencias?from=today",
   },
   {
     key: "estudiantes_en_seguimiento", titleShort: "Seguimiento", subtitle: "Estudiantes",
-    icon: Users, from: "#c4b5fd", to: "#a78bfa", rgb: "167, 139, 250",
+    icon: Users, from: "#8b5cf6", to: "#7c3aed", rgb: "139, 92, 246",
     path: "/coordinacion/seguimientos",
   },
   {
     key: "reuniones_pendientes", titleShort: "Reuniones", subtitle: "Pendientes",
-    icon: Calendar, from: "#93c5fd", to: "#6aa8f0", rgb: "106, 168, 240",
+    icon: Calendar, from: "#3b82f6", to: "#2563eb", rgb: "59, 130, 246",
     path: "/coordinacion/reuniones?status=pendientes",
   },
   {
     key: "charlas_proximas", titleShort: "Charlas", subtitle: "Próximas",
-    icon: BookOpen, from: "#86efac", to: "#5ddba5", rgb: "93, 219, 165",
+    icon: BookOpen, from: "#10b981", to: "#059669", rgb: "16, 185, 129",
     path: "/coordinacion/charlas?status=programada",
   },
   {
     key: "derivaciones_pendientes", titleShort: "Derivaciones", subtitle: "Pendientes",
-    icon: ArrowRightLeft, from: "#a5b4fc", to: "#818cf8", rgb: "129, 140, 248",
+    icon: ArrowRightLeft, from: "#6366f1", to: "#4f46e5", rgb: "99, 102, 241",
     path: "/coordinacion/derivaciones?status=pendiente",
   },
 ];
