@@ -66,7 +66,11 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
   const handleProfileClick = () => {
     setProfileMenuOpen(false);
     const basePath = subdomain ? `/${subdomain}` : "";
-    navigate(`${basePath}/perfil`);
+    if (user?.role === "coordinator") {
+      navigate(`${basePath}/coordinacion/perfil`);
+    } else {
+      navigate(`${basePath}/perfil`);
+    }
   };
 
   const handleLogoutClick = () => { setProfileMenuOpen(false); onLogout(); };

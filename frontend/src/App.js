@@ -133,6 +133,7 @@ import CharlasListPage from "@/pages/coordinacion/CharlasListPage";
 import CharlaDetailPage from "@/pages/coordinacion/CharlaDetailPage";
 import SeguimientosListPage from "@/pages/coordinacion/SeguimientosListPage";
 import ReportesPage from "@/pages/coordinacion/ReportesPage";
+import CoordinacionPerfilPage from "@/pages/coordinacion/CoordinacionPerfilPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1886,6 +1887,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ReportesPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/perfil"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CoordinacionPerfilPage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
