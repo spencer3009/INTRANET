@@ -1,58 +1,76 @@
-<analysis>**original_problem_statement**: Implementar el Módulo Coordinador (Fase 1 completada, pendientes Fases 2 y 3) basándose en una especificación técnica extensa. PRODUCT REQUIREMENTS: Integrar un nuevo rol de primer nivel ( en backend, Coordinador en UI), reutilizar infraestructura del módulo de Psicología sin duplicar lógica, implementar dashboard de KPIs, CRUD de incidencias, seguimientos, charlas, reuniones con padres y derivaciones. Todo debe respetar el sistema RBAC (), soportar aislamiento multi-tenant (), utilizar soft-delete, auditoría y mantener un entorno estricto sin TypeScript.
+<analysis>**original_problem_statement**: Implementar el Módulo Coordinador (Fase 1 y Fase 2 completadas, pendiente Fase 3) basándose en una especificación técnica extensa. PRODUCT REQUIREMENTS: Integrar el rol , reutilizar infraestructura del módulo de Psicología sin duplicar lógica. El módulo incluye dashboard de KPIs, CRUD de incidencias, seguimientos, charlas, reuniones con padres y derivaciones. Todo debe respetar el sistema RBAC, soportar aislamiento multi-tenant (), utilizar soft-delete, auditoría y mantener un entorno estricto sin TypeScript. La Fase 2 está terminada y validada; la misión ahora es arrancar la Fase 3 (Charlas, Reportes, Exportaciones, Alertas automáticas).
 
-**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only - in this case, **Spanish**).
+**User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish**).
 
 **what currently exists?**: 
-La plataforma educativa es robusta (FastAPI, React, MongoDB). En esta sesión se solucionaron problemas de UI móvil en Asistencia Manual (ajuste de diseño responsivo y etiquetas) y se añadió soporte completo al botón de Exportar Credenciales para Profesores. Además, se desarrolló e integró con éxito todo el flujo para **Justificación de Asistencias con Motivo Detallado** (Backend + Modal frontend). 
-Respecto al **Módulo de Coordinador**, la **Fase 1 (Núcleo)** acaba de ser completada: se agregó el rol , se actualizaron permisos, se creó el router , el Layout con Sidebar propio, el Dashboard, y el CRUD básico de incidencias y seguimientos en frontend y backend.
+Aplicación full-stack robusta en FastAPI + React + MongoDB. Las Fases 1 y 2 del Módulo Coordinador están 100% completadas y testeadas ( e  pasaron sin errores). 
+Actualmente existe: 
+- Tarjeta de Coordinadores en la grilla de gestión de usuarios.
+- Derivaciones (CRUD, auto-asignación, notificaciones badge en sidebar).
+- Reuniones con padres (CRUD, tokens JWT stateless de 7 días, endpoint de confirmación público).
+- Ficha extendida del estudiante (timeline unificada y paginada).
+- Agenda integrada (incluye reuniones, derivaciones y próximas revisiones de seguimientos).
+- Vistas Padre/Alumno (endpoints dedicados en  y , filtros estrictos de confidencialidad).
+- Guardias de rol y aislamiento multi-escuela garantizado.
 
 **Last working item**:
-    - Last item agent was working: Validar el correcto funcionamiento de la Fase 1 del Módulo Coordinador. El agente construyó toda la estructura y acaba de llamar al subagente de testing para verificar flujos y detectar errores.
-    - Status: TESTING PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use?: NA (El reporte de testing ya se generó, el agente debe proceder a leerlo).
+    - Last item agent was working: Validaciones previas (warm-up) antes de iniciar código de la Fase 3. El usuario solicitó crear datos manuales en una escuela demo (3 incidencias, 1 derivación, 1 reunión) e iniciar sesión como padre para verificar visualmente que el aislamiento funciona. El agente ya creó las 3 incidencias (, , ) vía bash.
+    - Status: IN PROGRESS
+    - Agent Testing Done: Y (pruebas automatizadas), N (verificación manual en curso)
+    - Which testing method agent to use?: screenshot tool (para capturar la vista del padre con los datos demo).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1 (P0): Procesar resultados del subagente de testing para el Módulo Coordinador (Fase 1).
-     - Attempted fixes: Se implementó la Fase 1 y se despachó a .
-     - Next debug checklist: Leer minuciosamente . Solucionar cualquier bug, error 403, de validación o UI que el testing agent haya encontrado en el CRUD de incidencias, seguimientos, dashboard o login de coordinador.
-     - Why fix this issue and what will be achieved with the fix?: Asegurar que el núcleo del Módulo Coordinador (Fase 1) sea 100% estable y cumpla con el aislamiento de tenant y permisos antes de continuar con la Fase 2.
-     - Status: TESTING PENDING
+  Issue 1 (P0): Finalizar la verificación visual manual del Padre (Warm-up Fase 3)
+     - Attempted fixes: Se crearon las incidencias. Falta crear 1 derivación y 1 reunión vinculadas, luego iniciar sesión con la cuenta de padre (ej. ) y tomar un screenshot de la UI.
+     - Next debug checklist: Usar scripts de consola para crear la derivación y reunión. Hacer login en frontend como el padre vinculado a ese estudiante y usar  en la vista de incidencias/reuniones.
+     - Why fix this issue and what will be achieved with the fix?: Es un pre-requisito solicitado por el usuario para confirmar la seguridad visualmente antes de construir la Fase 3.
+     - Status: IN PROGRESS
      - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: both
+     - Should Test frontend/backend/both after fix?: frontend
      - Blocked on other issue: Ninguno.
 
+  Issue 2 (P0): Confirmar diseño de Alertas de Dashboard para Fase 3
+     - Attempted fixes: N/A.
+     - Next debug checklist: El usuario preguntó si las alertas por reincidencia (≥3 incidencias en 30 días) deben hacerse con cálculo on-demand (Opción A) o cron job (Opción B). Confirmarle explícitamente en tu plan que procederás con la **Opción A** (Cálculo on-demand con pipeline de Mongo) como él recomendó.
+     - Why fix this issue and what will be achieved with the fix?: Define la arquitectura de métricas para la Fase 3.
+     - Status: NOT STARTED
+     - Is recurring issue?: N
+     - Should Test frontend/backend/both after fix?: NA
+
 **In progress Task List**:
-  Task 1: Módulo Coordinador — Fase 2 (Operativa)
+  Task 1: Módulo Coordinador — Fase 3 (Valor agregado)
      - Where to resume:  y nuevas páginas bajo .
-     - What will be achieved with this?: Implementar reuniones con padres (reusando lógica de  con tokens de confirmación), derivaciones a otras áreas con notificaciones, pestaña de Coordinación en la Ficha del Estudiante extendida, la Agenda integrada y las vistas restringidas para perfiles de Padre y Alumno.
+     - What will be achieved with this?: 
+        1. **Charlas grupales**: CRUD, asistencia, materiales (reutilizando  configurado en ).
+        2. **Reportes avanzados**: Por grado, reincidencia y cobertura de charlas.
+        3. **Exportación XLSX/PDF**: Reutilizando patrones existentes (XLSX de estudiantes, ReportLab PDF de OMR).
+        4. **Alertas automáticas**: Dashboard flags (Opción A).
+        5. **Integración Charlas → Agenda**: Añadir .
      - Status: NOT STARTED
      - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: Finalizar la revisión de  (Issue 1).
+     - Blocked on something: Completar el warm-up (Issue 1 y Issue 2).
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P0: Módulo Coordinador — Fase 3 (Valor agregado: Charlas, Reportes avanzados por grado/reincidencia, Exportación a XLSX/PDF y alertas automáticas de dashboard).
-    - P1: Psicología — Log de auditoría estricto (Se sugirió parametrizar  en vez de crear uno nuevo).
-    - P1: Módulo de Matrículas (Enrollments).
-    - P1: Dashboard Owner con métricas reales.
+    - Ejecutar Fase 3 en el orden indicado en Task 1.
 
     Future Tasks:
+    - P1: Psicología — Log de auditoría estricto (parametrizar ).
+    - P1: Módulo de Matrículas (Enrollments).
+    - P1: Dashboard Owner con métricas reales.
     - P2: Refactorización crítica:  (> 11,000 líneas).
     - P2: Crear módulo de Encuestas.
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
 
 **Completed work in this session**
-- Botón para exportar credenciales de Profesores a Excel (reutilizando el patrón de los estudiantes) (DONE).
-- Fix bug en  para rol  (asegurado que muestra items correctos) (DONE).
-- Correcciones UI móvil en Asistencia Manual (arreglo de overflow y texto descriptivo bajo iconos de status) (DONE).
-- Sistema completo de Justificación de Inasistencias con Motivo Detallado (, , Tooltip informativos) (DONE).
-- **Fase 1: Módulo Coordinador (Núcleo)** (DONE - Testing pending):
-  - Rol  añadido en configuraciones de frontend y  (backend).
-  - Modelos e índices de Mongo para  y .
-  - Backend API:  (Dashboard KPIs, CRUD básico).
-  - Frontend: , , , listas, detalles y formularios de incidencias.
+- Bug fix: Tarjeta Coordinadores añadida al Grid de Usuarios y ajustes de tamaño de avatar (DONE).
+- Bug fix: Logo del colegio implementado en  llamando a  (DONE).
+- 5 Placeholders () implementados para rutas vacías en sidebar con copys personalizados y guards (DONE).
+- Fase 2 completa: Derivaciones (CRUD, asignación), Reuniones (CRUD, JWT stateless 7 días) (DONE).
+- Fase 2 completa: Ficha de estudiante (timeline unificada paginada de eventos) y Agenda integrada (DONE).
+- Fase 2 completa: Vistas dedicadas de Padres/Alumnos en endpoints  asegurando confidencialidad estricta (DONE).
+- **Testing bloqueante superado**:  y  confirmaron que el aislamiento de datos parentales y multi-tenant funciona perfectamente (DONE).
 
 **Earlier issues found/mentioned but not fixed**
    - Issue 1: Rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
@@ -62,7 +80,7 @@ Respecto al **Módulo de Coordinador**, la **Fase 1 (Núcleo)** acaba de ser com
      - Is recurring issue?: Y
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Ninguna aplicable para este fork.
+  - Issue recurrence in previous fork: N/A.
   - Recurrence count: 0
   - Status: RESOLVED
 
@@ -70,49 +88,44 @@ Respecto al **Módulo de Coordinador**, la **Fase 1 (Núcleo)** acaba de ser com
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── coordinacion.py               # API REST Módulo Coordinador (Nuevo)
-│   │   ├── attendance.py                 # (Actualizado con endpoints de justificación)
-│   │   └── core.py                       # Configuración de SECTION_PERMISSIONS
+│   │   ├── coordinacion.py               # REST API Módulo Coordinador
+│   │   ├── core.py                       # DB, roles y Cloudinary setup
+│   │   └── psychology_agenda.py          # Lógica base de conflictos de agenda
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js                        # Control de Auth y rutas para /coordinacion
-│   │   ├── api/
-│   │   │   └── coordinacion.js           # Fetch API hooks para el módulo
-│   │   ├── components/
-│   │   │   └── coordinacion/             # Componentes base (Layout, Sidebar, Modales)
-│   │   │       ├── CoordinacionLayout.jsx
-│   │   │       └── CoordinacionSidebar.jsx
+│   │   ├── App.js                        # Control de Auth y rutas para /coordinacion y /parent
 │   │   └── pages/
-│   │       └── coordinacion/             # Vistas de coordinador
-│   │           ├── CoordinacionDashboardPage.jsx
-│   │           ├── IncidenciasListPage.jsx
-│   │           ├── IncidenciaFormPage.jsx
-│   │           └── IncidenciaDetailPage.jsx
+│   │       ├── coordinacion/             # Vistas de coordinador y vistas padre
+│   │       │   ├── AgendaPage.jsx
+│   │       │   ├── ParentCoordinacionView.jsx
+│   │       │   ├── EstudiantesFichaPage.jsx
+│   │       │   ├── CoordinacionPlaceholderPage.jsx
+│   │       │   └── ...
+│   │       └── UsersPage.jsx             # Grid de tarjetas de usuarios
 
 **Key Technical Concepts**
-- **RBAC mediante Require Role**: Las verificaciones se delegan centralmente en  de  pero cada endpoint llama a . No se hacen chequeos directos (ej. ) en la lógica de negocio.
-- **Roles vs UI**: El backend estrictamente maneja el rol de coordinador como la string  (para alinearse con el resto de la base de código). La UI muestra los textos en español (Coordinador).
-- **Aislamiento Multi-escuela y Soft-delete**: Todas las colecciones nuevas incluyen , e índices para .
-- **Reutilización Estratégica**: Para la próxima fase (Agenda y Charlas), se debe reutilizar la lógica de  y el uploader existente de  configurado en . No duplicar esfuerzos.
+- **Aislamiento Parental Estricto**: Todo lo que consume el padre pasa por endpoints . Si  o , el backend omite el dato automáticamente.
+- **Agenda Integrada**: El endpoint de agenda devuelve una lista fusionada identificada por  (, , ). Charlas se unirá allí fácilmente.
+- **Cloudinary**: Ya está implementado globalmente. Sus imports y secretos residen en ,  y . No hace falta reinventar la rueda para las evidencias de charlas.
+- **Tokens Reuniones**: Stateless JWTs válidos por 7 días generados al confirmar reuniones. El chequeo es  dentro del token coincide con  del meeting.
 
 **key DB schema**
   - : 
   - : 
-  -  (actualizado): Campos opcionales , , , .
+  - : 
 
 **changes in tech stack**
   - N/A
 
 **All files of reference** 
-  -  (REVISAR INMEDIATAMENTE: Reporte testing Fase 1).
   - 
   - 
   - 
+  -  (Validación total Fase 2)
   - 
 
 **Areas that need refactoring**: 
   -  (> 11,000 líneas).
-  - La función  en  puede extraerse a una librería común (ej. ) para poder ser inyectada con la colección objetivo, en vez de limitarse solo a .
 
 **key api endpoints**
   - 
@@ -120,255 +133,53 @@ Respecto al **Módulo de Coordinador**, la **Fase 1 (Núcleo)** acaba de ser com
   - 
 
 **Critical Info for New Agent** 
-- **TAREA INICIAL**: El Job previo terminó justo enviando a testear la Fase 1 del Módulo Coordinador. Debes abrir , solucionar CUALQUIER BUG o fix propuesto en ese documento.
-- Tras validar la Fase 1, tu obligación es generar el entregable exigido por el usuario antes de proceder a la Fase 2: Mostrar capturas de pantalla de la UI funcionando, lista de archivos, y validación multi-school (aislamiento).
-- Posteriormente, inicia la **Fase 2 (Operativa)** siguiendo el Spec que el usuario detalló minuciosamente en su mega-prompt.
-- **RECORDATORIO**: Mantente estrictamente en español para tus respuestas, excepto para nombres de clases/endpoints en código. Usa  en backend.
+- **ANTES DE PROGRAMAR FASE 3**: Termina la validación visual (warm-up) que pidió el usuario. Ya creaste 3 incidencias en backend vía bash. Crea 1 derivación y 1 reunión, inicia sesión como Padre (revisa los logs para el usuario correcto, ej. ) y saca captura de pantalla en la app para demostrar lo que ve el apoderado. Además, infórmale formalmente al usuario que escogiste la **Opción A** para las alertas.
+- Luego, elabora tu plan para la **Fase 3** y pide confirmación usando .
+- Recuerda que la infraestructura de subida de imágenes (Cloudinary) ya está detectada en  y no debes instalar librerías nuevas.
+- Continúa respondiendo estrictamente en español.
 
 **documents and test reports created in this job** 
-  -  (Exportar Profesores)
-  -  (Justificaciones Asistencia)
-  -  (Coordinador Fase 1)
+  -  (Derivaciones y Reuniones)
+  -  (Ficha, Agenda, Parent views - 6 Blocker tests pasados)
   -  (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. User: Reportó bug en vista móvil de Asistencia manual (nombres ocultos, botones cortados).
-2. Agent: Reestructuró UI a diseño vertical conservando botones (Opción A).
-3. User: Solicitó agregar texto descriptivo pequeño a los iconos de estado de asistencia en móvil.
-4. Agent: Añadió textos descriptivos debajo de los iconos ().
-5. User: Mega-prompt: Sistema de Justificación de Asistencia con Motivo detallado.
-6. Agent: Implementó el backend, Modal y endpoints, superó 100% las pruebas del testing agent.
-7. User: Pidió cambiar el ícono de  a  color verde. (Luego pidió naranja, y también el botón Justificado a naranja).
-8. Agent: Aplicó los cambios de estilos en todos los lugares.
-9. User: Mega-prompt: Módulo Coordinador Spec Técnico de implementación (Fase 1, 2, 3).
-10. Agent: Desarrolló exitosamente todo el núcleo de la Fase 1 y ejecutó el . 
-**PENDING HUMAN MESSAGE**: Ninguno, pero tú debes revisar el resultado de esa última iteración (#116) y darle el reporte y pruebas visuales al usuario.
+1. User: Pidió poner ícono de coordinador (proporcionó imagen).
+2. Agent: Reemplazó la imagen y envió screenshot.
+3. User: Pidió agrandar el ícono.
+4. Agent: Modificó márgenes, probó tamaños.
+5. User: Confirmó el tamaño pero reportó que el Logo del Colegio no aparecía en el Header del Módulo Coordinador.
+6. Agent: Usó  para restaurar el logo en .
+7. User: Notó errores 404 en el sidebar (Estudiantes, Seguimientos, Charlas, Agenda, Reportes).
+8. Agent: Creó  y alambró el enrutador.
+9. User: Dio luz verde final a la Fase 2 con 6 pruebas automatizadas estrictas como bloqueantes.
+10. Agent: Implementó el resto de la Fase 2 (Agenda, Ficha Estudiante, Vista Padres) y el testing agent validó exitosamente los bloqueos de privacidad.
+11. User: Aprobó el cierre de la Fase 2. Instruyó hacer una validación visual manual final (Warm-up) como padre y decidir sobre la arquitectura de Alertas antes de empezar con Fase 3.
+**PENDING HUMAN MESSAGE**: Terminar el screenshot de la cuenta Padre y confirmar la Opción A para Alertas. 
 
 **Project Health Check:**
-  - Broken: Iteration 116 puede contener fallos, es vital revisarla.
-  - Mocked: Ninguno actual.
+  - Broken: Ninguno. Tests en estado verde 100%.
+  - Mocked: Se crearon 3 incidencias  vía bash solo para la comprobación manual visual en curso.
 
 **3rd Party Integrations** 
-  -  (Para uso futuro en Fase 2 de evidencias del Coordinador). Requiere Emergent Integrations Manager si falta key.
+  -  (Detectado y listo para usar en Fase 3 - Charlas).
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Iteration 116 completada, pendiente de revisión)
+  - Testing agent used after significant changes: YES ( y )
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: [, , ]
+  - Test files created: [, ]
   - Known regressions: Ninguna
 
 **Credentials to test flow:**
-Ver . (Para el nuevo rol, es probable que se haya creado  con password ).
+Ver . (Padre demo sugerido en logs pasados: ).
 
 **What agent forgot to execute**
-El agente iba perfectamente en secuencia. Simplemente terminó la Fase 1 enviando los archivos al tester, por lo que se quedó sin contexto para recibir la respuesta y reparar eventuales errores en la iteración 116.
+El agente iba a crear vía Bash la derivación y la reunión de prueba final y tomar la screenshot logueado como padre, pero el job fue finalizado antes de ejecutar esos últimos comandos. Termina esta validación visual manual como primera prioridad.
 
 **Debugging checklist for current issue**
-    Issue: Finalizar QA de Módulo Coordinador Fase 1 e iniciar Fase 2
-    Backend files to check: 
-    Frontend files to check: 
+    Issue: Finalizar QA visual manual como Padre (Warm-up pre-Fase 3).
     Pasos:
-    1. {
-  "summary": "Coordinacion Module V1 (Phase 1) - Complete testing of backend APIs and frontend UI. Fixed 2 bugs: 1) COORD_DELETE_ROLES missing 'owner' role, 2) Frontend using wrong API endpoints for grades/sections/students. All 23 backend tests pass. Frontend verified: coordinator login redirects to /elroble/coordinacion, dashboard shows 6 KPIs, sidebar has 9 items, incidencias CRUD works, seguimientos timeline works.",
-  "backend_issues": {
-    "critical": [],
-    "minor": []
-  },
-  "frontend_issues": {
-    "ui_bugs": [],
-    "integration_issues": [],
-    "design_issues": []
-  },
-  "test_report_links": [
-    "/app/backend/tests/test_coordinacion.py",
-    "/app/test_reports/pytest/pytest_coordinacion.xml"
-  ],
-  "action_items": [],
-  "critical_code_review_comments": [],
-  "updated_files": [
-    "/app/backend/routes/coordinacion.py",
-    "/app/frontend/src/pages/coordinacion/IncidenciaFormPage.jsx",
-    "/app/memory/test_credentials.md"
-  ],
-  "success_rate": {
-    "backend": "100% - 23/23 tests passed",
-    "frontend": "100% - All features verified"
-  },
-  "test_credentials": {
-    "admin": "admin@elroble.edu / 1234abc8 (role: owner)",
-    "coordinator": "coordinador@elroble.edu / Coord123! (role: coordinator)",
-    "teacher": "sonia3009@gmail.com / teacher123 (role: teacher, gets 403 on create)"
-  },
-  "seed_data_creation": "Test incidencias created during backend tests (prefixed with TEST_)",
-  "retest_needed": false,
-  "should_main_agent_self_test": false,
-  "context_for_next_testing_agent": "Coordinacion Module V1 complete. Backend endpoints at /api/coordinacion/*. New endpoints added: /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students for the incidencia form. COORD_VIEW_ROLES includes owner, admin, director, coordinator, psicologo. COORD_WRITE_ROLES includes coordinator, admin, owner. COORD_DELETE_ROLES includes admin, owner. Frontend pages: CoordinacionDashboardPage, IncidenciasListPage, IncidenciaFormPage, IncidenciaDetailPage. Sidebar component: CoordinacionSidebar with 9 items.",
-  "features_verified": {
-    "backend_api": {
-      "GET /api/coordinacion/enums": {
-        "returns_types": "PASS - 9 incidencia types",
-        "returns_severities": "PASS - 4 severities (baja, media, alta, critica)",
-        "returns_statuses": "PASS - 7 statuses"
-      },
-      "GET /api/coordinacion/dashboard": {
-        "returns_kpis": "PASS - incidencias_activas, incidencias_nuevas_hoy, estudiantes_en_seguimiento, reuniones_pendientes, charlas_proximas, derivaciones_pendientes",
-        "returns_by_severity": "PASS - breakdown by severity",
-        "returns_by_grade": "PASS - breakdown by grade",
-        "returns_reincidentes": "PASS - students with 3+ incidencias in 30 days",
-        "returns_alertas": "PASS - reincidencia alerts",
-        "returns_recent_incidencias": "PASS - last 5 incidencias"
-      },
-      "POST /api/coordinacion/incidencias": {
-        "creates_incidencia": "PASS - returns incidencia with id",
-        "validates_type": "PASS - rejects invalid type",
-        "validates_severity": "PASS - rejects invalid severity",
-        "validates_student": "PASS - verifies student belongs to school"
-      },
-      "GET /api/coordinacion/incidencias": {
-        "returns_paginated_list": "PASS - items, total, page",
-        "filters_by_status": "PASS",
-        "filters_by_severity": "PASS",
-        "search_query": "PASS - searches title/description"
-      },
-      "GET /api/coordinacion/incidencias/{id}": {
-        "returns_detail": "PASS - includes student_name, grade_name, section_name"
-      },
-      "PATCH /api/coordinacion/incidencias/{id}": {
-        "updates_fields": "PASS - severity, status, etc."
-      },
-      "DELETE /api/coordinacion/incidencias/{id}": {
-        "soft_deletes": "PASS - sets deleted_at",
-        "cascade_deletes": "PASS - soft-deletes seguimientos and derivaciones",
-        "admin_only": "PASS - coordinator gets 403, admin/owner can delete"
-      },
-      "POST /api/coordinacion/incidencias/{id}/seguimientos": {
-        "creates_seguimiento": "PASS - returns seguimiento with id",
-        "updates_incidencia_status": "PASS - atomically updates parent status"
-      },
-      "GET /api/coordinacion/incidencias/{id}/seguimientos": {
-        "returns_timeline": "PASS - items sorted by entry_date desc, includes created_by_name"
-      },
-      "GET /api/coordinacion/grades": "PASS - returns grades for coordinator's school",
-      "GET /api/coordinacion/sections": "PASS - returns sections for grade",
-      "GET /api/coordinacion/students": "PASS - returns students for section"
-    },
-    "frontend_ui": {
-      "coordinator_login": {
-        "redirects_to_coordinacion": "PASS - /elroble/coordinacion"
-      },
-      "dashboard_page": {
-        "shows_6_kpi_cards": "PASS - Incidencias activas, Nuevas hoy, En seguimiento, Reuniones pendientes, Charlas proximas, Derivaciones pendientes",
-        "shows_recent_incidencias": "PASS - clickable list",
-        "shows_severity_distribution": "PASS - bar chart",
-        "shows_reincidencia_alerts": "PASS - red alert box",
-        "shows_by_grade": "PASS - breakdown"
-      },
-      "sidebar": {
-        "has_9_items": "PASS - Inicio, Estudiantes, Incidencias, Seguimientos, Charlas, Reuniones, Derivaciones, Agenda, Reportes",
-        "navigation_works": "PASS - clicking items navigates to correct pages"
-      },
-      "incidencias_list_page": {
-        "shows_paginated_list": "PASS",
-        "has_search_input": "PASS",
-        "has_status_filter": "PASS",
-        "has_severity_filter": "PASS",
-        "has_new_incidencia_button": "PASS"
-      },
-      "incidencia_form_page": {
-        "grade_select_loads": "PASS - 14 grades",
-        "section_select_loads": "PASS - cascade from grade",
-        "student_select_loads": "PASS - cascade from section",
-        "type_select_loads": "PASS - 9 types from enums",
-        "severity_select_loads": "PASS - 4 severities",
-        "form_submission_works": "PASS"
-      },
-      "incidencia_detail_page": {
-        "shows_incidencia_details": "PASS - title, student, grade, type, date, description",
-        "shows_severity_badge": "PASS",
-        "shows_status_pill": "PASS",
-        "shows_seguimientos_timeline": "PASS - with creator name, status, timestamp",
-        "add_seguimiento_form": "PASS - observation, commitment, parent_involvement, new_status, next_review"
-      }
-    },
-    "role_access": {
-      "coordinator_can_view": "PASS",
-      "coordinator_can_create": "PASS",
-      "coordinator_can_update": "PASS",
-      "coordinator_cannot_delete": "PASS - gets 403",
-      "admin_can_delete": "PASS",
-      "teacher_cannot_create": "PASS - gets 403",
-      "teacher_cannot_view_dashboard": "PASS - gets 403"
-    }
-  },
-  "bugs_fixed": [
-    {
-      "issue": "COORD_DELETE_ROLES only included 'admin', not 'owner'",
-      "impact": "Owner users could not delete incidencias",
-      "fix": "Added 'owner' to COORD_DELETE_ROLES and COORD_WRITE_ROLES",
-      "file": "/app/backend/routes/coordinacion.py"
-    },
-    {
-      "issue": "Frontend IncidenciaFormPage using wrong API endpoints",
-      "impact": "Grade/section/student selects were empty (404 errors)",
-      "fix": "Changed from /api/grades, /api/sections, /api/users/students to /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students",
-      "file": "/app/frontend/src/pages/coordinacion/IncidenciaFormPage.jsx"
-    },
-    {
-      "issue": "Missing endpoints for coordinacion form",
-      "impact": "Coordinator couldn't load grades/sections/students",
-      "fix": "Added /api/coordinacion/grades, /api/coordinacion/sections, /api/coordinacion/students endpoints",
-      "file": "/app/backend/routes/coordinacion.py"
-    }
-  ],
-  "data_testids_verified": [
-    "coordinacion-dashboard",
-    "kpi-grid",
-    "view-all-incidencias",
-    "recent-inc-{id}",
-    "coordinacion-sidebar",
-    "coordinacion-sidebar-toggle",
-    "coordinacion-sidebar-inicio",
-    "coordinacion-sidebar-estudiantes",
-    "coordinacion-sidebar-incidencias",
-    "coordinacion-sidebar-seguimientos",
-    "coordinacion-sidebar-charlas",
-    "coordinacion-sidebar-reuniones",
-    "coordinacion-sidebar-derivaciones",
-    "coordinacion-sidebar-agenda",
-    "coordinacion-sidebar-reportes",
-    "incidencias-list-page",
-    "search-input",
-    "filter-status",
-    "filter-severity",
-    "new-incidencia-btn",
-    "incidencia-row-{id}",
-    "incidencia-form-page",
-    "select-grade",
-    "select-section",
-    "select-student",
-    "select-type",
-    "select-severity",
-    "input-title",
-    "input-description",
-    "input-occurred-at",
-    "input-initial-action",
-    "check-confidential",
-    "check-notify-parents",
-    "submit-incidencia",
-    "incidencia-detail-page",
-    "incidencia-title",
-    "incidencia-description",
-    "delete-incidencia-btn",
-    "add-seguimiento-btn",
-    "seg-observation",
-    "seg-commitment",
-    "seg-parent-involvement",
-    "seg-new-status",
-    "seg-next-review",
-    "save-seguimiento-btn",
-    "seguimiento-{id}"
-  ]
-}
-    2. Identifica si hay fallos 403, bugs de DB, o fallos de renderizado de React en el JSON.
-    3. Si hay fixes pendientes, arréglalos con .
-    4. Comunica al usuario que la Fase 1 está estabilizada y pregunta si puedes iniciar la Fase 2 del Spec. (Ver  y usa Pantallazos de humo).</analysis>
+    1. Vía bash en backend, inserta 1 documento en  y 1 en  asociadas a uno de los alumnos demo (vinculado a un padre conocido, ej. ).
+    2. Haz un set manual de password para el padre (ej. ) si no lo conoces.
+    3. Usa  para navegar a la ruta del apoderado ( o donde hayas configurado la UI del padre).
+    4. Muestra al usuario la captura y confirma verbalmente Usaremos la Opción A para las Alertas para dar inicio a Fase 3.</analysis>

@@ -62,8 +62,8 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://coordinador-fase1.preview.emergentagent.com/login",
-    "schedule_url": "https://coordinador-fase1.preview.emergentagent.com/school/elroble/student/schedule"
+    "login_url": "https://incidents-dashboard.preview.emergentagent.com/login",
+    "schedule_url": "https://incidents-dashboard.preview.emergentagent.com/school/elroble/student/schedule"
   },
 
   "seed_data_creation": "None - used existing student data. Student 'Pepito Peres Rios' in grade '3 años', section 'ÚNICA' with 2 classes (Religión, Historia) and 2 breaks (Recreo 11:00-12:00, Almuerzo 13:00-14:00).",

@@ -52,7 +52,7 @@
     "support": {
       "email": "spencer3009@gmail.com",
       "password": "Socios3009",
-      "login_url": "https://coordinador-fase1.preview.emergentagent.com/login",
+      "login_url": "https://incidents-dashboard.preview.emergentagent.com/login",
       "role": "system_admin_global"
     }
   },
