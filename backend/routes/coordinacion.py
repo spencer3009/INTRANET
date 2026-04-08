@@ -2533,7 +2533,7 @@ async def get_dashboard(user=Depends(require_role(COORD_VIEW_ROLES))):
     async def get_recent_incidencias():
         items = await db.coordinacion_incidencias.find(
             {"school_id": school_id, "deleted_at": None},
-            {"_id": 0, "id": 1, "title": 1, "severity": 1, "status": 1, "student_id": 1, "created_at": 1}
+            {"_id": 0, "id": 1, "title": 1, "severity": 1, "status": 1, "student_id": 1, "created_at": 1, "occurred_at": 1, "confidential": 1}
         ).sort("created_at", -1).limit(5).to_list(5)
         student_ids = [i["student_id"] for i in items if i.get("student_id")]
         if student_ids:
