@@ -129,6 +129,8 @@ import CoordinacionPlaceholderPage from "@/pages/coordinacion/CoordinacionPlaceh
 import EstudiantesFichaPage from "@/pages/coordinacion/EstudiantesFichaPage";
 import AgendaPage from "@/pages/coordinacion/AgendaPage";
 import ParentCoordinacionView from "@/pages/coordinacion/ParentCoordinacionView";
+import CharlasListPage from "@/pages/coordinacion/CharlasListPage";
+import CharlaDetailPage from "@/pages/coordinacion/CharlaDetailPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1849,7 +1851,15 @@ function App() {
             path="/:subdomain/coordinacion/charlas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CoordinacionPlaceholderPage title="Charlas" description="Programacion, asistencia y registro de charlas formativas y preventivas." user={user} token={token} onLogout={handleLogout} activeSection="charlas" iconName="Presentation" />
+                <CharlasListPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/charlas/:id"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CharlaDetailPage token={token} subdomain={user?.subdomain} user={user} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

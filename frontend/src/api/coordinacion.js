@@ -76,4 +76,17 @@ export const coordinacionApi = {
     const qs = new URLSearchParams(params).toString();
     return axios.get(`${API}/student/compromisos?${qs}`, authHeaders(token)).then(r => r.data);
   },
+
+  // Charlas
+  listCharlas: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return axios.get(`${API}/charlas?${qs}`, authHeaders(token)).then(r => r.data);
+  },
+  getCharla: (token, id) => axios.get(`${API}/charlas/${id}`, authHeaders(token)).then(r => r.data),
+  createCharla: (token, data) => axios.post(`${API}/charlas`, data, authHeaders(token)).then(r => r.data),
+  updateCharla: (token, id, data) => axios.patch(`${API}/charlas/${id}`, data, authHeaders(token)).then(r => r.data),
+  deleteCharla: (token, id) => axios.delete(`${API}/charlas/${id}`, authHeaders(token)).then(r => r.data),
+  getCharlaStudents: (token, id) => axios.get(`${API}/charlas/${id}/estudiantes`, authHeaders(token)).then(r => r.data),
+  saveCharlaAttendance: (token, id, attendance) => axios.post(`${API}/charlas/${id}/asistencia`, { attendance }, authHeaders(token)).then(r => r.data),
+  deleteCharlaMaterial: (token, charlaId, materialId) => axios.delete(`${API}/charlas/${charlaId}/materiales/${materialId}`, authHeaders(token)).then(r => r.data),
 };

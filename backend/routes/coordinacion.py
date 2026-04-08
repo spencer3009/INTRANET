@@ -1,10 +1,12 @@
 """
-Coordinacion module: incidencias, seguimientos, derivaciones, reuniones
+Coordinacion module: incidencias, seguimientos, derivaciones, reuniones, charlas
 Routes prefixed with /api/coordinacion
 """
 import uuid
 import logging
 import jwt
+import asyncio
+import cloudinary.uploader
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel, Field
@@ -196,6 +198,43 @@ class ReunionUpdate(BaseModel):
     notes: Optional[str] = None
     outcome: Optional[str] = None
     commitments: Optional[str] = None
+
+# ── CHARLA MODELS ─────────────────────────────────────────────────────────────
+
+CHARLA_STATUSES = ["programada", "en_curso", "realizada", "cancelada"]
+
+class CharlaCreate(BaseModel):
+    title: str = Field(max_length=200)
+    description: str = Field(max_length=4000)
+    scheduled_at: str
+    duration_minutes: int = 60
+    location: str = "Auditorio"
+    target_grades: List[str] = []
+    target_sections: List[str] = []
+    topics: List[str] = []
+    notes: Optional[str] = None
+
+class CharlaUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scheduled_at: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    location: Optional[str] = None
+    target_grades: Optional[List[str]] = None
+    target_sections: Optional[List[str]] = None
+    topics: Optional[List[str]] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+class MaterialAdd(BaseModel):
+    type: str  # image, pdf, video, link
+    url: str
+    public_id: Optional[str] = None
+    name: str
+    size_bytes: Optional[int] = None
+
+class AsistenciaUpdate(BaseModel):
+    attendance: List[dict]  # [{"student_id": str, "present": bool}]
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ENUMS ENDPOINT
@@ -1299,6 +1338,236 @@ async def get_student_ficha(
     }
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CHARLAS GRUPALES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/charlas")
+async def create_charla(body: CharlaCreate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    charla_id = str(uuid.uuid4())
+    doc = {
+        "id": charla_id,
+        "school_id": school_id,
+        "title": body.title,
+        "description": body.description,
+        "scheduled_at": body.scheduled_at,
+        "duration_minutes": body.duration_minutes,
+        "location": body.location,
+        "target_grades": body.target_grades,
+        "target_sections": body.target_sections,
+        "topics": body.topics,
+        "materials": [],
+        "attendance": [],
+        "status": "programada",
+        "notes": body.notes,
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["id"],
+        "deleted_at": None,
+    }
+    await db.coordinacion_charlas.insert_one(doc)
+    await log_coordinacion_audit(user["id"], "create", "charla", charla_id, None, school_id)
+    doc.pop("_id", None)
+    return doc
+
+@router.get("/charlas")
+async def list_charlas(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status: Optional[str] = None,
+    user=Depends(require_role(COORD_VIEW_ROLES))
+):
+    school_id = user["school_id"]
+    query = {"school_id": school_id, "deleted_at": None}
+    if status:
+        query["status"] = status
+    total = await db.coordinacion_charlas.count_documents(query)
+    items = await db.coordinacion_charlas.find(
+        query, {"_id": 0}
+    ).sort("scheduled_at", -1).skip((page - 1) * page_size).limit(page_size).to_list(page_size)
+    # Enrich with created_by name
+    creator_ids = list(set(i.get("created_by") for i in items if i.get("created_by")))
+    name_map = {}
+    if creator_ids:
+        creators = await db.users.find(
+            {"id": {"$in": creator_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(50)
+        name_map = {c["id"]: f"{c.get('name','')} {c.get('last_name','')}".strip() for c in creators}
+    for i in items:
+        i["created_by_name"] = name_map.get(i.get("created_by"), "")
+        i["attendance_count"] = len([a for a in i.get("attendance", []) if a.get("present")])
+        i["materials_count"] = len(i.get("materials", []))
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+@router.get("/charlas/{charla_id}")
+async def get_charla(charla_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    school_id = user["school_id"]
+    charla = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}, {"_id": 0}
+    )
+    if not charla:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    # Enrich creator name
+    creator = await db.users.find_one(
+        {"id": charla.get("created_by")}, {"_id": 0, "name": 1, "last_name": 1}
+    )
+    charla["created_by_name"] = f"{creator.get('name','')} {creator.get('last_name','')}".strip() if creator else ""
+    # Enrich target grade/section names
+    if charla.get("target_grades"):
+        grades = await db.grades.find(
+            {"id": {"$in": charla["target_grades"]}}, {"_id": 0, "id": 1, "nombre": 1}
+        ).to_list(50)
+        charla["target_grade_names"] = {g["id"]: g["nombre"] for g in grades}
+    if charla.get("target_sections"):
+        sections = await db.sections.find(
+            {"id": {"$in": charla["target_sections"]}}, {"_id": 0, "id": 1, "nombre": 1}
+        ).to_list(50)
+        charla["target_section_names"] = {s["id"]: s["nombre"] for s in sections}
+    return charla
+
+@router.patch("/charlas/{charla_id}")
+async def update_charla(charla_id: str, body: CharlaUpdate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+    existing = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    updates = {k: v for k, v in body.dict(exclude_unset=True).items() if v is not None}
+    if "status" in updates and updates["status"] not in CHARLA_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado invalido")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.coordinacion_charlas.update_one({"id": charla_id}, {"$set": updates})
+    await log_coordinacion_audit(user["id"], "update", "charla", charla_id, None, school_id)
+    updated = await db.coordinacion_charlas.find_one({"id": charla_id}, {"_id": 0})
+    return updated
+
+@router.delete("/charlas/{charla_id}")
+async def delete_charla(charla_id: str, user=Depends(require_role(COORD_DELETE_ROLES))):
+    school_id = user["school_id"]
+    existing = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.coordinacion_charlas.update_one({"id": charla_id}, {"$set": {"deleted_at": now, "updated_at": now}})
+    await log_coordinacion_audit(user["id"], "delete", "charla", charla_id, None, school_id)
+    return {"ok": True}
+
+@router.post("/charlas/{charla_id}/materiales")
+async def add_charla_material(charla_id: str, body: MaterialAdd, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+    charla = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}
+    )
+    if not charla:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    if body.type not in ("image", "pdf", "video", "link"):
+        raise HTTPException(status_code=400, detail="Tipo de material invalido")
+    material = {
+        "id": str(uuid.uuid4()),
+        "type": body.type,
+        "url": body.url,
+        "public_id": body.public_id,
+        "name": body.name,
+        "size_bytes": body.size_bytes,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": user["id"],
+    }
+    await db.coordinacion_charlas.update_one(
+        {"id": charla_id},
+        {"$push": {"materials": material}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return material
+
+@router.delete("/charlas/{charla_id}/materiales/{material_id}")
+async def remove_charla_material(charla_id: str, material_id: str, user=Depends(require_role(COORD_WRITE_ROLES))):
+    school_id = user["school_id"]
+    charla = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}
+    )
+    if not charla:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    material = next((m for m in charla.get("materials", []) if m["id"] == material_id), None)
+    if not material:
+        raise HTTPException(status_code=404, detail="Material no encontrado")
+    # Destroy from Cloudinary if applicable
+    if material.get("public_id") and material.get("type") != "link":
+        try:
+            resource_type = "video" if material["type"] == "video" else ("raw" if material["type"] == "pdf" else "image")
+            cloudinary.uploader.destroy(material["public_id"], resource_type=resource_type)
+        except Exception as e:
+            logger.error(f"Error destroying Cloudinary asset {material['public_id']}: {e}")
+    await db.coordinacion_charlas.update_one(
+        {"id": charla_id},
+        {"$pull": {"materials": {"id": material_id}}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"ok": True}
+
+@router.get("/charlas/{charla_id}/estudiantes")
+async def get_charla_students(charla_id: str, user=Depends(require_role(COORD_VIEW_ROLES))):
+    """Get expected students for a charla based on target grades/sections."""
+    school_id = user["school_id"]
+    charla = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None},
+        {"_id": 0, "target_grades": 1, "target_sections": 1}
+    )
+    if not charla:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    student_query = {
+        "school_id": school_id,
+        "role": "student",
+        "student_status": {"$in": ["enrolled", "active"]},
+    }
+    if charla.get("target_sections"):
+        student_query["seccion_id"] = {"$in": charla["target_sections"]}
+    elif charla.get("target_grades"):
+        student_query["grado_id"] = {"$in": charla["target_grades"]}
+    else:
+        return {"students": []}
+    students = await db.users.find(
+        student_query,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1, "photo_url": 1}
+    ).sort([("last_name", 1), ("name", 1)]).to_list(500)
+    return {"students": students}
+
+@router.post("/charlas/{charla_id}/asistencia")
+async def save_charla_attendance(charla_id: str, body: AsistenciaUpdate, user=Depends(require_role(COORD_WRITE_ROLES))):
+    """Model A: Manual attendance after the charla ends."""
+    school_id = user["school_id"]
+    charla = await db.coordinacion_charlas.find_one(
+        {"id": charla_id, "school_id": school_id, "deleted_at": None}
+    )
+    if not charla:
+        raise HTTPException(status_code=404, detail="Charla no encontrada")
+    # Build attendance records enriched with student names
+    student_ids = [a["student_id"] for a in body.attendance]
+    students = await db.users.find(
+        {"id": {"$in": student_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+    ).to_list(500)
+    name_map = {s["id"]: f"{s.get('name','')} {s.get('last_name','')}".strip() for s in students}
+    attendance = [
+        {
+            "student_id": a["student_id"],
+            "student_name": name_map.get(a["student_id"], ""),
+            "present": a.get("present", False),
+        }
+        for a in body.attendance
+    ]
+    now = datetime.now(timezone.utc).isoformat()
+    await db.coordinacion_charlas.update_one(
+        {"id": charla_id},
+        {"$set": {"attendance": attendance, "updated_at": now}}
+    )
+    await log_coordinacion_audit(user["id"], "attendance", "charla", charla_id, None, school_id)
+    return {"ok": True, "attendance_count": len([a for a in attendance if a["present"]])}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # AGENDA INTEGRADA
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1385,6 +1654,26 @@ async def get_agenda(
             "status": "pendiente",
             "student_id": s.get("student_id"),
             "incidencia_id": s.get("incidencia_id"),
+        })
+
+    # 4. Charlas grupales
+    charlas = await db.coordinacion_charlas.find(
+        {
+            "school_id": school_id,
+            "deleted_at": None,
+            "scheduled_at": {"$gte": start_date, "$lte": end_date + "T23:59:59"},
+        },
+        {"_id": 0, "id": 1, "title": 1, "scheduled_at": 1, "status": 1, "location": 1}
+    ).to_list(200)
+
+    for c in charlas:
+        events.append({
+            "event_source": "charla",
+            "id": c["id"],
+            "date": c.get("scheduled_at", ""),
+            "title": f"Charla: {(c.get('title') or '')[:50]}",
+            "status": c.get("status"),
+            "location": c.get("location"),
         })
 
     # Enrich with student names
@@ -1634,8 +1923,6 @@ async def get_dashboard(user=Depends(require_role(COORD_VIEW_ROLES))):
     school_id = user["school_id"]
     now = datetime.now(timezone.utc)
     today_str = now.strftime("%Y-%m-%d")
-
-    import asyncio
 
     async def get_kpis():
         base = {"school_id": school_id, "deleted_at": None}
