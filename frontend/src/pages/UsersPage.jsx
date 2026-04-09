@@ -158,7 +158,7 @@ const ROLE_CARDS = [
     borderColor: "border-sky-200",
     gradientBg: "from-sky-500 to-blue-600",
     lightGradient: "from-sky-50 to-blue-50",
-    image: "https://customer-assets.emergentagent.com/job_6fe458df-93d2-4e01-9e70-b594ff984377/artifacts/7kro68qf_image.png"
+    image: "https://customer-assets.emergentagent.com/job_6fe458df-93d2-4e01-9e70-b594ff984377/artifacts/17ms3soo_image.png"
   },
   { 
     id: "auxiliar_alimentacion", 
