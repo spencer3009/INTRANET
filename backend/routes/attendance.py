@@ -1422,6 +1422,29 @@ async def regenerate_all_qr(current_user = Depends(get_current_user)):
         "teachers": len(teachers),
     }
 
+@router.post("/attendance/qr/regenerate/{user_id}")
+async def regenerate_individual_qr(user_id: str, current_user=Depends(get_current_user)):
+    """Regenerate QR code for a single user. Admin/support only."""
+    caller = await resolve_user_from_token(current_user)
+    if not caller or not is_admin_user(caller):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta accion")
+
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "role": 1, "school_id": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    qr_id, qr_url = await generate_user_qr(db)
+    await db.users.update_one({"id": user_id}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
+
+    logger.info(f"Individual QR regeneration: user {user_id} by {caller.get('id')}")
+    return {
+        "message": f"QR de {target_user.get('name','')} {target_user.get('last_name','')} optimizado correctamente",
+        "user_id": user_id,
+        "qr_id": qr_id,
+    }
+
+
+
 @router.get("/attendance/qr/history")
 async def get_qr_attendance_history(
     limit: int = 20,

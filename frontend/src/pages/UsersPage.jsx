@@ -3248,6 +3248,23 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <QrCode className="w-3.5 h-3.5" />
                   Ver QR
                 </button>
+                {(user?.is_support_session || user?.original_role === 'system_admin_global') && (
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      try {
+                        await axios.post(`${API}/attendance/qr/regenerate/${student.id}`, {}, { headers });
+                        toast.success(`QR de ${student.name} optimizado`);
+                        loadUsers();
+                      } catch (err) { toast.error(err.response?.data?.detail || "Error al optimizar QR"); }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-amber-50 text-amber-600 flex items-center gap-2"
+                    data-testid={`optimize-qr-${student.id}`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Optimizar QR
+                  </button>
+                )}
                 <button
                   onClick={() => { handleEditUser(student.id); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
