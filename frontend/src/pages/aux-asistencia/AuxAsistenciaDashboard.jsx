@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
 import { QrCode, ClipboardList, Loader2, RefreshCw, Users, GraduationCap, Clock, UserCheck, UserX, AlertCircle, ClipboardCheck, FileText } from "lucide-react";
+import MobileBottomNav from "../../components/MobileBottomNav";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -321,7 +322,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
             )}
 
             {/* Quick refresh */}
-            <div className="flex justify-center pb-4">
+            <div className="flex justify-center pb-20 lg:pb-4">
               <button
                 onClick={loadData}
                 className="flex items-center gap-2 text-sm text-slate-400 hover:text-sky-600 transition-colors"
@@ -334,6 +335,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
           </main>
         )}
       </div>
+      <MobileBottomNav role="auxiliar_asistencia" />
     </div>
   );
 }

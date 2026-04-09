@@ -47,6 +47,13 @@ const coordinatorItems = [
   { id: "estudiantes", label: "Estudiantes", icon: BookOpen, route: "/coordinacion/estudiantes" },
 ];
 
+const auxiliarAsistenciaItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/aux-asistencia" },
+  { id: "escanear", label: "Escanear", icon: QrCode, route: "/aux-asistencia/escanear" },
+  { id: "asistencias", label: "Asistencias", icon: ClipboardList, route: "/aux-asistencia/asistencias" },
+  { id: "mis-escaneos", label: "Mis Registros", icon: ScanLine, route: "/aux-asistencia/mis-escaneos" },
+];
+
 const itemsMap = {
   parent: parentItems,
   teacher: teacherItems,
@@ -55,6 +62,7 @@ const itemsMap = {
   student: studentItems,
   auxiliar_alimentacion: auxiliarAlimentacionItems,
   coordinator: coordinatorItems,
+  auxiliar_asistencia: auxiliarAsistenciaItems,
 };
 
 export default function MobileBottomNav({ role = "parent" }) {
@@ -65,7 +73,7 @@ export default function MobileBottomNav({ role = "parent" }) {
   const isActive = (route) => {
     const base = route.split("?")[0];
     const fullRoute = subdomain ? `/${subdomain}${base}` : base;
-    const exactRoutes = ["/parent", "/teacher", "/student", "/dashboard", "/admin"];
+    const exactRoutes = ["/parent", "/teacher", "/student", "/dashboard", "/admin", "/aux-asistencia"];
     if (exactRoutes.some(r => base === r)) {
       return location.pathname === fullRoute;
     }
