@@ -1209,6 +1209,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/aux-asistencia/asistencias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
@@ -1846,6 +1854,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AuxAsistenciaMisEscaneos user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/aux-asistencia/asistencias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

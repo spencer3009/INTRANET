@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
-import { QrCode, ClipboardList, Loader2, RefreshCw, Users, GraduationCap, Clock, UserCheck, UserX, AlertCircle } from "lucide-react";
+import { QrCode, ClipboardList, Loader2, RefreshCw, Users, GraduationCap, Clock, UserCheck, UserX, AlertCircle, ClipboardCheck, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -148,6 +148,17 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
       testId: "card-escanear",
     },
     {
+      title: "Marcar Asistencia Manual",
+      description: "Registrar asistencia de alumnos y profesores manualmente",
+      icon: ClipboardCheck,
+      color: "from-indigo-500 to-violet-600",
+      borderColor: "border-indigo-200",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
+      onClick: () => navigate(`${basePath}/aux-asistencia/asistencias`),
+      testId: "card-asistencias-manual",
+    },
+    {
       title: "Mis Asistencias de Hoy",
       description: "Ver las asistencias que registraste hoy",
       icon: ClipboardList,
@@ -204,7 +215,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
             </div>
 
             {/* Action cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {cards.map((card) => (
                 <button
                   key={card.testId}
