@@ -35,6 +35,8 @@ ROLE_HIERARCHY = {
     "coordinator": 70,
     "teacher": 50,
     "auxiliar": 40,
+    "auxiliar_asistencia": 38,
+    "auxiliar_alimentacion": 35,
     "parent": 20,
     "student": 10
 }
@@ -43,4 +45,4 @@ ROLE_HIERARCHY = {
 ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
 
 # Staff roles (non-students)
-STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"]
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion"]

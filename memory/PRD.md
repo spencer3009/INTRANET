@@ -35,9 +35,19 @@ All coordinator pages redesigned with Linear/Notion style:
   - Full **phase logging** with `[QR Bulk]` prefix for debugging
 - **Result**: 12 teachers PDF generated in 1.28s, 138KB. Estimated 31 teachers: ~365KB, well within limits
 
+### New Role: Auxiliar de Asistencia (Added 2026-04-09)
+- New role `auxiliar_asistencia` added to the platform
+- **Backend**: Added to ROLE_HIERARCHY (level 38), STAFF_ROLES, SECTION_PERMISSIONS (attendance, internal_mail) in `core.py` and `config.py`
+- **Frontend**: New card in UsersPage with custom icon (sky blue theme), role labels in DashboardHeader, ProfileCard, permissions.js, App.js routing
+- **CRUD**: Full create/edit/delete via existing UsersPage infrastructure
+- **Login redirect**: Goes to `/asistencias` on login
+- **Access**: Can access attendance and internal mail modules
+- **Internal module**: Pending (user will provide prompt later)
+
 ## Prioritized Backlog
 
 ### P1 (High Priority)
+- Auxiliar de Asistencia — Módulo interno (pendiente prompt del usuario)
 - Dashboard Owner con métricas reales
 - Módulo de Matrículas (Enrollments)
 - Psicología — Log de auditoría estricto (parametrizar log_audit())
@@ -56,3 +66,12 @@ All coordinator pages redesigned with Linear/Notion style:
 
 ## Test Accounts
 See /app/memory/test_credentials.md
+
+## Files Modified for Auxiliar de Asistencia
+- `/app/backend/routes/core.py` - ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
+- `/app/backend/utils/config.py` - ROLE_HIERARCHY, STAFF_ROLES
+- `/app/frontend/src/pages/UsersPage.jsx` - ROLE_CARDS, AddUserModal labels
+- `/app/frontend/src/App.js` - STAFF_ROLES, isAuxiliarAsistencia helper, login redirect, dashboard routing
+- `/app/frontend/src/components/DashboardHeader.jsx` - ROLE_DISPLAY_MAP
+- `/app/frontend/src/components/ProfileCard.jsx` - ROLE_DISPLAY_MAP
+- `/app/frontend/src/lib/permissions.js` - attendance/internal_mail permissions, staffRoles, getRoleDisplayName

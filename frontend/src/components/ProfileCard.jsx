@@ -28,6 +28,10 @@ const ROLE_DISPLAY_MAP = {
   parent: { label: "PADRE", colors: "bg-orange-100 text-orange-700 border-orange-200" },
   profesor: { label: "PROFESOR", colors: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   alumno: { label: "ALUMNO", colors: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+  auxiliar_asistencia: { label: "AUX. ASISTENCIA", colors: "bg-sky-100 text-sky-700 border-sky-200" },
+  auxiliar_alimentacion: { label: "AUX. ALIMENTACION", colors: "bg-orange-100 text-orange-700 border-orange-200" },
+  coordinator: { label: "COORDINADOR", colors: "bg-teal-100 text-teal-700 border-teal-200" },
+  psicologo: { label: "PSICOLOGO", colors: "bg-violet-100 text-violet-700 border-violet-200" },
 };
 
 function getRoleDisplay(role, isOwner, isSuperAdmin) {

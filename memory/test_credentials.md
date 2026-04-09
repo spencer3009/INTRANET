@@ -20,6 +20,11 @@
 - User ID: a12969b9-711b-4cfb-8e12-9bbb0c20f390
 - Linked Student ID: 4d30c475-c1cf-42d1-9485-620b556ecf72
 
+### Auxiliar de Asistencia (test)
+- Email: marco.perez@elroble.edu
+- Password: Auxiliar123!
+- Role: auxiliar_asistencia
+
 ### Test Incidencias (for isolation tests)
 - Visible: 3fc3e222... (notify_parents=true, confidential=false)
 - Confidential: 7a6d24f2... (confidential=true) 

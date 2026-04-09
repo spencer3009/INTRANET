@@ -160,6 +160,19 @@ const ROLE_CARDS = [
     lightGradient: "from-orange-50 to-amber-50",
     image: "https://cdn-icons-png.flaticon.com/512/3480/3480823.png"
   },
+  { 
+    id: "auxiliar_asistencia", 
+    label: "Aux. Asistencia", 
+    labelSingular: "Auxiliar de Asistencia",
+    color: "from-sky-500 to-sky-600",
+    bgColor: "bg-sky-50",
+    iconBg: "bg-sky-100",
+    textColor: "text-sky-600",
+    borderColor: "border-sky-200",
+    gradientBg: "from-sky-500 to-blue-600",
+    lightGradient: "from-sky-50 to-blue-50",
+    image: "https://customer-assets.emergentagent.com/job_6fe458df-93d2-4e01-9e70-b594ff984377/artifacts/dgr896m4_image.png"
+  },
 ];
 
 // Add User Modal Component
@@ -1003,7 +1016,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'parent' ? 'Padre/Apoderado' : 
                    roleId === 'psicologo' ? 'Psicologo' : 
                    roleId === 'coordinator' ? 'Coordinador' :
-                   roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' : roleId}
+                   roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' :
+                   roleId === 'auxiliar_asistencia' ? 'Auxiliar de Asistencia' : roleId}
                 </div>
               ) : (
                 // Selectable role
@@ -1021,6 +1035,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="psicologo">Psicologo</option>
                   <option value="coordinator">Coordinador</option>
                   <option value="auxiliar_alimentacion">Auxiliar de Alimentación</option>
+                  <option value="auxiliar_asistencia">Auxiliar de Asistencia</option>
                 </select>
               )}
             </div>
