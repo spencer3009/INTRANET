@@ -51,7 +51,7 @@ export default function PaeSettingsModal({ open, onClose, token, onLogout }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-end bg-black/40" onClick={onClose}>
       <div
         className="bg-white h-full w-full max-w-md shadow-2xl overflow-y-auto animate-in slide-in-from-right"
         onClick={e => e.stopPropagation()}

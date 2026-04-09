@@ -316,7 +316,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   <span className="text-xs text-emerald-700 font-medium">Cambiar hijo</span>
                   <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-50 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-[200] min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
                   {children.map((child) => (
                     <button
                       key={child.id}

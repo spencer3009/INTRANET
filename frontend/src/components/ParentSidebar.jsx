@@ -120,7 +120,7 @@ export default function ParentSidebar({
                 <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${showChildSelector ? 'rotate-180' : ''}`} />
               </button>
               {showChildSelector && children.length > 1 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 rounded-lg shadow-xl border border-white/10 overflow-hidden z-50">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 rounded-lg shadow-xl border border-white/10 overflow-hidden z-[200]">
                   {children.map((child) => (
                     <button key={child.id} onClick={() => handleChildSelect(child)}
                       className={`w-full flex items-center gap-2 p-2.5 hover:bg-white/10 transition-colors ${selectedChild?.id === child.id ? 'bg-sky-500/20' : ''}`}

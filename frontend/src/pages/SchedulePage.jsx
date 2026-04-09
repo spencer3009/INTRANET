@@ -670,7 +670,7 @@ export default function SchedulePage({ user, token, onLogout }) {
         selectedDate={selectedExamDate}
       />
 
-      {showExamPanel && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowExamPanel(false)} />}
+      {showExamPanel && <div className="fixed inset-0 bg-black/30 z-[200]" onClick={() => setShowExamPanel(false)} />}
 
       <ConfirmModal
         isOpen={showExamDeleteConfirm}

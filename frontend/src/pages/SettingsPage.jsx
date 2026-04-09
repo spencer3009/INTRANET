@@ -1591,7 +1591,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
                 {/* PAE Modal */}
                 {paeModal && (
-                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setPaeModal(null)}>
+                  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setPaeModal(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()} data-testid="pae-turno-modal">
                       <div className="flex items-center justify-between mb-5">
                         <h3 className="text-lg font-bold text-slate-800">
@@ -1665,7 +1665,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
                 {/* Delete confirmation */}
                 {paeDeleteConfirm && (
-                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setPaeDeleteConfirm(null)}>
+                  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setPaeDeleteConfirm(null)}>
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()} data-testid="pae-delete-confirm">
                       <div className="text-center">
                         <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">

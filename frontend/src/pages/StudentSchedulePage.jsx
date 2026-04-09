@@ -170,7 +170,7 @@ function StudentCalendarGrid({ schedules, settings, breaks, mode = "student" }) 
       {/* Tooltip */}
       {tooltip && (
         <div 
-          className="fixed z-50 bg-slate-800 text-white rounded-xl shadow-xl px-4 py-3 text-sm pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className="fixed z-[200] bg-slate-800 text-white rounded-xl shadow-xl px-4 py-3 text-sm pointer-events-none transform -translate-x-1/2 -translate-y-full"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
           <p className="font-bold text-cyan-300">{tooltip.schedule.materia}</p>

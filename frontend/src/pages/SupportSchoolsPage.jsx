@@ -954,7 +954,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
       {/* Create School Modal */}
       {showCreateSchool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="create-school-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="create-school-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col overflow-hidden" data-testid="create-school-modal">
             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
               <div>
@@ -1109,7 +1109,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
       {/* Pay Modal (restoration) */}
       {payModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="pay-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="pay-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="pay-modal">
             <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center justify-between">
               <div>
@@ -1179,7 +1179,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
       {/* Renewal Modal */}
       {renewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="renew-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="renew-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="renew-modal">
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
               <div>
@@ -1284,7 +1284,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
       {/* Owner/Titular Modal */}
       {ownerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="owner-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="owner-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col overflow-hidden" data-testid="owner-modal">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
               <div>
@@ -1559,7 +1559,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
           ARCHIVE CONFIRMATION MODAL
           ══════════════════════════════════════════════════════════════════════════════ */}
       {archiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="archive-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="archive-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="archive-modal">
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center gap-3">
               <Archive className="w-6 h-6 text-white" />
@@ -1596,7 +1596,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
           TRASH VIEW MODAL (Full screen overlay)
           ══════════════════════════════════════════════════════════════════════════════ */}
       {showTrash && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="trash-view-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="trash-view-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" data-testid="trash-view">
             <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1678,7 +1678,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
           RESTORE CONFIRMATION MODAL
           ══════════════════════════════════════════════════════════════════════════════ */}
       {restoreModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" data-testid="restore-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="restore-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="restore-modal">
             <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center gap-3">
               <RotateCcw className="w-6 h-6 text-white" />
@@ -1715,7 +1715,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
           PERMANENT DELETE MODAL (Danger zone)
           ══════════════════════════════════════════════════════════════════════════════ */}
       {permanentModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" data-testid="permanent-modal-overlay">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="permanent-modal-overlay">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="permanent-modal">
             <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center gap-3">
               <ShieldAlert className="w-6 h-6 text-white" />

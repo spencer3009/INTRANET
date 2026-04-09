@@ -422,7 +422,7 @@ function NewsFormModal({ isOpen, onClose, news, onSave, grades, sections, token 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="news-form-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="news-form-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -723,7 +723,7 @@ function ViewNewsModal({ isOpen, onClose, news }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="view-news-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="view-news-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
         {/* Cover Image */}

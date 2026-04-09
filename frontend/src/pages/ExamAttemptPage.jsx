@@ -307,7 +307,7 @@ export default function ExamAttemptPage() {
     <div className="min-h-screen bg-[#f8f9fc]">
       {/* Tab warning */}
       {tabWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 mx-4 border border-slate-200">
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center"><Shield className="w-7 h-7 text-amber-600" /></div>
@@ -321,7 +321,7 @@ export default function ExamAttemptPage() {
 
       {/* Confirm submit */}
       {showConfirmSubmit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 mx-4 border border-slate-200">
             <div className="text-center mb-5">
               <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4"><Send className="w-8 h-8 text-indigo-600" /></div>

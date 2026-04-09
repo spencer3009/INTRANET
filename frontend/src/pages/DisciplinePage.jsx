@@ -429,7 +429,7 @@ function ReportFormModal({ isOpen, onClose, report, onSave, grades, sections, st
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="report-form-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="report-form-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -658,7 +658,7 @@ function ViewReportModal({ isOpen, onClose, report, isAdmin, onStatusChange }) {
   const statusInfo = STATUSES[report.status] || STATUSES.open;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="view-report-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="view-report-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -852,7 +852,7 @@ function StatusChangeModal({ isOpen, onClose, report, onConfirm }) {
   if (!isOpen || !report) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="status-change-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="status-change-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-4">Cambiar estado del reporte</h3>

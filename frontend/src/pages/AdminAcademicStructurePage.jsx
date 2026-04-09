@@ -80,7 +80,7 @@ function SimpleModal({ isOpen, onClose, title, onSave, loading, children }) {
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -207,7 +207,7 @@ function PeriodsModal({ isOpen, onClose, year, periods, loading, headers, onRefr
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -311,7 +311,7 @@ function PeriodsModal({ isOpen, onClose, year, periods, loading, headers, onRefr
       
       {/* Add/Edit Period Sub-Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowAddModal(false)} />
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -396,7 +396,7 @@ function PeriodsModal({ isOpen, onClose, year, periods, loading, headers, onRefr
       
       {/* Clone Periods Sub-Modal */}
       {showCloneModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowCloneModal(false)} />
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

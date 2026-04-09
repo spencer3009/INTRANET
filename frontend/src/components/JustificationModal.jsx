@@ -29,7 +29,7 @@ export default function JustificationModal({ isOpen, onClose, onSave, studentNam
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="justification-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="justification-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
@@ -115,7 +115,7 @@ export function JustificationInfoPopover({ data, onClose }) {
   const reasonLabel = JUSTIFICATION_REASONS.find(r => r.id === data.justification_reason)?.label || data.justification_reason;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="justification-info-popover">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="justification-info-popover">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3">
         <div className="flex items-center justify-between">

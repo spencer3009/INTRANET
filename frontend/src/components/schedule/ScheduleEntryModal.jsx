@@ -409,7 +409,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
                 
                 {/* Dropdown */}
                 {showSubjectDropdown && !form.materia && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-[200] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {loadingSubjects ? (
                       <div className="p-4 text-center text-slate-500">
                         <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
@@ -440,7 +440,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
               </div>
             )}
             
-            {showSubjectDropdown && <div className="fixed inset-0 z-40" onClick={() => setShowSubjectDropdown(false)} />}
+            {showSubjectDropdown && <div className="fixed inset-0 z-[200]" onClick={() => setShowSubjectDropdown(false)} />}
           </div>
 
           {/* Day */}

@@ -135,8 +135,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     if (!contextMenu) return null;
     return (
       <>
-        <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
-        <div className="fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[180px]" style={{ top: contextMenu.y, left: contextMenu.x }}>
+        <div className="fixed inset-0 z-[200]" onClick={() => setContextMenu(null)} />
+        <div className="fixed z-[200] bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[180px]" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <p className="px-3 py-1 text-xs text-slate-500 font-medium">Bloquear franja</p>
           {[["break", "☕", "Recreo", "yellow"], ["lunch", "🍽️", "Almuerzo", "orange"], ["event", "🎉", "Evento", "blue"]].map(([t, icon, label, c]) => (
             <button key={t} onClick={() => { onAddBreak(contextMenu.time, t); setContextMenu(null); }} className={`w-full px-3 py-2 text-left hover:bg-${c}-50 flex items-center gap-2 text-sm`}>
@@ -352,7 +352,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
 
         {/* Tooltip on hover for medium/short */}
         {showTooltip && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-slate-800 text-white rounded-md shadow-xl p-2.5 min-w-[180px] text-xs pointer-events-none">
+          <div className="absolute left-0 top-full mt-1 z-[200] bg-slate-800 text-white rounded-md shadow-xl p-2.5 min-w-[180px] text-xs pointer-events-none">
             <p className="font-semibold">{item.materia}</p>
             {teacherFullName && <p className="opacity-80 mt-0.5">{teacherFullName}</p>}
             <p className="opacity-70 mt-0.5">{formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}</p>

@@ -100,7 +100,7 @@ function PeriodModal({ isOpen, onClose, token, period, academicYear, onSuccess }
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
           <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -659,7 +659,7 @@ function CreateYearModal({ isOpen, onClose, token, existingYears, onSuccess }) {
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -801,7 +801,7 @@ function EditYearModal({ isOpen, onClose, token, year, existingYears, onSuccess 
   if (!isOpen || !year) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -932,7 +932,7 @@ function DeleteYearModal({ isOpen, onClose, year, token, onConfirm, onCloseYear,
   if (!isOpen || !year) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
         {checkingDeps ? (
           <div className="p-12 text-center">

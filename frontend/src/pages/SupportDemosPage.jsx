@@ -316,7 +316,7 @@ function CloneForm({ schools, selectedSchool, onSelect, onClone, cloning }) {
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-2 w-full bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+          <div className="absolute z-[200] mt-2 w-full bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
             {/* Search */}
             <div className="p-2 border-b border-slate-100">
               <div className="relative">
@@ -684,7 +684,7 @@ function CreateAccessModal({ headers, onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[200]" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()} data-testid="create-access-modal">
         <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 flex items-center justify-between">
           <h3 className="text-white font-semibold">Crear Acceso Demo</h3>

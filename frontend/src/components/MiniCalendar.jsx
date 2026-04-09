@@ -231,7 +231,7 @@ export default function MiniCalendar({ events = [] }) {
       {selectedDay && selectedDay.events.length > 0 && (
         <div 
           ref={popupRef}
-          className="absolute z-50 bg-white rounded-xl shadow-2xl border border-slate-200 w-72 animate-fade-in-up"
+          className="absolute z-[200] bg-white rounded-xl shadow-2xl border border-slate-200 w-72 animate-fade-in-up"
           style={{ 
             top: popupPosition.top,
             left: Math.max(0, popupPosition.left),

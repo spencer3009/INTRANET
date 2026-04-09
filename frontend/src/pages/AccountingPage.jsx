@@ -807,7 +807,7 @@ function StudentAutocomplete({ students, grades, sections, selectedId, onSelect,
         )}
 
         {open && (
-          <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" data-testid="student-dropdown">
+          <div className="absolute z-[200] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" data-testid="student-dropdown">
             <div className="p-3 border-b border-gray-100">
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                 <Filter className="w-4 h-4 text-gray-400" />

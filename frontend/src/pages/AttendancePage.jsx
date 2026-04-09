@@ -596,7 +596,7 @@ function StudentAttendanceTab({ token, schoolId }) {
 
       {/* Pending Confirmation Modal */}
       {showPendingModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95">
             <div className="p-6 text-center">
               {/* Warning Icon */}
@@ -1373,7 +1373,7 @@ function ReportsTab({ token, schoolId }) {
 
       {/* Student Detail Drawer (Side Panel) */}
       {detailModal && (
-        <div className="fixed inset-0 z-50 flex justify-end" data-testid="student-detail-drawer">
+        <div className="fixed inset-0 z-[200] flex justify-end" data-testid="student-detail-drawer">
           <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={() => setDetailModal(null)} />
           <div className="relative w-full max-w-3xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right" style={{ animation: "slideInRight 0.3s ease-out" }}>
             {/* Header */}

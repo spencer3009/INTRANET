@@ -81,7 +81,7 @@ export default function CameraCaptureModal({ open, onClose, onSave, uploading })
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" data-testid="camera-capture-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4" data-testid="camera-capture-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 flex items-center justify-between">
           <h3 className="text-white font-bold text-sm">Capturar Foto</h3>

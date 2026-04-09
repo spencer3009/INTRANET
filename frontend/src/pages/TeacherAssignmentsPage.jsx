@@ -493,7 +493,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" data-testid="assignment-modal">
           {/* Header */}
@@ -637,7 +637,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                     />
                   )}
                   {subjectOpen && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                    <div className="absolute z-[200] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
                       {filteredSubjects
                         .filter(s => {
                           const q = subjectSearch.toLowerCase();
@@ -737,7 +737,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                     />
                   )}
                   {teacherOpen && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+                    <div className="absolute z-[200] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
                       {academicData.teachers
                         .filter(t => {
                           const q = teacherSearch.toLowerCase();

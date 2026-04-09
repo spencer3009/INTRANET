@@ -135,7 +135,7 @@ export default function SubscriptionCard({ token }) {
 
       {/* Payment Modal */}
       {showPayModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowPayModal(false)}>
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowPayModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-5 text-white">
               <h2 className="text-lg font-bold">Registrar Pago</h2>

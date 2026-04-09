@@ -139,7 +139,7 @@ export function ExamFormPanel({ isOpen, onClose, token, exam, onSuccess, gradeId
   }));
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col" data-testid="exam-form-panel">
+    <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[200] flex flex-col" data-testid="exam-form-panel">
       <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

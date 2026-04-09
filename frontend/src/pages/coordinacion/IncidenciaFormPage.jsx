@@ -174,7 +174,7 @@ export default function IncidenciaFormPage({ user, token, onLogout }) {
                     )}
                   </div>
                   {showDropdown && students.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
+                    <div className="absolute z-[200] left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
                          style={{ boxShadow: "0 12px 32px rgba(15,23,42,0.12)" }}>
                       {filteredStudents.length > 0 ? filteredStudents.map(s => (
                         <button

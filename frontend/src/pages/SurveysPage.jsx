@@ -367,7 +367,7 @@ function SurveyFormModal({ isOpen, onClose, survey, onSave }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="survey-form-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="survey-form-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -548,7 +548,7 @@ function AnswerModal({ isOpen, onClose, survey, onSubmit }) {
   if (!isOpen || !survey) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="answer-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="answer-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
@@ -694,7 +694,7 @@ function ResultsModal({ isOpen, onClose, surveyId, token }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="results-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="results-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -849,7 +849,7 @@ function ViewSurveyModal({ isOpen, onClose, survey }) {
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="view-survey-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="view-survey-modal">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}

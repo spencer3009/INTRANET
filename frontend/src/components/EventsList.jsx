@@ -53,7 +53,7 @@ function EventDetailModal({ event, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onClose}
       data-testid="event-detail-modal-overlay"
     >

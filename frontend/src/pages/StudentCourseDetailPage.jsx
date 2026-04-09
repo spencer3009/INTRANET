@@ -1246,7 +1246,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
       
       {/* Student Detail Popup/Modal */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedStudent(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4" onClick={() => setSelectedStudent(null)}>
           <div 
             className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -4093,7 +4093,7 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
 
       {/* Compose Modal */}
       {showCompose && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             {/* Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-between">
@@ -4234,7 +4234,7 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && messageToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4" onClick={() => !deleting && setShowDeleteConfirm(false)}>
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -4311,7 +4311,7 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
 
       {/* Empty Trash Confirmation Modal */}
       {showEmptyTrashConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !emptyingTrash && setShowEmptyTrashConfirm(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4" onClick={() => !emptyingTrash && setShowEmptyTrashConfirm(false)}>
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}

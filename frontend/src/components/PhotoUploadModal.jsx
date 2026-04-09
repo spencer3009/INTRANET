@@ -168,7 +168,7 @@ export default function PhotoUploadModal({ isOpen, onClose, user, token, onPhoto
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={handleClose}>
+    <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={handleClose}>
       <div
         className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}

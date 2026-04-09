@@ -888,7 +888,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
 
       {/* Annul Modal */}
       {annulModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="annul-modal">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" data-testid="annul-modal">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
             <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
               <div>

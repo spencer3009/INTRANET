@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Download, Loader2, QrCode, FileText, FolderArchive, List } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { safeDownloadBlob } from "../lib/downloadHelper";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -47,8 +48,10 @@ export default function BulkQRModal({ open, onClose, token }) {
       return;
     }
     setGenerating(true);
-    try {
-      const res = await axios.post(`${API}/students/qr/bulk-download`, {
+    const success = await safeDownloadBlob({
+      url: `${API}/students/qr/bulk-download`,
+      method: "POST",
+      data: {
         nivel_id: nivelId,
         grado_id: gradoId,
         seccion_id: seccionId,
@@ -57,30 +60,17 @@ export default function BulkQRModal({ open, onClose, token }) {
         incluir_codigo_alumno: incluirCodigo,
         incluir_foto: incluirFoto,
         ordenar_alfabetico: ordenar,
-      }, { headers, responseType: "blob" });
-
-      const contentDisp = res.headers["content-disposition"] || "";
-      const match = contentDisp.match(/filename=(.+)/);
-      const filename = match ? match[1] : `qr_download.${formato === "zip" ? "zip" : "pdf"}`;
-
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      },
+      headers,
+      fallbackFilename: `qr_download.${formato === "zip" ? "zip" : "pdf"}`,
+      timeout: 120000,
+      errorPrefix: "Error al generar QR",
+    });
+    if (success) {
       toast.success("Descarga completada");
       onClose();
-    } catch (err) {
-      if (err.response?.data instanceof Blob) {
-        const text = await err.response.data.text();
-        try { toast.error(JSON.parse(text).detail); } catch { toast.error("Error al generar"); }
-      } else {
-        toast.error(err.response?.data?.detail || "Error al generar QR");
-      }
-    } finally {
-      setGenerating(false);
     }
+    setGenerating(false);
   };
 
   if (!open) return null;
@@ -92,7 +82,7 @@ export default function BulkQRModal({ open, onClose, token }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="bulk-qr-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4" data-testid="bulk-qr-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

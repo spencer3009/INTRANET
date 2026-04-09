@@ -119,7 +119,7 @@ function NewsDetailModal({ news, onClose }) {
   const accent = categoryAccents[news.category] || categoryAccents.announcement;
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="news-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="news-modal">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div 
         className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"

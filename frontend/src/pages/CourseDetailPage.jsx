@@ -8817,7 +8817,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       </button>
                       {/* Dropdown Menu */}
                       {showMenu && (
-                        <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                        <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-[200]">
                           <button 
                             onClick={() => { setShowMenu(false); /* TODO: Open edit modal */ }}
                             className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"

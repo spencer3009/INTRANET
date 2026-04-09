@@ -421,7 +421,7 @@ export default function RegisterPage() {
 
               {/* Blocked Registration Modal */}
               {showBlockedModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" onClick={() => setShowBlockedModal(false)}>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] px-4" onClick={() => setShowBlockedModal(false)}>
                   <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()} data-testid="blocked-modal">
                     <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Lock className="w-7 h-7 text-red-500" />

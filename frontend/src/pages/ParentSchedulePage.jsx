@@ -103,7 +103,7 @@ function ScheduleCalendarGrid({ schedules, settings, breaks }) {
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="parent-schedule-grid">
       {tooltip && (
-        <div className="fixed z-50 bg-slate-800 text-white rounded-xl shadow-xl px-4 py-3 text-sm pointer-events-none transform -translate-x-1/2 -translate-y-full" style={{ left: tooltip.x, top: tooltip.y }}>
+        <div className="fixed z-[200] bg-slate-800 text-white rounded-xl shadow-xl px-4 py-3 text-sm pointer-events-none transform -translate-x-1/2 -translate-y-full" style={{ left: tooltip.x, top: tooltip.y }}>
           <p className="font-bold text-cyan-300">{tooltip.schedule.materia}</p>
           <div className="mt-1 space-y-0.5 text-slate-300">
             <p className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{tooltip.schedule.profesor_nombre || "Sin profesor"}</p>

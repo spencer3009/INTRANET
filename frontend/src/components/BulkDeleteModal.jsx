@@ -84,7 +84,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="bulk-delete-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4" data-testid="bulk-delete-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

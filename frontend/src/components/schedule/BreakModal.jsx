@@ -102,7 +102,7 @@ export function BreakModal({ isOpen, onClose, token, breakItem, onSuccess, prese
   const selectedType = BREAK_TYPES.find(t => t.id === form.type) || BREAK_TYPES[0];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="break-modal">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4" data-testid="break-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className={`px-6 py-5 ${selectedType.bgClass}`}>

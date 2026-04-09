@@ -642,7 +642,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
   const roleConfig = ROLE_CARDS.find(r => r.id === roleId) || ROLE_CARDS[2];
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl" data-testid="add-user-modal">
           {/* Header */}
@@ -4715,7 +4715,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* QR Modal for Students */}
       {showQRModal && qrStudent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -4745,7 +4745,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* QR Modal for Teachers */}
       {showQRModal && qrTeacher && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="teacher-qr-modal">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4" data-testid="teacher-qr-modal">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">

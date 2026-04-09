@@ -68,7 +68,7 @@ function NewsDetailModal({ item, onClose }) {
   if (!item) return null;
   const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.announcement;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="news-detail-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="news-detail-modal">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className={`h-1.5 ${style.dot.replace("bg-", "bg-gradient-to-r from-")} to-slate-200`} />

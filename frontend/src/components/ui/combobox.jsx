@@ -142,7 +142,7 @@ export function Combobox({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="absolute z-[200] w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
           {/* Search Input */}
           <div className="p-2 border-b border-slate-100">
             <div className="relative">

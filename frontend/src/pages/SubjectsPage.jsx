@@ -532,7 +532,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
         <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
           {/* Header */}
@@ -685,7 +685,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
 
       {/* Crop Modal */}
       {showCropModal && cropImageSrc && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={handleCancelCrop} />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">

@@ -399,7 +399,7 @@ function TeacherModal({ isOpen, onClose, token, teacher, onSave }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl" data-testid="teacher-modal">
           {/* Header */}

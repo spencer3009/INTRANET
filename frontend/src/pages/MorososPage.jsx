@@ -37,7 +37,7 @@ function StudentHistoryModal({ isOpen, onClose, studentId, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="student-history-modal">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="student-history-modal">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between">

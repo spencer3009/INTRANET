@@ -140,7 +140,7 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -287,7 +287,7 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" data-testid="grade-modal">
           <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -425,7 +425,7 @@ function SectionModal({ isOpen, onClose, token, section, grades, levels, onSucce
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
           <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -650,7 +650,7 @@ function SectionTypesAdminModal({ isOpen, onClose, token, onTypesUpdated }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl">
           {/* Header */}
@@ -892,7 +892,7 @@ function ShiftModal({ isOpen, onClose, token, shift, onSuccess }) {
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
           <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -981,7 +981,7 @@ function PeriodModal({ isOpen, onClose, token, period, onSuccess }) {
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
           <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
