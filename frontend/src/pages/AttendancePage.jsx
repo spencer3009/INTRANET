@@ -1841,7 +1841,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
 
           {/* ─── HOME: Section Cards ─── */}
           {activeView === "home" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="attendance-home">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="attendance-home">
               {/* SECTION 1: Estudiantes */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-students">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
