@@ -1766,7 +1766,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
 
   const loadSettings = async () => {
     try {
-      const res = await axios.get(`${API}/settings`, { headers });
+      const res = await axios.get(`${API}/school/info`, { headers });
       setSettings(res.data);
     } catch (err) {
       console.error("Error loading settings:", err);
@@ -1794,7 +1794,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
-        schoolName={settings?.system_name}
+        schoolName={settings?.school_name}
         subdomain={subdomain}
         user={user}
       />
@@ -1805,7 +1805,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={onLogout}
           logoUrl={settings?.logo_url}
-          schoolName={settings?.system_name}
+          schoolName={settings?.school_name}
           subdomain={subdomain}
         />
 
