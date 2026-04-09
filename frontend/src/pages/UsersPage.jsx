@@ -148,6 +148,19 @@ const ROLE_CARDS = [
     image: "https://customer-assets.emergentagent.com/job_7640c3ce-c54e-4d68-974b-c0892d1592b5/artifacts/edukoaw4_image.png"
   },
   { 
+    id: "auxiliar_asistencia", 
+    label: "Aux. Asistencia", 
+    labelSingular: "Auxiliar de Asistencia",
+    color: "from-sky-500 to-sky-600",
+    bgColor: "bg-sky-50",
+    iconBg: "bg-sky-100",
+    textColor: "text-sky-600",
+    borderColor: "border-sky-200",
+    gradientBg: "from-sky-500 to-blue-600",
+    lightGradient: "from-sky-50 to-blue-50",
+    image: "https://customer-assets.emergentagent.com/job_6fe458df-93d2-4e01-9e70-b594ff984377/artifacts/7kro68qf_image.png"
+  },
+  { 
     id: "auxiliar_alimentacion", 
     label: "Aux. Alimentación", 
     labelSingular: "Auxiliar de Alimentación",
@@ -159,19 +172,6 @@ const ROLE_CARDS = [
     gradientBg: "from-orange-500 to-amber-600",
     lightGradient: "from-orange-50 to-amber-50",
     image: "https://cdn-icons-png.flaticon.com/512/3480/3480823.png"
-  },
-  { 
-    id: "auxiliar_asistencia", 
-    label: "Aux. Asistencia", 
-    labelSingular: "Auxiliar de Asistencia",
-    color: "from-sky-500 to-sky-600",
-    bgColor: "bg-sky-50",
-    iconBg: "bg-sky-100",
-    textColor: "text-sky-600",
-    borderColor: "border-sky-200",
-    gradientBg: "from-sky-500 to-blue-600",
-    lightGradient: "from-sky-50 to-blue-50",
-    image: "https://customer-assets.emergentagent.com/job_6fe458df-93d2-4e01-9e70-b594ff984377/artifacts/dgr896m4_image.png"
   },
 ];
 
