@@ -3,9 +3,94 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
-import { QrCode, ClipboardList, Loader2, RefreshCw } from "lucide-react";
+import { QrCode, ClipboardList, Loader2, RefreshCw, Users, GraduationCap, Clock, UserCheck, UserX, AlertCircle } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const COLORS_STUDENT = {
+  present: "#10b981",
+  late: "#f59e0b",
+  absent: "#ef4444",
+  justified: "#6366f1",
+};
+
+const COLORS_TEACHER = {
+  present: "#0ea5e9",
+  late: "#f97316",
+  absent: "#e11d48",
+  justified: "#8b5cf6",
+};
+
+const STATUS_LABELS = {
+  present: "Presente",
+  late: "Tardanza",
+  absent: "Ausente",
+  justified: "Justificado",
+};
+
+function SummaryCard({ icon: Icon, label, value, color, bgColor, testId }) {
+  return (
+    <div className={`${bgColor} rounded-xl p-4 flex items-center gap-3 border border-white/40`} data-testid={testId}>
+      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-slate-800" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
+        <p className="text-xs text-slate-500">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function PieSummary({ data, title, colors, testId }) {
+  const pieData = Object.entries(data)
+    .filter(([k]) => k !== "total")
+    .map(([key, val]) => ({ name: STATUS_LABELS[key], value: val, key }))
+    .filter(d => d.value > 0);
+
+  if (pieData.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid={testId}>
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">{title}</h3>
+        <div className="flex items-center justify-center h-40 text-slate-400 text-sm">Sin datos hoy</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid={testId}>
+      <h3 className="text-sm font-semibold text-slate-700 mb-1">{title}</h3>
+      <p className="text-xs text-slate-400 mb-3">Total: {data.total}</p>
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3}>
+            {pieData.map((entry) => (
+              <Cell key={entry.key} fill={colors[entry.key]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(val) => [val, ""]} />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function CustomBarTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-xs">
+      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+      {payload.map((p) => (
+        <div key={p.dataKey} className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.fill }}></span>
+          <span className="text-slate-600">{STATUS_LABELS[p.dataKey]}: <strong>{p.value}</strong></span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
   const navigate = useNavigate();
@@ -13,6 +98,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [scanCount, setScanCount] = useState(0);
+  const [stats, setStats] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
@@ -28,10 +114,14 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
     loadSettings();
   }, []);
 
-  const loadScans = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/attendance/my-scans-today`, { headers });
-      setScanCount(res.data.total || 0);
+      const [scansRes, statsRes] = await Promise.all([
+        axios.get(`${API}/attendance/my-scans-today`, { headers }),
+        axios.get(`${API}/attendance/aux-dashboard-stats`, { headers }),
+      ]);
+      setScanCount(scansRes.data.total || 0);
+      setStats(statsRes.data);
     } catch {
       setScanCount(0);
     } finally {
@@ -39,7 +129,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
     }
   }, [token]);
 
-  useEffect(() => { loadScans(); }, [loadScans]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const today = new Date().toLocaleDateString("es-PE", {
     weekday: "long", day: "numeric", month: "long", year: "numeric"
@@ -70,6 +160,9 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
       testId: "card-mis-escaneos",
     },
   ];
+
+  const todayStudents = stats?.today_summary?.students || {};
+  const todayTeachers = stats?.today_summary?.teachers || {};
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="aux-asistencia-dashboard">
@@ -137,10 +230,89 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
               ))}
             </div>
 
+            {/* Today Summary */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
+                Resumen de Hoy
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <SummaryCard icon={UserCheck} label="Alumnos presentes" value={todayStudents.present || 0} color="bg-emerald-500" bgColor="bg-emerald-50" testId="stat-student-present" />
+                <SummaryCard icon={Clock} label="Alumnos tardanza" value={todayStudents.late || 0} color="bg-amber-500" bgColor="bg-amber-50" testId="stat-student-late" />
+                <SummaryCard icon={UserCheck} label="Profesores presentes" value={todayTeachers.present || 0} color="bg-sky-500" bgColor="bg-sky-50" testId="stat-teacher-present" />
+                <SummaryCard icon={Clock} label="Profesores tardanza" value={todayTeachers.late || 0} color="bg-orange-500" bgColor="bg-orange-50" testId="stat-teacher-late" />
+              </div>
+            </div>
+
+            {/* Pie Charts - Today */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PieSummary data={todayStudents} title="Alumnos - Distribucion de Hoy" colors={COLORS_STUDENT} testId="pie-students-today" />
+              <PieSummary data={todayTeachers} title="Profesores - Distribucion de Hoy" colors={COLORS_TEACHER} testId="pie-teachers-today" />
+            </div>
+
+            {/* Student Attendance Chart */}
+            {stats?.student_daily && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6" data-testid="chart-students">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
+                      Asistencia de Alumnos
+                    </h3>
+                    <p className="text-xs text-slate-400">Ultimos 14 dias</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={stats.student_daily} barGap={1} barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} formatter={(val) => STATUS_LABELS[val]} />
+                    <Bar dataKey="present" stackId="a" fill={COLORS_STUDENT.present} radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="late" stackId="a" fill={COLORS_STUDENT.late} />
+                    <Bar dataKey="absent" stackId="a" fill={COLORS_STUDENT.absent} />
+                    <Bar dataKey="justified" stackId="a" fill={COLORS_STUDENT.justified} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Teacher Attendance Chart */}
+            {stats?.teacher_daily && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6" data-testid="chart-teachers">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-sky-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
+                      Asistencia de Profesores
+                    </h3>
+                    <p className="text-xs text-slate-400">Ultimos 14 dias</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={stats.teacher_daily} barGap={1} barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} formatter={(val) => STATUS_LABELS[val]} />
+                    <Bar dataKey="present" stackId="a" fill={COLORS_TEACHER.present} radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="late" stackId="a" fill={COLORS_TEACHER.late} />
+                    <Bar dataKey="absent" stackId="a" fill={COLORS_TEACHER.absent} />
+                    <Bar dataKey="justified" stackId="a" fill={COLORS_TEACHER.justified} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             {/* Quick refresh */}
-            <div className="flex justify-center">
+            <div className="flex justify-center pb-4">
               <button
-                onClick={loadScans}
+                onClick={loadData}
                 className="flex items-center gap-2 text-sm text-slate-400 hover:text-sky-600 transition-colors"
                 data-testid="btn-refresh-dashboard"
               >

@@ -1613,6 +1613,100 @@ async def get_my_scans_today(current_user=Depends(get_current_user)):
     }
 
 
+@router.get("/attendance/aux-dashboard-stats")
+async def get_aux_dashboard_stats(current_user=Depends(get_current_user)):
+    """
+    Returns attendance stats for the auxiliar dashboard:
+    - Daily student attendance counts (last 14 days)
+    - Daily teacher attendance counts (last 14 days)
+    - Today's summary
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    school_id = user["school_id"]
+    today = datetime.now(PERU_TZ)
+    today_str = today.strftime("%Y-%m-%d")
+
+    # Last 14 days range
+    dates_range = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+
+    pipeline_base = [
+        {"$match": {"school_id": school_id, "date": {"$in": dates_range}}},
+        {"$group": {
+            "_id": {"date": "$date", "type": "$type", "status": "$status"},
+            "count": {"$sum": 1}
+        }}
+    ]
+
+    raw = await db.attendances.aggregate(pipeline_base).to_list(500)
+
+    # Build daily stats
+    student_daily = {}
+    teacher_daily = {}
+    for d in dates_range:
+        student_daily[d] = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+        teacher_daily[d] = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+
+    for r in raw:
+        date = r["_id"]["date"]
+        typ = r["_id"]["type"]
+        status = r["_id"]["status"]
+        count = r["count"]
+        bucket = "present" if status == "present" else "late" if status == "late" else "absent" if status == "absent" else "justified" if status == "justified" else None
+        if not bucket:
+            continue
+        if typ == "student" and date in student_daily:
+            student_daily[date][bucket] += count
+        elif typ == "teacher" and date in teacher_daily:
+            teacher_daily[date][bucket] += count
+
+    def format_daily(daily_dict):
+        result = []
+        for d in dates_range:
+            vals = daily_dict[d]
+            total = vals["present"] + vals["late"] + vals["absent"] + vals["justified"]
+            dt = datetime.strptime(d, "%Y-%m-%d")
+            result.append({
+                "date": d,
+                "label": dt.strftime("%d/%m"),
+                "day_name": dt.strftime("%a"),
+                "present": vals["present"],
+                "late": vals["late"],
+                "absent": vals["absent"],
+                "justified": vals["justified"],
+                "total": total,
+            })
+        return result
+
+    # Today summary
+    today_students = student_daily.get(today_str, {"present": 0, "late": 0, "absent": 0, "justified": 0})
+    today_teachers = teacher_daily.get(today_str, {"present": 0, "late": 0, "absent": 0, "justified": 0})
+
+    return {
+        "student_daily": format_daily(student_daily),
+        "teacher_daily": format_daily(teacher_daily),
+        "today_summary": {
+            "students": {
+                "present": today_students["present"],
+                "late": today_students["late"],
+                "absent": today_students["absent"],
+                "justified": today_students["justified"],
+                "total": sum(today_students.values()),
+            },
+            "teachers": {
+                "present": today_teachers["present"],
+                "late": today_teachers["late"],
+                "absent": today_teachers["absent"],
+                "justified": today_teachers["justified"],
+                "total": sum(today_teachers.values()),
+            },
+        },
+    }
+
+
+
 
 class AnnulAttendanceRequest(BaseModel):
     annul_type: Literal["entry", "exit", "both"]
