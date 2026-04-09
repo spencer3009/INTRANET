@@ -66,7 +66,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
   };
 
   return (
-    <header className="glass-header sticky top-0" style={{ zIndex: 100 }} data-testid="student-header">
+    <header className="glass-header sticky top-0" style={{ zIndex: 40 }} data-testid="student-header">
       {/* Support session banner */}
       {isSupportSession && (
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between" data-testid="support-session-banner">

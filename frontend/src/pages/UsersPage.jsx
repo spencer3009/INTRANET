@@ -2619,8 +2619,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <span className="hidden sm:inline">Agregar {roleConfig.labelSingular}</span>
                   </button>
                   {selectedRole === 'student' && (
-                    <>
-                    </>
+                    <button
+                      onClick={() => setShowBulkQR(true)}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid="bulk-qr-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
+                        <QrCode className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">Descargar QR</span>
+                    </button>
                   )}
                 </div>
               )}
@@ -2796,14 +2804,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Generar QR ({studentsWithoutQR})
                   </button>
                 )}
-                <button
-                  onClick={() => setShowBulkQR(true)}
-                  className="text-sm text-violet-600 hover:text-violet-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition-colors border border-violet-200"
-                  data-testid="bulk-qr-btn"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar QR
-                </button>
                 <button
                   onClick={() => setShowBulkDelete(true)}
                   className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors border border-red-200"
