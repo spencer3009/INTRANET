@@ -24,6 +24,17 @@ All coordinator pages redesigned with Linear/Notion style:
 - Button "Descargar QR" added to UsersPage next to "Exportar Credenciales" for teacher tab
 - Auto-generates qr_token for any teacher missing one
 
+### Bug Fix: QR Bulk Download Memory Crash (P0 - Fixed 2026-04-09)
+- **Problem**: Server crashed (Error 520) when generating QR PDF for 31+ teachers due to parallel photo downloads consuming all RAM
+- **Fix applied**:
+  - Changed photo downloads from parallel (`asyncio.gather`) to **sequential** with `httpx.Timeout(5.0)`
+  - Each photo resized with **Pillow** to max 200x200px, JPEG quality=75 before passing to ReportLab
+  - Per-photo `try/except` with **initials fallback** if download fails/times out
+  - Explicit `del` of image buffers after each card drawn
+  - Global `try/except` returns `JSONResponse(500)` instead of crashing the worker
+  - Full **phase logging** with `[QR Bulk]` prefix for debugging
+- **Result**: 12 teachers PDF generated in 1.28s, 138KB. Estimated 31 teachers: ~365KB, well within limits
+
 ## Prioritized Backlog
 
 ### P1 (High Priority)

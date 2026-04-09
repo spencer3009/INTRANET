@@ -109,7 +109,7 @@
     "admin_email": "admin@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "base_url": "https://charlas-premium-ui.preview.emergentagent.com"
+    "base_url": "https://memory-optimized-qr.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - Used existing test data",

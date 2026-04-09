@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://charlas-premium-ui.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://memory-optimized-qr.preview.emergentagent.com')
 
 # Test credentials
 ADMIN_EMAIL = "admin@elroble.edu"

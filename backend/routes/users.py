@@ -1785,7 +1785,7 @@ async def export_teacher_credentials(current_user=Depends(get_current_user)):
 @router.get("/teachers/qr/bulk-download")
 async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     """Generate PDF with QR cards for all teachers in the school (3x3 grid per page)."""
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import StreamingResponse, JSONResponse
     import qrcode
     from io import BytesIO
     from reportlab.lib.pagesizes import A4
@@ -1794,6 +1794,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     from reportlab.lib.utils import ImageReader
     from reportlab.lib.colors import HexColor
     import httpx
+    from PIL import Image as PILImage
 
     user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
@@ -1804,15 +1805,21 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="No autorizado")
 
     try:
+        logger.info(f"[QR Bulk] === Starting teacher QR bulk download for school {school_id} ===")
+
+        # Phase 1: Fetch teachers from DB
         teachers = await db.users.find(
             {"role": "teacher", "school_id": school_id},
             {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "username": 1, "photo_url": 1}
         ).sort([("last_name", 1), ("name", 1)]).to_list(5000)
+        logger.info(f"[QR Bulk] Phase 1 - Fetch teachers: Found {len(teachers)} teachers")
 
         if not teachers:
             raise HTTPException(status_code=404, detail="No hay profesores para generar QR")
 
-        # Backfill qr_token for teachers that don't have one (and persist to DB)
+        # Phase 2: Backfill qr_token for teachers that don't have one
+        logger.info("[QR Bulk] Phase 2 - Backfill qr_tokens: Starting...")
+        backfill_count = 0
         for t in teachers:
             if not t.get("qr_token"):
                 try:
@@ -1822,42 +1829,34 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
                         {"$set": {"qr_id": qr_id, "qr_token": qr_token}}
                     )
                     t["qr_token"] = qr_token
+                    backfill_count += 1
                 except Exception as e:
-                    logger.warning(f"Failed to backfill qr_token for teacher {t.get('id')}: {e}")
+                    logger.warning(f"[QR Bulk] Failed to backfill qr_token for teacher {t.get('id')}: {e}")
+        logger.info(f"[QR Bulk] Phase 2 complete: Backfilled {backfill_count} new tokens")
 
         # Get school info
         school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1})
         school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
         school_logo_url = (school or {}).get("logo_url")
 
-        # Pre-fetch logo once (async, with short timeout)
+        # Pre-fetch school logo once (with resize to save memory)
         logo_img = None
         if school_logo_url:
             try:
-                async with httpx.AsyncClient(timeout=3.0) as client:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
                     resp = await client.get(school_logo_url)
                     if resp.status_code == 200:
-                        logo_img = BytesIO(resp.content)
-            except Exception:
-                pass
-
-        # Pre-fetch all teacher photos in parallel (async, with short timeout)
-        photo_cache = {}
-        async def fetch_photo(teacher_id, url):
-            if not url:
-                return
-            try:
-                async with httpx.AsyncClient(timeout=2.0) as client:
-                    resp = await client.get(url)
-                    if resp.status_code == 200:
-                        photo_cache[teacher_id] = BytesIO(resp.content)
-            except Exception:
-                pass
-
-        import asyncio as _asyncio
-        photo_tasks = [fetch_photo(t["id"], t.get("photo_url")) for t in teachers if t.get("photo_url")]
-        if photo_tasks:
-            await _asyncio.gather(*photo_tasks, return_exceptions=True)
+                        pil_logo = PILImage.open(BytesIO(resp.content))
+                        if pil_logo.mode in ('RGBA', 'P', 'LA'):
+                            pil_logo = pil_logo.convert('RGB')
+                        pil_logo.thumbnail((200, 200))
+                        logo_img = BytesIO()
+                        pil_logo.save(logo_img, format='JPEG', quality=75)
+                        logo_img.seek(0)
+                        del pil_logo
+                        logger.info("[QR Bulk] School logo downloaded and resized OK")
+            except Exception as e:
+                logger.warning(f"[QR Bulk] School logo download failed: {e}")
 
         def make_qr_image(token_data, size=250):
             qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
@@ -1881,6 +1880,8 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
         light_bg = HexColor("#f1f5f9")
         border_color = HexColor("#d1d5db")
 
+        total_teachers = len([t for t in teachers if t.get("qr_token")])
+        logger.info(f"[QR Bulk] Phase 3 - PDF generation: {total_teachers} teachers with QR tokens")
         card_idx = 0
         for t in teachers:
             if not t.get("qr_token"):
@@ -1925,14 +1926,33 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
             c.setLineWidth(0.4)
             c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
 
-            # Teacher photo or initial
+            # Sequential photo download + resize for this teacher
             photo_size = 20 * mm
             photo_x = x + (card_w - photo_size) / 2
             photo_y = logo_y - 5 * mm - photo_size
-            teacher_photo = photo_cache.get(t["id"])
-            if teacher_photo:
+            teacher_photo_buf = None
+            photo_url = t.get("photo_url")
+            if photo_url:
                 try:
-                    teacher_photo.seek(0)
+                    logger.info(f"[QR Bulk] Downloading photo {card_idx + 1}/{total_teachers}: teacher {t.get('id')}")
+                    async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as photo_client:
+                        resp = await photo_client.get(photo_url)
+                        if resp.status_code == 200:
+                            pil_img = PILImage.open(BytesIO(resp.content))
+                            if pil_img.mode in ('RGBA', 'P', 'LA'):
+                                pil_img = pil_img.convert('RGB')
+                            pil_img.thumbnail((200, 200))
+                            teacher_photo_buf = BytesIO()
+                            pil_img.save(teacher_photo_buf, format='JPEG', quality=75)
+                            teacher_photo_buf.seek(0)
+                            del pil_img
+                except Exception as photo_err:
+                    logger.warning(f"[QR Bulk] Photo download failed for teacher {t.get('id')}: {photo_err}")
+                    teacher_photo_buf = None
+
+            # Draw teacher photo or initials fallback
+            if teacher_photo_buf:
+                try:
                     c.saveState()
                     path = c.beginPath()
                     cx_p = photo_x + photo_size / 2
@@ -1940,12 +1960,16 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
                     path.circle(cx_p, cy_p, photo_size / 2)
                     path.close()
                     c.clipPath(path, stroke=0)
-                    c.drawImage(ImageReader(teacher_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(teacher_photo_buf), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
                     c.restoreState()
                     c.setStrokeColor(HexColor("#cbd5e1"))
                     c.setLineWidth(0.8)
                     c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
                 except Exception:
+                    try:
+                        c.restoreState()
+                    except Exception:
+                        pass
                     c.setFillColor(light_bg)
                     c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                     c.setFillColor(navy)
@@ -1958,6 +1982,14 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
                 c.setFont("Helvetica-Bold", 16)
                 c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (t.get("name", "?")[:1]).upper())
             content_top = photo_y - 4 * mm
+
+            # Explicitly free photo buffer to release memory
+            if teacher_photo_buf:
+                try:
+                    teacher_photo_buf.close()
+                except Exception:
+                    pass
+                del teacher_photo_buf
 
             # Teacher name
             info_y = content_top
@@ -1997,20 +2029,32 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
             c.setFont("Helvetica", 4)
             c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
 
+            # Free QR buffer
+            del qr_buf
+
             card_idx += 1
 
         c.save()
         buf.seek(0)
+        logger.info(f"[QR Bulk] Phase 3 complete: PDF generated with {card_idx} cards")
+
+        # Free logo buffer
+        if logo_img:
+            try:
+                logo_img.close()
+            except Exception:
+                pass
+            del logo_img
 
         now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
         filename = f"qr_profesores_{now_str}.pdf"
 
-        logger.info(f"Teacher QR PDF exported by user {user.get('id')} — {card_idx} teachers, school {school_id}")
+        logger.info(f"[QR Bulk] === SUCCESS: PDF exported by user {user.get('id')} — {card_idx} teachers, school {school_id} ===")
 
         return StreamingResponse(buf, media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename={filename}"})
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error generating teacher QR PDF for school {school_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generando PDF de QR: {str(e)}")
+        logger.exception(f"[QR Bulk] CRITICAL: Error generating teacher QR PDF for school {school_id}: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"Error generando PDF de QR: {str(e)}"})
