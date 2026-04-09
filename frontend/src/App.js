@@ -336,6 +336,17 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
   if (requireSchool && user && !user.subdomain) {
     return <Navigate to="/onboarding" replace />;
   }
+
+  // Auxiliar de asistencia can ONLY access /aux-asistencia/* routes
+  if (user?.role === 'auxiliar_asistencia') {
+    const path = location.pathname;
+    const isAllowed = path.includes('/aux-asistencia') || path.includes('/login') || path.includes('/mensajes');
+    if (!isAllowed) {
+      const sub = user.subdomain;
+      const redirect = sub ? `/${sub}/aux-asistencia` : '/aux-asistencia';
+      return <Navigate to={redirect} replace />;
+    }
+  }
   
   return children;
 }

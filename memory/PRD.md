@@ -47,7 +47,6 @@ All coordinator pages redesigned with Linear/Notion style:
 ## Prioritized Backlog
 
 ### P1 (High Priority)
-- Auxiliar de Asistencia — Módulo interno (pendiente prompt del usuario)
 - Dashboard Owner con métricas reales
 - Módulo de Matrículas (Enrollments)
 - Psicología — Log de auditoría estricto (parametrizar log_audit())
