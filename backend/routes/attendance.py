@@ -1723,23 +1723,24 @@ class BulkQRRequest(BaseModel):
     incluir_foto: bool = True
     ordenar_alfabetico: bool = True
 
-@router.post("/students/qr/bulk-download")
-async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current_user)):
-    """Generate and download QR codes for a group of students. Admin/owner only."""
+
+async def _do_student_qr_bulk(data, school_id, user):
+    """Internal implementation for student QR bulk download — memory-safe."""
     from fastapi.responses import StreamingResponse
     import qrcode
     from io import BytesIO
     import zipfile
+    import httpx
+    from PIL import Image as PILImage
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib.utils import ImageReader
+    from reportlab.lib.colors import HexColor
 
-    user = await resolve_user_from_token(current_user)
-    if not user or not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden descargar QR masivos")
+    logger.info(f"[Student QR Bulk] === Starting for school {school_id} ===")
 
-    school_id = user.get("school_id")
-    if not school_id:
-        raise HTTPException(status_code=403, detail="No autorizado")
-
-    # Build filter
+    # Phase 1: Fetch students
     student_filter = {
         "school_id": school_id,
         "role": "student",
@@ -1755,13 +1756,15 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1, "photo_url": 1}
     ).to_list(1000)
 
+    logger.info(f"[Student QR Bulk] Phase 1 - Found {len(students)} students")
+
     if not students:
         raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
 
     if data.ordenar_alfabetico:
         students.sort(key=lambda s: f"{s.get('last_name', '')} {s.get('name', '')}".strip().lower())
 
-    # Get names for file naming (try multiple collection names for compatibility)
+    # Get names for file naming
     nivel = await db.academic_levels.find_one({"id": data.nivel_id}, {"_id": 0, "nombre": 1, "name": 1})
     grado = await db.grados.find_one({"id": data.grado_id}, {"_id": 0, "nombre": 1, "name": 1})
     if not grado:
@@ -1786,6 +1789,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             full += f" ({s['codigo_alumno']})"
         return full or s.get("username", "Alumno")
 
+    # ZIP format — no photos, safe as-is
     if data.formato == "zip":
         buf = BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -1799,45 +1803,43 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
                 if s.get("codigo_alumno"):
                     fname += f"_{s['codigo_alumno']}"
                 zf.writestr(f"{fname}_qr.png", img_buf.getvalue())
+                del img_buf
         buf.seek(0)
+        logger.info(f"[Student QR Bulk] === SUCCESS: ZIP generated for {len(students)} students ===")
         return StreamingResponse(buf, media_type="application/zip",
             headers={"Content-Disposition": f"attachment; filename={file_base}.zip"})
 
-    # PDF generation (carnet or list)
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.pdfgen import canvas as pdf_canvas
-    from reportlab.lib.utils import ImageReader
-    from reportlab.lib.colors import HexColor
-    import requests as http_requests
-
-    # Get school info for carnet
+    # PDF generation
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1, "subdomain": 1})
     school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
     school_logo_url = (school or {}).get("logo_url")
     school_domain = f"{(school or {}).get('subdomain', '')}.edunet.pe"
     curso_label = f"{grado_name} - {seccion_name}"
 
-    # Cache downloaded images
-    def fetch_image(url):
-        if not url:
-            return None
+    # Pre-fetch school logo (async, with resize to save memory)
+    logo_img = None
+    if school_logo_url:
         try:
-            resp = http_requests.get(url, timeout=5)
-            if resp.status_code == 200:
-                return BytesIO(resp.content)
-        except Exception:
-            pass
-        return None
-
-    logo_img = fetch_image(school_logo_url)
+            async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+                resp = await client.get(school_logo_url)
+                if resp.status_code == 200:
+                    pil_logo = PILImage.open(BytesIO(resp.content))
+                    if pil_logo.mode in ('RGBA', 'P', 'LA'):
+                        pil_logo = pil_logo.convert('RGB')
+                    pil_logo.thumbnail((200, 200))
+                    logo_img = BytesIO()
+                    pil_logo.save(logo_img, format='JPEG', quality=75)
+                    logo_img.seek(0)
+                    del pil_logo
+                    logger.info("[Student QR Bulk] School logo downloaded and resized OK")
+        except Exception as e:
+            logger.warning(f"[Student QR Bulk] School logo download failed: {e}")
 
     buf = BytesIO()
     c = pdf_canvas.Canvas(buf, pagesize=A4)
     w, h = A4
 
     if data.formato == "pdf_grid":
-        # Carnet vertical: 3 columns x 3 rows on A4 (like the student cards)
         cols, rows = 3, 3
         card_w = 60 * mm
         card_h = 88 * mm
@@ -1849,6 +1851,9 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
         gray = HexColor("#64748b")
         light_bg = HexColor("#f1f5f9")
         border_color = HexColor("#d1d5db")
+
+        total_students = len([s for s in students if s.get("qr_token")])
+        logger.info(f"[Student QR Bulk] Phase 2 - PDF grid generation: {total_students} students with QR tokens")
 
         card_idx = 0
         for s in students:
@@ -1869,7 +1874,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             c.setLineWidth(0.5)
             c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
 
-            # Top green/teal bar
+            # Top bar
             c.setFillColor(teal)
             c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
 
@@ -1894,15 +1899,33 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             c.setLineWidth(0.4)
             c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
 
-            # Student photo (only if incluir_foto)
+            # Student photo — sequential download + Pillow resize
             if data.incluir_foto:
                 photo_size = 20 * mm
                 photo_x = x + (card_w - photo_size) / 2
                 photo_y = logo_y - 5 * mm - photo_size
-                student_photo = fetch_image(s.get("photo_url"))
-                if student_photo:
+                student_photo_buf = None
+                photo_url = s.get("photo_url")
+                if photo_url:
                     try:
-                        student_photo.seek(0)
+                        logger.info(f"[Student QR Bulk] Downloading photo {card_idx + 1}/{total_students}: student {s.get('id')}")
+                        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as photo_client:
+                            resp = await photo_client.get(photo_url)
+                            if resp.status_code == 200:
+                                pil_img = PILImage.open(BytesIO(resp.content))
+                                if pil_img.mode in ('RGBA', 'P', 'LA'):
+                                    pil_img = pil_img.convert('RGB')
+                                pil_img.thumbnail((200, 200))
+                                student_photo_buf = BytesIO()
+                                pil_img.save(student_photo_buf, format='JPEG', quality=75)
+                                student_photo_buf.seek(0)
+                                del pil_img
+                    except Exception as photo_err:
+                        logger.warning(f"[Student QR Bulk] Photo download failed for student {s.get('id')}: {photo_err}")
+                        student_photo_buf = None
+
+                if student_photo_buf:
+                    try:
                         c.saveState()
                         path = c.beginPath()
                         cx_p = photo_x + photo_size / 2
@@ -1910,12 +1933,16 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
                         path.circle(cx_p, cy_p, photo_size / 2)
                         path.close()
                         c.clipPath(path, stroke=0)
-                        c.drawImage(ImageReader(student_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                        c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
                         c.restoreState()
                         c.setStrokeColor(HexColor("#cbd5e1"))
                         c.setLineWidth(0.8)
                         c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
                     except Exception:
+                        try:
+                            c.restoreState()
+                        except Exception:
+                            pass
                         c.setFillColor(light_bg)
                         c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                         c.setFillColor(navy)
@@ -1928,10 +1955,18 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
                     c.setFont("Helvetica-Bold", 16)
                     c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
                 content_top = photo_y - 4 * mm
+
+                # Free photo buffer
+                if student_photo_buf:
+                    try:
+                        student_photo_buf.close()
+                    except Exception:
+                        pass
+                    del student_photo_buf
             else:
                 content_top = logo_y - 8 * mm
 
-            # Student name (centered, bold)
+            # Student name
             info_y = content_top
             c.setFillColor(navy)
             c.setFont("Helvetica-Bold", 7)
@@ -1948,7 +1983,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5)
             c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, info_line)
 
-            # QR — positioned dynamically: fill remaining space between text and footer
+            # QR
             footer_y = y + 2 * mm
             qr_top = info_y - 7 * mm
             qr_bottom = footer_y + 4 * mm
@@ -1963,6 +1998,9 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             qr_x = x + (card_w - qr_size_px) / 2
             qr_y = qr_bottom + (available - qr_size_px) / 2
             c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
+
+            # Free QR buffer
+            del qr_buf
 
             # QR label
             c.setFillColor(HexColor("#94a3b8"))
@@ -1998,10 +2036,43 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             qr_img.save(img_buf, format="PNG")
             img_buf.seek(0)
             c.drawImage(ImageReader(img_buf), 370, y_pos - 40, 40, 40)
+            del img_buf
 
             y_pos -= row_h
 
     c.save()
     buf.seek(0)
+
+    # Free logo
+    if logo_img:
+        try:
+            logo_img.close()
+        except Exception:
+            pass
+        del logo_img
+
+    logger.info(f"[Student QR Bulk] === SUCCESS: PDF generated for {len(students)} students, school {school_id} ===")
     return StreamingResponse(buf, media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={file_base}.pdf"})
+
+
+@router.post("/students/qr/bulk-download")
+async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current_user)):
+    """Generate and download QR codes for a group of students. Admin/owner only."""
+    from fastapi.responses import JSONResponse
+
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden descargar QR masivos")
+
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    try:
+        return await _do_student_qr_bulk(data, school_id, user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"[Student QR Bulk] CRITICAL: Error generating student QR PDF for school {school_id}: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"Error generando QR de alumnos: {str(e)}"})
