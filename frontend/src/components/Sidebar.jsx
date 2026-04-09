@@ -20,6 +20,10 @@ import {
   UtensilsCrossed,
   QrCode,
   ListChecks,
+  GraduationCap,
+  FileText,
+  ClipboardList,
+  Users,
 } from "lucide-react";
 import { canAccessSection, isOwner } from "../lib/permissions";
 
@@ -46,7 +50,10 @@ const allNavItems = [
 const auxAsistenciaNavItems = [
   { id: "aux-inicio", label: "Inicio", icon: Home, route: "/aux-asistencia" },
   { id: "aux-escanear", label: "Escanear Asistencia", icon: QrCode, route: "/aux-asistencia/escanear" },
-  { id: "aux-mis-escaneos", label: "Mis Asistencias", icon: ListChecks, route: "/aux-asistencia/mis-escaneos" },
+  { id: "aux-manual-alumnos", label: "Manual Alumnos", icon: GraduationCap, route: "/aux-asistencia/asistencias?tab=students" },
+  { id: "aux-manual-profes", label: "Manual Profesores", icon: Users, route: "/aux-asistencia/asistencias?tab=teachers" },
+  { id: "aux-reportes-alumnos", label: "Reportes Estudiantes", icon: FileText, route: "/aux-asistencia/asistencias?tab=reports" },
+  { id: "aux-reportes-profes", label: "Reportes Profesores", icon: ClipboardList, route: "/aux-asistencia/asistencias?tab=reports-teachers" },
 ];
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
