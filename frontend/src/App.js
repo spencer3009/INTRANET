@@ -117,6 +117,9 @@ import PsicologiaTalleresPage from "@/pages/psicologia/PsicologiaTalleresPage";
 import PaeDashboard from "@/pages/pae/PaeDashboard";
 import PaeScanner from "@/pages/pae/PaeScanner";
 import PaeRegistrosDia from "@/pages/pae/PaeRegistrosDia";
+import AuxAsistenciaDashboard from "@/pages/aux-asistencia/AuxAsistenciaDashboard";
+import AuxAsistenciaScanner from "@/pages/aux-asistencia/AuxAsistenciaScanner";
+import AuxAsistenciaMisEscaneos from "@/pages/aux-asistencia/AuxAsistenciaMisEscaneos";
 import CoordinacionDashboardPage from "@/pages/coordinacion/CoordinacionDashboardPage";
 import IncidenciasListPage from "@/pages/coordinacion/IncidenciasListPage";
 import IncidenciaFormPage from "@/pages/coordinacion/IncidenciaFormPage";
@@ -556,12 +559,12 @@ function App() {
       return user?.subdomain ? `/${user.subdomain}/pae` : '/pae';
     }
     
-    // Auxiliar de Asistencia gets redirected to attendance
+    // Auxiliar de Asistencia gets redirected to their portal
     if (isAuxiliarAsistencia(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
-        return '/asistencias';
+        return '/aux-asistencia';
       }
-      return user?.subdomain ? `/${user.subdomain}/asistencias` : '/asistencias';
+      return user?.subdomain ? `/${user.subdomain}/aux-asistencia` : '/aux-asistencia';
     }
     
     // Coordinator gets redirected to Coordinacion dashboard
@@ -695,7 +698,7 @@ function App() {
                 ) : isAuxiliarAlimentacion(user) ? (
                   <Navigate to="/pae" replace />
                 ) : isAuxiliarAsistencia(user) ? (
-                  <Navigate to="/asistencias" replace />
+                  <Navigate to="/aux-asistencia" replace />
                 ) : (
                   <DashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -1169,6 +1172,34 @@ function App() {
           />
 
           {/* ════════════════════════════════════════════════════════════════════
+              AUXILIAR DE ASISTENCIA - Direct paths
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/aux-asistencia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/aux-asistencia/escanear"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/aux-asistencia/mis-escaneos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaMisEscaneos user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
               All /admin routes redirect to /dashboard for unified experience
           ════════════════════════════════════════════════════════════════════ */}
@@ -1408,7 +1439,7 @@ function App() {
                 ) : isAuxiliarAlimentacion(user) ? (
                   <Navigate to={`/${user?.subdomain}/pae`} replace />
                 ) : isAuxiliarAsistencia(user) ? (
-                  <Navigate to={`/${user?.subdomain}/asistencias`} replace />
+                  <Navigate to={`/${user?.subdomain}/aux-asistencia`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -1778,6 +1809,32 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <PaeScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Auxiliar de Asistencia Portal - Route based (subdomain) */}
+          <Route
+            path="/:subdomain/aux-asistencia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/aux-asistencia/escanear"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/aux-asistencia/mis-escaneos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxAsistenciaMisEscaneos user={user} token={token} />
               </ProtectedRoute>
             }
           />

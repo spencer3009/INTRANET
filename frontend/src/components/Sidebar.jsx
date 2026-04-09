@@ -18,6 +18,8 @@ import {
   Trophy,
   Video,
   UtensilsCrossed,
+  QrCode,
+  ListChecks,
 } from "lucide-react";
 import { canAccessSection, isOwner } from "../lib/permissions";
 
@@ -40,6 +42,13 @@ const allNavItems = [
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
 
+// Dedicated nav items for auxiliar_asistencia role
+const auxAsistenciaNavItems = [
+  { id: "aux-inicio", label: "Inicio", icon: Home, route: "/aux-asistencia" },
+  { id: "aux-escanear", label: "Escanear Asistencia", icon: QrCode, route: "/aux-asistencia/escanear" },
+  { id: "aux-mis-escaneos", label: "Mis Asistencias", icon: ListChecks, route: "/aux-asistencia/mis-escaneos" },
+];
+
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -51,14 +60,16 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
   
-  // Owner sees everything - Admin sees filtered items based on RBAC
-  const navItems = isOwner(user) 
-    ? allNavItems.filter(item => !item.roles || item.roles.includes(user?.role))
-    : allNavItems.filter(item => {
-        if (item.roles && !item.roles.includes(user?.role)) return false;
-        if (!item.section) return true;
-        return canAccessSection(user, item.section);
-      });
+  // Auxiliar de asistencia has its own dedicated nav items
+  const navItems = user?.role === 'auxiliar_asistencia'
+    ? auxAsistenciaNavItems
+    : isOwner(user) 
+      ? allNavItems.filter(item => !item.roles || item.roles.includes(user?.role))
+      : allNavItems.filter(item => {
+          if (item.roles && !item.roles.includes(user?.role)) return false;
+          if (!item.section) return true;
+          return canAccessSection(user, item.section);
+        });
   
   // Settings: Owner always sees it, Admin never sees it
   const showSettings = isOwner(user);

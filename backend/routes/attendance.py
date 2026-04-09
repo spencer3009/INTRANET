@@ -1540,6 +1540,80 @@ EVENT_TYPES = {
 # ATTENDANCE ANNULMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════════
+# MY SCANS TODAY (for auxiliar_asistencia)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/attendance/my-scans-today")
+async def get_my_scans_today(current_user=Depends(get_current_user)):
+    """
+    Get attendance records registered by the current user today.
+    Used by auxiliar_asistencia to verify their own scans.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    school_id = user["school_id"]
+    user_id = user["id"]
+    today = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
+
+    # Get all attendance records registered by this user today
+    records = await db.attendances.find(
+        {
+            "school_id": school_id,
+            "date": today,
+            "recorded_by": user_id,
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+
+    results = []
+    for record in records:
+        # Get the scanned person's info
+        scanned = await db.users.find_one(
+            {"id": record.get("user_id")},
+            {"_id": 0, "name": 1, "last_name": 1, "role": 1, "grado_id": 1, "seccion_id": 1}
+        )
+        if not scanned:
+            continue
+
+        grade_name = ""
+        section_name = ""
+        if scanned.get("grado_id"):
+            grade = await db.grados.find_one({"id": scanned["grado_id"]}, {"_id": 0, "nombre": 1})
+            grade_name = (grade or {}).get("nombre", "")
+        if scanned.get("seccion_id"):
+            section = await db.secciones.find_one({"id": scanned["seccion_id"]}, {"_id": 0, "nombre": 1})
+            section_name = (section or {}).get("nombre", "")
+
+        entry_time = record.get("check_in_time") or ""
+        if not entry_time and record.get("entry_time"):
+            try:
+                entry_time = datetime.fromisoformat(record["entry_time"]).astimezone(PERU_TZ).strftime("%H:%M")
+            except Exception:
+                entry_time = ""
+
+        results.append({
+            "id": record.get("id", ""),
+            "name": scanned.get("name", ""),
+            "last_name": scanned.get("last_name", ""),
+            "type": record.get("type", "student"),
+            "grade": grade_name,
+            "section": section_name,
+            "entry_time": entry_time,
+            "status": record.get("status", "present"),
+            "created_at": record.get("created_at", ""),
+        })
+
+    return {
+        "total": len(results),
+        "date": today,
+        "records": results,
+    }
+
+
+
 class AnnulAttendanceRequest(BaseModel):
     annul_type: Literal["entry", "exit", "both"]
     reason: str = Field(..., min_length=3)
