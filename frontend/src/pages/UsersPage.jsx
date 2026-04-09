@@ -3736,7 +3736,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <div className="relative z-10">
                 {/* Icon container with gradient border */}
                 <div className="flex justify-center mb-4">
-                  <div className={`${role.id === 'auxiliar_asistencia' ? 'w-[104px] h-[104px]' : 'w-24 h-24'} rounded-2xl bg-white shadow-lg ${role.id === 'coordinator' ? 'p-2' : 'p-3'} group-hover:shadow-xl transition-all duration-300 border-2 ${role.borderColor} overflow-hidden`}>
+                  <div className={`w-24 h-24 rounded-2xl bg-white shadow-lg ${role.id === 'coordinator' ? 'p-2' : role.id === 'auxiliar_asistencia' ? 'p-1' : 'p-3'} group-hover:shadow-xl transition-all duration-300 border-2 ${role.borderColor} overflow-hidden`}>
                     <img 
                       src={role.image} 
                       alt={role.label}
