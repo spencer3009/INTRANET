@@ -51,7 +51,6 @@ const auxiliarAsistenciaItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/aux-asistencia" },
   { id: "escanear", label: "Escanear", icon: QrCode, route: "/aux-asistencia/escanear" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardList, route: "/aux-asistencia/asistencias" },
-  { id: "mis-escaneos", label: "Mis Registros", icon: ScanLine, route: "/aux-asistencia/mis-escaneos" },
 ];
 
 const itemsMap = {
