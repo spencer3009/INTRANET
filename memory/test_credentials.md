@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://memory-optimized-qr.preview.emergentagent.com/elroble/login
+- Login URL: https://safe-blob-handler.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu
