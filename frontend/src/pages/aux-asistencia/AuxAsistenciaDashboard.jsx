@@ -171,6 +171,17 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
       testId: "card-asistencia-profesores",
     },
     {
+      title: "Reportes",
+      description: "Reportes de asistencia por grado, seccion y fechas",
+      icon: FileText,
+      color: "from-amber-500 to-orange-600",
+      borderColor: "border-amber-200",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+      onClick: () => navigate(`${basePath}/aux-asistencia/asistencias?tab=reports`),
+      testId: "card-reportes",
+    },
+    {
       title: "Mis Asistencias de Hoy",
       description: "Ver las asistencias que registraste hoy",
       icon: ClipboardList,
@@ -227,7 +238,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
             </div>
 
             {/* Action cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
               {cards.map((card) => (
                 <button
                   key={card.testId}
