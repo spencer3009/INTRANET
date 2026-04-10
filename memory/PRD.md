@@ -1,86 +1,83 @@
-# EduNet - School Management Platform
+# EduNet - School Management System
 
 ## Original Problem Statement
-Plataforma de gestion escolar integral con modulos para administracion, coordinacion, psicologia, profesores, padres y estudiantes.
+Platform for school management with modules for coordination, accounting, attendance, psychology, and more. Premium redesign with Linear/Notion style UI.
 
-## Architecture
-- Frontend: React + Tailwind CSS + Shadcn/UI + lucide-react + recharts
-- Backend: FastAPI + MongoDB
-- Auth: JWT-based
+## Core Architecture
+- **Backend**: FastAPI + MongoDB (async motor)
+- **Frontend**: React + TailwindCSS + Shadcn/UI
+- **PDF Generation**: ReportLab (boletas, credentials, QR)
+- **Charts**: Recharts
+- **File Storage**: Cloudinary
+- **Auth**: JWT-based with role-based access control
 
-## What's Been Implemented
+## Roles
+- owner, director, admin, coordinator, teacher, student, parent, auxiliar_asistencia, psicologo, support
 
-### Premium UI Redesign (Complete for Coordinator Module)
-All coordinator pages redesigned with Linear/Notion style.
+## Implemented Features (Stable)
 
-### Bug Fix: Teacher Credentials Export
-- Fixed `/api/teachers/export-credentials`
+### Phase 1 - Premium Redesign (DONE)
+- Linear/Notion-style UI across all coordinator views
+- Responsive sidebar, dashboard header, modern cards
 
-### New Feature: Teacher QR Bulk Download
-- Endpoint: `GET /api/teachers/qr/bulk-download`
+### Phase 2 - QR Mass Download Fix (DONE)
+- Async sequential download with `safeDownloadBlob`
+- No more OOM/520 errors on production
 
-### Bug Fix: QR Bulk Download Memory Crash (Fixed)
-- Sequential downloads with httpx, Pillow resize, explicit del of buffers
-- Applied to both teacher and student bulk QR endpoints
+### Phase 3 - Auxiliar de Asistencia (DONE)
+- Role `auxiliar_asistencia` with exclusive portal
+- QR scanning, dashboard with Recharts stats (pie + bar)
+- Manual attendance marking integration
 
-### New Role: Auxiliar de Asistencia (Complete)
-- Role `auxiliar_asistencia` with full portal
-- Backend: ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
-- Frontend: Card in UsersPage, DashboardHeader, ProfileCard, permissions.js, App.js routing
+### Phase 4 - Boleta de Venta Interna (DONE - 2026-04-10)
+- **Backend**: 
+  - Collections: `boleta_emisor_config`, `boletas_internas`
+  - Endpoints: `/api/contabilidad/boleta-config` (GET/PUT), `/api/contabilidad/boleta-config/logo` (POST), `/api/contabilidad/boletas/{ingreso_id}/pdf` (GET), `/api/contabilidad/boletas/{ingreso_id}/anular` (POST), `/api/contabilidad/boletas` (GET)
+  - Boleta auto-emitted on payment creation (hooked into POST /api/accounting/payments)
+  - Auto-annul boleta when payment is canceled
+  - PDF generated on-demand in memory (BytesIO), never saved to disk
+  - num2words for total-to-text conversion in Spanish
+  - Watermark "ANULADA" on annulled boletas
+  - Atomic correlativo increment (no race conditions)
+- **Frontend**:
+  - Config sub-tab "Datos para Boletas" in Contabilidad > Configuracion
+  - Emisor form: RUC validation, serie, logo upload (Cloudinary), pie de pagina
+  - Download icon in Ingresos table actions column
+  - Auto-download PDF on payment creation
+  - Disabled icon for payments without boleta
+  - Toast notifications for boleta status
 
-### Auxiliar Dashboard with Charts (2026-04-09)
-- New endpoint: `GET /api/attendance/aux-dashboard-stats` - 14-day attendance stats
-- KPI Summary cards (students present/late, teachers present/late)
-- Pie charts: distribution of student and teacher attendance today
-- Bar charts: 14-day student and teacher attendance trends (stacked: present, late, absent, justified)
-- Using recharts library
+### Bug Fixes (All DONE)
+- z-index global de Modales (z-[200])
+- z-index dropdown asignaturas en ScheduleEntryModal (z-[199])
+- Pricing calculation fix (Base + Per student mode)
+- Logo visibility fix in AttendancePage
+- College billing logic fix in Support Dashboard
 
-### Auxiliar Portal Features (2026-04-09)
-- Manual attendance marking for students and teachers (reuses AttendancePage)
-- Attendance reports with day/month/year filters (reuses AttendancePage)
-- Routes: `/aux-asistencia/asistencias` renders full AttendancePage
-- Mobile bottom nav with 4 buttons: Inicio, Escanear, Asistencias, Mis Registros
+## Key DB Collections
+- `users`, `schools`, `grades`, `sections`, `subjects`
+- `attendances`, `payments`, `expenses`, `payment_concepts`
+- `boleta_emisor_config` (one per school - emisor data for receipts)
+- `boletas_internas` (receipt records with snapshots)
 
-### Z-index Fix (Partial - 2026-04-09)
-- Changed z-50 to z-[200] in 13 shadcn components + 50+ custom modals
-- Header inline zIndex lowered from 100 to 40
-- Note: Stacking context issue persists in some layouts. React Portal approach pending.
-
-### Frontend: safeDownloadBlob Integration (2026-04-09)
-- Created `/app/frontend/src/lib/downloadHelper.js`
-- Integrated in BulkQRModal.jsx for student QR bulk download
-
-### Descargar QR Button Moved (2026-04-09)
-- Moved from action bar to next to "Agregar Estudiante" button with QR icon
-
-### CORS Fix
-- Created `/app/frontend/.env.production`
-
-## Prioritized Backlog
-
-### P0 (Critical)
-- Z-index header vs modals: React Portal solution pending (stacking context issue)
-
-### P1 (High Priority)
-- Dashboard Owner con metricas reales
-- Modulo de Matriculas (Enrollments)
-- Psicologia — Log de auditoria estricto (parametrizar log_audit())
-
-### P2 (Medium Priority)
-- Modulo de Encuestas
-- Optimizacion rendimiento examenes masivos (3000 estudiantes)
-- Refactorizacion CourseDetailPage.jsx (>11,000 lineas)
-
-## Z-Index Hierarchy
-- z-[200]: All modals, popups, dialogs, sheets, drawers, shadcn portals
-- z-40: Header (DashboardHeader, StudentHeader)
-- z-50: Header internal dropdowns, MobileBottomNav, FloatingHelpAvatar, LandingPage nav
-- z-[201]: Sidebar
-
-## Key Endpoints
-- `POST /api/students/qr/bulk-download`
-- `GET /api/attendance/my-scans-today`
-- `GET /api/attendance/aux-dashboard-stats`
+## API Prefixes
+- `/api/accounting/` - payments, expenses, concepts, summaries
+- `/api/contabilidad/` - boletas (config, PDF, annul, list)
+- `/api/attendance/` - attendance, QR, aux dashboard
+- `/api/auth/` - login, register, password
+- `/api/users/`, `/api/grades/`, `/api/sections/`, etc.
 
 ## Test Accounts
 See /app/memory/test_credentials.md
+
+## Prioritized Backlog
+### P1
+- Dashboard Owner con metricas reales
+- Modulo de Matriculas (Enrollments)
+- Psicologia: Log de auditoria estricto
+
+### P2
+- Modulo de Encuestas
+- Optimizacion servidor examenes masivos (3000 students)
+- Refactorizacion CourseDetailPage.jsx (>11,000 lineas)
+- React Portal para modales globales
