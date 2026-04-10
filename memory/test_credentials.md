@@ -8,6 +8,11 @@
 - Password: 1234abc8
 - Role: owner
 
+### System Admin Global (Support)
+- Email: spencer3009@gmail.com
+- Password: SoporteTest2026!
+- Role: system_admin_global
+
 ### Coordinator
 - Email: coordinador@elroble.edu
 - Password: Coord123!

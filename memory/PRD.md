@@ -12,39 +12,27 @@ Platform for school management with modules for coordination, accounting, attend
 - **Auth**: JWT-based with role-based access control
 
 ## Roles
-- owner, director, admin, coordinator, teacher, student, parent, auxiliar_asistencia, psicologo, support
+- owner, director, admin, coordinator, teacher, student, parent, auxiliar_asistencia, psicologo, support, system_admin_global
 
 ## Implemented Features (Stable)
 
-### Phase 1 - Premium Redesign (DONE)
-- Linear/Notion-style UI across all coordinator views
+### Phase 1-3 (DONE)
+- Premium redesign, QR mass download fix, Auxiliar de Asistencia portal
 
-### Phase 2 - QR Mass Download Fix (DONE)
-- Async sequential download with `safeDownloadBlob`
+### Phase 4 - Boleta de Venta Interna (DONE)
+- Backend + Frontend complete. Preview modal with iframe. Logo from school settings.
 
-### Phase 3 - Auxiliar de Asistencia (DONE)
-- Role `auxiliar_asistencia` with exclusive portal, QR scanning, dashboard with Recharts
-
-### Phase 4 - Boleta de Venta Interna (DONE - 2026-04-10)
-- **Backend**: Collections `boleta_emisor_config`, `boletas_internas`. Endpoints for config, PDF download, annulment. Auto-emission on payment creation, auto-annul on cancel. PDF on-demand via ReportLab + BytesIO. Logo from school settings (not boleta config).
-- **Frontend**: Config sub-tab "Datos para Boletas". Preview modal with iframe after registration. Direct download from table actions. num2words for total-to-text.
-- **Preview Modal** (2026-04-10): Replaced auto-download with `BoletaPreviewModal` showing PDF in iframe with Imprimir/Descargar buttons. Table download remains direct.
-
-### Bug Fixes (All DONE)
-- z-index global de Modales (z-[200])
-- z-index dropdown asignaturas en ScheduleEntryModal (z-[199])
-- Pricing calculation fix, Logo visibility fix, College billing logic fix
+### Phase 5 - Seed Demo Accounting (DONE - 2026-04-10)
+- `POST /api/admin/seed-demo-accounting` endpoint
+- Requires `system_admin_global` role + confirm token
+- Generates realistic payments (pensiones by grade level, matrícula, extras), expenses (salaries, services, operational), and boletas
+- ~20% morosos with 1-3 months pending, ~80% al día
+- Boletas in correlativo order by payment_date ascending
+- Reset mode deletes all existing data before inserting
 
 ## Key DB Collections
-- `users`, `schools`, `grades`, `sections`, `subjects`
-- `attendances`, `payments`, `expenses`, `payment_concepts`
-- `boleta_emisor_config` (one per school - emisor data for receipts)
-- `boletas_internas` (receipt records with snapshots)
-
-## API Prefixes
-- `/api/accounting/` - payments, expenses, concepts, summaries
-- `/api/contabilidad/` - boletas (config, PDF, annul, list)
-- `/api/attendance/`, `/api/auth/`, `/api/users/`, `/api/grades/`, etc.
+- `payments`, `expenses`, `boleta_emisor_config`, `boletas_internas`
+- `users`, `schools`, `grades`, `sections`
 
 ## Test Accounts
 See /app/memory/test_credentials.md
