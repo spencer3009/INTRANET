@@ -24,7 +24,7 @@
   },
   "test_credentials": {
     "school_owner": "admin@elroble.edu / 1234abc8 (subdomain: elroble)",
-    "app_url": "https://safe-blob-handler.preview.emergentagent.com"
+    "app_url": "https://receipt-system-21.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing OMR exams: 7b859047-f6cb-4760-b945-2e17b58c0099 (10 questions, 4 options) and 45f78690-e507-4071-a99a-8d8f3a9a6db8 (20 questions, 5 options)",
   "retest_needed": false,

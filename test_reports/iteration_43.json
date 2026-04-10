@@ -109,7 +109,7 @@
     "admin_email": "admin@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "base_url": "https://safe-blob-handler.preview.emergentagent.com"
+    "base_url": "https://receipt-system-21.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - Used existing test data",

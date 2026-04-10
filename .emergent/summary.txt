@@ -1,0 +1,168 @@
+<analysis>**original_problem_statement**: 
+Rediseño visual premium del Módulo Coordinador. 
+PRODUCT REQUIREMENTS: 
+1. Aplicar un diseño moderno estilo Linear/Notion a todas las vistas del Coordinador. 
+2. Implementar y estabilizar la descarga masiva de códigos QR para profesores y alumnos, resolviendo errores críticos de memoria (Error 520) que botan el servidor en producción. 
+3. Crear el rol de  y dotarlo de un portal exclusivo para escaneo de asistencia y visualización de reportes/gráficos.
+4. **NUEVO REQUERIMIENTO (En progreso)**: Implementar Boleta de Venta Interna en el módulo de Contabilidad -> Ingresos. Generación de PDF on-demand (sin almacenar en disco o DB) usando ReportLab y . Incluye configuración de emisor, generación automática al registrar ingresos y opciones de anulación/reimpresión.
+
+**User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
+
+**what currently exists?**: 
+Aplicación full-stack (FastAPI + React + MongoDB). Se completó todo el rediseño premium. Se resolvió la caída del servidor (OOM Kill / 520) en descargas masivas de QR implementando descarga asíncrona secuencial y helper . Se creó con éxito el rol , su portal de escaneo, dashboard con gráficos estadísticos (Recharts) y se integró el acceso al marcado manual de asistencias. Se corrigió un bug crítico en la lógica de facturación de colegios (Support Dashboard). 
+
+**Last working item**:
+    - Last item agent was working: Análisis de requerimientos y recolección de contexto para implementar la Boleta de Venta Interna en el módulo de Contabilidad. El agente revisó  y  y analizó el diseño del PDF proporcionado, pero aún no escribió código.
+    - Status: NOT STARTED
+    - Agent Testing Done: N
+    - Which testing method agent to use?: backend testing agent / frontend testing agent
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  - No hay bugs pendientes de la sesión anterior. Todos los bugs reportados (z-index de modales, z-index en dropdown de horarios, y error de cálculo de pricing) fueron resueltos y verificados.
+
+**In progress Task List**:
+  Task 1: (P0) Implementar Módulo de Boleta de Venta Interna (Contabilidad)
+     - Where to resume: Iniciar la implementación basada en el spec final. Crear modelos de DB (, ), endpoints en backend ( o nuevo archivo ), el servicio de generación de PDF con ReportLab () y las interfaces en Frontend (, actualización de modales de ingresos). Instalar  en backend.
+     - What will be achieved with this?: Los colegios podrán configurar los datos de su institución y generar comprobantes PDF de forma automática (on-demand) al registrar ingresos, mejorando su gestión administrativa.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on something: Ninguno
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Dashboard Owner con métricas reales.
+    - P1: Módulo de Matrículas (Enrollments).
+    - P1: Psicología — Log de auditoría estricto (parametrizar ).
+    
+    Future Tasks:
+    - P2: Crear módulo de Encuestas.
+    - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
+    - P2: Refactorización crítica:  (> 11,000 líneas).
+
+**Completed work in this session**
+- Fix z-index global de Modales/Popups de  a  (DONE).
+- Integración de  en la descarga masiva QR de alumnos (DONE).
+- Reubicación del botón Descargar QR junto a Agregar Estudiante (DONE).
+- Dashboard de : Gráficos de pie y barras usando  con datos reales obtenidos del endpoint  (DONE).
+- Integración de rutas de marcado manual y reportes al portal de  (DONE).
+- Corrección de visibilidad del logo en  cambiando de  a  (DONE).
+- Creación de endpoint y botón en UI para optimización de QR individual (solo visible para soporte) en tarjetas de estudiantes (DONE).
+- Corrección de lógica de cálculo de precios en  y  (Modo Base + Por alumno reemplaza base si se supera el umbral, no la suma) (DONE).
+- Fix de z-index () en overlay del dropdown de asignaturas en  (DONE).
+
+**Earlier issues found/mentioned but not fixed**
+  - Ninguno.
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Colisiones de z-index y stacking contexts con modales y el DashboardHeader. 
+  - Recurrence count: 2
+  - Status: RESOLVED (Mitigado cambiando el z-index a 200, aunque una solución con React Portal quedó como recomendación futura).
+
+**Code Architecture**
+/app
+├── backend/
+│   ├── routes/
+│   │   ├── accounting.py         # Módulo de contabilidad a modificar/extender
+│   │   ├── attendance.py         # Endpoints de asistencia y QR (actualizado)
+│   │   └── support.py            # Lógica de pricing y billing (actualizado)
+├── frontend/
+│   ├── src/
+│   │   ├── pages/aux-asistencia/ # Portal del auxiliar (Dashboard con charts)
+│   │   ├── pages/AccountingPage.jsx
+│   │   ├── components/SupportPricingPage.jsx
+│   │   └── App.js                # Rutas actualizadas
+
+**Key Technical Concepts**
+- FastAPI backend, React frontend, MongoDB.
+- Recharts para visualización de datos estadísticos.
+- ReportLab para generación de PDFs (requisito de nueva tarea).
+
+**key DB schema**
+  - : Registros de asistencia de alumnos y profesores.
+  - Nuevas colecciones requeridas (AÚN NO CREADAS): , .
+
+**changes in tech stack**
+  - Se requerirá agregar  a  del backend para la tarea de Boletas.
+
+**All files of reference** 
+  -  (Editado)
+  -  (Editado)
+  -  (Editado)
+  -  (Editado intensivamente)
+  -  (Editado)
+  -  (Editado)
+  -  (Editado)
+  -  (Próximo archivo principal a modificar)
+  -  (Próximo archivo principal a modificar)
+
+**Areas that need refactoring**: 
+  -  (> 11,000 líneas).
+  - Implementar React Portal para los modales globales de la aplicación para evitar problemas de stacking context con TailwindCSS.
+
+**key api endpoints**
+  - 
+  - 
+  - (Por crear) Endpoints de boletas en  o 
+
+**Critical Info for New Agent** 
+- El usuario ha proporcionado un **SPEC FINAL EXTENSO** en su último mensaje para implementar la generación de Boletas de Venta Interna. Lee detenidamente este spec en el historial. 
+- La regla principal de la nueva boleta es: **NO almacenar el PDF**. Debe generarse on-demand con ReportLab en memoria (usando ) y descargarse directamente al navegador.
+- El backend requiere instalar  para traducir el total a texto en el PDF. No olvides hacer un  si instalas librerías nuevas.
+
+**documents and test reports created in this job** 
+  -  (Ejecutado al inicio de la sesión para validar P0)
+  -  (Actualizado)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+ - [User] Consulta por qué los cálculos del Pricing Dashboard no cuadran (dice S/ 64 en vez de S/ 138).
+ - [Agent] Identifica que el preview del frontend usaba lógica estática/antigua y lo corrige. También actualiza las cards de escuelas.
+ - [User] Reporta que en Horarios no se puede seleccionar una asignatura.
+ - [Agent] Arregla bug de colisión de z-index entre dropdown y overlay en .
+ - [User] (NUEVO PENDING) Pide implementar Boleta de Venta Interna enviando un prompt detallado (Spec Final para Emergent) con la lógica, modelos DB, requerimiento de usar ReportLab y num2words. Pide que el PDF se genere on-demand sin almacenamiento.
+ - [Agent] Lee el archivo del PDF enviado de muestra, ejecuta comandos grep en el backend para entender la estructura de accounting y se detiene (aquí debe continuar el siguiente agente).
+
+**Project Health Check:**
+Ninguno roto actualmente.
+
+**3rd Party Integrations** 
+ - Cloudinary (Manejo de imágenes. Se requerirá para la subida de logo de la boleta de configuración del colegio).
+
+**Testing status**
+  - Testing agent used after significant changes: YES (iteration 126 al principio, pero no al final)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: 
+  - Known regressions: Ninguna
+
+**Credentials to test flow:**
+  Revisar .
+
+**What agent forgot to execute**
+- El agente se quedó sin contexto/tiempo justo después de analizar la petición de las Boletas de Venta Interna en el módulo de Contabilidad. No se ha escrito código para este feature todavía.
+
+**Debugging checklist for current issue**
+    Issue: Implementación de Boletas de Venta Interna (Contabilidad)
+    Backend files to check:  (o crear ), crear 
+    Frontend files to check:  (y crear tabs y modales relacionados)
+    Dependencies: Instalar  (si no está disponible globalmente para este módulo) y  usando bash, y actualizar .
+    Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/
+Collecting num2words
+  Downloading num2words-0.5.14-py3-none-any.whl.metadata (13 kB)
+Collecting docopt>=0.6.2 (from num2words)
+  Downloading docopt-0.6.2.tar.gz (25 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Downloading num2words-0.5.14-py3-none-any.whl (163 kB)
+Building wheels for collected packages: docopt
+  Building wheel for docopt (pyproject.toml): started
+  Building wheel for docopt (pyproject.toml): finished with status 'done'
+  Created wheel for docopt: filename=docopt-0.6.2-py2.py3-none-any.whl size=13782 sha256=83cf01aec2b0116a51114403099a80b9f85ccc4e5a0a31727c7819a2d8dc604f
+  Stored in directory: /root/.cache/pip/wheels/1a/b0/8c/4b75c4116c31f83c8f9f047231251e13cc74481cca4a78a9ce
+Successfully built docopt
+Installing collected packages: docopt, num2words
+
+Successfully installed docopt-0.6.2 num2words-0.5.14</analysis>
