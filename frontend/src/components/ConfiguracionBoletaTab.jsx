@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
-  Building2, FileText, Save, Upload, Loader2, Hash, MapPin,
+  FileText, Save, Loader2, Hash, MapPin,
   Phone, Mail, Type, AlertCircle, CheckCircle2
 } from "lucide-react";
 
@@ -10,10 +10,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function ConfiguracionBoletaTab({ token, user }) {
   const headers = { Authorization: `Bearer ${token}` };
-  const fileRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     razon_social: "",
@@ -27,7 +25,6 @@ export default function ConfiguracionBoletaTab({ token, user }) {
     serie: "B001",
     pie_pagina: "",
   });
-  const [logoUrl, setLogoUrl] = useState(null);
   const [correlativo, setCorrelativo] = useState(0);
   const [configured, setConfigured] = useState(false);
 
@@ -51,7 +48,6 @@ export default function ConfiguracionBoletaTab({ token, user }) {
         serie: d.serie || "B001",
         pie_pagina: d.pie_pagina || "",
       });
-      setLogoUrl(d.logo_url);
       setCorrelativo(d.correlativo_actual || 0);
       setConfigured(d.configured || false);
     } catch {
@@ -82,29 +78,6 @@ export default function ConfiguracionBoletaTab({ token, user }) {
       toast.error(err.response?.data?.detail || "Error al guardar");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      return toast.error("Formato no soportado. Usa JPG, PNG o WebP");
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    setUploading(true);
-    try {
-      const res = await axios.post(`${API}/contabilidad/boleta-config/logo`, formData, {
-        headers: { ...headers, "Content-Type": "multipart/form-data" },
-      });
-      setLogoUrl(res.data.logo_url);
-      toast.success("Logo subido correctamente");
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al subir logo");
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -144,43 +117,6 @@ export default function ConfiguracionBoletaTab({ token, user }) {
           </div>
         </div>
       )}
-
-      {/* Logo Upload */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-gray-400" />
-          Logo del Emisor
-        </h3>
-        <div className="flex items-center gap-5">
-          <div className="w-20 h-20 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
-            ) : (
-              <FileText className="w-8 h-8 text-gray-300" />
-            )}
-          </div>
-          <div>
-            <input
-              type="file"
-              ref={fileRef}
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleLogoUpload}
-              data-testid="boleta-logo-input"
-            />
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
-              data-testid="boleta-logo-upload-btn"
-            >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? "Subiendo..." : "Subir Logo"}
-            </button>
-            <p className="text-xs text-gray-400 mt-1.5">JPG, PNG o WebP. Max 400px de ancho.</p>
-          </div>
-        </div>
-      </div>
 
       {/* Form Fields */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">

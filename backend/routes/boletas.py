@@ -2,12 +2,11 @@
 Boleta de Venta Interna - Endpoints
 Handles emisor config, boleta emission, PDF download, and annulment.
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone
-from io import BytesIO
 import re
 import uuid
 import logging
@@ -17,9 +16,6 @@ from routes.core import (
     require_section_access, now_iso
 )
 from services.boleta_pdf_generator import generar_boleta_pdf, monto_en_letras
-
-import cloudinary
-import cloudinary.uploader
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +62,6 @@ async def get_boleta_config(current_user=Depends(require_section_access("account
             "departamento": "",
             "telefono": "",
             "email": "",
-            "logo_url": None,
             "serie": "B001",
             "correlativo_actual": 0,
             "pie_pagina": "",
@@ -128,7 +123,6 @@ async def update_boleta_config(
             "departamento": "",
             "telefono": "",
             "email": "",
-            "logo_url": None,
             "serie": "B001",
             "correlativo_actual": 0,
             "pie_pagina": "",
@@ -141,55 +135,6 @@ async def update_boleta_config(
     config = await db.boleta_emisor_config.find_one({"school_id": school_id}, {"_id": 0})
     config["configured"] = True
     return config
-
-
-@router.post("/boleta-config/logo")
-async def upload_boleta_logo(
-    file: UploadFile = File(...),
-    current_user=Depends(require_section_access("accounting"))
-):
-    """Upload logo for boleta emisor config to Cloudinary."""
-    school_id = current_user["school_id"]
-    role = current_user.get("role", "")
-    is_owner = current_user.get("is_owner", False)
-    if role not in ("owner", "director", "admin") and not is_owner:
-        raise HTTPException(status_code=403, detail="Solo administradores pueden subir logo")
-
-    if file.content_type not in ["image/jpeg", "image/jpg", "image/png", "image/webp"]:
-        raise HTTPException(status_code=400, detail="Formato no soportado. Usa JPG, PNG o WebP.")
-
-    try:
-        contents = await file.read()
-        result = cloudinary.uploader.upload(
-            contents,
-            folder=f"schools/{school_id}/boleta_logo",
-            format="png",
-            transformation=[{"width": 400, "crop": "limit"}],
-            resource_type="image"
-        )
-    except Exception as e:
-        logger.error(f"Cloudinary upload failed for boleta logo: {e}")
-        raise HTTPException(status_code=500, detail="Error al subir el logo")
-
-    logo_url = result.get("secure_url")
-
-    await db.boleta_emisor_config.update_one(
-        {"school_id": school_id},
-        {
-            "$set": {"logo_url": logo_url, "updated_at": datetime.now(timezone.utc).isoformat()},
-            "$setOnInsert": {
-                "school_id": school_id,
-                "razon_social": "", "ruc": "", "direccion": "",
-                "distrito": "", "provincia": "", "departamento": "",
-                "telefono": "", "email": "", "serie": "B001",
-                "correlativo_actual": 0, "pie_pagina": "",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }
-        },
-        upsert=True
-    )
-
-    return {"logo_url": logo_url, "message": "Logo subido correctamente"}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -297,7 +242,11 @@ async def emitir_boleta_para_ingreso(payment: dict, school_id: str, user: dict) 
     now = datetime.now(timezone.utc)
     usuario_emisor_full = f"{usuario_emisor} - {now.strftime('%d/%m/%Y %I:%M %p')}"
 
-    # Build emisor snapshot
+    # Build emisor snapshot - logo comes from school settings, not boleta config
+    school_settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_url": 1})
+    school_doc = await db.schools.find_one({"id": school_id}, {"_id": 0, "logo_url": 1})
+    logo_url = (school_settings or {}).get("logo_url") or (school_doc or {}).get("logo_url")
+
     emisor_snapshot = {
         "razon_social": config.get("razon_social", ""),
         "ruc": config.get("ruc", ""),
@@ -307,7 +256,7 @@ async def emitir_boleta_para_ingreso(payment: dict, school_id: str, user: dict) 
         "departamento": config.get("departamento", ""),
         "telefono": config.get("telefono"),
         "email": config.get("email"),
-        "logo_url": config.get("logo_url"),
+        "logo_url": logo_url,
         "pie_pagina": config.get("pie_pagina"),
     }
 
