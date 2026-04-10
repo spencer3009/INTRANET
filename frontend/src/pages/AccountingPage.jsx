@@ -11,6 +11,7 @@ import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import FinancialSettingsTab from "../components/FinancialSettingsTab";
 import ConfiguracionBoletaTab from "../components/ConfiguracionBoletaTab";
+import BoletaPreviewModal from "../components/BoletaPreviewModal";
 import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
 import AccountingSummaryCards from "../components/AccountingSummaryCards";
 import { 
@@ -2235,6 +2236,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [debtorsSummary, setDebtorsSummary] = useState(null);
   const [debtorsLoading, setDebtorsLoading] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [boletaPreview, setBoletaPreview] = useState({ open: false, ingresoId: null, numeroBoleta: null });
   const [historyStudentId, setHistoryStudentId] = useState(null);
   const [financialSettings, setFinancialSettings] = useState(null);
   
@@ -2374,25 +2376,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       if (payment?.boleta_disponible && payment?.numero_boleta) {
         const { toast } = await import("sonner");
         toast.success(`Boleta ${payment.numero_boleta} emitida`);
-        // Auto-download the boleta PDF
-        try {
-          const pdfRes = await fetch(`${API}/contabilidad/boletas/${payment.id}/pdf`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (pdfRes.ok) {
-            const blob = await pdfRes.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Boleta_${payment.numero_boleta}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-          }
-        } catch (e) {
-          console.warn("Auto-download boleta failed:", e);
-        }
+        // Open preview modal instead of auto-download
+        setShowPaymentModal(false);
+        setEditingPayment(null);
+        setBoletaPreview({ open: true, ingresoId: payment.id, numeroBoleta: payment.numero_boleta });
       } else if (payment && !payment.boleta_disponible) {
         const { toast } = await import("sonner");
         toast.info("Ingreso registrado. Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.", { duration: 6000 });
@@ -2751,6 +2738,13 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       <FloatingHelpAvatar subdomain={subdomain} />
+
+      <BoletaPreviewModal
+        isOpen={boletaPreview.open}
+        ingresoId={boletaPreview.ingresoId}
+        numeroBoleta={boletaPreview.numeroBoleta}
+        onClose={() => setBoletaPreview({ open: false, ingresoId: null, numeroBoleta: null })}
+      />
     </div>
   );
 }
