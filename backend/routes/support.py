@@ -179,9 +179,10 @@ async def support_schools(user=Depends(require_support_admin)):
         eff_student_fee = eff_v("per_student_fee", 0.70)
         eff_from_month = eff_v("per_student_from_month", 3)
         eff_flat = eff_v("flat_fee", 0.0)
+        eff_umbral = eff_v("umbral_minimo_alumnos", 80)
         
         calculated_price, student_charge, base_charge = calc_price(
-            eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active
+            eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active, eff_umbral
         )
         per_student_applies = eff_mode != "flat_fee" and months_active >= eff_from_month
         
@@ -978,6 +979,7 @@ class GlobalPricingRequest(BaseModel):
     per_student_fee: float = Field(0, description="Precio por alumno")
     per_student_from_month: int = Field(1, description="Mes desde el que aplica cobro por alumno")
     flat_fee: float = Field(0, description="Tarifa fija mensual")
+    umbral_minimo_alumnos: int = Field(80, description="Umbral minimo de alumnos para cobro por alumno")
 
 class SchoolPricingRequest(BaseModel):
     school_id: str
@@ -987,8 +989,9 @@ class SchoolPricingRequest(BaseModel):
     per_student_from_month: Optional[int] = None
     flat_fee: Optional[float] = None
     discount_notes: Optional[str] = None
+    umbral_minimo_alumnos: Optional[int] = None
 
-def calc_price(billing_mode, base_fee, student_fee, from_month, flat_fee, student_count, months_active):
+def calc_price(billing_mode, base_fee, student_fee, from_month, flat_fee, student_count, months_active, umbral=80):
     """Calculate monthly price based on billing mode"""
     if billing_mode == "flat_fee":
         return round(flat_fee, 2), 0.0, round(flat_fee, 2)
@@ -996,8 +999,17 @@ def calc_price(billing_mode, base_fee, student_fee, from_month, flat_fee, studen
         sc = student_count * student_fee if months_active >= from_month else 0.0
         return round(sc, 2), round(sc, 2), 0.0
     # base_plus_student (default)
-    sc = student_count * student_fee if months_active >= from_month else 0.0
-    return round(base_fee + sc, 2), round(sc, 2), round(base_fee, 2)
+    if months_active >= from_month:
+        if student_count >= umbral:
+            # El cobro por alumno REEMPLAZA la base, no se suma
+            sc = student_count * student_fee
+            return round(sc, 2), round(sc, 2), 0.0
+        else:
+            # Debajo del umbral: solo base
+            return round(base_fee, 2), 0.0, round(base_fee, 2)
+    else:
+        # Antes del mes de activacion: solo base
+        return round(base_fee, 2), 0.0, round(base_fee, 2)
 
 @router.get("/pricing")
 async def get_global_pricing(user=Depends(require_support_admin)):
@@ -1033,6 +1045,7 @@ async def update_global_pricing(req: GlobalPricingRequest, user=Depends(require_
             "per_student_fee": req.per_student_fee,
             "per_student_from_month": req.per_student_from_month,
             "flat_fee": req.flat_fee,
+            "umbral_minimo_alumnos": req.umbral_minimo_alumnos,
             "currency": "PEN",
             "updated_at": now_iso()
         }},
@@ -1058,6 +1071,8 @@ async def update_school_pricing(req: SchoolPricingRequest, user=Depends(require_
         override["per_student_from_month"] = req.per_student_from_month
     if req.flat_fee is not None:
         override["flat_fee"] = req.flat_fee
+    if req.umbral_minimo_alumnos is not None:
+        override["umbral_minimo_alumnos"] = req.umbral_minimo_alumnos
     if req.discount_notes is not None:
         override["discount_notes"] = req.discount_notes
     
@@ -1108,11 +1123,12 @@ async def get_school_pricing(school_id: str, user=Depends(require_support_admin)
     eff_student_fee = eff_val("per_student_fee", 0.70)
     eff_from_month = eff_val("per_student_from_month", 3)
     eff_flat = eff_val("flat_fee", 0.0)
+    eff_umbral = eff_val("umbral_minimo_alumnos", 80)
     
     student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
     
     calculated_price, student_charge, base_charge = calc_price(
-        eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active
+        eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active, eff_umbral
     )
     
     return {
@@ -1123,7 +1139,8 @@ async def get_school_pricing(school_id: str, user=Depends(require_support_admin)
             "base_monthly_fee": eff_base,
             "per_student_fee": eff_student_fee,
             "per_student_from_month": eff_from_month,
-            "flat_fee": eff_flat
+            "flat_fee": eff_flat,
+            "umbral_minimo_alumnos": eff_umbral
         },
         "months_active": months_active,
         "student_count": student_count,
