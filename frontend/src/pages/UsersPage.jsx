@@ -3322,6 +3322,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Reactivar
                   </button>
                 )}
+                {/* Support-only: Change to Active */}
+                {(user?.is_support_session || user?.original_role === 'system_admin_global') && student.student_status && student.student_status !== "active" && (
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      try {
+                        await axios.put(`${API}/students/${student.id}/status?status=active`, {}, { headers });
+                        toast.success(`${student.name} cambiado a Activo`);
+                        loadUsers();
+                      } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 text-emerald-600 flex items-center gap-2"
+                    data-testid={`set-active-${student.id}`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Cambiar a Activo
+                  </button>
+                )}
                 <button
                   onClick={() => { handleDeleteClick(student); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
