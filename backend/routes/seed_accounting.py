@@ -140,6 +140,13 @@ async def seed_demo_accounting(data: SeedRequest, admin=Depends(require_support_
         await db.expenses.delete_many({"school_id": school_id})
         await db.boletas_internas.delete_many({"school_id": school_id})
 
+        # Reset student_status to "pending" for all students in this school
+        reset_students = await db.users.update_many(
+            {"school_id": school_id, "role": "student"},
+            {"$set": {"student_status": "pending"}}
+        )
+        logger.info(f"[SEED-DEMO] Reset student_status to 'pending' for {reset_students.modified_count} students.")
+
         borrados = {"ingresos": count_p, "egresos": count_e, "boletas": count_b}
 
     # ── Gather students and teachers ────────────────────────────────────────
