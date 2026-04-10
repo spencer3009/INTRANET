@@ -20,10 +20,21 @@ export function useParentNotifications(token) {
       try {
         const fcmToken = await requestNotificationPermission();
         if (fcmToken) {
+          // Register with legacy push_tokens endpoint
           await fetch(`${API}/api/notifications/register-token`, {
             method: "POST",
             headers,
             body: JSON.stringify({ token: fcmToken }),
+          });
+          // Also register with new device_tokens endpoint
+          await fetch(`${API}/api/notifications/register-device`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              fcm_token: fcmToken,
+              platform: "web",
+              user_agent: navigator.userAgent,
+            }),
           });
         }
       } catch (e) {

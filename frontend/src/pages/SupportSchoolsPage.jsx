@@ -922,23 +922,28 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       btn.querySelector('.loader-icon')?.classList.remove('hidden');
                       btn.querySelector('.btn-text').textContent = 'Enviando...';
                       try {
-                        await axios.post(`${API}/notifications/test`, { school_id: school.id }, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-                        toast.success("Notificacion enviada correctamente");
+                        const res = await axios.post(`${API}/support/schools/${school.id}/test-push`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+                        const d = res.data;
+                        if (d.devices_found === 0) {
+                          toast.warning(`El owner (${d.owner_email}) aun no tiene dispositivos registrados. Debe abrir el portal en su celular y aceptar notificaciones.`, { duration: 8000 });
+                        } else {
+                          toast.success(`Push enviado al owner (${d.owner_email}). Devices: ${d.sent}/${d.devices_found}${!d.fcm_configured ? ' (FCM no configurado)' : ''}`);
+                        }
                       } catch (err) {
-                        toast.error(err.response?.data?.detail || "Error al enviar notificacion");
+                        toast.error(err.response?.data?.detail || "Error al enviar push");
                       } finally {
                         btn.disabled = false;
                         btn.querySelector('.bell-icon')?.classList.remove('hidden');
                         btn.querySelector('.loader-icon')?.classList.add('hidden');
-                        btn.querySelector('.btn-text').textContent = 'Probar notificacion';
+                        btn.querySelector('.btn-text').textContent = 'Probar Push';
                       }
                     }}
                     className="flex items-center gap-1.5 px-3 py-2.5 border border-amber-300 text-amber-600 rounded-xl text-xs font-medium hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    data-testid={`test-notif-${school.subdomain}`}
+                    data-testid={`test-push-${school.subdomain}`}
                   >
                     <Bell className="w-3.5 h-3.5 bell-icon" />
                     <Loader2 className="w-3.5 h-3.5 animate-spin loader-icon hidden" />
-                    <span className="btn-text">Probar notificacion</span>
+                    <span className="btn-text">Probar Push</span>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleRenewMembership(school.id, school.name || school.subdomain); }}

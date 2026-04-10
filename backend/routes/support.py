@@ -10,6 +10,9 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 import uuid
 import bcrypt
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .core import (
     db, client, get_current_user, hash_password, verify_password,
@@ -1831,4 +1834,85 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "subdomain": subdomain,
         "full_domain": full_domain,
         "owner_email": data.owner_email.lower().strip(),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TEST PUSH NOTIFICATION (FCM HTTP v1)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/schools/{school_id}/test-push")
+async def test_push_notification(school_id: str, user=Depends(require_support_admin)):
+    """Send a test push notification to the owner of a school via FCM HTTP v1."""
+    from services.fcm_service import send_fcm_to_devices, _is_configured as fcm_is_configured
+
+    # Validate school
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    school_name = school.get("name", "Desconocido")
+
+    # Find owner
+    owner = await db.users.find_one(
+        {"school_id": school_id, "$or": [{"role": "owner"}, {"is_owner": True}]},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "last_name": 1}
+    )
+    if not owner:
+        raise HTTPException(status_code=404, detail="Owner no encontrado para este colegio")
+
+    owner_id = owner["id"]
+    owner_email = owner.get("email", "")
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Create notification in DB
+    notification_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": owner_id,
+        "school_id": school_id,
+        "title": "Prueba de notificacion",
+        "message": "Notificacion de prueba enviada desde el Support Panel de EduNet.",
+        "type": "test_push",
+        "read": False,
+        "created_at": now,
+    }
+    await db.parent_notifications.insert_one(notification_doc)
+
+    # Get active device tokens for the owner
+    devices = await db.device_tokens.find(
+        {"user_id": owner_id, "active": True},
+        {"_id": 0}
+    ).to_list(20)
+
+    fcm_configured = fcm_is_configured()
+    sent, failed = 0, 0
+
+    if devices and fcm_configured:
+        sent, failed = await send_fcm_to_devices(
+            db=db,
+            devices=devices,
+            title=notification_doc["title"],
+            body=notification_doc["message"],
+            data={
+                "type": "test_push",
+                "notification_id": notification_doc["id"],
+                "school_id": school_id,
+            }
+        )
+
+    logger.info(
+        f"[TEST-PUSH] School '{school_name}' ({school_id}): "
+        f"Owner={owner_email}, Devices={len(devices)}, Sent={sent}, Failed={failed}, "
+        f"FCM configured={fcm_configured}"
+    )
+
+    return {
+        "ok": True,
+        "notification_id": notification_doc["id"],
+        "owner_email": owner_email,
+        "devices_found": len(devices),
+        "sent": sent,
+        "failed": failed,
+        "fcm_configured": fcm_configured,
+        "school_name": school_name,
     }

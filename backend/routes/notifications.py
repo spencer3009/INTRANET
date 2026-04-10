@@ -355,3 +355,73 @@ async def test_notification(req: TestNotificationRequest, current_user=Depends(g
         "sent": sent,
         "failed": failed,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DEVICE TOKEN REGISTRATION (new device_tokens collection)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RegisterDeviceRequest(BaseModel):
+    fcm_token: str
+    platform: str = "web"
+    user_agent: str = ""
+
+
+@router.post("/api/notifications/register-device")
+async def register_device_token(req: RegisterDeviceRequest, current_user=Depends(get_current_user)):
+    """Register or update a device token in device_tokens collection."""
+    if not req.fcm_token.strip():
+        raise HTTPException(status_code=400, detail="fcm_token vacio")
+
+    user_id = current_user.get("sub") or current_user.get("id") or current_user.get("user_id")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "school_id": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    school_id = user.get("school_id", "")
+    now = datetime.now(timezone.utc).isoformat()
+
+    # If token already exists with a different user, reassign it
+    existing = await db.device_tokens.find_one({"fcm_token": req.fcm_token}, {"_id": 0})
+    if existing:
+        await db.device_tokens.update_one(
+            {"fcm_token": req.fcm_token},
+            {"$set": {
+                "user_id": user_id,
+                "school_id": school_id,
+                "platform": req.platform,
+                "user_agent": req.user_agent,
+                "last_seen_at": now,
+                "active": True,
+            }}
+        )
+    else:
+        await db.device_tokens.insert_one({
+            "user_id": user_id,
+            "school_id": school_id,
+            "fcm_token": req.fcm_token,
+            "platform": req.platform,
+            "user_agent": req.user_agent,
+            "created_at": now,
+            "last_seen_at": now,
+            "active": True,
+        })
+
+    # Also keep push_tokens in sync for backward compat
+    existing_push = await db.push_tokens.find_one({"token": req.fcm_token}, {"_id": 0})
+    if existing_push:
+        await db.push_tokens.update_one(
+            {"token": req.fcm_token},
+            {"$set": {"user_id": user_id, "updated_at": now}}
+        )
+    else:
+        await db.push_tokens.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "token": req.fcm_token,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    logger.info(f"[DEVICE] Registered device token for user {user_id} (platform={req.platform})")
+    return {"status": "ok"}

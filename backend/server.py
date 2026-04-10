@@ -310,6 +310,9 @@ async def create_indexes():
         await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1), ("created_at", -1)])
         await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
         await db.parent_notifications.create_index([("created_at", 1)], expireAfterSeconds=2592000)
+        # Device tokens index (unique per user+token)
+        await db.device_tokens.create_index([("user_id", 1), ("fcm_token", 1)], unique=True)
+        await db.device_tokens.create_index([("user_id", 1), ("active", 1)])
         # Psychology messaging indexes
         await db.psychological_messages.create_index([("conversation_id", 1), ("created_at", 1)])
         await db.psychological_messages.create_index([("to_user_id", 1), ("read", 1)])
