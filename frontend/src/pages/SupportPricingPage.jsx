@@ -25,7 +25,8 @@ export default function SupportPricingPage({ token }) {
     base_monthly_fee: 50,
     per_student_fee: 0.7,
     per_student_from_month: 3,
-    flat_fee: 0
+    flat_fee: 0,
+    umbral_minimo_alumnos: 80
   });
 
   useEffect(() => {
@@ -36,7 +37,8 @@ export default function SupportPricingPage({ token }) {
           base_monthly_fee: r.data.base_monthly_fee ?? 50,
           per_student_fee: r.data.per_student_fee ?? 0.7,
           per_student_from_month: r.data.per_student_from_month ?? 3,
-          flat_fee: r.data.flat_fee ?? 0
+          flat_fee: r.data.flat_fee ?? 0,
+          umbral_minimo_alumnos: r.data.umbral_minimo_alumnos ?? 80
         });
       })
       .catch(() => toast.error("Error al cargar configuracion"))
@@ -107,11 +109,16 @@ export default function SupportPricingPage({ token }) {
     }
   };
 
-  const previewPrice = () => {
-    const students = 20;
+  const umbral = form.umbral_minimo_alumnos || 80;
+
+  const previewPrice = (students) => {
     if (form.billing_mode === "flat_fee") return form.flat_fee;
     if (form.billing_mode === "student_only") return students * form.per_student_fee;
-    return form.base_monthly_fee + students * form.per_student_fee;
+    // base_plus_student
+    if (students >= umbral) {
+      return students * form.per_student_fee; // reemplaza la base
+    }
+    return form.base_monthly_fee; // debajo del umbral: solo base
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /></div>;
@@ -270,16 +277,29 @@ export default function SupportPricingPage({ token }) {
                     <span className="text-slate-500">Mes 1 al {Math.max(1, form.per_student_from_month - 1)}</span>
                     <span className="font-bold text-slate-700">S/ {form.billing_mode === "base_plus_student" ? form.base_monthly_fee.toFixed(2) : "0.00"}</span>
                   </div>
-                  <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
-                    <span className="text-slate-500">Desde mes {form.per_student_from_month} (ej: 20 alumnos)</span>
-                    <span className="font-bold text-slate-700">S/ {previewPrice().toFixed(2)}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 pt-1">
-                    {form.billing_mode === "base_plus_student" 
-                      ? `= S/ ${form.base_monthly_fee.toFixed(2)} base + 20 x S/ ${form.per_student_fee.toFixed(2)} por alumno`
-                      : `= 20 x S/ ${form.per_student_fee.toFixed(2)} por alumno`
-                    }
-                  </p>
+                  {form.billing_mode === "base_plus_student" && (
+                    <>
+                      <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
+                        <span className="text-slate-500">Desde mes {form.per_student_from_month} (&lt; {umbral} alumnos)</span>
+                        <span className="font-bold text-slate-700">S/ {form.base_monthly_fee.toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 pt-0.5">= Solo precio base (debajo del umbral)</p>
+                      <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
+                        <span className="text-slate-500">Desde mes {form.per_student_from_month} (ej: 100 alumnos)</span>
+                        <span className="font-bold text-emerald-600">S/ {previewPrice(100).toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 pt-0.5">= 100 x S/ {form.per_student_fee.toFixed(2)} por alumno (reemplaza la base)</p>
+                    </>
+                  )}
+                  {form.billing_mode === "student_only" && (
+                    <>
+                      <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
+                        <span className="text-slate-500">Desde mes {form.per_student_from_month} (ej: 100 alumnos)</span>
+                        <span className="font-bold text-slate-700">S/ {previewPrice(100).toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 pt-1">= 100 x S/ {form.per_student_fee.toFixed(2)} por alumno</p>
+                    </>
+                  )}
                 </>
               )}
             </div>

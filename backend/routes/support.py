@@ -226,6 +226,7 @@ async def support_schools(user=Depends(require_support_admin)):
             "per_student_fee": eff_student_fee,
             "per_student_from_month": eff_from_month,
             "flat_fee": eff_flat,
+            "umbral_minimo_alumnos": eff_umbral,
             "per_student_applies": per_student_applies,
             "missing_payment": missing_payment,
         })

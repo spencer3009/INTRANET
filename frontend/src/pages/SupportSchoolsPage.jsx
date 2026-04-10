@@ -784,7 +784,11 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                           )
                         ) : (
                           school.per_student_applies ? (
-                            <>S/ {(school.base_charge ?? 0).toFixed(2)} base + {school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                            school.student_count >= (school.umbral_minimo_alumnos || 80) ? (
+                              <>{school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                            ) : (
+                              <>S/ {(school.base_charge ?? 0).toFixed(2)} base (&lt; {school.umbral_minimo_alumnos || 80} alumnos)</>
+                            )
                           ) : (
                             <>S/ {(school.base_charge ?? 0).toFixed(2)} base (sin cobro por alumno aun)</>
                           )
@@ -806,7 +810,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] text-slate-500 font-medium">Desde mes {school.per_student_from_month}:</p>
                         <p className="text-sm font-extrabold text-amber-700" data-testid={`projected-price-${school.subdomain}`}>
-                          S/ {((school.billing_mode === "student_only" ? 0 : (school.base_charge ?? 0)) + (school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)}
+                          S/ {(school.student_count >= (school.umbral_minimo_alumnos || 80) 
+                            ? (school.student_count ?? 0) * (school.per_student_fee ?? 0) 
+                            : (school.billing_mode === "student_only" ? (school.student_count ?? 0) * (school.per_student_fee ?? 0) : (school.base_charge ?? 50))
+                          ).toFixed(2)}
                         </p>
                       </div>
                     </div>
