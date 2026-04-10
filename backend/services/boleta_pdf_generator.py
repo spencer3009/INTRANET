@@ -132,9 +132,9 @@ def generar_boleta_pdf(boleta: dict) -> bytes:
 
     # Build header table: [logo | emisor_info | ruc_box]
     avail_w = doc.width
-    col_logo = 2.5 * cm
+    col_logo = 2.8 * cm
     col_ruc = 5.5 * cm
-    col_emisor = avail_w - col_logo - col_ruc - 0.4 * cm
+    col_emisor = avail_w - col_logo - col_ruc
 
     header_data = [[logo_cell, emisor_para, ruc_para]]
     header_table = Table(header_data, colWidths=[col_logo, col_emisor, col_ruc])
@@ -232,7 +232,7 @@ def generar_boleta_pdf(boleta: dict) -> bytes:
         Paragraph(f"S/ {monto_base:.2f}", cell_right),
     ]
 
-    col_widths = [0.8 * cm, avail_w - 13.3 * cm, 3 * cm, 1.5 * cm, 3 * cm, 3 * cm]
+    col_widths = [1 * cm, avail_w - 11 * cm, 3 * cm, 2 * cm, 2.5 * cm, 2.5 * cm]
 
     detail_table = Table([detail_header, detail_row], colWidths=col_widths, repeatRows=1)
     detail_table.setStyle(TableStyle([
@@ -277,14 +277,18 @@ def generar_boleta_pdf(boleta: dict) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ("LINEABOVE", (0, -1), (-1, -1), 0.5, colors.HexColor("#333333")),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (-1, -1), (-1, -1), 0),
     ]))
 
-    # Right-align the totals block
+    # Right-align the totals block — full avail_w
     outer = Table([[Paragraph("", sNormal), totals_table]], colWidths=[avail_w - 7 * cm, 7 * cm])
     outer.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (-1, -1), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
     story.append(outer)
     story.append(Spacer(1, 0.6 * cm))
