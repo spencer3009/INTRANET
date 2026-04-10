@@ -220,6 +220,27 @@ async def get_payments(
         else:
             payment["pension_month_label"] = ""
     
+    # Enrich with boleta info (batch lookup)
+    payment_ids = [p["id"] for p in payments]
+    boletas_cursor = db.boletas_internas.find(
+        {"ingreso_id": {"$in": payment_ids}, "school_id": school_id},
+        {"_id": 0, "ingreso_id": 1, "numero_completo": 1, "anulada": 1, "id": 1}
+    )
+    boletas_map = {}
+    async for b in boletas_cursor:
+        boletas_map[b["ingreso_id"]] = b
+    
+    for payment in payments:
+        b = boletas_map.get(payment["id"])
+        if b:
+            payment["boleta_disponible"] = True
+            payment["numero_boleta"] = b["numero_completo"]
+            payment["boleta_anulada"] = b.get("anulada", False)
+        else:
+            payment["boleta_disponible"] = False
+            payment["numero_boleta"] = None
+            payment["boleta_anulada"] = False
+    
     return {
         "payments": payments,
         "total": total,
@@ -283,6 +304,21 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     payment["status_color"] = PAYMENT_STATUSES.get(data.payment_status, {}).get("color", "#64748B")
     
     logger.info(f"Payment created: {payment['id']} - S/{payment['total_amount']} by {user['id']}")
+    
+    # Emit boleta if config exists
+    boleta_info = None
+    try:
+        from routes.boletas import emitir_boleta_para_ingreso
+        boleta_info = await emitir_boleta_para_ingreso(payment, school_id, user)
+    except Exception as e:
+        logger.warning(f"Error emitting boleta for payment {payment['id']}: {e}")
+    
+    if boleta_info:
+        payment["boleta_disponible"] = True
+        payment["boleta_id"] = boleta_info["boleta_id"]
+        payment["numero_boleta"] = boleta_info["numero_boleta"]
+    else:
+        payment["boleta_disponible"] = False
     
     return {"message": "Pago registrado correctamente", "payment": payment}
 
@@ -394,6 +430,15 @@ async def cancel_payment(payment_id: str, current_user = Depends(require_section
     )
     
     logger.info(f"Payment canceled: {payment_id} by {user['id']}")
+    
+    # Auto-annul boleta if exists
+    try:
+        await db.boletas_internas.update_one(
+            {"ingreso_id": payment_id, "school_id": school_id, "anulada": False},
+            {"$set": {"anulada": True, "fecha_anulacion": datetime.now(timezone.utc).isoformat()}}
+        )
+    except Exception as e:
+        logger.warning(f"Error annulling boleta for payment {payment_id}: {e}")
     
     return {"message": "Pago anulado correctamente"}
 

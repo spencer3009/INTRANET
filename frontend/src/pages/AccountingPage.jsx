@@ -10,6 +10,7 @@ import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import FinancialSettingsTab from "../components/FinancialSettingsTab";
+import ConfiguracionBoletaTab from "../components/ConfiguracionBoletaTab";
 import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
 import AccountingSummaryCards from "../components/AccountingSummaryCards";
 import { 
@@ -20,7 +21,7 @@ import {
   CircleDollarSign, FileText, Percent, Scale, Briefcase,
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
-  Eye, History, UserX, UserCheck, Settings, Tag, Zap
+  Eye, History, UserX, UserCheck, Settings, Tag, Zap, Download
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -329,7 +330,28 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token }) {
+  const handleDownloadBoleta = async (paymentId, numeroBoleta) => {
+    try {
+      const response = await fetch(`${API}/contabilidad/boletas/${paymentId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error("Error al descargar boleta");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Boleta_${numeroBoleta || "comprobante"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      const { toast } = await import("sonner");
+      toast.error("Error al descargar la boleta");
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Date filter */}
@@ -495,6 +517,25 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                                 <XCircle className="w-4 h-4" />
                               </button>
                             </>
+                          )}
+                          {/* Boleta PDF download */}
+                          {payment.boleta_disponible ? (
+                            <button
+                              onClick={() => handleDownloadBoleta(payment.id, payment.numero_boleta)}
+                              className={`p-2 rounded-lg transition-colors ${payment.boleta_anulada ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
+                              title={payment.boleta_anulada ? `Boleta ${payment.numero_boleta} (Anulada)` : `Descargar ${payment.numero_boleta}`}
+                              data-testid={`download-boleta-${payment.id}`}
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <span
+                              className="p-2 text-gray-200 cursor-not-allowed inline-block"
+                              title="Sin boleta emitida"
+                              data-testid={`no-boleta-${payment.id}`}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </span>
                           )}
                         </div>
                       </td>
@@ -2111,6 +2152,38 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
 }
 
 
+function ConfigTab({ token, user }) {
+  const [subTab, setSubTab] = useState("financiero");
+  return (
+    <div data-testid="config-tab-wrapper">
+      {/* Sub-tabs */}
+      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setSubTab("financiero")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            subTab === "financiero" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+          data-testid="subtab-financiero"
+        >
+          Configuracion Financiera
+        </button>
+        <button
+          onClick={() => setSubTab("boletas")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            subTab === "boletas" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+          data-testid="subtab-boletas"
+        >
+          Datos para Boletas
+        </button>
+      </div>
+      {subTab === "financiero" && <FinancialSettingsTab token={token} user={user} />}
+      {subTab === "boletas" && <ConfiguracionBoletaTab token={token} user={user} />}
+    </div>
+  );
+}
+
+
 export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2296,7 +2369,34 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     if (editingPayment?.id) {
       await axios.put(`${API}/accounting/payments/${editingPayment.id}`, data, { headers });
     } else {
-      await axios.post(`${API}/accounting/payments`, data, { headers });
+      const res = await axios.post(`${API}/accounting/payments`, data, { headers });
+      const payment = res.data?.payment;
+      if (payment?.boleta_disponible && payment?.numero_boleta) {
+        const { toast } = await import("sonner");
+        toast.success(`Boleta ${payment.numero_boleta} emitida`);
+        // Auto-download the boleta PDF
+        try {
+          const pdfRes = await fetch(`${API}/contabilidad/boletas/${payment.id}/pdf`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (pdfRes.ok) {
+            const blob = await pdfRes.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Boleta_${payment.numero_boleta}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+          }
+        } catch (e) {
+          console.warn("Auto-download boleta failed:", e);
+        }
+      } else if (payment && !payment.boleta_disponible) {
+        const { toast } = await import("sonner");
+        toast.info("Ingreso registrado. Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.", { duration: 6000 });
+      }
     }
     loadPayments();
     loadSummary();
@@ -2549,6 +2649,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onDateClear={handleDateClear}
               periodSummary={periodSummary}
               summaryLoading={summaryLoading}
+              token={token}
             />
           )}
           {activeTab === "expenses" && (
@@ -2581,7 +2682,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             />
           )}
           {activeTab === "config" && (
-            <FinancialSettingsTab token={token} user={user} />
+            <ConfigTab token={token} user={user} />
           )}
         </main>
       </div>

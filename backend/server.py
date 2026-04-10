@@ -57,6 +57,7 @@ from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
 from routes.pae import router as pae_router, ensure_pae_indexes, seed_pae_default_turnos
 from routes.coordinacion import router as coordinacion_router, ensure_coordinacion_indexes
+from routes.boletas import router as boletas_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -211,6 +212,7 @@ app.include_router(psychology_messages_router)
 app.include_router(psychology_agenda_router)
 app.include_router(pae_router)
 app.include_router(coordinacion_router)
+app.include_router(boletas_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
