@@ -1273,6 +1273,27 @@ async def update_student_status(student_id: str, current_user=Depends(get_curren
     await db.users.update_one({"id": student_id}, {"$set": {"student_status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": f"Estado cambiado a {STUDENT_STATUSES[status]['label']}", "student_status": status}
 
+
+@router.put("/students/bulk-set-active")
+async def bulk_set_enrolled_to_active(current_user=Depends(get_current_user)):
+    """Change all 'enrolled' students to 'active' for the school. Support-only."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support and not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo soporte tecnico puede ejecutar esta accion")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    result = await db.users.update_many(
+        {"school_id": school_id, "role": "student", "student_status": "enrolled"},
+        {"$set": {"student_status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": f"{result.modified_count} alumnos cambiados de Matriculado a Activo", "count": result.modified_count}
+
+
 @router.post("/students/migrate-statuses")
 async def migrate_student_statuses(current_user=Depends(get_current_user)):
     """One-time migration: set student_status for existing students."""

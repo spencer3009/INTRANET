@@ -2823,6 +2823,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {regeneratingQR ? "Regenerando..." : "Optimizar QR"}
                 </button>
                 )}
+                {(user?.is_support_session || user?.original_role === 'system_admin_global') && filteredStudents.some(s => s.student_status === "enrolled") && (
+                <button
+                  onClick={async () => {
+                    const count = filteredStudents.filter(s => s.student_status === "enrolled").length;
+                    if (!window.confirm(`Cambiar ${count} alumno(s) de "Matriculado" a "Activo"?`)) return;
+                    try {
+                      const res = await axios.put(`${API}/students/bulk-set-active`, {}, { headers });
+                      toast.success(res.data.message);
+                      loadUsers();
+                    } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200"
+                  data-testid="bulk-set-active-btn"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  Matriculados a Activo ({filteredStudents.filter(s => s.student_status === "enrolled").length})
+                </button>
+                )}
                 {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
                   <button
                     onClick={clearStudentFilters}
