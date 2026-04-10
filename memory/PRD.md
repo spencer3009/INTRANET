@@ -18,41 +18,22 @@ Platform for school management with modules for coordination, accounting, attend
 
 ### Phase 1 - Premium Redesign (DONE)
 - Linear/Notion-style UI across all coordinator views
-- Responsive sidebar, dashboard header, modern cards
 
 ### Phase 2 - QR Mass Download Fix (DONE)
 - Async sequential download with `safeDownloadBlob`
-- No more OOM/520 errors on production
 
 ### Phase 3 - Auxiliar de Asistencia (DONE)
-- Role `auxiliar_asistencia` with exclusive portal
-- QR scanning, dashboard with Recharts stats (pie + bar)
-- Manual attendance marking integration
+- Role `auxiliar_asistencia` with exclusive portal, QR scanning, dashboard with Recharts
 
 ### Phase 4 - Boleta de Venta Interna (DONE - 2026-04-10)
-- **Backend**: 
-  - Collections: `boleta_emisor_config`, `boletas_internas`
-  - Endpoints: `/api/contabilidad/boleta-config` (GET/PUT), `/api/contabilidad/boleta-config/logo` (POST), `/api/contabilidad/boletas/{ingreso_id}/pdf` (GET), `/api/contabilidad/boletas/{ingreso_id}/anular` (POST), `/api/contabilidad/boletas` (GET)
-  - Boleta auto-emitted on payment creation (hooked into POST /api/accounting/payments)
-  - Auto-annul boleta when payment is canceled
-  - PDF generated on-demand in memory (BytesIO), never saved to disk
-  - num2words for total-to-text conversion in Spanish
-  - Watermark "ANULADA" on annulled boletas
-  - Atomic correlativo increment (no race conditions)
-- **Frontend**:
-  - Config sub-tab "Datos para Boletas" in Contabilidad > Configuracion
-  - Emisor form: RUC validation, serie, logo upload (Cloudinary), pie de pagina
-  - Download icon in Ingresos table actions column
-  - Auto-download PDF on payment creation
-  - Disabled icon for payments without boleta
-  - Toast notifications for boleta status
+- **Backend**: Collections `boleta_emisor_config`, `boletas_internas`. Endpoints for config, PDF download, annulment. Auto-emission on payment creation, auto-annul on cancel. PDF on-demand via ReportLab + BytesIO. Logo from school settings (not boleta config).
+- **Frontend**: Config sub-tab "Datos para Boletas". Preview modal with iframe after registration. Direct download from table actions. num2words for total-to-text.
+- **Preview Modal** (2026-04-10): Replaced auto-download with `BoletaPreviewModal` showing PDF in iframe with Imprimir/Descargar buttons. Table download remains direct.
 
 ### Bug Fixes (All DONE)
 - z-index global de Modales (z-[200])
 - z-index dropdown asignaturas en ScheduleEntryModal (z-[199])
-- Pricing calculation fix (Base + Per student mode)
-- Logo visibility fix in AttendancePage
-- College billing logic fix in Support Dashboard
+- Pricing calculation fix, Logo visibility fix, College billing logic fix
 
 ## Key DB Collections
 - `users`, `schools`, `grades`, `sections`, `subjects`
@@ -63,9 +44,7 @@ Platform for school management with modules for coordination, accounting, attend
 ## API Prefixes
 - `/api/accounting/` - payments, expenses, concepts, summaries
 - `/api/contabilidad/` - boletas (config, PDF, annul, list)
-- `/api/attendance/` - attendance, QR, aux dashboard
-- `/api/auth/` - login, register, password
-- `/api/users/`, `/api/grades/`, `/api/sections/`, etc.
+- `/api/attendance/`, `/api/auth/`, `/api/users/`, `/api/grades/`, etc.
 
 ## Test Accounts
 See /app/memory/test_credentials.md
