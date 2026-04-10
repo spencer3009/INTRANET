@@ -440,7 +440,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
               </div>
             )}
             
-            {showSubjectDropdown && <div className="fixed inset-0 z-[200]" onClick={() => setShowSubjectDropdown(false)} />}
+            {showSubjectDropdown && <div className="fixed inset-0 z-[199]" onClick={() => setShowSubjectDropdown(false)} />}
           </div>
 
           {/* Day */}
