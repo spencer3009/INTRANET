@@ -285,3 +285,73 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
             "school_id": school_id,
             "created_at": now,
         })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TEST NOTIFICATION (Support panel — send push to all parents of a school)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestNotificationRequest(BaseModel):
+    school_id: str
+
+
+@router.post("/api/notifications/test")
+async def test_notification(req: TestNotificationRequest, current_user=Depends(get_current_user)):
+    """Send a test push notification to all registered devices in a school."""
+    user_id = current_user.get("sub") or current_user.get("id")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "role": 1, "is_support_session": 1})
+    if not user or (user.get("role") != "system_admin_global" and not user.get("is_support_session")):
+        raise HTTPException(status_code=403, detail="Solo soporte puede enviar notificaciones de prueba")
+
+    school = await db.schools.find_one({"id": req.school_id}, {"_id": 0, "name": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    school_name = school.get("name", "Colegio")
+
+    # Get all push tokens for parents in this school
+    parents = await db.users.find(
+        {"school_id": req.school_id, "role": "parent"},
+        {"_id": 0, "id": 1}
+    ).to_list(500)
+    parent_ids = [p["id"] for p in parents]
+
+    if not parent_ids:
+        raise HTTPException(status_code=404, detail="No hay apoderados registrados en este colegio")
+
+    tokens_cursor = db.push_tokens.find(
+        {"user_id": {"$in": parent_ids}},
+        {"_id": 0, "token": 1, "user_id": 1}
+    )
+    tokens = await tokens_cursor.to_list(500)
+
+    if not tokens:
+        raise HTTPException(status_code=404, detail="No hay dispositivos con notificaciones activas en este colegio")
+
+    title = f"{school_name} - Prueba"
+    body = "Esta es una notificacion de prueba del sistema EduNet. Si la recibes, todo funciona correctamente."
+
+    sent = 0
+    failed = 0
+    for t in tokens:
+        success = send_push_notification(
+            token=t["token"],
+            title=title,
+            body=body,
+            data={"type": "test", "school_id": req.school_id}
+        )
+        if success:
+            sent += 1
+        else:
+            failed += 1
+            await db.push_tokens.delete_one({"token": t["token"]})
+
+    logger.info(f"[TEST-NOTIF] School '{school_name}' ({req.school_id}): {sent} sent, {failed} failed, {len(tokens)} total tokens")
+
+    return {
+        "success": True,
+        "school_name": school_name,
+        "tokens_found": len(tokens),
+        "sent": sent,
+        "failed": failed,
+    }

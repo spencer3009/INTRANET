@@ -911,7 +911,35 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const btn = e.currentTarget;
+                      if (btn.disabled) return;
+                      btn.disabled = true;
+                      btn.querySelector('.bell-icon')?.classList.add('hidden');
+                      btn.querySelector('.loader-icon')?.classList.remove('hidden');
+                      btn.querySelector('.btn-text').textContent = 'Enviando...';
+                      try {
+                        await axios.post(`${API}/notifications/test`, { school_id: school.id }, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+                        toast.success("Notificacion enviada correctamente");
+                      } catch (err) {
+                        toast.error(err.response?.data?.detail || "Error al enviar notificacion");
+                      } finally {
+                        btn.disabled = false;
+                        btn.querySelector('.bell-icon')?.classList.remove('hidden');
+                        btn.querySelector('.loader-icon')?.classList.add('hidden');
+                        btn.querySelector('.btn-text').textContent = 'Probar notificacion';
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2.5 border border-amber-300 text-amber-600 rounded-xl text-xs font-medium hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    data-testid={`test-notif-${school.subdomain}`}
+                  >
+                    <Bell className="w-3.5 h-3.5 bell-icon" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin loader-icon hidden" />
+                    <span className="btn-text">Probar notificacion</span>
+                  </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleRenewMembership(school.id, school.name || school.subdomain); }}
                     className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-semibold hover:bg-violet-700 transition-colors whitespace-nowrap"
