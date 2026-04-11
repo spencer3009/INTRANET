@@ -1,0 +1,67 @@
+{
+  "summary": "PWA Installability Fix - ALL TESTS PASSED. Verified that service-worker.js now contains merged Firebase Messaging logic (importScripts, onBackgroundMessage) AND fetch handler. Only ONE service worker at root scope '/' - PWA is installable. firebase-messaging-sw.js correctly self-unregisters for legacy clients.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pwa_installability.py",
+    "/app/test_reports/pytest/pytest_pwa_installability.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_pwa_installability.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (PWA installability verified)"
+  },
+  "test_credentials": {
+    "owner": "admin@elroble.edu / 1234abc8",
+    "support_admin": "spencer3009@gmail.com / Socios3009",
+    "school_id": "b9f27249-6568-49ae-94d3-e1f16750d7d9"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "PWA installability fix fully verified. Key findings: 1) service-worker.js v9.0.0 contains merged Firebase Messaging (importScripts for firebase-app-compat.js and firebase-messaging-compat.js, onBackgroundMessage handler) AND fetch handler for PWA installability. 2) firebase-messaging-sw.js now self-unregisters for legacy clients. 3) Only ONE service worker registered at root scope '/'. 4) manifest.json has all required fields (name, display:standalone, icons 192x192 and 512x512). 5) Owner login works, dashboard loads, notification bell visible with badge count.",
+  "features_verified": {
+    "service_worker_served": "PASS - 200 status, starts with 'const CACHE_NAME = edunet-v9'",
+    "service_worker_has_firebase_imports": "PASS - Contains importScripts for firebase-app-compat.js and firebase-messaging-compat.js",
+    "service_worker_has_fetch_handler": "PASS - Contains self.addEventListener('fetch'...) for PWA installability",
+    "service_worker_has_background_message": "PASS - Contains onBackgroundMessage handler for FCM",
+    "firebase_messaging_sw_self_unregisters": "PASS - Contains self.registration.unregister() and DEPRECATED comment",
+    "manifest_json_served": "PASS - Has name='EduNet', display='standalone'",
+    "manifest_has_icons": "PASS - Has 192x192 and 512x512 icons",
+    "icon_192_exists": "PASS - 200 status",
+    "icon_512_exists": "PASS - 200 status",
+    "owner_login": "PASS - Token received",
+    "register_device_endpoint": "PASS - 200 status",
+    "test_push_endpoint": "PASS - 200 status",
+    "get_notifications_all": "PASS - Returns notifications list",
+    "pwa_single_sw_at_root": "PASS - Only ONE service worker at scope '/'",
+    "pwa_active_sw_is_correct": "PASS - Active SW is service-worker.js (not firebase-messaging-sw.js)",
+    "pwa_installability_criteria": "PASS - All criteria met (manifest, SW, HTTPS, icons, display, name, start_url)"
+  },
+  "pwa_fix_verification": {
+    "root_cause": "firebase.js was registering a second service worker (firebase-messaging-sw.js) at the same scope '/' as the main PWA service worker, replacing it. The firebase SW had no fetch handler, so Chrome didn't consider the app installable.",
+    "solution_implemented": [
+      "1. Merged Firebase Messaging logic (importScripts + onBackgroundMessage + notificationclick) into service-worker.js",
+      "2. firebase.js now uses navigator.serviceWorker.ready instead of register('/firebase-messaging-sw.js')",
+      "3. firebase-messaging-sw.js converted to self-unregister script for legacy clients"
+    ],
+    "verification_results": {
+      "only_one_sw_at_root": true,
+      "active_sw_is_service_worker_js": true,
+      "sw_has_fetch_handler": true,
+      "sw_has_firebase_messaging": true,
+      "pwa_installable": true
+    }
+  }
+}

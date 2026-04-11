@@ -1,5 +1,83 @@
-const CACHE_NAME = 'edunet-v8';
-const SW_VERSION = '8.0.1';
+const CACHE_NAME = 'edunet-v9';
+const SW_VERSION = '9.0.0';
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FIREBASE CLOUD MESSAGING — merged here to avoid a second SW at the same scope
+// ══════════════════════════════════════════════════════════════════════════════
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+  firebase.initializeApp({
+    apiKey: "AIzaSyCGG2RZtz7PbdJw5QewBl15qKDyibHIAVc",
+    authDomain: "edunet-b38ce.firebaseapp.com",
+    projectId: "edunet-b38ce",
+    storageBucket: "edunet-b38ce.firebasestorage.app",
+    messagingSenderId: "608156581464",
+    appId: "1:608156581464:web:9746b5e1761bdf6185942d",
+  });
+
+  const messaging = firebase.messaging();
+
+  messaging.onBackgroundMessage((payload) => {
+    const data = payload.data || {};
+    const notification = payload.notification || {};
+    const title = notification.title || "EduNet";
+    const body = notification.body || "Tienes una nueva notificacion";
+
+    self.registration.showNotification(title, {
+      body: body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.student_id
+        ? `attendance-${data.student_id}-${data.type}`
+        : `notif-${data.notification_id || Date.now()}`,
+      data: {
+        student_id: data.student_id,
+        type: data.type,
+        notification_id: data.notification_id,
+        url: data.student_id
+          ? `/parent/dashboard?student=${data.student_id}`
+          : "/",
+      },
+    });
+
+    // Update PWA icon badge with real unread count
+    const unreadCount = parseInt(data.unread_count || "0", 10);
+    if (unreadCount > 0 && "setAppBadge" in self.registration) {
+      self.registration.setAppBadge(unreadCount).catch(() => {});
+    } else if ("clearAppBadge" in self.registration) {
+      self.registration.clearAppBadge().catch(() => {});
+    }
+  });
+} catch (e) {
+  console.warn("[SW] Firebase Messaging init failed (non-fatal):", e.message);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION CLICK — handle taps on push notifications
+// ══════════════════════════════════════════════════════════════════════════════
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const urlPath = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin)) {
+          client.focus();
+          client.navigate(urlPath);
+          return;
+        }
+      }
+      return clients.openWindow(urlPath);
+    })
+  );
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PWA LIFECYCLE
+// ══════════════════════════════════════════════════════════════════════════════
 
 // Install: skip waiting immediately
 self.addEventListener('install', (event) => {
@@ -27,7 +105,9 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch handler — minimal interception to avoid 503 errors
+// ══════════════════════════════════════════════════════════════════════════════
+// FETCH HANDLER — required for PWA installability
+// ══════════════════════════════════════════════════════════════════════════════
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);

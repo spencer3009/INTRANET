@@ -51,7 +51,10 @@ export async function requestNotificationPermission() {
   if (!messaging) return null;
 
   try {
-    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    // Use the existing PWA service worker (which now includes Firebase Messaging
+    // via importScripts) instead of registering a separate firebase-messaging-sw.js.
+    // This avoids a scope conflict that breaks PWA installability.
+    const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration,
