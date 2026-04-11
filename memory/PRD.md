@@ -81,6 +81,20 @@ See /app/memory/test_credentials.md
 ## Prioritized Backlog
 ### P1
 - Dashboard Owner con metricas reales
+
+### Phase 9 - Schedule Duplication (DONE - 2026-04-11)
+- **Backend**: `POST /api/schedules/duplicate` with `?dry_run=true` support
+  - 3 modes: `section` (copy to other grades/sections), `day` (copy one day to others), `year` (copy to another academic year)
+  - Cartesian product of source blocks × destinations, conflict detection (slot + professor)
+  - Respects `permitir_profesor_multiples_horarios` setting from `schedule_settings` collection
+  - Options: keep_teacher, overwrite_existing (soft-delete), skip_conflicts
+  - Returns `{created, skipped, deleted, conflicts[], setting_multi_horario_activo}`
+- **Frontend**: `DuplicateScheduleModal` component at `/components/schedule/DuplicateScheduleModal.jsx`
+  - Violet gradient "Duplicar" button next to blue "Agregar horario" (disabled until grade/section selected)
+  - 4-step wizard: Mode selection (3 visual cards) → Target selection → Options (3 toggles) → Preview (dry_run) → Confirm
+  - Preview shows block count, conflict list with SLOT/PROFESOR tags, multi_horario info badge
+- **Testing**: 100% (7/7 backend + 100% frontend - iteration_132)
+
 - Modulo de Matriculas (Enrollments)
 - Psicologia: Log de auditoria estricto
 
