@@ -8,7 +8,7 @@ import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import ConfirmModal from "../components/ConfirmModal";
 import { 
   Calendar, Clock, Plus, Loader2, ArrowLeft, Settings, 
-  ChevronLeft, ChevronRight, GraduationCap, FileText
+  ChevronLeft, ChevronRight, GraduationCap, FileText, Copy
 } from "lucide-react";
 
 // Import refactored schedule components
@@ -22,6 +22,7 @@ import {
   ExamCalendar,
   CalendarGrid
 } from "../components/schedule";
+import DuplicateScheduleModal from "../components/schedule/DuplicateScheduleModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -63,6 +64,7 @@ export default function SchedulePage({ user, token, onLogout }) {
 
   // Class schedule modals
   const [showEntryModal, setShowEntryModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [preselectedData, setPreselectedData] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -203,6 +205,8 @@ export default function SchedulePage({ user, token, onLogout }) {
 
   useEffect(() => { loadBreaks(); }, [loadBreaks]);
 
+  const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
+
   // Load schedules when filters change
   useEffect(() => {
     const loadSchedules = async () => {
@@ -222,7 +226,7 @@ export default function SchedulePage({ user, token, onLogout }) {
       }
     };
     loadSchedules();
-  }, [activeTab, selectedGrade, selectedSection, token]);
+  }, [activeTab, selectedGrade, selectedSection, token, scheduleRefreshKey]);
 
   // Load all schedules for conflict checking
   useEffect(() => {
@@ -440,23 +444,37 @@ export default function SchedulePage({ user, token, onLogout }) {
                 </>
               )}
 
-              {/* Add button - only for class schedule tab */}
+              {/* Add & Duplicate buttons - only for class schedule tab */}
               {activeTab === "clases" && (
-                <div className="flex-shrink-0">
-                  <label className="block text-xs font-medium text-transparent mb-1">.</label>
-                  <button
-                    data-testid="schedule-add-btn"
-                    onClick={() => {
-                      setPreselectedData({ grado_id: selectedGrade, seccion_id: selectedSection });
-                      setEditEntry(null);
-                      setShowEntryModal(true);
-                    }}
-                    disabled={!selectedGrade || !selectedSection}
-                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Agregar horario
-                  </button>
+                <div className="flex-shrink-0 flex items-end gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-transparent mb-1">.</label>
+                    <button
+                      data-testid="schedule-duplicate-btn"
+                      onClick={() => setShowDuplicateModal(true)}
+                      disabled={!selectedGrade || !selectedSection}
+                      className="px-4 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Copy className="w-5 h-5" />
+                      <span className="hidden sm:inline">Duplicar</span>
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-transparent mb-1">.</label>
+                    <button
+                      data-testid="schedule-add-btn"
+                      onClick={() => {
+                        setPreselectedData({ grado_id: selectedGrade, seccion_id: selectedSection });
+                        setEditEntry(null);
+                        setShowEntryModal(true);
+                      }}
+                      disabled={!selectedGrade || !selectedSection}
+                      className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Agregar horario
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -683,6 +701,19 @@ export default function SchedulePage({ user, token, onLogout }) {
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       <FloatingHelpAvatar subdomain={user?.subdomain} />
+
+      <DuplicateScheduleModal
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        token={token}
+        selectedGrade={selectedGrade}
+        selectedSection={selectedSection}
+        selectedLevel={selectedLevel}
+        grades={grades}
+        sections={sections}
+        levels={levels}
+        onSuccess={() => setScheduleRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 }

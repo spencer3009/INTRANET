@@ -754,3 +754,222 @@ async def mark_offline(current_user = Depends(get_current_user)):
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DUPLICATE SCHEDULES
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DuplicateSource(BaseModel):
+    grado_id: str
+    seccion_id: str
+    dia: Optional[str] = None  # required for mode="day"
+
+class DuplicateTarget(BaseModel):
+    grado_ids: Optional[List[str]] = None     # mode="section"
+    seccion_ids: Optional[List[str]] = None   # mode="section"
+    dias: Optional[List[str]] = None          # mode="day"
+    anio_academico: Optional[int] = None      # mode="year"
+
+class DuplicateOptions(BaseModel):
+    keep_teacher: bool = True
+    overwrite_existing: bool = False
+    skip_conflicts: bool = True
+
+class DuplicateRequest(BaseModel):
+    mode: Literal["section", "day", "year"]
+    source: DuplicateSource
+    target: DuplicateTarget
+    options: DuplicateOptions = DuplicateOptions()
+
+@router.post("/schedules/duplicate")
+async def duplicate_schedules(
+    data: DuplicateRequest,
+    dry_run: bool = Query(False),
+    current_user = Depends(get_current_user)
+):
+    """Duplicate schedule blocks with 3 modes: section, day, year."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden duplicar horarios")
+
+    school_id = user["school_id"]
+
+    # Read multi-schedule setting
+    sched_settings = await db.schedule_settings.find_one(
+        {"school_id": school_id}, {"_id": 0, "permitir_profesor_multiples_horarios": 1}
+    )
+    multi_horario = bool(sched_settings and sched_settings.get("permitir_profesor_multiples_horarios", False))
+
+    # Load source blocks
+    src_query = {
+        "school_id": school_id,
+        "grado_id": data.source.grado_id,
+        "seccion_id": data.source.seccion_id,
+    }
+    if data.mode == "day" and data.source.dia:
+        src_query["dia"] = data.source.dia
+
+    source_blocks = await db.schedules.find(src_query, {"_id": 0}).to_list(500)
+    if not source_blocks:
+        raise HTTPException(status_code=400, detail="No hay bloques de horario en el origen seleccionado")
+
+    # Build destination list based on mode
+    destinations = []
+    if data.mode == "section":
+        target_grado_ids = data.target.grado_ids or []
+        target_seccion_ids = data.target.seccion_ids or []
+        # Validate sections belong to grades
+        valid_sections = await db.sections.find(
+            {"id": {"$in": target_seccion_ids}, "school_id": school_id}, {"_id": 0}
+        ).to_list(200)
+        sec_map = {s["id"]: s for s in valid_sections}
+        for gid in target_grado_ids:
+            for sid in target_seccion_ids:
+                sec = sec_map.get(sid)
+                if sec and sec.get("grado_id") == gid:
+                    destinations.append({"grado_id": gid, "seccion_id": sid, "dia": None})
+    elif data.mode == "day":
+        target_dias = data.target.dias or []
+        destinations = [
+            {"grado_id": data.source.grado_id, "seccion_id": data.source.seccion_id, "dia": d}
+            for d in target_dias if d != data.source.dia
+        ]
+    elif data.mode == "year":
+        destinations = [
+            {"grado_id": data.source.grado_id, "seccion_id": data.source.seccion_id, "dia": None, "year": data.target.anio_academico}
+        ]
+
+    if not destinations:
+        raise HTTPException(status_code=400, detail="No hay destinos validos para la duplicacion")
+
+    # Pre-load teacher names for conflict messages
+    teacher_ids = list(set(b.get("profesor_id") for b in source_blocks if b.get("profesor_id")))
+    teachers_list = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(100) if teacher_ids else []
+    teacher_names = {t["id"]: f"{t.get('name','')} {t.get('last_name','')}".strip() for t in teachers_list}
+
+    # Pre-load section names
+    all_sec_ids = list(set(d.get("seccion_id") for d in destinations))
+    secs = await db.sections.find({"id": {"$in": all_sec_ids}, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+    sec_names = {s["id"]: s.get("nombre", "?") for s in secs}
+
+    grade_ids_all = list(set(d.get("grado_id") for d in destinations))
+    grs = await db.grades.find({"id": {"$in": grade_ids_all}, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+    grade_names = {g["id"]: g.get("nombre", "?") for g in grs}
+
+    now = datetime.now(timezone.utc).isoformat()
+    created = 0
+    skipped = 0
+    deleted = 0
+    conflicts = []
+    to_insert = []
+
+    for dest in destinations:
+        for block in source_blocks:
+            dia = dest.get("dia") or block["dia"]
+            new_block = {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "tipo": block.get("tipo", "clases"),
+                "grado_id": dest["grado_id"],
+                "seccion_id": dest["seccion_id"],
+                "profesor_id": block.get("profesor_id") if data.options.keep_teacher else None,
+                "materia": block["materia"],
+                "subject_id": block.get("subject_id"),
+                "dia": dia,
+                "hora_inicio": block["hora_inicio"],
+                "hora_fin": block["hora_fin"],
+                "aula": block.get("aula"),
+                "color": block.get("color", "#3B82F6"),
+                "created_at": now,
+                "updated_at": now,
+            }
+
+            # Check slot conflict (same section, same day/time)
+            slot_conflict = await db.schedules.find_one({
+                "school_id": school_id,
+                "grado_id": dest["grado_id"],
+                "seccion_id": dest["seccion_id"],
+                "dia": dia,
+                "hora_inicio": {"$lt": block["hora_fin"]},
+                "hora_fin": {"$gt": block["hora_inicio"]},
+            })
+
+            if slot_conflict:
+                if data.options.overwrite_existing:
+                    if not dry_run:
+                        await db.schedules.delete_one({"id": slot_conflict["id"], "school_id": school_id})
+                    deleted += 1
+                else:
+                    dest_label = f"{grade_names.get(dest['grado_id'],'?')} {sec_names.get(dest['seccion_id'],'?')}"
+                    conflicts.append({
+                        "tipo": "slot",
+                        "dia": dia,
+                        "hora": f"{block['hora_inicio']}-{block['hora_fin']}",
+                        "razon": f"Ya existe '{slot_conflict['materia']}' en {dest_label} el {dia} {block['hora_inicio']}-{block['hora_fin']}"
+                    })
+                    if data.options.skip_conflicts:
+                        skipped += 1
+                        continue
+                    else:
+                        return {
+                            "created": 0, "skipped": 0, "deleted": 0,
+                            "conflicts": conflicts,
+                            "setting_multi_horario_activo": multi_horario,
+                            "aborted": True,
+                            "abort_reason": conflicts[-1]["razon"]
+                        }
+
+            # Check teacher conflict (only if setting disabled)
+            prof_id = new_block["profesor_id"]
+            if prof_id and not multi_horario:
+                teacher_conflict = await db.schedules.find_one({
+                    "school_id": school_id,
+                    "profesor_id": prof_id,
+                    "dia": dia,
+                    "hora_inicio": {"$lt": block["hora_fin"]},
+                    "hora_fin": {"$gt": block["hora_inicio"]},
+                    "seccion_id": {"$ne": dest["seccion_id"]},
+                })
+                if teacher_conflict:
+                    t_name = teacher_names.get(prof_id, "Profesor")
+                    t_sec = await db.sections.find_one({"id": teacher_conflict.get("seccion_id")}, {"_id": 0, "nombre": 1})
+                    t_sec_name = t_sec.get("nombre", "otra seccion") if t_sec else "otra seccion"
+                    conflicts.append({
+                        "tipo": "profesor",
+                        "dia": dia,
+                        "hora": f"{block['hora_inicio']}-{block['hora_fin']}",
+                        "razon": f"{t_name} ya tiene '{teacher_conflict['materia']}' en {t_sec_name} el {dia} {block['hora_inicio']}-{block['hora_fin']}"
+                    })
+                    if data.options.skip_conflicts:
+                        skipped += 1
+                        continue
+                    else:
+                        return {
+                            "created": 0, "skipped": 0, "deleted": 0,
+                            "conflicts": conflicts,
+                            "setting_multi_horario_activo": multi_horario,
+                            "aborted": True,
+                            "abort_reason": conflicts[-1]["razon"]
+                        }
+
+            to_insert.append(new_block)
+            created += 1
+
+    # Insert all if not dry_run
+    if not dry_run and to_insert:
+        await db.schedules.insert_many(to_insert)
+        # Clean _id from response
+        for b in to_insert:
+            b.pop("_id", None)
+
+    return {
+        "created": created,
+        "skipped": skipped,
+        "deleted": deleted,
+        "conflicts": conflicts,
+        "setting_multi_horario_activo": multi_horario,
+        "dry_run": dry_run,
+    }
+

@@ -1,0 +1,56 @@
+{
+  "summary": "Tested Schedule Duplicate Feature - Backend: 7/9 tests passed (2 skipped due to missing data). Frontend: All UI elements verified working. Both 'Duplicar' (violet) and 'Agregar horario' (blue) buttons visible. Modal opens with 3 mode cards. All 4 steps work correctly (mode selection -> targets -> options -> preview -> confirm).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_schedule_duplicate.py",
+    "/app/test_reports/pytest/pytest_schedule_duplicate.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_schedule_duplicate.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7 passed, 2 skipped)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": {
+    "owner": "admin@elroble.edu / 1234abc8",
+    "school_subdomain": "elroble"
+  },
+  "seed_data_creation": "None - used existing schedule data from INICIAL > 3 anos > A",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Schedule Duplicate feature fully tested. Key findings: 1) POST /api/schedules/duplicate?dry_run=true returns preview without creating. 2) POST /api/schedules/duplicate (without dry_run) creates blocks in DB. 3) skip_conflicts=true skips conflicting blocks. 4) setting_multi_horario_activo is returned in response and respected. 5) Frontend modal has 4 steps: mode selection (3 cards), target selection (grade/section multi-select or day buttons), options (3 toggles), preview (summary + conflicts list). 6) Existing '+ Agregar horario' flow still works.",
+  "features_verified": {
+    "backend_dry_run_section_mode": "PASS - Returns preview with created/skipped/conflicts counts",
+    "backend_dry_run_day_mode": "PASS - Returns preview for day duplication",
+    "backend_actual_duplicate": "PASS - Creates blocks when dry_run=false",
+    "backend_skip_conflicts": "PASS - Skips conflicting blocks when skip_conflicts=true",
+    "backend_multi_horario_setting": "PASS - setting_multi_horario_activo returned in response",
+    "backend_schedule_settings": "PASS - GET /api/schedule-settings returns permitir_profesor_multiples_horarios",
+    "backend_existing_schedules_crud": "PASS - GET/POST /api/schedules still works",
+    "frontend_both_buttons_visible": "PASS - 'Duplicar' (violet) and 'Agregar horario' (blue) buttons visible",
+    "frontend_buttons_disabled_no_selection": "PASS - Both buttons disabled when no grade/section selected",
+    "frontend_buttons_enabled_after_selection": "PASS - Both buttons enabled after selecting level/grade/section",
+    "frontend_modal_3_mode_cards": "PASS - Section, Day, Year mode cards visible",
+    "frontend_section_mode_grade_multiselect": "PASS - Grade checkboxes with origin marked",
+    "frontend_section_mode_section_multiselect": "PASS - Section checkboxes with 'Seleccionar todas' toggle",
+    "frontend_day_mode_source_day": "PASS - Source day buttons (Lun-Dom)",
+    "frontend_day_mode_target_days": "PASS - Target day buttons (excluding source)",
+    "frontend_options_3_toggles": "PASS - Mantener profesor, Sobrescribir, Omitir conflictos",
+    "frontend_preview_summary": "PASS - Shows 'X bloques por crear', 'Y a omitir'",
+    "frontend_preview_conflicts_list": "PASS - Shows conflicts with SLOT/PROFESOR tags",
+    "frontend_preview_multi_horario_info": "PASS - Shows info when setting is active",
+    "frontend_confirm_button": "PASS - 'Confirmar X bloques' button visible",
+    "frontend_existing_add_flow": "PASS - '+ Agregar horario' modal still works"
+  }
+}
