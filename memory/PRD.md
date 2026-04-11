@@ -38,6 +38,7 @@ Platform for school management with modules for coordination, accounting, attend
   - Support panel: "Probar Push" button on each school card with detailed feedback
 - **Collections**: `device_tokens` (user_id, school_id, fcm_token, platform, user_agent, active)
 - **Bug Fix (2026-04-11)**: Owner/Admin FCM permission request now works. Root cause: `DashboardHeader` was not passing `userRole` to `NotificationBell`, and test-push was writing to wrong collection.
+- **PWA Fix (2026-04-11)**: Restored PWA installability after FCM integration broke it. Root cause: `firebase.js` registered a second SW (`firebase-messaging-sw.js`) at same scope `/`, replacing the main PWA SW that had the fetch handler. Fix: merged Firebase Messaging into `service-worker.js` via `importScripts`, switched `firebase.js` to use `navigator.serviceWorker.ready`, and converted `firebase-messaging-sw.js` to a self-unregister script for legacy clients.
 - **Status**: Code complete. Awaiting Firebase credentials in .env for end-to-end testing.
 
 ### Support Panel Additions
