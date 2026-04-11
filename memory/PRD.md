@@ -52,6 +52,21 @@ Frontend: REACT_APP_FIREBASE_API_KEY, REACT_APP_FIREBASE_AUTH_DOMAIN, REACT_APP_
 ## Test Accounts
 See /app/memory/test_credentials.md
 
+
+### Phase 7 - Bulk Teacher Assignment (DONE - 2026-04-11)
+- **Backend**: `POST /api/academic/assignments/bulk` endpoint in `academic.py`
+  - Accepts teacher_id + level_id + arrays of grade_ids/section_ids/subject_ids
+  - Generates cartesian product, validates each entity, checks duplicates (skip if exists)
+  - Returns `{created, skipped, failed, details}` with per-combination status
+  - Same RBAC as individual assignment (admin-only), multi-tenant via school_id
+- **Frontend**: `BulkAssignmentModal` component in `TeacherAssignmentsPage.jsx`
+  - Violet gradient button "Asignacion Masiva" alongside existing blue "Nueva Asignacion"
+  - Multi-step: form (teacher/level/grades/sections/subjects/role/year) → preview table → confirm
+  - Cascade filtering: level → grades → sections → subjects
+  - "Seleccionar todas" toggles for sections and subjects
+  - Preview shows exact count and table of combinations before submitting
+- **Testing**: 100% (9/9 backend, 100% frontend - iteration_131)
+
 ## Prioritized Backlog
 ### P1
 - Dashboard Owner con metricas reales
