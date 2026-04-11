@@ -2534,6 +2534,147 @@ async def create_academic_assignment(
     
     return {"message": "Asignación creada correctamente", "assignment": assignment}
 
+class BulkAssignmentCreate(BaseModel):
+    teacher_id: str
+    level_id: str
+    grade_ids: List[str]
+    section_ids: List[str]
+    subject_ids: List[str]
+    academic_year_id: Optional[str] = None
+    school_year: int = 2026
+    role: Literal["titular", "auxiliar"] = "titular"
+
+@router.post("/academic/assignments/bulk")
+async def create_bulk_academic_assignments(
+    data: BulkAssignmentCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create multiple academic assignments in one operation (cartesian product)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear asignaciones")
+
+    school_id = user["school_id"]
+
+    # Validate teacher
+    teacher = await db.users.find_one({"id": data.teacher_id, "school_id": school_id, "role": "teacher"})
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Profesor no encontrado")
+
+    # Validate level
+    level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
+    if not level:
+        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+
+    # Validate academic year
+    academic_year = None
+    if data.academic_year_id:
+        academic_year = await db.academic_years.find_one({"id": data.academic_year_id, "school_id": school_id})
+        if not academic_year:
+            raise HTTPException(status_code=404, detail="Ano academico no encontrado")
+        data.school_year = academic_year.get("year", data.school_year)
+
+    # Pre-fetch valid grades, sections, subjects for this school+level
+    valid_grades = {g["id"]: g for g in await db.grades.find(
+        {"id": {"$in": data.grade_ids}, "school_id": school_id, "nivel_id": data.level_id}, {"_id": 0}
+    ).to_list(100)}
+    valid_sections = {s["id"]: s for s in await db.sections.find(
+        {"id": {"$in": data.section_ids}, "school_id": school_id}, {"_id": 0}
+    ).to_list(200)}
+    valid_subjects = {s["id"]: s for s in await db.subjects.find(
+        {"id": {"$in": data.subject_ids}, "school_id": school_id}, {"_id": 0}
+    ).to_list(500)}
+
+    now = datetime.now(timezone.utc).isoformat()
+    created = 0
+    skipped = 0
+    failed = []
+    details = []
+
+    # Cartesian product: grades × sections × subjects
+    for grade_id in data.grade_ids:
+        if grade_id not in valid_grades:
+            failed.append({"grade_id": grade_id, "reason": "Grado no encontrado o no pertenece al nivel"})
+            continue
+
+        for section_id in data.section_ids:
+            if section_id not in valid_sections:
+                failed.append({"section_id": section_id, "reason": "Seccion no encontrada"})
+                continue
+            section = valid_sections[section_id]
+            # Verify this section belongs to this grade
+            if section.get("grado_id") != grade_id:
+                continue  # silently skip — not an error, just an invalid combination
+
+            for subject_id in data.subject_ids:
+                if subject_id not in valid_subjects:
+                    failed.append({"subject_id": subject_id, "reason": "Asignatura no encontrada"})
+                    continue
+
+                # Check for duplicate
+                dup_query = {
+                    "school_id": school_id,
+                    "teacher_id": data.teacher_id,
+                    "level_id": data.level_id,
+                    "grade_id": grade_id,
+                    "section_id": section_id,
+                    "subject_id": subject_id,
+                }
+                if data.academic_year_id:
+                    dup_query["academic_year_id"] = data.academic_year_id
+                else:
+                    dup_query["school_year"] = data.school_year
+
+                existing = await db.academic_assignments.find_one(dup_query)
+                if existing:
+                    skipped += 1
+                    details.append({
+                        "grade": valid_grades[grade_id].get("nombre", ""),
+                        "section": section.get("nombre", ""),
+                        "subject": valid_subjects[subject_id].get("name", ""),
+                        "status": "skipped"
+                    })
+                    continue
+
+                assignment = {
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id,
+                    "teacher_id": data.teacher_id,
+                    "level_id": data.level_id,
+                    "grade_id": grade_id,
+                    "section_id": section_id,
+                    "subject_id": subject_id,
+                    "academic_year_id": data.academic_year_id,
+                    "school_year": data.school_year,
+                    "role": data.role,
+                    "status": "activo",
+                    "created_at": now,
+                    "created_by": user["id"]
+                }
+                await db.academic_assignments.insert_one(assignment)
+                created += 1
+                details.append({
+                    "grade": valid_grades[grade_id].get("nombre", ""),
+                    "section": section.get("nombre", ""),
+                    "subject": valid_subjects[subject_id].get("name", ""),
+                    "status": "created"
+                })
+
+    teacher_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+    logger.info(f"Bulk assignment: {created} created, {skipped} skipped for teacher {teacher_name} in school {school_id}")
+
+    return {
+        "created": created,
+        "skipped": skipped,
+        "failed": failed,
+        "details": details,
+        "teacher_name": teacher_name
+    }
+
+
 @router.put("/academic/assignments/{assignment_id}")
 async def update_academic_assignment(
     assignment_id: str,

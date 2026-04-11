@@ -873,6 +873,517 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// BULK ASSIGNMENT MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [step, setStep] = useState(1); // 1 = form, 2 = preview
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [teacherOpen, setTeacherOpen] = useState(false);
+  const teacherRef = useRef(null);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const [form, setForm] = useState({
+    teacher_id: "",
+    level_id: "",
+    grade_ids: [],
+    section_ids: [],
+    subject_ids: [],
+    academic_year_id: "",
+    role: "titular",
+    all_sections: false,
+  });
+
+  // Derived data
+  const filteredGrades = form.level_id
+    ? academicData.grades.filter((g) => g.nivel_id === form.level_id)
+    : [];
+
+  const filteredSections = form.grade_ids.length > 0
+    ? academicData.sections.filter((s) => form.grade_ids.includes(s.grado_id))
+    : [];
+
+  const filteredSubjects = form.level_id
+    ? academicData.subjects.filter((s) => {
+        if (s.level_id !== form.level_id) return false;
+        if (form.grade_ids.length > 0 && s.grade_id && !form.grade_ids.includes(s.grade_id)) return false;
+        return true;
+      })
+    : [];
+
+  // Deduplicate subjects by name (same subject across grades/sections)
+  const uniqueSubjects = filteredSubjects.reduce((acc, s) => {
+    if (!acc.find((x) => x.id === s.id)) acc.push(s);
+    return acc;
+  }, []);
+
+  const sortedYears = [...(academicData.academicYears || [])].sort((a, b) => {
+    if (a.status === "activo" && b.status !== "activo") return -1;
+    if (b.status === "activo" && a.status !== "activo") return 1;
+    return b.year - a.year;
+  });
+
+  // Reset form on open
+  useEffect(() => {
+    if (isOpen) {
+      const activeYear = academicData.academicYears?.find((y) => y.status === "activo");
+      setForm({
+        teacher_id: "",
+        level_id: "",
+        grade_ids: [],
+        section_ids: [],
+        subject_ids: [],
+        academic_year_id: activeYear?.id || sortedYears[0]?.id || "",
+        role: "titular",
+        all_sections: false,
+      });
+      setStep(1);
+      setError("");
+      setTeacherSearch("");
+      setTeacherOpen(false);
+    }
+  }, [isOpen]);
+
+  // Auto-select all sections when toggled
+  useEffect(() => {
+    if (form.all_sections) {
+      setForm((prev) => ({ ...prev, section_ids: filteredSections.map((s) => s.id) }));
+    }
+  }, [form.all_sections, form.grade_ids.join(",")]);
+
+  // Close teacher dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (teacherRef.current && !teacherRef.current.contains(e.target)) setTeacherOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Handlers
+  const toggleGrade = (gid) => {
+    setForm((prev) => {
+      const ids = prev.grade_ids.includes(gid)
+        ? prev.grade_ids.filter((x) => x !== gid)
+        : [...prev.grade_ids, gid];
+      return { ...prev, grade_ids: ids, section_ids: [], subject_ids: [], all_sections: false };
+    });
+  };
+
+  const toggleSection = (sid) => {
+    setForm((prev) => {
+      const ids = prev.section_ids.includes(sid)
+        ? prev.section_ids.filter((x) => x !== sid)
+        : [...prev.section_ids, sid];
+      return { ...prev, section_ids: ids, all_sections: ids.length === filteredSections.length };
+    });
+  };
+
+  const toggleSubject = (sid) => {
+    setForm((prev) => {
+      const ids = prev.subject_ids.includes(sid)
+        ? prev.subject_ids.filter((x) => x !== sid)
+        : [...prev.subject_ids, sid];
+      return { ...prev, subject_ids: ids };
+    });
+  };
+
+  const selectAllSubjects = () => {
+    const allIds = uniqueSubjects.map((s) => s.id);
+    setForm((prev) => ({
+      ...prev,
+      subject_ids: prev.subject_ids.length === allIds.length ? [] : allIds,
+    }));
+  };
+
+  // Build preview data
+  const previewItems = [];
+  const gradeMap = Object.fromEntries(academicData.grades.map((g) => [g.id, g.nombre]));
+  const sectionMap = Object.fromEntries(academicData.sections.map((s) => [s.id, s]));
+  const subjectMap = Object.fromEntries(academicData.subjects.map((s) => [s.id, s]));
+
+  for (const gid of form.grade_ids) {
+    for (const sid of form.section_ids) {
+      const sec = sectionMap[sid];
+      if (!sec || sec.grado_id !== gid) continue;
+      for (const subId of form.subject_ids) {
+        previewItems.push({
+          grade: gradeMap[gid] || gid,
+          section: sec.nombre || sid,
+          subject: subjectMap[subId]?.name || subId,
+        });
+      }
+    }
+  }
+
+  const selectedTeacher = academicData.teachers.find((t) => t.id === form.teacher_id);
+  const teacherLabel = selectedTeacher
+    ? `${selectedTeacher.name} ${selectedTeacher.last_name || ""}`.trim()
+    : "";
+
+  const canPreview =
+    form.teacher_id &&
+    form.level_id &&
+    form.grade_ids.length > 0 &&
+    form.section_ids.length > 0 &&
+    form.subject_ids.length > 0 &&
+    form.academic_year_id;
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const selectedYear = academicData.academicYears?.find((y) => y.id === form.academic_year_id);
+      const res = await axios.post(
+        `${API}/academic/assignments/bulk`,
+        {
+          teacher_id: form.teacher_id,
+          level_id: form.level_id,
+          grade_ids: form.grade_ids,
+          section_ids: form.section_ids,
+          subject_ids: form.subject_ids,
+          academic_year_id: form.academic_year_id,
+          school_year: selectedYear?.year || new Date().getFullYear(),
+          role: form.role,
+        },
+        { headers }
+      );
+      const { created, skipped } = res.data;
+      const parts = [];
+      if (created > 0) parts.push(`${created} asignacion${created !== 1 ? "es" : ""} creada${created !== 1 ? "s" : ""}`);
+      if (skipped > 0) parts.push(`${skipped} ya existia${skipped !== 1 ? "n" : ""}`);
+      alert(parts.join(", ") || "Operacion completada");
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al crear asignaciones masivas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[200] overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-4 py-8">
+        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl" data-testid="bulk-assignment-modal">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-violet-500 to-fuchsia-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-white" />
+              <div className="text-white">
+                <h2 className="text-xl font-bold">Asignacion Masiva</h2>
+                <p className="text-sm text-white/80">
+                  {step === 1 ? "Selecciona profesor, grados, secciones y asignaturas" : `${previewItems.length} asignaciones por crear`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+              data-testid="bulk-modal-close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-6 max-h-[70vh] overflow-y-auto">
+            {error && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="space-y-5">
+                {/* Teacher */}
+                <div ref={teacherRef} className="relative">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Profesor</label>
+                  <div
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl cursor-pointer flex items-center justify-between hover:border-violet-300 transition-colors"
+                    onClick={() => setTeacherOpen(!teacherOpen)}
+                    data-testid="bulk-teacher-select"
+                  >
+                    <span className={teacherLabel ? "text-gray-900" : "text-gray-400"}>
+                      {teacherLabel || "Seleccionar profesor..."}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${teacherOpen ? "rotate-180" : ""}`} />
+                  </div>
+                  {teacherOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={teacherSearch}
+                            onChange={(e) => setTeacherSearch(e.target.value)}
+                            placeholder="Buscar profesor..."
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                            autoFocus
+                            data-testid="bulk-teacher-search"
+                          />
+                        </div>
+                      </div>
+                      {academicData.teachers
+                        .filter((t) => {
+                          const fullName = `${t.name} ${t.last_name || ""}`.toLowerCase();
+                          return fullName.includes(teacherSearch.toLowerCase());
+                        })
+                        .map((t) => (
+                          <button
+                            key={t.id}
+                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-violet-50 flex items-center gap-2 ${
+                              form.teacher_id === t.id ? "bg-violet-50 text-violet-700 font-medium" : "text-gray-700"
+                            }`}
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, teacher_id: t.id }));
+                              setTeacherOpen(false);
+                            }}
+                          >
+                            <User className="w-4 h-4 flex-shrink-0" />
+                            {t.name} {t.last_name || ""}
+                            {form.teacher_id === t.id && <Check className="w-4 h-4 ml-auto text-violet-500" />}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Level */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nivel</label>
+                  <select
+                    value={form.level_id}
+                    onChange={(e) => setForm((prev) => ({ ...prev, level_id: e.target.value, grade_ids: [], section_ids: [], subject_ids: [], all_sections: false }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    data-testid="bulk-level-select"
+                  >
+                    <option value="">Seleccionar nivel...</option>
+                    {academicData.levels.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Grades (multi-select checkboxes) */}
+                {filteredGrades.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Grados <span className="text-gray-400 font-normal">({form.grade_ids.length} seleccionados)</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-3" data-testid="bulk-grades-list">
+                      {filteredGrades.map((g) => (
+                        <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-violet-50 rounded-lg px-2 py-1.5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={form.grade_ids.includes(g.id)}
+                            onChange={() => toggleGrade(g.id)}
+                            className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                          />
+                          <span className="text-gray-700">{g.nombre}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sections (multi-select, depends on grades) */}
+                {filteredSections.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Secciones <span className="text-gray-400 font-normal">({form.section_ids.length} seleccionadas)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({
+                          ...prev,
+                          all_sections: !prev.all_sections,
+                          section_ids: !prev.all_sections ? filteredSections.map((s) => s.id) : [],
+                        }))}
+                        className="text-xs text-violet-600 hover:text-violet-800 font-medium"
+                        data-testid="bulk-sections-toggle-all"
+                      >
+                        {form.all_sections ? "Deseleccionar todas" : "Seleccionar todas"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-3" data-testid="bulk-sections-list">
+                      {filteredSections.map((s) => {
+                        const gradeName = gradeMap[s.grado_id] || "";
+                        return (
+                          <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-violet-50 rounded-lg px-2 py-1.5 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={form.section_ids.includes(s.id)}
+                              onChange={() => toggleSection(s.id)}
+                              className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                            />
+                            <span className="text-gray-700">{gradeName} - {s.nombre}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subjects (multi-select) */}
+                {uniqueSubjects.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-semibold text-gray-700">
+                        Asignaturas <span className="text-gray-400 font-normal">({form.subject_ids.length} seleccionadas)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={selectAllSubjects}
+                        className="text-xs text-violet-600 hover:text-violet-800 font-medium"
+                        data-testid="bulk-subjects-toggle-all"
+                      >
+                        {form.subject_ids.length === uniqueSubjects.length ? "Deseleccionar todas" : "Seleccionar todas"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3" data-testid="bulk-subjects-list">
+                      {uniqueSubjects.map((s) => (
+                        <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-violet-50 rounded-lg px-2 py-1.5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={form.subject_ids.includes(s.id)}
+                            onChange={() => toggleSubject(s.id)}
+                            className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                          />
+                          <span className="flex items-center gap-1.5 text-gray-700">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.color || "#3B82F6" }} />
+                            {s.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Role + Year row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rol</label>
+                    <select
+                      value={form.role}
+                      onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      data-testid="bulk-role-select"
+                    >
+                      <option value="titular">Titular</option>
+                      <option value="auxiliar">Auxiliar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ano Academico</label>
+                    <select
+                      value={form.academic_year_id}
+                      onChange={(e) => setForm((prev) => ({ ...prev, academic_year_id: e.target.value }))}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      data-testid="bulk-year-select"
+                    >
+                      <option value="">Seleccionar...</option>
+                      {sortedYears.map((y) => (
+                        <option key={y.id} value={y.id}>
+                          {y.year} {y.status === "activo" ? "(Activo)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Preview */}
+            {step === 2 && (
+              <div>
+                <div className="mb-4 p-4 rounded-xl bg-violet-50 border border-violet-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-violet-600" />
+                    <span className="font-semibold text-violet-900">Profesor: {teacherLabel}</span>
+                  </div>
+                  <p className="text-sm text-violet-700">
+                    Se crearan <strong>{previewItems.length}</strong> asignacion{previewItems.length !== 1 ? "es" : ""} como <strong>{form.role}</strong>
+                  </p>
+                </div>
+                <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl" data-testid="bulk-preview-list">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="text-left px-4 py-2 text-gray-600 font-medium">#</th>
+                        <th className="text-left px-4 py-2 text-gray-600 font-medium">Grado</th>
+                        <th className="text-left px-4 py-2 text-gray-600 font-medium">Seccion</th>
+                        <th className="text-left px-4 py-2 text-gray-600 font-medium">Asignatura</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewItems.map((item, i) => (
+                        <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                          <td className="px-4 py-1.5 text-gray-400">{i + 1}</td>
+                          <td className="px-4 py-1.5 text-gray-800">{item.grade}</td>
+                          <td className="px-4 py-1.5 text-gray-800">{item.section}</td>
+                          <td className="px-4 py-1.5 text-gray-800">{item.subject}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between rounded-b-2xl">
+            {step === 2 && (
+              <button
+                onClick={() => setStep(1)}
+                className="px-4 py-2.5 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                data-testid="bulk-back-btn"
+              >
+                Volver
+              </button>
+            )}
+            {step === 1 && <div />}
+
+            {step === 1 ? (
+              <button
+                disabled={!canPreview}
+                onClick={() => setStep(2)}
+                className={`px-6 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                  canPreview
+                    ? "bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
+                data-testid="bulk-preview-btn"
+              >
+                <ChevronRight className="w-4 h-4" />
+                Ver Preview ({previewItems.length})
+              </button>
+            ) : (
+              <button
+                disabled={loading || previewItems.length === 0}
+                onClick={handleSubmit}
+                className="px-6 py-2.5 rounded-xl font-medium bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50"
+                data-testid="bulk-confirm-btn"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {loading ? "Creando..." : `Confirmar ${previewItems.length} Asignaciones`}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function TeacherAssignmentsPage({ user, onLogout }) {
@@ -905,6 +1416,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   
@@ -1063,14 +1575,24 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                 </p>
               </div>
               
-              <button
-                onClick={() => { setEditingAssignment(null); setShowModal(true); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-medium"
-                data-testid="new-assignment-btn"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">Nueva Asignación</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowBulkModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white rounded-xl hover:from-violet-600 hover:to-fuchsia-700 transition-all shadow-lg shadow-violet-500/25 font-medium"
+                  data-testid="bulk-assignment-btn"
+                >
+                  <Users className="w-5 h-5" />
+                  <span className="hidden sm:inline">Asignacion Masiva</span>
+                </button>
+                <button
+                  onClick={() => { setEditingAssignment(null); setShowModal(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-medium"
+                  data-testid="new-assignment-btn"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="hidden sm:inline">Nueva Asignacion</span>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -1165,6 +1687,14 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         onSuccess={fetchData}
         academicData={academicData}
         existingAssignments={assignments}
+      />
+      
+      <BulkAssignmentModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        token={token}
+        onSuccess={fetchData}
+        academicData={academicData}
       />
       
       <ConfirmModal 
