@@ -21,7 +21,7 @@ import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
-  BookOpen, Users, Edit3, ChevronRight, Clock, 
+  BookOpen, Users, Edit3, ChevronRight, ChevronLeft, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Trophy, Download, Upload, 
   Calendar, Bell, Mail, Phone, MoreVertical, Plus,
@@ -340,6 +340,32 @@ function TeacherCourseHeroHeader({ subject, teacherName, onBack }) {
 // TEACHER COLORFUL TABS COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unreadReminders = 0 }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => { el.removeEventListener("scroll", checkScroll); window.removeEventListener("resize", checkScroll); };
+  }, [checkScroll]);
+
+  const scroll = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 160, behavior: "smooth" });
+  };
+
   const colorfulTabs = [
     { id: "tablero", label: "TABLERO", icon: LayoutDashboard, gradient: "from-slate-800 to-slate-700", borderColor: "border-cyan-400", iconBg: "bg-slate-700" },
     { id: "tareas", label: "TAREAS", icon: FileText, gradient: "from-blue-600 to-blue-500", borderColor: "border-blue-300", iconBg: "bg-blue-500" },
@@ -354,9 +380,30 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
 
   return (
     <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-3 sm:p-6 relative overflow-hidden">
-      {/* Fade indicator for scrollable tabs on mobile */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 sm:hidden rounded-r-2xl" />
-      <div className="overflow-x-auto hide-scrollbar">
+      {/* Left arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll(-1)}
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-white transition-all sm:hidden"
+          data-testid="tabs-scroll-left"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+      {/* Right arrow */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll(1)}
+          className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-white transition-all sm:hidden"
+          data-testid="tabs-scroll-right"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+      {/* Fade edges */}
+      {canScrollLeft && <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden rounded-l-2xl" />}
+      {canScrollRight && <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden rounded-r-2xl" />}
+      <div ref={scrollRef} className="overflow-x-auto hide-scrollbar">
         <div className="flex items-center gap-4 sm:gap-8 sm:justify-between w-max sm:w-full">
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
