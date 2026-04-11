@@ -127,7 +127,7 @@ function PremiumGradeCard({ grade, subjectCount, theme, onClick }) {
     <button
       onClick={onClick}
       data-testid={`grade-card-${grade.id}`}
-      className={`group relative overflow-hidden rounded-3xl p-8 text-left w-full
+      className={`group relative overflow-hidden rounded-3xl p-5 sm:p-8 text-left w-full
         ${theme.cardBg} border-2 ${theme.cardBorder}
         shadow-lg ${theme.cardHover} hover:shadow-2xl
         hover:-translate-y-2 transition-all duration-300 ease-out
@@ -1181,25 +1181,25 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
           <div className="max-w-7xl mx-auto">
             
             {/* Page Header - Vibrant */}
-            <div className="mb-10">
-              <div className="flex items-center gap-5 mb-2">
+            <div className="mb-6 sm:mb-10">
+              <div className="flex items-center gap-3 sm:gap-5 mb-2 min-w-0">
                 {(selectedGrade) && (
                   <button 
                     onClick={handleBackToLevels}
                     data-testid="back-to-levels"
-                    className="p-3 bg-white hover:bg-gray-50 rounded-xl shadow-lg border border-gray-100 hover:scale-105 transition-all"
+                    className="p-2.5 sm:p-3 bg-white hover:bg-gray-50 rounded-xl shadow-lg border border-gray-100 hover:scale-105 transition-all flex-shrink-0"
                   >
-                    <ArrowRight className="w-5 h-5 text-gray-500 rotate-180" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 rotate-180" />
                   </button>
                 )}
-                <div className={`w-16 h-16 bg-gradient-to-br ${selectedGrade ? currentTheme.gradient : 'from-blue-500 via-indigo-500 to-purple-500'} rounded-2xl flex items-center justify-center shadow-xl`}>
-                  <BookOpen className="w-8 h-8 text-white" />
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${selectedGrade ? currentTheme.gradient : 'from-blue-500 via-indigo-500 to-purple-500'} rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xl flex-shrink-0`}>
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-3xl lg:text-4xl font-black text-gray-800 tracking-tight">
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-gray-800 tracking-tight">
                     Asignaturas
                   </h1>
-                  <p className="text-gray-500 font-medium text-lg">
+                  <p className="text-gray-500 font-medium text-sm sm:text-lg truncate">
                     {selectedSection 
                       ? `${selectedLevel?.nombre} — ${selectedGrade?.nombre} — Sección ${selectedSection?.nombre}`
                       : selectedGrade
@@ -1227,7 +1227,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
               ) : (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   {/* Tab List - Premium Vibrant Style */}
-                  <TabsList className="w-full max-w-3xl mx-auto mb-10 p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 h-auto flex gap-2" data-testid="level-tabs">
+                  <TabsList className="w-full max-w-3xl mx-auto mb-6 sm:mb-10 p-1.5 sm:p-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 h-auto flex gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar" data-testid="level-tabs">
                     {levels.map((level) => {
                       const theme = getLevelTheme(level.nombre);
                       const Icon = theme.icon;
@@ -1240,13 +1240,13 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                           key={level.id}
                           value={level.id}
                           data-testid={`tab-${level.nombre.toLowerCase().replace(/\s+/g, '-')}`}
-                          className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold transition-all duration-300
+                          className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all duration-300
                             ${isActive ? theme.tabActive : theme.tabInactive}`}
                           style={isActive ? { color: '#ffffff' } : {}}
                         >
-                          <Icon className="w-6 h-6" color={isActive ? '#ffffff' : undefined} />
-                          <span className="text-base">{level.nombre}</span>
-                          <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${isActive ? 'bg-white/30' : 'bg-gray-100 text-gray-500'}`}>
+                          <Icon className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" color={isActive ? '#ffffff' : undefined} />
+                          <span className="text-xs sm:text-base truncate">{level.nombre}</span>
+                          <span className={`px-1.5 sm:px-2.5 py-0.5 text-xs font-bold rounded-full flex-shrink-0 ${isActive ? 'bg-white/30' : 'bg-gray-100 text-gray-500'}`}>
                             {totalSubjects}
                           </span>
                         </TabsTrigger>
@@ -1293,20 +1293,20 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
               // ════════════════════════════════════════════════════════════════
               <div>
                 {/* Grade Header */}
-                <div className={`${currentTheme.cardBg} rounded-3xl border-2 ${currentTheme.cardBorder} p-8 mb-8 shadow-xl relative overflow-hidden`}>
+                <div className={`${currentTheme.cardBg} rounded-3xl border-2 ${currentTheme.cardBorder} p-4 sm:p-8 mb-6 sm:mb-8 shadow-xl relative overflow-hidden`}>
                   <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${currentTheme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
-                  <div className="relative flex items-center gap-6">
-                    <div className={`w-20 h-20 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center shadow-xl`}>
-                      <GraduationCap className="w-10 h-10 text-white" />
+                  <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                    <div className={`w-14 h-14 sm:w-20 sm:h-20 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center shadow-xl flex-shrink-0`}>
+                      <GraduationCap className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <p className={`text-lg ${currentTheme.accent} font-bold mb-1`}>{selectedLevel.nombre}</p>
-                      <h2 className="text-4xl font-black text-gray-800">{selectedGrade.nombre}</h2>
-                      <p className="text-base text-gray-500 mt-1">Selecciona una sección para gestionar sus asignaturas</p>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm sm:text-lg ${currentTheme.accent} font-bold mb-1`}>{selectedLevel.nombre}</p>
+                      <h2 className="text-2xl sm:text-4xl font-black text-gray-800 truncate">{selectedGrade.nombre}</h2>
+                      <p className="text-sm sm:text-base text-gray-500 mt-1">Selecciona una seccion para gestionar sus asignaturas</p>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-5xl font-black ${currentTheme.accent}`}>{gradeSections.length}</p>
-                      <p className="text-base text-gray-500 font-semibold">sección{gradeSections.length !== 1 ? "es" : ""}</p>
+                    <div className="text-left sm:text-right flex-shrink-0">
+                      <p className={`text-3xl sm:text-5xl font-black ${currentTheme.accent}`}>{gradeSections.length}</p>
+                      <p className="text-sm sm:text-base text-gray-500 font-semibold">seccion{gradeSections.length !== 1 ? "es" : ""}</p>
                     </div>
                   </div>
                 </div>
@@ -1320,7 +1320,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                     <p className="text-gray-500 mb-4 max-w-md mx-auto text-lg">Este grado no tiene secciones configuradas. Crea secciones en Ajustes Académicos.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
                     {gradeSections.map(section => {
                       const sCount = subjectCountBySection[section.id] || 0;
                       return (
@@ -1328,7 +1328,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                           key={section.id}
                           onClick={() => handleSelectSection(section)}
                           data-testid={`section-card-${section.id}`}
-                          className={`group relative overflow-hidden rounded-3xl p-8 text-left w-full
+                          className={`group relative overflow-hidden rounded-3xl p-5 sm:p-8 text-left w-full
                             ${currentTheme.cardBg} border-2 ${currentTheme.cardBorder}
                             shadow-lg ${currentTheme.cardHover} hover:shadow-2xl
                             hover:-translate-y-2 transition-all duration-300 ease-out`}

@@ -67,6 +67,17 @@ See /app/memory/test_credentials.md
   - Preview shows exact count and table of combinations before submitting
 - **Testing**: 100% (9/9 backend, 100% frontend - iteration_131)
 
+
+### Phase 8 - Mobile Responsiveness Fix: Subjects & CourseDetail (DONE - 2026-04-11)
+- **SubjectsPage.jsx**: Level tabs scrollable on mobile with `overflow-x-auto hide-scrollbar`, responsive padding/sizing for header, grade/section cards with `sm:` breakpoints, section header stack layout on mobile
+- **CourseDetailPage.jsx**: 
+  - TeacherColorfulTabs (9 tabs): Fixed from rigid `flex justify-between` to `overflow-x-auto hide-scrollbar` with `flex-shrink-0` per tab and a fade indicator on mobile. **Eliminated page-level horizontal scroll.**
+  - CourseHeroHeader & TeacherCourseHeroHeader: Responsive padding (`p-4 sm:p-8`), scaled icons/title, `min-w-0` + `break-words`
+  - PremiumTabs: Smaller padding/icons on mobile, fade indicator, `flex-shrink-0`
+  - Sticky tabs wrapper: Adjusted margins for mobile
+- **Verified**: 360px, 375px, 414px, 1920px — zero horizontal overflow at all widths
+- **Testing**: Screenshots confirmed `scrollWidth === clientWidth` at 360px for both pages
+
 ## Prioritized Backlog
 ### P1
 - Dashboard Owner con metricas reales

@@ -180,29 +180,29 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
       <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-white/5 rounded-full" />
       
       {/* Content */}
-      <div className="relative z-10 p-8 lg:p-10">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+      <div className="relative z-10 p-4 sm:p-8 lg:p-10">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4 sm:gap-6">
           {/* Back button, Icon and Title */}
-          <div className="flex items-center gap-5 flex-1">
+          <div className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0">
             {/* Back button */}
             <button
               onClick={onBack}
-              className="w-12 h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 shadow-lg"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 shadow-lg flex-shrink-0"
               data-testid="back-to-subjects-btn"
               title="Volver a asignaturas"
             >
-              <ArrowLeft className="w-6 h-6 text-white" />
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
             
             {/* Subject icon in header */}
-            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
-              <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+            <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border border-white/30 flex-shrink-0">
+              <BookOpen className="w-7 h-7 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-black text-white mb-2 tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-white mb-1 sm:mb-2 tracking-tight break-words">
                 {subject?.name || "Asignatura"}
               </h1>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {level && (
                   <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-sm font-medium rounded-full border border-white/30">
                     {level}
@@ -247,8 +247,9 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
 // ══════════════════════════════════════════════════════════════════════════════
 function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-3">
-      <div className="flex items-center justify-start overflow-x-auto hide-scrollbar gap-2">
+    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-2 sm:p-3 relative">
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/90 to-transparent z-10 sm:hidden rounded-r-2xl" />
+      <div className="flex items-center justify-start overflow-x-auto hide-scrollbar gap-1.5 sm:gap-2">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -258,7 +259,7 @@ function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-300 min-w-[100px] ${
+              className={`relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-4 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-300 min-w-[68px] sm:min-w-[100px] flex-shrink-0 ${
                 isActive
                   ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200/50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
@@ -266,7 +267,7 @@ function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
               data-testid={`tab-${tab.id}`}
             >
               <div className="relative">
-                <Icon className={`w-7 h-7 ${isActive ? "text-white" : "text-gray-400"}`} strokeWidth={1.5} />
+                <Icon className={`w-5 h-5 sm:w-7 sm:h-7 ${isActive ? "text-white" : "text-gray-400"}`} strokeWidth={1.5} />
                 {showBadge && (
                   <span className={`absolute -top-2 -right-2 min-w-[20px] h-5 px-1 ${isActive ? "bg-white text-indigo-600" : "bg-red-500 text-white"} text-[10px] font-bold rounded-full flex items-center justify-center shadow-md`}>
                     {unreadMessages > 99 ? "99+" : unreadMessages}
@@ -298,26 +299,26 @@ function TeacherCourseHeroHeader({ subject, teacherName, onBack }) {
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
       
       {/* Content */}
-      <div className="relative z-10 p-8 lg:p-10">
-        <div className="flex items-center gap-5">
+      <div className="relative z-10 p-4 sm:p-8 lg:p-10">
+        <div className="flex items-center gap-3 sm:gap-5">
           {/* Back button */}
           <button
             onClick={onBack}
-            className="w-12 h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 shadow-lg flex-shrink-0"
             data-testid="back-to-courses-btn"
             title="Volver a mis cursos"
           >
-            <ArrowLeft className="w-6 h-6 text-white" />
+            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </button>
           
           {/* Subject icon */}
-          <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
-            <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+          <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border border-white/30 flex-shrink-0">
+            <BookOpen className="w-7 h-7 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
           </div>
           
           {/* Title and Teacher */}
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-black text-white mb-1 tracking-tight">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-white mb-1 tracking-tight break-words">
               {subject?.name || "Curso"}
             </h1>
             {teacherName && (
@@ -350,8 +351,11 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
   ];
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-      <div className="flex items-center justify-between gap-8 px-4">
+    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-3 sm:p-6 relative">
+      {/* Fade indicator for scrollable tabs on mobile */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 sm:hidden rounded-r-2xl" />
+      <div className="overflow-x-auto hide-scrollbar -mx-1 px-1">
+        <div className="flex items-center gap-4 sm:gap-8 sm:justify-between sm:px-4 min-w-max sm:min-w-0">
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -365,44 +369,44 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex flex-col items-center gap-2 group flex-1"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 group flex-shrink-0 sm:flex-1"
               data-testid={`tab-${tab.id}`}
             >
               {/* Colorful circular icon */}
               <div 
-                className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 transform ${
+                className={`relative w-11 h-11 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 transform ${
                   isActive 
-                    ? `bg-gradient-to-br ${tab.gradient} shadow-xl scale-110 border-4 ${tab.borderColor}` 
+                    ? `bg-gradient-to-br ${tab.gradient} shadow-xl scale-110 border-[3px] sm:border-4 ${tab.borderColor}` 
                     : `bg-gradient-to-br ${tab.gradient} shadow-md hover:scale-105 border-2 border-transparent`
                 }`}
                 style={{
                   boxShadow: isActive ? `0 8px 25px -5px rgba(0,0,0,0.3)` : `0 4px 15px -3px rgba(0,0,0,0.2)`
                 }}
               >
-                <Icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+                <Icon className="w-5 h-5 sm:w-7 sm:h-7 text-white" strokeWidth={1.5} />
                 
                 {/* Badge for messages */}
                 {showMessageBadge && (
-                  <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] sm:min-w-[22px] h-[18px] sm:h-[22px] px-1 bg-red-500 text-white text-[9px] sm:text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                     {unreadMessages > 99 ? "99+" : unreadMessages}
                   </span>
                 )}
                 
                 {/* Badge for reminders */}
                 {showReminderBadge && (
-                  <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] sm:min-w-[22px] h-[18px] sm:h-[22px] px-1 bg-red-500 text-white text-[9px] sm:text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                     {unreadReminders > 99 ? "99+" : unreadReminders}
                   </span>
                 )}
                 
                 {/* Badge indicator for tasks */}
                 {showTaskBadge && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-400 rounded-full border-2 border-white shadow-md" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-blue-400 rounded-full border-2 border-white shadow-md" />
                 )}
               </div>
               
               {/* Label */}
-              <span className={`text-[10px] font-bold tracking-wider transition-colors ${
+              <span className={`text-[8px] sm:text-[10px] font-bold tracking-wider transition-colors whitespace-nowrap ${
                 isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-700"
               }`}>
                 {tab.label}
@@ -410,6 +414,7 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -10927,7 +10932,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           })()}
           
           {/* Tabs - Colorful tabs for all roles */}
-          <div className={`${activeTab === "tablero" ? "mt-6" : "mt-0"} sticky top-[72px] z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50`}>
+          <div className={`${activeTab === "tablero" ? "mt-4 sm:mt-6" : "mt-0"} sticky top-[72px] z-30 -mx-3 sm:-mx-6 lg:-mx-8 px-3 sm:px-6 lg:px-8 py-2 sm:py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50`}>
             <TeacherColorfulTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} unreadReminders={unreadReminders} />
           </div>
           
