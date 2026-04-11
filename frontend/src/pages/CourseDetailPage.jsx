@@ -247,9 +247,10 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
 // ══════════════════════════════════════════════════════════════════════════════
 function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-2 sm:p-3 relative">
+    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-2 sm:p-3 relative overflow-hidden">
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/90 to-transparent z-10 sm:hidden rounded-r-2xl" />
-      <div className="flex items-center justify-start overflow-x-auto hide-scrollbar gap-1.5 sm:gap-2">
+      <div className="overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-max sm:w-full">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -278,6 +279,7 @@ function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -351,11 +353,11 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
   ];
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-3 sm:p-6 relative">
+    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-3 sm:p-6 relative overflow-hidden">
       {/* Fade indicator for scrollable tabs on mobile */}
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 sm:hidden rounded-r-2xl" />
-      <div className="overflow-x-auto hide-scrollbar -mx-1 px-1">
-        <div className="flex items-center gap-4 sm:gap-8 sm:justify-between sm:px-4 min-w-max sm:min-w-0">
+      <div className="overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-4 sm:gap-8 sm:justify-between w-max sm:w-full">
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
