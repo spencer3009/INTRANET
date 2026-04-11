@@ -359,6 +359,21 @@ export default function NotificationBell({ token, userRole }) {
     }
   }, [token, isParent, loadAttendanceNotifs]);
 
+  // FCM foreground listener for owner/admin roles — refreshes general notifications
+  useEffect(() => {
+    if (!token || isParent) return;
+    const unsubscribe = onForegroundMessage((payload) => {
+      const notif = payload.notification || {};
+      toast(notif.title || "Nueva notificacion", {
+        description: notif.body,
+        duration: 5000,
+        icon: <Bell className="w-4 h-4 text-violet-500" />,
+      });
+      loadNotifications();
+    });
+    return unsubscribe;
+  }, [token, isParent, loadNotifications]);
+
   useEffect(() => {
     loadNotifications();
     const interval = setInterval(loadNotifications, 60000);

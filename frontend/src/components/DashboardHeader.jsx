@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, User, ChevronDown, LogOut, GraduationCap, Headset, ArrowLeft } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import { useOwnerNotifications } from "../hooks/useOwnerNotifications";
 
 function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
   const getInitials = (name) => {
@@ -50,6 +51,9 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
   const userRole = getRoleDisplay(user?.role, user?.is_owner, user?.is_super_admin);
   const userEmail = user?.email || "";
   const isSupportSession = user?.is_support_session || user?.original_role === "system_admin_global";
+
+  // Register FCM device token for owner/admin/director roles
+  useOwnerNotifications(token, user?.role);
 
   useEffect(() => {
     const handleKey = (e) => { if (e.key === "Escape") setProfileMenuOpen(false); };
@@ -139,7 +143,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
 
         <div className="flex items-center gap-2 sm:gap-3">
           {extraActions}
-          <NotificationBell token={token} />
+          <NotificationBell token={token} userRole={user?.role} />
           <div className="relative" ref={profileMenuRef}>
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" data-testid="header-profile-button">
               <div className="hidden sm:block text-right">

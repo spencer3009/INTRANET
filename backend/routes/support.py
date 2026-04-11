@@ -1865,18 +1865,19 @@ async def test_push_notification(school_id: str, user=Depends(require_support_ad
     owner_email = owner.get("email", "")
     now = datetime.now(timezone.utc).isoformat()
 
-    # Create notification in DB
+    # Create notification in the `notifications` collection (which the owner bell reads)
     notification_doc = {
         "id": str(uuid.uuid4()),
-        "user_id": owner_id,
         "school_id": school_id,
+        "subject_id": None,
+        "notification_type": "announcement",
         "title": "Prueba de notificacion",
         "message": "Notificacion de prueba enviada desde el Support Panel de EduNet.",
-        "type": "test_push",
-        "read": False,
+        "link_destino": None,
+        "read_by": [],
         "created_at": now,
     }
-    await db.parent_notifications.insert_one(notification_doc)
+    await db.notifications.insert_one(notification_doc)
 
     # Get active device tokens for the owner
     devices = await db.device_tokens.find(

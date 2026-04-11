@@ -1,33 +1,36 @@
 <analysis>**original_problem_statement**: 
-Rediseño visual premium del Módulo Coordinador. 
-PRODUCT REQUIREMENTS: 
-1. Aplicar un diseño moderno estilo Linear/Notion a todas las vistas del Coordinador. 
-2. Implementar y estabilizar la descarga masiva de códigos QR para profesores y alumnos, resolviendo errores críticos de memoria (Error 520) que botan el servidor en producción. 
-3. Crear el rol de  y dotarlo de un portal exclusivo para escaneo de asistencia y visualización de reportes/gráficos.
-4. **NUEVO REQUERIMIENTO (En progreso)**: Implementar Boleta de Venta Interna en el módulo de Contabilidad -> Ingresos. Generación de PDF on-demand (sin almacenar en disco o DB) usando ReportLab y . Incluye configuración de emisor, generación automática al registrar ingresos y opciones de anulación/reimpresión.
+1. Implementar Boleta de Venta Interna en el módulo de Contabilidad -> Ingresos (PDF on-demand con ReportLab sin almacenar). 
+2. Crear endpoint  para poblar el módulo de contabilidad con data realista en entornos demo.
+3. Bases de Firebase Cloud Messaging (FCM): Implementar infraestructura para enviar Push Notifications, registrar  y testear mediante el Support Panel.
+4. **NUEVO REQUERIMIENTO (BUG EN PROGRESO)**: El portal del colegio no pide permisos de notificaciones al loguearse con rol de Owner/Admin. Se requiere crear un hook  y arreglar la lectura de la campanita para que el owner reciba las notificaciones testeadas.
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
 
 **what currently exists?**: 
-Aplicación full-stack (FastAPI + React + MongoDB). Se completó todo el rediseño premium. Se resolvió la caída del servidor (OOM Kill / 520) en descargas masivas de QR implementando descarga asíncrona secuencial y helper . Se creó con éxito el rol , su portal de escaneo, dashboard con gráficos estadísticos (Recharts) y se integró el acceso al marcado manual de asistencias. Se corrigió un bug crítico en la lógica de facturación de colegios (Support Dashboard). 
+Aplicación full-stack (FastAPI + React + MongoDB). Se completó la Boleta de Venta Interna (on-demand usando ReportLab y ), incluyendo un  para previsualizar antes de descargar/imprimir. Se integró el endpoint administrativo de  para el demo. Se instaló y configuró la base de Firebase (FCM) con la API HTTP v1 en , endpoints de registro de dispositivos y envío de pushes de prueba desde el panel de soporte, los cuales fallan de forma grata (soft-fail) si el entorno no tiene las credenciales configuradas.
 
 **Last working item**:
-    - Last item agent was working: Análisis de requerimientos y recolección de contexto para implementar la Boleta de Venta Interna en el módulo de Contabilidad. El agente revisó  y  y analizó el diseño del PDF proporcionado, pero aún no escribió código.
-    - Status: NOT STARTED
+    - Last item agent was working: Diagnóstico y auditoría del Bug reportado: El portal del colegio no pide permisos de notificaciones al loguearse para el owner. El agente rastreó que  tiene lógica para pedir permisos pero requiere la prop , la cual NO está siendo pasada desde el layout principal (), haciendo que FCM no pida permisos ni registre el dispositivo del Owner.
+    - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use?: backend testing agent / frontend testing agent
+    - Which testing method agent to use?: frontend testing agent / screenshot tool
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  - No hay bugs pendientes de la sesión anterior. Todos los bugs reportados (z-index de modales, z-index en dropdown de horarios, y error de cálculo de pricing) fueron resueltos y verificados.
+  - Issue 1: El portal del colegio no pide permisos de notificaciones al loguearse para roles Owner/Admin.
+     - Attempted fixes: Auditoría inicial completada exitosamente (con grep). Se detectó la falta de integración del requestPermission para el perfil owner.
+     - Next debug checklist: 
+       1. Implementar hook  que invoque  y llame al POST  con plataforma 'web'. 
+       2. Integrar este hook en el layout del Owner/Admin (ej. donde se monta la campana).
+       3. Verificar que el endpoint de test de push guarda el registro en la colección que efectivamente lee el owner ( vs ) para asegurar que aparezca en la UI.
+     - Why fix this issue and what will be achieved with the fix?: Para permitir que el owner conceda permisos del navegador, registre su token en  y pueda validar las notificaciones end-to-end con el panel de pruebas FCM.
+     - Status: IN PROGRESS
+     - Is recurring issue?: N
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on other issue: Ninguno
 
 **In progress Task List**:
-  Task 1: (P0) Implementar Módulo de Boleta de Venta Interna (Contabilidad)
-     - Where to resume: Iniciar la implementación basada en el spec final. Crear modelos de DB (, ), endpoints en backend ( o nuevo archivo ), el servicio de generación de PDF con ReportLab () y las interfaces en Frontend (, actualización de modales de ingresos). Instalar  en backend.
-     - What will be achieved with this?: Los colegios podrán configurar los datos de su institución y generar comprobantes PDF de forma automática (on-demand) al registrar ingresos, mejorando su gestión administrativa.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: Ninguno
+  No hay tareas sueltas, todo recae en el Issue 1 listado arriba.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -41,128 +44,121 @@ Aplicación full-stack (FastAPI + React + MongoDB). Se completó todo el redise�
     - P2: Refactorización crítica:  (> 11,000 líneas).
 
 **Completed work in this session**
-- Fix z-index global de Modales/Popups de  a  (DONE).
-- Integración de  en la descarga masiva QR de alumnos (DONE).
-- Reubicación del botón Descargar QR junto a Agregar Estudiante (DONE).
-- Dashboard de : Gráficos de pie y barras usando  con datos reales obtenidos del endpoint  (DONE).
-- Integración de rutas de marcado manual y reportes al portal de  (DONE).
-- Corrección de visibilidad del logo en  cambiando de  a  (DONE).
-- Creación de endpoint y botón en UI para optimización de QR individual (solo visible para soporte) en tarjetas de estudiantes (DONE).
-- Corrección de lógica de cálculo de precios en  y  (Modo Base + Por alumno reemplaza base si se supera el umbral, no la suma) (DONE).
-- Fix de z-index () en overlay del dropdown de asignaturas en  (DONE).
+- Implementación completa de Boletas de Venta Interna (backend endpoints, PDF en memoria, schemas MongoDB). (DONE)
+- Generador ReportLab con ajustes visuales de anchos (colWidths unificados) y logo proveniente directo de . (DONE)
+- Reemplazo de auto-descarga de PDF por  en el frontend al registrar pagos. (DONE)
+- Creado  para data fake realista, con fix para solo resetear status a alumnos enrolled. (DONE)
+- Opción masiva e individual Cambiar a Activo / Matriculados a Activo visible solo desde Soporte en . (DONE)
+- Bases de Firebase (FCM) integradas:  con API HTTP v1. (DONE)
+- Endpoints  y . (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-  - Ninguno.
+  Ninguno.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Colisiones de z-index y stacking contexts con modales y el DashboardHeader. 
+  - Issue recurrence in previous fork: Colisiones de z-index
   - Recurrence count: 2
-  - Status: RESOLVED (Mitigado cambiando el z-index a 200, aunque una solución con React Portal quedó como recomendación futura).
+  - Status: RESOLVED
 
 **Code Architecture**
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── accounting.py         # Módulo de contabilidad a modificar/extender
-│   │   ├── attendance.py         # Endpoints de asistencia y QR (actualizado)
-│   │   └── support.py            # Lógica de pricing y billing (actualizado)
+│   │   ├── boletas.py            # Generación on-demand
+│   │   ├── seed_accounting.py    # Endpoint demo accounting
+│   │   ├── notifications.py      # Endpoints para register-device y alertas parent
+│   │   └── support.py            # Endpoints admin
+│   ├── services/
+│   │   ├── boleta_pdf_generator.py # ReportLab engine
+│   │   └── fcm_service.py        # Firebase HTTP v1 service
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/aux-asistencia/ # Portal del auxiliar (Dashboard con charts)
-│   │   ├── pages/AccountingPage.jsx
-│   │   ├── components/SupportPricingPage.jsx
-│   │   └── App.js                # Rutas actualizadas
+│   │   ├── components/contabilidad/
+│   │   │   └── BoletaPreviewModal.jsx
+│   │   ├── hooks/
+│   │   │   ├── useParentNotifications.js
+│   │   │   └── (Por crear) useOwnerNotifications.js
+│   │   └── lib/firebase.js       # Inicialización SDK frontend
 
 **Key Technical Concepts**
-- FastAPI backend, React frontend, MongoDB.
-- Recharts para visualización de datos estadísticos.
-- ReportLab para generación de PDFs (requisito de nueva tarea).
+FastAPI, React, MongoDB Atlas, ReportLab (PDF), num2words, Firebase Admin SDK (HTTP v1 para Pushes), Service Workers ().
 
 **key DB schema**
-  - : Registros de asistencia de alumnos y profesores.
-  - Nuevas colecciones requeridas (AÚN NO CREADAS): , .
+  - : { school_id, razon_social, ruc, ... }
+  - : Snapshot of the invoice data.
+  - : { user_id, school_id, fcm_token, platform, active, ... }
 
 **changes in tech stack**
-  - Se requerirá agregar  a  del backend para la tarea de Boletas.
+  - Instaladas dependencias en : , , , .
 
 **All files of reference** 
+  -  (Nuevo)
   -  (Editado)
   -  (Editado)
   -  (Editado)
-  -  (Editado intensivamente)
-  -  (Editado)
-  -  (Editado)
-  -  (Editado)
-  -  (Próximo archivo principal a modificar)
-  -  (Próximo archivo principal a modificar)
+  -  (Importante para auditoría/fix en curso)
+  -  (Importante para implementar hook owner)
 
 **Areas that need refactoring**: 
   -  (> 11,000 líneas).
-  - Implementar React Portal para los modales globales de la aplicación para evitar problemas de stacking context con TailwindCSS.
+  - React Portal para modales globales.
 
 **key api endpoints**
   - 
   - 
-  - (Por crear) Endpoints de boletas en  o 
+  - 
+  - 
 
 **Critical Info for New Agent** 
-- El usuario ha proporcionado un **SPEC FINAL EXTENSO** en su último mensaje para implementar la generación de Boletas de Venta Interna. Lee detenidamente este spec en el historial. 
-- La regla principal de la nueva boleta es: **NO almacenar el PDF**. Debe generarse on-demand con ReportLab en memoria (usando ) y descargarse directamente al navegador.
-- El backend requiere instalar  para traducir el total a texto en el PDF. No olvides hacer un  si instalas librerías nuevas.
+- El usuario dio un requerimiento explícito para el bug de permisos FCM: El agente DEBE crear , acoplarlo al layout principal, invocar  y llamar a . No tocar .
+- Las variables de entorno de Firebase están vacías/incompletas a propósito. El código escrito implementa soft-fails (falla grácilmente) si FCM no está configurado, para que el usuario ponga sus claves posteriormente. 
+- Debes asegurarte de que  para el Owner apunte a la colección correcta ( en vez de ) de lo contrario el test push del backend creará el doc en una colección que la campanita web del owner no lee.
 
 **documents and test reports created in this job** 
-  -  (Ejecutado al inicio de la sesión para validar P0)
-  -  (Actualizado)
+  -  (Boletas backend/frontend test)
+  -  (Boletas modal preview)
+  -  (Añadido usuario global_support )
+  -  (Actualizado con todas las features completadas)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - [User] Consulta por qué los cálculos del Pricing Dashboard no cuadran (dice S/ 64 en vez de S/ 138).
- - [Agent] Identifica que el preview del frontend usaba lógica estática/antigua y lo corrige. También actualiza las cards de escuelas.
- - [User] Reporta que en Horarios no se puede seleccionar una asignatura.
- - [Agent] Arregla bug de colisión de z-index entre dropdown y overlay en .
- - [User] (NUEVO PENDING) Pide implementar Boleta de Venta Interna enviando un prompt detallado (Spec Final para Emergent) con la lógica, modelos DB, requerimiento de usar ReportLab y num2words. Pide que el PDF se genere on-demand sin almacenamiento.
- - [Agent] Lee el archivo del PDF enviado de muestra, ejecuta comandos grep en el backend para entender la estructura de accounting y se detiene (aquí debe continuar el siguiente agente).
+ - [User] Consulta cómo probar la feature de setear estudiantes activos; pide a Ana García como prueba matriculada.
+ - [Agent] Actualiza status en DB de Ana García.
+ - [User] Pide botón de cambio de estatus masivo para soporte.
+ - [Agent] Implementa botón masivo Matriculados a Activo.
+ - [User] Pide 10 alumnos marcados como matriculados para probar el botón masivo.
+ - [Agent] Ejecuta script de mongo en DB.
+ - [User] No encuentra el botón.
+ - [Agent] Aclara la ubicación y los permisos requeridos (Support Panel).
+ - [User] Pide nuevo botón Probar Push en panel de Soporte -> Colegios (FCM End-to-end con ,  HTTP v1).
+ - [Agent] Implementa backend y frontend para Firebase Messaging y endpoints FCM con soft-fails para variables vacías.
+ - [User] (PENDING/HUMAN MESSAGE) 🐛 BUG: El portal del colegio no pide permisos de notificaciones al loguearse... empieza por la auditoría y repórtame antes de codear.
+ - [Agent] (PENDING) Ejecutó auditoría por bash y confirmó el problema, pero la sesión finalizó antes de poder compartir el reporte e iniciar la solución solicitada.
 
 **Project Health Check:**
-Ninguno roto actualmente.
+App is stable. Notification FCM tokens currently empty in DB for owners due to bug in progress.
 
 **3rd Party Integrations** 
- - Cloudinary (Manejo de imágenes. Se requerirá para la subida de logo de la boleta de configuración del colegio).
+ - Cloudinary (Manejo de imágenes).
+ - Firebase Admin SDK / Cloud Messaging (Push Notifications) — requires User Keys (Project ID, Service Account JSON, VAPID KEY).
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 126 al principio, pero no al final)
+  - Testing agent used after significant changes: YES (iteration 127 y 128)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions: Ninguna
+  - Test files created: , 
+  - Known regressions: Ninguna.
 
 **Credentials to test flow:**
-  Revisar .
+  Revisar  (Incluye ahora token global: ).
 
 **What agent forgot to execute**
-- El agente se quedó sin contexto/tiempo justo después de analizar la petición de las Boletas de Venta Interna en el módulo de Contabilidad. No se ha escrito código para este feature todavía.
+El agente analizó el origen del BUG de Push Notifications (confirmando que el  solo procesa si es parent), pero **se le agotó la sesión justo antes de presentar el reporte al usuario y escribir el hook ** como solicitó el usuario. El nuevo agente debe reanudar desde ahí.
 
 **Debugging checklist for current issue**
-    Issue: Implementación de Boletas de Venta Interna (Contabilidad)
-    Backend files to check:  (o crear ), crear 
-    Frontend files to check:  (y crear tabs y modales relacionados)
-    Dependencies: Instalar  (si no está disponible globalmente para este módulo) y  usando bash, y actualizar .
-    Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/
-Collecting num2words
-  Downloading num2words-0.5.14-py3-none-any.whl.metadata (13 kB)
-Collecting docopt>=0.6.2 (from num2words)
-  Downloading docopt-0.6.2.tar.gz (25 kB)
-  Installing build dependencies: started
-  Installing build dependencies: finished with status 'done'
-  Getting requirements to build wheel: started
-  Getting requirements to build wheel: finished with status 'done'
-  Preparing metadata (pyproject.toml): started
-  Preparing metadata (pyproject.toml): finished with status 'done'
-Downloading num2words-0.5.14-py3-none-any.whl (163 kB)
-Building wheels for collected packages: docopt
-  Building wheel for docopt (pyproject.toml): started
-  Building wheel for docopt (pyproject.toml): finished with status 'done'
-  Created wheel for docopt: filename=docopt-0.6.2-py2.py3-none-any.whl size=13782 sha256=83cf01aec2b0116a51114403099a80b9f85ccc4e5a0a31727c7819a2d8dc604f
-  Stored in directory: /root/.cache/pip/wheels/1a/b0/8c/4b75c4116c31f83c8f9f047231251e13cc74481cca4a78a9ce
-Successfully built docopt
-Installing collected packages: docopt, num2words
-
-Successfully installed docopt-0.6.2 num2words-0.5.14</analysis>
+    Issue: El portal del colegio no pide permisos de notificaciones al loguearse
+    Frontend files to check: 
+      - Crear 
+      - Modificar  (o el layout equivalente que agrupe al owner) para instanciar el nuevo hook.
+      - Revisar  para asegurar que está consultando la colección de notificaciones correcta.
+    Backend files to check:
+      - 
+      -  (Endpoint  revisarlo para confirmar a qué colección en mongoDB inyecta la test push).</analysis>
