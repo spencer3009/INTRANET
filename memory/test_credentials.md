@@ -10,7 +10,7 @@
 
 ### System Admin Global (Support)
 - Email: spencer3009@gmail.com
-- Password: SoporteTest2026!
+- Password: Socios3009
 - Role: system_admin_global
 
 ### Coordinator

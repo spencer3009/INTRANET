@@ -27,13 +27,17 @@ Platform for school management with modules for coordination, accounting, attend
 - **Backend**:
   - `services/fcm_service.py`: HTTP v1 API with google-auth OAuth2, token caching, auto-deactivation of invalid tokens
   - `POST /api/notifications/register-device`: Upserts in `device_tokens` collection, syncs with `push_tokens`
-  - `POST /api/support/schools/{school_id}/test-push`: Sends push to school owner, creates notification in DB
+  - `POST /api/support/schools/{school_id}/test-push`: Sends push to school owner, creates notification in `notifications` collection (corrected from parent_notifications)
   - Graceful degradation: if FIREBASE_PROJECT_ID is empty, logs warning and returns (0,0)
 - **Frontend**:
   - `firebase.js` updated to use env vars with fallback to hardcoded values
   - `useParentNotifications.js` registers with both legacy and new device_tokens endpoints
+  - `useOwnerNotifications.js` (NEW - 2026-04-11): Requests browser notification permissions and registers FCM device token for Owner/Admin/Director roles
+  - `DashboardHeader.jsx`: Integrates `useOwnerNotifications` hook and passes `userRole` prop to `NotificationBell`
+  - `NotificationBell.jsx`: Added FCM foreground listener for non-parent roles that refreshes general notifications
   - Support panel: "Probar Push" button on each school card with detailed feedback
 - **Collections**: `device_tokens` (user_id, school_id, fcm_token, platform, user_agent, active)
+- **Bug Fix (2026-04-11)**: Owner/Admin FCM permission request now works. Root cause: `DashboardHeader` was not passing `userRole` to `NotificationBell`, and test-push was writing to wrong collection.
 - **Status**: Code complete. Awaiting Firebase credentials in .env for end-to-end testing.
 
 ### Support Panel Additions
