@@ -205,7 +205,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           className={`overflow-hidden group relative ${readOnly ? "cursor-default" : "cursor-pointer"} ${isHighlighted ? "ring-2 ring-violet-300" : ""}`}
           style={{
             ...getPastelStyle(schedule.color),
-            minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : "56px",
+            minHeight: spanRows > 1 ? `${spanRows * 56 - 8}px` : "48px",
             borderRadius: 0,
             transition: "all 0.15s ease",
           }}
@@ -213,22 +213,22 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color, true).backgroundColor; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color).backgroundColor; e.currentTarget.style.boxShadow = "none"; }}
         >
-          <div className="h-full flex flex-col" style={{ padding: "8px 10px" }}>
-            <p className="font-semibold text-sm truncate text-slate-800">{schedule.materia}</p>
+          <div className="h-full flex flex-col" style={{ padding: "4px 6px" }}>
+            <p className="font-semibold text-xs sm:text-sm truncate text-slate-800">{schedule.materia}</p>
             {teacherFullName && (
               <div className="flex items-center gap-1.5 mt-0.5">
                 {showTeacherPhoto && teacherPhoto && (
-                  <img src={teacherPhoto} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-slate-200" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img src={teacherPhoto} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-slate-200 hidden sm:block" onError={(e) => { e.target.style.display = 'none'; }} />
                 )}
-                <p className="text-[12px] text-slate-500 truncate">{teacherFullName}</p>
+                <p className="text-[11px] sm:text-[12px] text-slate-500 truncate">{teacherFullName}</p>
               </div>
             )}
-            <div className="flex items-center gap-1.5 mt-auto">
-              <p className="text-[13px] font-medium text-slate-600">
+            <div className="flex items-center gap-1 sm:gap-1.5 mt-auto">
+              <p className="text-[11px] sm:text-[13px] font-medium text-slate-600">
                 {formatTime(schedule.hora_inicio)} - {formatTime(schedule.hora_fin)}
               </p>
               {showAulaBadge && schedule.aula && (
-                <span className="text-[10px] bg-black/10 text-slate-600 px-2 py-0.5 rounded-full">{schedule.aula}</span>
+                <span className="text-[9px] sm:text-[10px] bg-black/10 text-slate-600 px-1.5 sm:px-2 py-0.5 rounded-full hidden sm:inline">{schedule.aula}</span>
               )}
             </div>
           </div>
@@ -240,14 +240,14 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const renderBreakRow = (time, breakItem) => {
       const bc = breakConfig(breakItem.type);
       return (
-        <div key={time} className={`flex border-b ${bc.border} min-h-[64px]`} style={{ backgroundColor: bc.bg }}>
-          <div className={`w-36 flex-shrink-0 px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
-            <span className={`text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
+        <div key={time} className={`flex border-b ${bc.border} min-h-[56px] sm:min-h-[64px]`} style={{ backgroundColor: bc.bg }}>
+          <div className={`w-20 sm:w-36 flex-shrink-0 px-1 sm:px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
+            <span className={`text-[10px] sm:text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
           </div>
-          <div className={`flex-1 flex items-center justify-center gap-3 px-4 ${!readOnly ? "cursor-pointer group" : ""}`} onClick={() => { if (!readOnly) onEditBreak(breakItem); }}>
-            <span className="text-2xl">{bc.icon}</span>
-            <span className={`font-bold text-lg ${bc.text}`}>{breakItem.label}</span>
-            <span className={`text-sm ${bc.text} opacity-70`}>({breakItem.start_time} - {breakItem.end_time})</span>
+          <div className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-3 px-2 sm:px-4 ${!readOnly ? "cursor-pointer group" : ""}`} onClick={() => { if (!readOnly) onEditBreak(breakItem); }}>
+            <span className="text-lg sm:text-2xl">{bc.icon}</span>
+            <span className={`font-bold text-sm sm:text-lg ${bc.text}`}>{breakItem.label}</span>
+            <span className={`text-[10px] sm:text-sm ${bc.text} opacity-70 hidden sm:inline`}>({breakItem.start_time} - {breakItem.end_time})</span>
             {!readOnly && (
               <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2">
                 <Trash2 className="w-4 h-4 text-red-500" />
@@ -261,47 +261,55 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     return (
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
         <ContextMenuComponent />
-        <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-          <div className="w-36 flex-shrink-0 p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-5 h-5 text-slate-400" /></div>
-          {visibleDays.map(day => (
-            <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[140px]">
-              <p className="font-bold text-slate-800">{day.label}</p>
-              <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
-            </div>
-          ))}
-        </div>
-        <div>
-          {timeSlots.map((time) => {
-            const brk = getBreakForSlot(time);
-            if (brk) return renderBreakRow(time, brk);
-            if (isTimeBlocked(time)) return null;
-            return (
-              <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
-                <div className={`w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center ${!readOnly ? "cursor-pointer hover:bg-slate-100 group" : ""} transition-colors relative`}
-                  data-testid={`schedule-time-slot-${time.replace(":", "")}`}
-                  onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); } : undefined}
-                >
-                  <span className="text-xs font-medium text-slate-600 text-center leading-tight">{formatSlotRange(time)}</span>
-                  {!readOnly && (
-                    <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
-                      className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
-                      <Plus className="w-3 h-3 text-slate-500" />
-                    </button>
-                  )}
-                </div>
-                {visibleDays.map(day => {
-                  const slotSchedules = getSchedulesForSlot(day.id, time);
+        <div className="relative">
+          <div className="overflow-x-auto">
+            <div className="min-w-0">
+              <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
+                <div className="w-20 sm:w-36 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" /></div>
+                {visibleDays.map(day => (
+                  <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
+                    <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
+                  </div>
+                ))}
+              </div>
+              <div>
+                {timeSlots.map((time) => {
+                  const brk = getBreakForSlot(time);
+                  if (brk) return renderBreakRow(time, brk);
+                  if (isTimeBlocked(time)) return null;
                   return (
-                    <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
-                      className={`flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 ${!readOnly ? "hover:bg-blue-50/30 cursor-pointer" : ""} transition-colors p-1`}
-                      onClick={!readOnly ? () => onCellClick(day.id, time) : undefined}>
-                      {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
+                    <div key={time} className="flex border-b border-slate-100 min-h-[56px] sm:min-h-[64px]">
+                      <div className={`w-20 sm:w-36 flex-shrink-0 px-1 sm:px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center ${!readOnly ? "cursor-pointer hover:bg-slate-100 group" : ""} transition-colors relative`}
+                        data-testid={`schedule-time-slot-${time.replace(":", "")}`}
+                        onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); } : undefined}
+                      >
+                        <span className="text-[10px] sm:text-xs font-medium text-slate-600 text-center leading-tight">{formatSlotRange(time)}</span>
+                        {!readOnly && (
+                          <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
+                            className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
+                            <Plus className="w-3 h-3 text-slate-500" />
+                          </button>
+                        )}
+                      </div>
+                      {visibleDays.map(day => {
+                        const slotSchedules = getSchedulesForSlot(day.id, time);
+                        return (
+                          <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
+                            className={`flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-100 ${!readOnly ? "hover:bg-blue-50/30 cursor-pointer" : ""} transition-colors p-0.5 sm:p-1`}
+                            onClick={!readOnly ? () => onCellClick(day.id, time) : undefined}>
+                            {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
+            </div>
+          </div>
+          {/* Scroll shadow indicator */}
+          <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
     );
@@ -427,24 +435,27 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
       <ContextMenuComponent />
-      <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-        <div className="w-20 flex-shrink-0 p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-5 h-5 text-slate-400" /></div>
-        {visibleDays.map(day => (
-          <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[140px]">
-            <p className="font-bold text-slate-800">{day.label}</p>
-            <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex relative">
-        {/* Break overlays — full width across all columns */}
-        {breaks?.filter(b => {
-          const s = timeToMinutes(b.start_time);
-          const e = timeToMinutes(b.end_time);
-          return e > gridStart && s < gridEnd;
-        }).map(b => renderBreakOverlay(b))}
+      <div className="relative">
+        <div className="overflow-x-auto">
+          <div className="min-w-0">
+            <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
+              <div className="w-16 sm:w-20 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" /></div>
+              {visibleDays.map(day => (
+                <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
+                  <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex relative">
+              {/* Break overlays — full width across all columns */}
+              {breaks?.filter(b => {
+                const s = timeToMinutes(b.start_time);
+                const e = timeToMinutes(b.end_time);
+                return e > gridStart && s < gridEnd;
+              }).map(b => renderBreakOverlay(b))}
 
-        <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
+              <div className="w-16 sm:w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
           {guideLines.map((gl, idx) => (
             <div key={gl.time} className={`absolute w-full flex items-start justify-center ${!readOnly ? "cursor-pointer group" : ""}`}
               style={{ top: `${gl.topPx}px`, height: idx < guideLines.length - 1 ? `${guideLines[idx + 1].topPx - gl.topPx}px` : "auto" }}
@@ -462,7 +473,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
         </div>
         {visibleDays.map(day => (
           <div key={day.id} data-testid={`schedule-day-column-${day.id}`}
-            className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-200 relative"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-200 relative"
             style={{ height: `${totalHeightPx}px` }}
             onClick={!readOnly ? (e) => handleDayClick(e, day.id) : undefined}>
             {guideLines.map(gl => (
@@ -471,6 +482,11 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             {layoutByDay[day.id]?.map(item => renderBlock(item))}
           </div>
         ))}
+            </div>
+          </div>
+        </div>
+        {/* Scroll shadow indicator */}
+        <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
       </div>
     </div>
   );

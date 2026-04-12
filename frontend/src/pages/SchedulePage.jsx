@@ -436,8 +436,8 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
                   <ArrowLeft className="w-5 h-5 text-slate-600" />
                 </button>
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-slate-800" data-testid="schedule-page-title">{displayTitle}</h1>
-                  {displaySubtitle && <p className="text-slate-500 flex items-center gap-2">{apiEndpoint && <GraduationCap className="w-4 h-4" />}{displaySubtitle}</p>}
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 truncate" data-testid="schedule-page-title">{displayTitle}</h1>
+                  {displaySubtitle && <p className="text-sm sm:text-base text-slate-500 flex items-center gap-2 truncate">{apiEndpoint && <GraduationCap className="w-4 h-4 flex-shrink-0" />}{displaySubtitle}</p>}
                 </div>
               </div>
               {!readOnly && (
