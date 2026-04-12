@@ -1,36 +1,41 @@
-<analysis>**original_problem_statement**: 
-1. Implementar Boleta de Venta Interna en el módulo de Contabilidad -> Ingresos (PDF on-demand con ReportLab sin almacenar). 
-2. Crear endpoint  para poblar el módulo de contabilidad con data realista en entornos demo.
-3. Bases de Firebase Cloud Messaging (FCM): Implementar infraestructura para enviar Push Notifications, registrar  y testear mediante el Support Panel.
-4. **NUEVO REQUERIMIENTO (BUG EN PROGRESO)**: El portal del colegio no pide permisos de notificaciones al loguearse con rol de Owner/Admin. Se requiere crear un hook  y arreglar la lectura de la campanita para que el owner reciba las notificaciones testeadas.
+<analysis><handoff summary>
+**original_problem_statement**: 
+**Actual / Ongoing:** Replicar el componente de Horario del Portal Propietario en todos los demás portales (Admin, Director, Coordinador, Docente, Alumno, Apoderado, Auxiliar PAE) reutilizando el componente fuente (ej. ), sin crear nuevos endpoints ni componentes duplicados, manejando accesos mediante props (, , ).
+
+**Histórico (Completado en esta sesión):**
+1. Fix de permisos FCM para Owner/Admin.
+2. Fix de instalabilidad PWA (conflictos de Service Worker).
+3. Asignación Masiva de docentes a asignaturas.
+4. Arreglos agresivos de responsividad mobile en  y  (overflows horizontales).
+5. Flujo de Duplicar Horario (por sección, día, año) con verificación de conflictos.
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
 
 **what currently exists?**: 
-Aplicación full-stack (FastAPI + React + MongoDB). Se completó la Boleta de Venta Interna (on-demand usando ReportLab y ), incluyendo un  para previsualizar antes de descargar/imprimir. Se integró el endpoint administrativo de  para el demo. Se instaló y configuró la base de Firebase (FCM) con la API HTTP v1 en , endpoints de registro de dispositivos y envío de pushes de prueba desde el panel de soporte, los cuales fallan de forma grata (soft-fail) si el entorno no tiene las credenciales configuradas.
+Aplicación full-stack (FastAPI + React + MongoDB). La app tiene PWA funcional con Firebase Cloud Messaging integrado en un solo Service Worker principal. Los módulos de Asignaturas y Horarios fueron ampliados con acciones masivas (asignación y duplicación respectivamente) probadas y funcionales. El agente actual se encuentra en el Paso 1 de un refactor mayor para unificar la vista de Horarios en todos los portales basándose en .
 
 **Last working item**:
-    - Last item agent was working: Diagnóstico y auditoría del Bug reportado: El portal del colegio no pide permisos de notificaciones al loguearse para el owner. El agente rastreó que  tiene lógica para pedir permisos pero requiere la prop , la cual NO está siendo pasada desde el layout principal (), haciendo que FCM no pida permisos ni registre el dispositivo del Owner.
+    - Last item agent was working: Análisis comparativo de los archivos ,  y . El usuario solicitó **ÚNICAMENTE un reporte detallado** listando qué features exclusivas tiene cada uno antes de proceder a modificar código para unificarlos.
     - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use?: frontend testing agent / screenshot tool
+    - Agent Testing Done: N/A
+    - Which testing method agent to use?: N/A (Actualmente en fase de reporte/análisis)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  - Issue 1: El portal del colegio no pide permisos de notificaciones al loguearse para roles Owner/Admin.
-     - Attempted fixes: Auditoría inicial completada exitosamente (con grep). Se detectó la falta de integración del requestPermission para el perfil owner.
+  - Issue 1: Unificar componente de Horario en todos los portales (Paso 1: Análisis).
+     - Attempted fixes: Se leyeron los archivos implicados (, , , ) mediante comandos  y .
      - Next debug checklist: 
-       1. Implementar hook  que invoque  y llame al POST  con plataforma 'web'. 
-       2. Integrar este hook en el layout del Owner/Admin (ej. donde se monta la campana).
-       3. Verificar que el endpoint de test de push guarda el registro en la colección que efectivamente lee el owner ( vs ) para asegurar que aparezca en la UI.
-     - Why fix this issue and what will be achieved with the fix?: Para permitir que el owner conceda permisos del navegador, registre su token en  y pueda validar las notificaciones end-to-end con el panel de pruebas FCM.
+       1. Redactar y enviar la respuesta al usuario con la comparación exacta de funcionalidades que solo existen en la vista de Alumno, solo en Apoderado, y solo en Owner/Admin (ej. resaltado de clase actual, formato de hora, links a material, etc.).
+       2. **ESPERAR APROBACIÓN** del usuario antes de tocar código.
+       3. Tras la aprobación, proceder con el Paso 2 y 3 del prompt del usuario (refactorizar props , ,  en el componente y montar en las rutas).
+     - Why fix this issue and what will be achieved with the fix?: Evitar la duplicación de código de UI de horarios entre 7 roles distintos, garantizando que una mejora visual beneficie a toda la plataforma al instante.
      - Status: IN PROGRESS
      - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on other issue: Ninguno
+     - Should Test frontend/backend/both after fix?: frontend (al implementar)
+     - Blocked on other issue: Ninguno.
 
 **In progress Task List**:
-  No hay tareas sueltas, todo recae en el Issue 1 listado arriba.
+  Las tareas en progreso están englobadas en el Issue 1.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -44,121 +49,106 @@ Aplicación full-stack (FastAPI + React + MongoDB). Se completó la Boleta de Ve
     - P2: Refactorización crítica:  (> 11,000 líneas).
 
 **Completed work in this session**
-- Implementación completa de Boletas de Venta Interna (backend endpoints, PDF en memoria, schemas MongoDB). (DONE)
-- Generador ReportLab con ajustes visuales de anchos (colWidths unificados) y logo proveniente directo de . (DONE)
-- Reemplazo de auto-descarga de PDF por  en el frontend al registrar pagos. (DONE)
-- Creado  para data fake realista, con fix para solo resetear status a alumnos enrolled. (DONE)
-- Opción masiva e individual Cambiar a Activo / Matriculados a Activo visible solo desde Soporte en . (DONE)
-- Bases de Firebase (FCM) integradas:  con API HTTP v1. (DONE)
-- Endpoints  y . (DONE)
+- Fix de bug FCM: Creado hook  e integrado en layout, arreglado bug de hoisting en useEffect. (DONE)
+- Fix PWA Installability: Fusionado  dentro de  usando  para resolver conflicto de scope . (DONE)
+- Asignación Masiva: Nuevo endpoint  y modal frontend. (DONE)
+- Fix Mobile Responsiveness: Removido overflow horizontal en  y . Tabs con flechas interactivas en mobile, Hero Cards rediseñadas para ser compactas. (DONE)
+- Duplicación de Horarios: Nuevo endpoint  con modos por sección, día y año; soporte de  y revisión del setting . (DONE)
 
 **Earlier issues found/mentioned but not fixed**
   Ninguno.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Colisiones de z-index
-  - Recurrence count: 2
+  - Issue recurrence in previous fork: Ninguno relevante activo.
+  - Recurrence count: 0
   - Status: RESOLVED
 
 **Code Architecture**
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── boletas.py            # Generación on-demand
-│   │   ├── seed_accounting.py    # Endpoint demo accounting
-│   │   ├── notifications.py      # Endpoints para register-device y alertas parent
-│   │   └── support.py            # Endpoints admin
-│   ├── services/
-│   │   ├── boleta_pdf_generator.py # ReportLab engine
-│   │   └── fcm_service.py        # Firebase HTTP v1 service
+│   │   ├── academic.py         # Endpoints bulk assignments
+│   │   ├── schedule.py         # Endpoint schedules duplicate & settings
+│   │   ├── notifications.py    # FCM
 ├── frontend/
+│   ├── public/
+│   │   ├── service-worker.js          # SW PWA unificado (Firebase FCM fusionado)
+│   │   └── firebase-messaging-sw.js   # Script legacy (auto-unregister)
 │   ├── src/
-│   │   ├── components/contabilidad/
-│   │   │   └── BoletaPreviewModal.jsx
-│   │   ├── hooks/
-│   │   │   ├── useParentNotifications.js
-│   │   │   └── (Por crear) useOwnerNotifications.js
-│   │   └── lib/firebase.js       # Inicialización SDK frontend
+│   │   ├── components/schedule/
+│   │   │   ├── CalendarGrid.jsx       # Componente a reutilizar para vista unificada
+│   │   │   └── DuplicateScheduleModal.jsx
+│   │   ├── pages/
+│   │   │   ├── SchedulePage.jsx
+│   │   │   ├── StudentSchedulePage.jsx
+│   │   │   ├── ParentSchedulePage.jsx
+│   │   │   └── CourseDetailPage.jsx   # Hero headers ajustados, Tabs móviles.
+│   │   └── lib/firebase.js
 
 **Key Technical Concepts**
-FastAPI, React, MongoDB Atlas, ReportLab (PDF), num2words, Firebase Admin SDK (HTTP v1 para Pushes), Service Workers ().
+FastAPI, React, MongoDB Atlas, PWA (Service Workers, manifest), Firebase Cloud Messaging (HTTP v1, importScripts compat).
 
 **key DB schema**
-  - : { school_id, razon_social, ruc, ... }
-  - : Snapshot of the invoice data.
-  - : { user_id, school_id, fcm_token, platform, active, ... }
+  - : Combinación de teacher, subject, level, grade, section.
+  - : Bloques de horarios.
+  - : { ,  }
 
 **changes in tech stack**
-  - Instaladas dependencias en : , , , .
+  - Ninguno.
 
 **All files of reference** 
-  -  (Nuevo)
-  -  (Editado)
-  -  (Editado)
-  -  (Editado)
-  -  (Importante para auditoría/fix en curso)
-  -  (Importante para implementar hook owner)
+  -  (Modificado extensamente para FCM)
+  -  (Modificado - Bulk assignments)
+  -  (Modificado)
+  -  (Modificado responsividad)
+  -  (Modificado - Duplicate schedules)
+  -  (Referencia actual para el refactor pendiente)
+  -  (Analizado)
+  -  (Analizado)
+  -  (Analizado)
 
 **Areas that need refactoring**: 
-  -  (> 11,000 líneas).
-  - React Portal para modales globales.
+  -  (> 11,000 líneas). Requiere fragmentación modular imperativa a futuro.
 
 **key api endpoints**
   - 
   - 
   - 
-  - 
 
 **Critical Info for New Agent** 
-- El usuario dio un requerimiento explícito para el bug de permisos FCM: El agente DEBE crear , acoplarlo al layout principal, invocar  y llamar a . No tocar .
-- Las variables de entorno de Firebase están vacías/incompletas a propósito. El código escrito implementa soft-fails (falla grácilmente) si FCM no está configurado, para que el usuario ponga sus claves posteriormente. 
-- Debes asegurarte de que  para el Owner apunte a la colección correcta ( en vez de ) de lo contrario el test push del backend creará el doc en una colección que la campanita web del owner no lee.
+- **⚠️ DETÉN CUALQUIER IMPLEMENTACIÓN DE CÓDIGO:** El usuario instruyó *explícitamente* que **antes** de tocar código para unificar los horarios, debes responder a su pregunta en formato de texto: *Comparando SchedulePage.jsx, StudentSchedulePage.jsx y ParentSchedulePage.jsx, ¿qué funcionalidades tienen Student/Parent que NO existen en SchedulePage?*
+- El agente anterior ya ejecutó los comandos  para leer el contenido de esos 3 archivos. Solo necesitas analizar esos últimos logs, preparar la lista de features exclusivas para cada vista, usar el tool normal de respuesta (o ask_human) y enviárselo al usuario.
+- **NO modifiques  ni el ruteo** hasta que el usuario te dé luz verde para pasar al Paso 2 y 3 del prompt.
 
 **documents and test reports created in this job** 
-  -  (Boletas backend/frontend test)
-  -  (Boletas modal preview)
-  -  (Añadido usuario global_support )
-  -  (Actualizado con todas las features completadas)
+  -  al  (Testeados PWA, FCM, Asignación Masiva, Duplicar Horario)
+  -  (Actualizado con features)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - [User] Consulta cómo probar la feature de setear estudiantes activos; pide a Ana García como prueba matriculada.
- - [Agent] Actualiza status en DB de Ana García.
- - [User] Pide botón de cambio de estatus masivo para soporte.
- - [Agent] Implementa botón masivo Matriculados a Activo.
- - [User] Pide 10 alumnos marcados como matriculados para probar el botón masivo.
- - [Agent] Ejecuta script de mongo en DB.
- - [User] No encuentra el botón.
- - [Agent] Aclara la ubicación y los permisos requeridos (Support Panel).
- - [User] Pide nuevo botón Probar Push en panel de Soporte -> Colegios (FCM End-to-end con ,  HTTP v1).
- - [Agent] Implementa backend y frontend para Firebase Messaging y endpoints FCM con soft-fails para variables vacías.
- - [User] (PENDING/HUMAN MESSAGE) 🐛 BUG: El portal del colegio no pide permisos de notificaciones al loguearse... empieza por la auditoría y repórtame antes de codear.
- - [Agent] (PENDING) Ejecutó auditoría por bash y confirmó el problema, pero la sesión finalizó antes de poder compartir el reporte e iniciar la solución solicitada.
+ - [User] Reporta problemas de UI en módulo asignaturas y detalles del curso.
+ - [Agent] Corrige headers, paddings y overflow de tabs.
+ - [User] Muestra bugs visuales extra con las tabs en mobile.
+ - [Agent] Corrige añadiendo overflow-hidden a las cards y flechas de navegación a los tabs.
+ - [User] Pide optimizar el hero header en mobile para que sea compacto.
+ - [Agent] Separa hero headers mobile y desktop; prueba visualmente OK.
+ - [User] Solicita flujo de Duplicar Horarios en el módulo de Owner.
+ - [Agent] Crea endpoint con control de conflictos y setting multi_horario, interfaz modal y prueba funcional completa con agente tester.
+ - [User] (PENDING HUMAN MESSAGE) Pide replicar el horario en los 7 portales. Instruye enfáticamente NO TOCAR CÓDIGO AÚN y que el Paso 1 es **reportarle** las diferencias estructurales / de features entre ,  y .
 
 **Project Health Check:**
-App is stable. Notification FCM tokens currently empty in DB for owners due to bug in progress.
+El proyecto compila bien, los tests E2E y subagentes validaron la app sin regresiones y sin issues de lint (0 warnings).
 
 **3rd Party Integrations** 
- - Cloudinary (Manejo de imágenes).
- - Firebase Admin SDK / Cloud Messaging (Push Notifications) — requires User Keys (Project ID, Service Account JSON, VAPID KEY).
+ - Firebase Cloud Messaging (PWA Service Worker + Admin SDK backend).
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 127 y 128)
+  - Testing agent used after significant changes: YES (iterations 129-132)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , 
   - Known regressions: Ninguna.
 
 **Credentials to test flow:**
-  Revisar  (Incluye ahora token global: ).
+  Revisar  (Usar credenciales owner, parent y student para las verificaciones posteriores del refactor de horarios).
 
 **What agent forgot to execute**
-El agente analizó el origen del BUG de Push Notifications (confirmando que el  solo procesa si es parent), pero **se le agotó la sesión justo antes de presentar el reporte al usuario y escribir el hook ** como solicitó el usuario. El nuevo agente debe reanudar desde ahí.
-
-**Debugging checklist for current issue**
-    Issue: El portal del colegio no pide permisos de notificaciones al loguearse
-    Frontend files to check: 
-      - Crear 
-      - Modificar  (o el layout equivalente que agrupe al owner) para instanciar el nuevo hook.
-      - Revisar  para asegurar que está consultando la colección de notificaciones correcta.
-    Backend files to check:
-      - 
-      -  (Endpoint  revisarlo para confirmar a qué colección en mongoDB inyecta la test push).</analysis>
+El agente extrajo con  el código fuente de los horarios de Student, Parent y Owner, pero finalizó sesión justo antes de procesar el texto y escribir el reporte al usuario. **Tu primera acción debe ser enviar el reporte solicitado al usuario.**
+</handoff summary></analysis>
