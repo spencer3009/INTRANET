@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Clock, Plus, Pencil, Trash2, Users, GraduationCap } from "lucide-react";
 import { ALL_DAYS, getVisibleDays } from "./constants";
 
@@ -21,6 +21,18 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const viewMode = settings?.view_mode || "horizontal";
   const [contextMenu, setContextMenu] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
+  const headerScrollRef = useRef(null);
+  const bodyScrollRef = useRef(null);
+
+  // Sync header and body horizontal scroll
+  useEffect(() => {
+    const body = bodyScrollRef.current;
+    const header = headerScrollRef.current;
+    if (!body || !header) return;
+    const onBodyScroll = () => { header.scrollLeft = body.scrollLeft; };
+    body.addEventListener("scroll", onBodyScroll, { passive: true });
+    return () => body.removeEventListener("scroll", onBodyScroll);
+  }, []);
 
   const gridStart = useMemo(() => timeToMinutes(settings?.start_hour || "07:00"), [settings]);
   const gridEnd = useMemo(() => timeToMinutes(settings?.end_hour || "18:00"), [settings]);
@@ -237,79 +249,96 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
       );
     };
 
-    const renderBreakRow = (time, breakItem) => {
-      const bc = breakConfig(breakItem.type);
-      return (
-        <div key={time} className={`flex border-b ${bc.border} min-h-[56px] sm:min-h-[64px]`} style={{ backgroundColor: bc.bg }}>
-          <div className={`w-20 sm:w-36 flex-shrink-0 px-1 sm:px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
-            <span className={`text-[10px] sm:text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
-          </div>
-          <div className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-3 px-2 sm:px-4 ${!readOnly ? "cursor-pointer group" : ""}`} onClick={() => { if (!readOnly) onEditBreak(breakItem); }}>
-            <span className="text-lg sm:text-2xl">{bc.icon}</span>
-            <span className={`font-bold text-sm sm:text-lg ${bc.text}`}>{breakItem.label}</span>
-            <span className={`text-[10px] sm:text-sm ${bc.text} opacity-70 hidden sm:inline`}>({breakItem.start_time} - {breakItem.end_time})</span>
-            {!readOnly && (
-              <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2">
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    };
 
     return (
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
         <ContextMenuComponent />
-        <div className="relative">
-          <div className="overflow-x-auto">
-            <div className="min-w-0">
-              <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-                <div className="w-20 sm:w-36 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" /></div>
-                {visibleDays.map(day => (
-                  <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
-                    <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
-                    <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
-                  </div>
-                ))}
-              </div>
-              <div>
-                {timeSlots.map((time) => {
-                  const brk = getBreakForSlot(time);
-                  if (brk) return renderBreakRow(time, brk);
-                  if (isTimeBlocked(time)) return null;
-                  return (
-                    <div key={time} className="flex border-b border-slate-100 min-h-[56px] sm:min-h-[64px]">
-                      <div className={`w-20 sm:w-36 flex-shrink-0 px-1 sm:px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center ${!readOnly ? "cursor-pointer hover:bg-slate-100 group" : ""} transition-colors relative`}
-                        data-testid={`schedule-time-slot-${time.replace(":", "")}`}
-                        onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); } : undefined}
-                      >
-                        <span className="text-[10px] sm:text-xs font-medium text-slate-600 text-center leading-tight">{formatSlotRange(time)}</span>
-                        {!readOnly && (
-                          <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
-                            className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
-                            <Plus className="w-3 h-3 text-slate-500" />
-                          </button>
-                        )}
-                      </div>
-                      {visibleDays.map(day => {
-                        const slotSchedules = getSchedulesForSlot(day.id, time);
-                        return (
-                          <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
-                            className={`flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-100 ${!readOnly ? "hover:bg-blue-50/30 cursor-pointer" : ""} transition-colors p-0.5 sm:p-1`}
-                            onClick={!readOnly ? () => onCellClick(day.id, time) : undefined}>
-                            {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        {/* Header row */}
+        <div className="flex border-b border-slate-200 bg-slate-50">
+          <div className="w-20 sm:w-36 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
           </div>
-          {/* Scroll shadow indicator */}
-          <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
+          <div className="flex-1 flex overflow-x-auto hide-scrollbar" ref={headerScrollRef} data-testid="schedule-header-scroll">
+            {visibleDays.map(day => (
+              <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
+                <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Body rows: fixed time column + scrollable day columns */}
+        <div className="flex">
+          {/* Time column — OUTSIDE scroll container, never overlapped */}
+          <div className="w-20 sm:w-36 flex-shrink-0 border-r border-slate-200 bg-white shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+            {timeSlots.map((time) => {
+              const brk = getBreakForSlot(time);
+              if (brk) {
+                const bc = breakConfig(brk.type);
+                return (
+                  <div key={time} className={`min-h-[56px] sm:min-h-[64px] px-1 sm:px-2 py-2 border-b ${bc.border} flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
+                    <span className={`text-[10px] sm:text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
+                  </div>
+                );
+              }
+              if (isTimeBlocked(time)) return null;
+              return (
+                <div key={time}
+                  className={`min-h-[56px] sm:min-h-[64px] px-1 sm:px-2 py-2 border-b border-slate-100 flex items-center justify-center ${!readOnly ? "cursor-pointer hover:bg-slate-50 group" : ""} transition-colors relative`}
+                  data-testid={`schedule-time-slot-${time.replace(":", "")}`}
+                  onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); } : undefined}
+                >
+                  <span className="text-[10px] sm:text-xs font-medium text-slate-600 text-center leading-tight">{formatSlotRange(time)}</span>
+                  {!readOnly && (
+                    <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
+                      className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
+                      <Plus className="w-3 h-3 text-slate-500" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Day columns — scrollable */}
+          <div className="flex-1 overflow-x-auto relative" ref={bodyScrollRef} data-testid="schedule-body-scroll">
+            {timeSlots.map((time) => {
+              const brk = getBreakForSlot(time);
+              if (brk) {
+                const bc = breakConfig(brk.type);
+                return (
+                  <div key={time} className={`flex border-b ${bc.border} min-h-[56px] sm:min-h-[64px]`} style={{ backgroundColor: bc.bg }}>
+                    <div className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-3 px-2 sm:px-4 ${!readOnly ? "cursor-pointer group" : ""}`} onClick={() => { if (!readOnly) onEditBreak(brk); }}>
+                      <span className="text-lg sm:text-2xl">{bc.icon}</span>
+                      <span className={`font-bold text-sm sm:text-lg ${bc.text}`}>{brk.label}</span>
+                      <span className={`text-[10px] sm:text-sm ${bc.text} opacity-70 hidden sm:inline`}>({brk.start_time} - {brk.end_time})</span>
+                      {!readOnly && (
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(brk); }} className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              if (isTimeBlocked(time)) return null;
+              return (
+                <div key={time} className="flex border-b border-slate-100 min-h-[56px] sm:min-h-[64px]">
+                  {visibleDays.map(day => {
+                    const slotSchedules = getSchedulesForSlot(day.id, time);
+                    return (
+                      <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
+                        className={`flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-100 ${!readOnly ? "hover:bg-blue-50/30 cursor-pointer" : ""} transition-colors p-0.5 sm:p-1`}
+                        onClick={!readOnly ? () => onCellClick(day.id, time) : undefined}>
+                        {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+            {/* Scroll shadow indicator */}
+            <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
+          </div>
         </div>
       </div>
     );
