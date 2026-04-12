@@ -1349,6 +1349,18 @@ function App() {
             element={<Navigate to="../horarios" replace />}
           />
           <Route
+            path="/:subdomain/admin/horarios"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={false} showFilters={true} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/:subdomain/admin/live-classes"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -1739,6 +1751,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/:subdomain/teacher/horarios"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={true} showFilters={true} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Psychology Portal - Route based */}
           <Route
@@ -1831,6 +1851,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/:subdomain/pae/horarios"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={true} showFilters={true} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Auxiliar de Asistencia Portal - Route based (subdomain) */}
           <Route
@@ -1862,6 +1890,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AttendancePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/aux-asistencia/horarios"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={true} showFilters={true} />
               </ProtectedRoute>
             }
           />
@@ -1992,6 +2028,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <CoordinacionPerfilPage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/coordinacion/horarios"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={true} showFilters={true} />
               </ProtectedRoute>
             }
           />

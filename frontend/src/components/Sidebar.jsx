@@ -54,6 +54,7 @@ const auxAsistenciaNavItems = [
   { id: "aux-manual-profes", label: "Manual Profesores", icon: Users, route: "/aux-asistencia/asistencias?tab=teachers" },
   { id: "aux-reportes-alumnos", label: "Reportes Estudiantes", icon: FileText, route: "/aux-asistencia/asistencias?tab=reports" },
   { id: "aux-reportes-profes", label: "Reportes Profesores", icon: ClipboardList, route: "/aux-asistencia/asistencias?tab=reports-teachers" },
+  { id: "horarios", label: "Horarios", icon: Clock, route: "/aux-asistencia/horarios" },
 ];
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {

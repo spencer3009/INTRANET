@@ -1015,21 +1015,43 @@ async def get_parent_student_schedule(
     
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
+    seccion_id = student.get("seccion_id")
+    grado_id = student.get("grado_id")
     
-    if not student.get("seccion_id"):
-        return {"schedule": [], "settings": None}
+    # Get grade and section names
+    grade_name = None
+    section_name = None
+    if grado_id:
+        grado = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if grado:
+            grade_name = grado.get("nombre")
+    if seccion_id:
+        seccion = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if seccion:
+            section_name = seccion.get("nombre")
+    
+    if not seccion_id:
+        return {"schedules": [], "breaks": [], "settings": None, "grade_name": grade_name, "section_name": section_name}
     
     # Get schedule settings
     settings = await db.schedule_settings.find_one({"school_id": school_id}, {"_id": 0})
     
+    # Get breaks for this grade/section
+    breaks_query = {"school_id": school_id}
+    if grado_id:
+        breaks_query["grade_id"] = grado_id
+    if seccion_id:
+        breaks_query["section_id"] = seccion_id
+    breaks = await db.schedule_breaks.find(breaks_query, {"_id": 0}).to_list(50)
+    
     # Get schedule entries for this section
-    schedule = await db.schedules.find({
+    schedules = await db.schedules.find({
         "school_id": school_id,
-        "seccion_id": student["seccion_id"]
+        "seccion_id": seccion_id
     }, {"_id": 0}).to_list(100)
     
     # Enrich with subject and teacher info
-    for entry in schedule:
+    for entry in schedules:
         if entry.get("subject_id"):
             subject = await db.subjects.find_one({"id": entry["subject_id"]}, {"_id": 0, "name": 1, "color": 1})
             if subject:
@@ -1041,7 +1063,7 @@ async def get_parent_student_schedule(
             if teacher:
                 entry["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
     
-    return {"schedule": schedule, "settings": settings}
+    return {"schedules": schedules, "breaks": breaks, "settings": settings, "grade_name": grade_name, "section_name": section_name}
 
 @router.get("/parent/exam-schedule")
 async def get_parent_student_exam_schedule(

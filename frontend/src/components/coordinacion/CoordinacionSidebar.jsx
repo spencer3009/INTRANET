@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   Home, Users, AlertTriangle, ClipboardList, Calendar,
-  Menu, MessageSquare, ArrowRightLeft, BarChart3, Presentation
+  Menu, MessageSquare, ArrowRightLeft, BarChart3, Presentation, Clock
 } from "lucide-react";
 import { coordinacionApi } from "../../api/coordinacion";
 
@@ -16,6 +16,7 @@ const navItems = [
   { id: "derivaciones", label: "Derivaciones", icon: ArrowRightLeft, route: "/coordinacion/derivaciones" },
   { id: "agenda", label: "Agenda", icon: Calendar, route: "/coordinacion/agenda" },
   { id: "reportes", label: "Reportes", icon: BarChart3, route: "/coordinacion/reportes" },
+  { id: "horarios", label: "Horarios", icon: Clock, route: "/coordinacion/horarios" },
 ];
 
 export default function CoordinacionSidebar({ active, onNavigate, expanded, onToggle, schoolName, subdomain, token }) {

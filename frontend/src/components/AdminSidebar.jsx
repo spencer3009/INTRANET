@@ -58,6 +58,7 @@ const NAV_SECTIONS = [
       { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/tasks" },
       { id: "examenes", label: "Exámenes Online", icon: FileEdit, route: "/admin/exams" },
       { id: "examenes-programados", label: "Exámenes Programados", icon: Calendar, route: "/admin/exam-schedule" },
+      { id: "horarios", label: "Horarios", icon: Clock, route: "/admin/horarios" },
       { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video, route: "/admin/live-classes" },
       { id: "salud-bienestar", label: "Salud y Bienestar", icon: HeartPulse, route: "/admin/salud-bienestar" },
     ]

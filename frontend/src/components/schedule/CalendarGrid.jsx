@@ -16,7 +16,7 @@ function minutesToTime(mins) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections, breaks, onAddBreak, onEditBreak, onDeleteBreak }) {
+export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections, breaks, onAddBreak, onEditBreak, onDeleteBreak, readOnly = false, showTeacherPhoto = true, showAulaBadge = true }) {
   const visibleDays = getVisibleDays(settings);
   const viewMode = settings?.view_mode || "horizontal";
   const [contextMenu, setContextMenu] = useState(null);
@@ -116,23 +116,26 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const teacher = teachers?.find(t => t.id === schedule.profesor_id);
     const section = sections?.find(s => s.id === schedule.seccion_id);
     return {
-      teacherFullName: teacher ? `${teacher.name} ${teacher.last_name || ""}`.trim() : "",
-      teacherPhoto: teacher?.profile_image || teacher?.photo_url,
+      teacherFullName: teacher ? `${teacher.name} ${teacher.last_name || ""}`.trim() : (schedule.profesor_nombre || ""),
+      teacherPhoto: teacher?.profile_image || teacher?.photo_url || schedule.profesor_foto || null,
       studentCount: section?.student_count || section?.students_count || 0,
     };
   };
 
   // ── Hover actions (shared) ───────────────────────────────────
-  const HoverActions = ({ id }) => (
-    <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
-      <button data-testid={`schedule-edit-btn-${id}`} onClick={(e) => { e.stopPropagation(); onEdit(schedules.find(s => s.id === id)); }} className="p-1 bg-white/90 rounded shadow hover:bg-white"><Pencil className="w-3 h-3 text-slate-700" /></button>
-      <button data-testid={`schedule-delete-btn-${id}`} onClick={(e) => { e.stopPropagation(); onDelete(schedules.find(s => s.id === id)); }} className="p-1 bg-white/90 rounded shadow hover:bg-red-50"><Trash2 className="w-3 h-3 text-red-500" /></button>
-    </div>
-  );
+  const HoverActions = ({ id }) => {
+    if (readOnly) return null;
+    return (
+      <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+        <button data-testid={`schedule-edit-btn-${id}`} onClick={(e) => { e.stopPropagation(); onEdit(schedules.find(s => s.id === id)); }} className="p-1 bg-white/90 rounded shadow hover:bg-white"><Pencil className="w-3 h-3 text-slate-700" /></button>
+        <button data-testid={`schedule-delete-btn-${id}`} onClick={(e) => { e.stopPropagation(); onDelete(schedules.find(s => s.id === id)); }} className="p-1 bg-white/90 rounded shadow hover:bg-red-50"><Trash2 className="w-3 h-3 text-red-500" /></button>
+      </div>
+    );
+  };
 
   // ── Context menu ─────────────────────────────────────────────
   const ContextMenuComponent = () => {
-    if (!contextMenu) return null;
+    if (readOnly || !contextMenu) return null;
     return (
       <>
         <div className="fixed inset-0 z-[200]" onClick={() => setContextMenu(null)} />
@@ -191,33 +194,42 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     };
 
     const renderHorizBlock = (schedule) => {
-      const { teacherFullName } = getTeacherInfo(schedule);
+      const { teacherFullName, teacherPhoto } = getTeacherInfo(schedule);
       const [sH] = schedule.hora_inicio.split(":").map(Number);
       const [eH] = schedule.hora_fin.split(":").map(Number);
       const spanRows = Math.max(eH - sH, 1);
 
       return (
         <div key={schedule.id} data-testid={`schedule-block-${schedule.id}`}
-          className="overflow-hidden cursor-pointer group relative"
+          className={`overflow-hidden group relative ${readOnly ? "cursor-default" : "cursor-pointer"}`}
           style={{
             ...getPastelStyle(schedule.color),
             minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : "56px",
             borderRadius: 0,
             transition: "all 0.15s ease",
           }}
-          onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
+          onClick={(e) => { if (!readOnly) { e.stopPropagation(); onEdit(schedule); } }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color, true).backgroundColor; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color).backgroundColor; e.currentTarget.style.boxShadow = "none"; }}
         >
           <div className="h-full flex flex-col" style={{ padding: "8px 10px" }}>
             <p className="font-semibold text-sm truncate text-slate-800">{schedule.materia}</p>
             {teacherFullName && (
-              <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {showTeacherPhoto && teacherPhoto && (
+                  <img src={teacherPhoto} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-slate-200" onError={(e) => { e.target.style.display = 'none'; }} />
+                )}
+                <p className="text-[12px] text-slate-500 truncate">{teacherFullName}</p>
+              </div>
             )}
-            <p className="text-[13px] font-medium text-slate-600 mt-auto">
-              {formatTime(schedule.hora_inicio)} - {formatTime(schedule.hora_fin)}
-              {schedule.aula && <span className="ml-1.5">· {schedule.aula}</span>}
-            </p>
+            <div className="flex items-center gap-1.5 mt-auto">
+              <p className="text-[13px] font-medium text-slate-600">
+                {formatTime(schedule.hora_inicio)} - {formatTime(schedule.hora_fin)}
+              </p>
+              {showAulaBadge && schedule.aula && (
+                <span className="text-[10px] bg-black/10 text-slate-600 px-2 py-0.5 rounded-full">{schedule.aula}</span>
+              )}
+            </div>
           </div>
           <HoverActions id={schedule.id} />
         </div>
@@ -231,13 +243,15 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           <div className={`w-36 flex-shrink-0 px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
             <span className={`text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
           </div>
-          <div className="flex-1 flex items-center justify-center gap-3 px-4 cursor-pointer group" onClick={() => onEditBreak(breakItem)}>
+          <div className={`flex-1 flex items-center justify-center gap-3 px-4 ${!readOnly ? "cursor-pointer group" : ""}`} onClick={() => { if (!readOnly) onEditBreak(breakItem); }}>
             <span className="text-2xl">{bc.icon}</span>
             <span className={`font-bold text-lg ${bc.text}`}>{breakItem.label}</span>
             <span className={`text-sm ${bc.text} opacity-70`}>({breakItem.start_time} - {breakItem.end_time})</span>
-            <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2">
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </button>
+            {!readOnly && (
+              <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2">
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </button>
+            )}
           </div>
         </div>
       );
@@ -262,22 +276,24 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             if (isTimeBlocked(time)) return null;
             return (
               <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
-                <div className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors group relative"
+                <div className={`w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center ${!readOnly ? "cursor-pointer hover:bg-slate-100 group" : ""} transition-colors relative`}
                   data-testid={`schedule-time-slot-${time.replace(":", "")}`}
-                  onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
+                  onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time }); } : undefined}
                 >
                   <span className="text-xs font-medium text-slate-600 text-center leading-tight">{formatSlotRange(time)}</span>
-                  <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
-                    className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
-                    <Plus className="w-3 h-3 text-slate-500" />
-                  </button>
+                  {!readOnly && (
+                    <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time }); }}
+                      className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear fila">
+                      <Plus className="w-3 h-3 text-slate-500" />
+                    </button>
+                  )}
                 </div>
                 {visibleDays.map(day => {
                   const slotSchedules = getSchedulesForSlot(day.id, time);
                   return (
                     <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
-                      className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
-                      onClick={() => onCellClick(day.id, time)}>
+                      className={`flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 ${!readOnly ? "hover:bg-blue-50/30 cursor-pointer" : ""} transition-colors p-1`}
+                      onClick={!readOnly ? () => onCellClick(day.id, time) : undefined}>
                       {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
                     </div>
                   );
@@ -294,7 +310,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   // VERTICAL MODE — Proportional absolute positioning
   // ═══════════════════════════════════════════════════════════════
   const renderBlock = (item) => {
-    const { teacherFullName } = getTeacherInfo(item);
+    const { teacherFullName, teacherPhoto } = getTeacherInfo(item);
     const duration = item._end - item._start;
     const sizeClass = duration >= 90 ? "tall" : duration >= 45 ? "medium" : "short";
     const topPx = ((item._start - gridStart) / totalMinutes) * gridHeightPx;
@@ -306,7 +322,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
 
     return (
       <div key={item.id} data-testid={`schedule-block-${item.id}`}
-        className="absolute overflow-hidden cursor-pointer group z-20"
+        className={`absolute overflow-hidden group z-20 ${readOnly ? "cursor-default" : "cursor-pointer"}`}
         style={{
           ...getPastelStyle(item.color, isHovered),
           top: `${topPx + 1}px`,
@@ -317,7 +333,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           transition: "all 0.15s ease",
           boxShadow: isHovered ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
         }}
-        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+        onClick={(e) => { if (!readOnly) { e.stopPropagation(); onEdit(item); } }}
         onMouseEnter={() => setHoveredId(item.id)}
         onMouseLeave={() => setHoveredId(null)}
       >
@@ -325,11 +341,22 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
         {sizeClass === "tall" && (
           <div className="h-full flex flex-col overflow-hidden" style={{ padding: "8px 10px" }}>
             <p className="font-semibold text-sm truncate text-slate-800">{item.materia}</p>
-            {teacherFullName && <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>}
-            <p className="text-[13px] font-medium text-slate-600 mt-auto">
-              {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
-              {item.aula && <span className="ml-1.5">· {item.aula}</span>}
-            </p>
+            {teacherFullName && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {showTeacherPhoto && teacherPhoto && (
+                  <img src={teacherPhoto} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-slate-200" onError={(e) => { e.target.style.display = 'none'; }} />
+                )}
+                <p className="text-[12px] text-slate-500 truncate">{teacherFullName}</p>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 mt-auto">
+              <p className="text-[13px] font-medium text-slate-600">
+                {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
+              </p>
+              {showAulaBadge && item.aula && (
+                <span className="text-[10px] bg-black/10 text-slate-600 px-2 py-0.5 rounded-full">{item.aula}</span>
+              )}
+            </div>
           </div>
         )}
 
@@ -372,15 +399,17 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const bc = breakConfig(breakItem.type);
     return (
       <div key={breakItem.id || breakItem.start_time}
-        className={`absolute left-0 right-0 ${bc.border} border-y flex items-center justify-center gap-2 z-30 cursor-pointer group`}
+        className={`absolute left-0 right-0 ${bc.border} border-y flex items-center justify-center gap-2 z-30 ${!readOnly ? "cursor-pointer group" : ""}`}
         style={{ top: `${topPx}px`, height: `${heightPx}px`, backgroundColor: bc.bg }}
-        onClick={() => onEditBreak(breakItem)}>
+        onClick={() => { if (!readOnly) onEditBreak(breakItem); }}>
         <span className="text-lg">{bc.icon}</span>
         <span className={`font-bold text-sm ${bc.text}`}>{breakItem.label}</span>
         <span className={`text-xs ${bc.text} opacity-70`}>({formatTime(breakItem.start_time)} - {formatTime(breakItem.end_time)})</span>
-        <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-red-50 transition-all ml-1">
-          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-        </button>
+        {!readOnly && (
+          <button onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }} className="opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-red-50 transition-all ml-1">
+            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+          </button>
+        )}
       </div>
     );
   };
@@ -415,15 +444,17 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
 
         <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
           {guideLines.map((gl, idx) => (
-            <div key={gl.time} className="absolute w-full flex items-start justify-center cursor-pointer group"
+            <div key={gl.time} className={`absolute w-full flex items-start justify-center ${!readOnly ? "cursor-pointer group" : ""}`}
               style={{ top: `${gl.topPx}px`, height: idx < guideLines.length - 1 ? `${guideLines[idx + 1].topPx - gl.topPx}px` : "auto" }}
-              onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
-              onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}>
+              onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); } : undefined}
+              onClick={!readOnly ? (e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); } : undefined}>
               <span className="text-[13px] font-semibold text-slate-400 pt-1 select-none">{formatTime(gl.time)}</span>
-              <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
-                className="absolute right-0.5 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear franja">
-                <Plus className="w-3 h-3 text-slate-500" />
-              </button>
+              {!readOnly && (
+                <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
+                  className="absolute right-0.5 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear franja">
+                  <Plus className="w-3 h-3 text-slate-500" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -431,7 +462,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           <div key={day.id} data-testid={`schedule-day-column-${day.id}`}
             className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-200 relative"
             style={{ height: `${totalHeightPx}px` }}
-            onClick={(e) => handleDayClick(e, day.id)}>
+            onClick={!readOnly ? (e) => handleDayClick(e, day.id) : undefined}>
             {guideLines.map(gl => (
               <div key={gl.time} className="absolute w-full border-t border-slate-100" style={{ top: `${gl.topPx}px` }} />
             ))}
