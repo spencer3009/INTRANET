@@ -95,6 +95,38 @@ See /app/memory/test_credentials.md
   - Preview shows block count, conflict list with SLOT/PROFESOR tags, multi_horario info badge
 - **Testing**: 100% (7/7 backend + 100% frontend - iteration_132)
 
+### Phase 10 - Unified Schedule View Across All Portals (DONE - 2026-04-12)
+- **Goal**: Replicate Owner's pastel CalendarGrid across all 8 portals without duplicating code
+- **CalendarGrid.jsx**: Extended with `readOnly`, `showTeacherPhoto`, `showAulaBadge` props
+  - readOnly: hides edit/delete hover actions, context menu, cell click handlers
+  - showTeacherPhoto: renders profesor_foto as circular 20x20 image inside blocks
+  - showAulaBadge: renders aula as pill badge (bg-black/10) in blocks
+  - Fallback teacher info: checks schedule.profesor_nombre/profesor_foto when teachers[] lookup fails
+- **SchedulePage.jsx**: Extended with `readOnly`, `showFilters`, `lockedSeccionId`, `apiEndpoint`, `headerTitle`, `childSelector` props
+  - Role-aware sidebar/header rendering based on user.role
+  - apiEndpoint mode: loads data from dedicated endpoint (student/parent), skips filters
+  - Public settings endpoint for non-owner roles to avoid 403 errors
+- **Wrapper pages**:
+  - `StudentSchedulePage.jsx`: 14-line thin wrapper → readOnly, no filters, apiEndpoint=/api/student/schedule
+  - `ParentSchedulePage.jsx`: ~100 lines with child selector + localStorage persistence
+- **New routes**: admin/horarios, teacher/horarios, coordinacion/horarios, pae/horarios, aux-asistencia/horarios
+- **Sidebar entries added**: AdminSidebar, TeacherSidebar, CoordinacionSidebar, Sidebar(aux-asistencia)
+- **Backend**: Enhanced `GET /api/parent/schedule` to return breaks, grade_name, section_name
+- **Backups**: StudentSchedulePage.jsx.backup, ParentSchedulePage.jsx.backup
+- **Portal access matrix**:
+  | Portal | Route | readOnly | showFilters | Edit |
+  |--------|-------|----------|-------------|------|
+  | Owner | /:subdomain/horarios | false | true | Yes |
+  | Admin | /:subdomain/admin/horarios | false | true | Yes |
+  | Director | /:subdomain/horarios (shared) | false | true | Yes |
+  | Coordinator | /:subdomain/coordinacion/horarios | true | true | No |
+  | Teacher | /:subdomain/teacher/horarios | true | true | No |
+  | Student | /:subdomain/student/schedule | true | false | No |
+  | Parent | /:subdomain/parent/schedule | true | false | No |
+  | Aux PAE | /:subdomain/pae/horarios | true | true | No |
+  | Aux Asist | /:subdomain/aux-asistencia/horarios | true | true | No |
+- **Testing**: Iteration 133 - 95% → 100% after data fix (parent child link)
+
 - Modulo de Matriculas (Enrollments)
 - Psicologia: Log de auditoria estricto
 

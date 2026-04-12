@@ -105,14 +105,18 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
   useEffect(() => {
     const loadSchoolSettings = async () => {
       try {
-        const res = await axios.get(`${API}/settings`, { headers });
+        // Use public endpoint for non-owner roles, private for owner/admin
+        const settingsUrl = ["owner", "admin", "director"].includes(user?.role)
+          ? `${API}/settings`
+          : `${process.env.REACT_APP_BACKEND_URL}/api/settings/public/${subdomain}`;
+        const res = await axios.get(settingsUrl, { headers });
         setSchoolSettings(res.data);
       } catch (err) {
-        console.error("Error loading school settings:", err);
+        // Silently fail - logo/name fallback handled in render
       }
     };
     loadSchoolSettings();
-  }, [token]);
+  }, [token, subdomain]);
 
   // Load breaks
   const loadBreaks = useCallback(async () => {
