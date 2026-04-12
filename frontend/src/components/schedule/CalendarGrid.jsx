@@ -464,33 +464,30 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
       <ContextMenuComponent />
-      <div className="relative">
-        <div className="overflow-x-auto">
-          <div className="min-w-0">
-            <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-              <div className="w-16 sm:w-20 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center"><Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" /></div>
-              {visibleDays.map(day => (
-                <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
-                  <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
-                  <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
-                </div>
-              ))}
+      {/* Header row */}
+      <div className="flex border-b border-slate-200 bg-slate-50">
+        <div className="w-16 sm:w-20 flex-shrink-0 p-2 sm:p-3 border-r border-slate-200 flex items-center justify-center">
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+        </div>
+        <div className="flex-1 flex overflow-x-auto hide-scrollbar" ref={headerScrollRef}>
+          {visibleDays.map(day => (
+            <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-2 sm:p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[100px] sm:min-w-[140px]">
+              <p className="font-bold text-slate-800 text-sm sm:text-base">{day.label}</p>
+              <p className="text-[10px] sm:text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
             </div>
-            <div className="flex relative">
-              {/* Break overlays — full width across all columns */}
-              {breaks?.filter(b => {
-                const s = timeToMinutes(b.start_time);
-                const e = timeToMinutes(b.end_time);
-                return e > gridStart && s < gridEnd;
-              }).map(b => renderBreakOverlay(b))}
-
-              <div className="w-16 sm:w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
+          ))}
+        </div>
+      </div>
+      {/* Body: fixed time column + scrollable day columns */}
+      <div className="flex">
+        {/* Time column — OUTSIDE scroll, never overlapped */}
+        <div className="w-16 sm:w-20 flex-shrink-0 border-r border-slate-200 bg-white shadow-[2px_0_4px_rgba(0,0,0,0.05)] relative" style={{ height: `${totalHeightPx}px` }}>
           {guideLines.map((gl, idx) => (
             <div key={gl.time} className={`absolute w-full flex items-start justify-center ${!readOnly ? "cursor-pointer group" : ""}`}
               style={{ top: `${gl.topPx}px`, height: idx < guideLines.length - 1 ? `${guideLines[idx + 1].topPx - gl.topPx}px` : "auto" }}
               onContextMenu={!readOnly ? (e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); } : undefined}
               onClick={!readOnly ? (e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); } : undefined}>
-              <span className="text-[13px] font-semibold text-slate-400 pt-1 select-none">{formatTime(gl.time)}</span>
+              <span className="text-[11px] sm:text-[13px] font-semibold text-slate-400 pt-1 select-none">{formatTime(gl.time)}</span>
               {!readOnly && (
                 <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
                   className="absolute right-0.5 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear franja">
@@ -500,22 +497,30 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             </div>
           ))}
         </div>
-        {visibleDays.map(day => (
-          <div key={day.id} data-testid={`schedule-day-column-${day.id}`}
-            className="flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-200 relative"
-            style={{ height: `${totalHeightPx}px` }}
-            onClick={!readOnly ? (e) => handleDayClick(e, day.id) : undefined}>
-            {guideLines.map(gl => (
-              <div key={gl.time} className="absolute w-full border-t border-slate-100" style={{ top: `${gl.topPx}px` }} />
+        {/* Day columns — scrollable */}
+        <div className="flex-1 overflow-x-auto relative" ref={bodyScrollRef}>
+          <div className="flex relative" style={{ height: `${totalHeightPx}px` }}>
+            {/* Break overlays */}
+            {breaks?.filter(b => {
+              const s = timeToMinutes(b.start_time);
+              const e = timeToMinutes(b.end_time);
+              return e > gridStart && s < gridEnd;
+            }).map(b => renderBreakOverlay(b))}
+            {visibleDays.map(day => (
+              <div key={day.id} data-testid={`schedule-day-column-${day.id}`}
+                className="flex-1 min-w-[100px] sm:min-w-[140px] border-r last:border-r-0 border-slate-200 relative"
+                style={{ height: `${totalHeightPx}px` }}
+                onClick={!readOnly ? (e) => handleDayClick(e, day.id) : undefined}>
+                {guideLines.map(gl => (
+                  <div key={gl.time} className="absolute w-full border-t border-slate-100" style={{ top: `${gl.topPx}px` }} />
+                ))}
+                {layoutByDay[day.id]?.map(item => renderBlock(item))}
+              </div>
             ))}
-            {layoutByDay[day.id]?.map(item => renderBlock(item))}
           </div>
-        ))}
-            </div>
-          </div>
+          {/* Scroll shadow indicator */}
+          <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
         </div>
-        {/* Scroll shadow indicator */}
-        <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none sm:hidden" />
       </div>
     </div>
   );
