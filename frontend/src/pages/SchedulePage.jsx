@@ -48,6 +48,9 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
   const [lockedGradeName, setLockedGradeName] = useState("");
   const [lockedSectionName, setLockedSectionName] = useState("");
 
+  // Teacher-specific: sections where this teacher has schedule blocks
+  const [mySectionIds, setMySectionIds] = useState([]);
+
   // Data
   const [grades, setGrades] = useState([]);
   const [levels, setLevels] = useState([]);
@@ -234,6 +237,20 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
   }, [token, apiEndpoint]);
 
   useEffect(() => { loadBreaks(); }, [loadBreaks]);
+
+  // Teacher: load sections where they have schedule blocks
+  useEffect(() => {
+    if (user?.role !== "teacher") return;
+    const loadMySections = async () => {
+      try {
+        const res = await axios.get(`${API}/teacher/my-sections`, { headers });
+        setMySectionIds(res.data.seccion_ids || []);
+      } catch (err) {
+        console.error("Error loading teacher sections:", err);
+      }
+    };
+    loadMySections();
+  }, [token, user?.role]);
 
   const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
 
@@ -503,7 +520,7 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
                         disabled={!selectedGrade}
                       >
                         <option value="">{selectedGrade ? "Seleccionar sección..." : "Primero selecciona grado"}</option>
-                        {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                        {filteredSections.map(s => <option key={s.id} value={s.id}>{mySectionIds.includes(s.id) ? `★ ${s.nombre}` : s.nombre}</option>)}
                       </select>
                     </div>
                   </>
@@ -641,37 +658,46 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
               </div>
             </div>
           ) : (
-            <CalendarGrid
-              schedules={schedules}
-              settings={settings}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCellClick={handleCellClick}
-              teachers={teachers}
-              sections={sections}
-              breaks={breaks}
-              readOnly={readOnly}
-              onAddBreak={(time) => {
-                setBreakPreselectedTime(time);
-                setEditBreak(null);
-                setShowBreakModal(true);
-              }}
-              onEditBreak={(breakItem) => {
-                setEditBreak(breakItem);
-                setBreakPreselectedTime(null);
-                setShowBreakModal(true);
-              }}
-              onDeleteBreak={async (breakItem) => {
-                if (window.confirm(`¿Eliminar ${breakItem.label}?`)) {
-                  try {
-                    await axios.delete(`${API}/schedule/breaks/${breakItem.id}`, { headers });
-                    setBreaks(prev => prev.filter(b => b.id !== breakItem.id));
-                  } catch (err) {
-                    console.error("Error deleting break:", err);
+            <>
+              {/* Teacher badge: "Sección donde enseñas" */}
+              {user?.role === "teacher" && selectedSection && mySectionIds.includes(selectedSection) && (
+                <div className="mb-3 inline-flex items-center gap-2 px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-full text-sm font-medium" data-testid="teacher-section-badge">
+                  <span>★</span> Sección donde enseñas
+                </div>
+              )}
+              <CalendarGrid
+                schedules={schedules}
+                settings={settings}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onCellClick={handleCellClick}
+                teachers={teachers}
+                sections={sections}
+                breaks={breaks}
+                readOnly={readOnly}
+                highlightProfesorId={user?.role === "teacher" ? user?.id : null}
+                onAddBreak={(time) => {
+                  setBreakPreselectedTime(time);
+                  setEditBreak(null);
+                  setShowBreakModal(true);
+                }}
+                onEditBreak={(breakItem) => {
+                  setEditBreak(breakItem);
+                  setBreakPreselectedTime(null);
+                  setShowBreakModal(true);
+                }}
+                onDeleteBreak={async (breakItem) => {
+                  if (window.confirm(`¿Eliminar ${breakItem.label}?`)) {
+                    try {
+                      await axios.delete(`${API}/schedule/breaks/${breakItem.id}`, { headers });
+                      setBreaks(prev => prev.filter(b => b.id !== breakItem.id));
+                    } catch (err) {
+                      console.error("Error deleting break:", err);
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </>
           )}
 
           {/* Stats Summary */}

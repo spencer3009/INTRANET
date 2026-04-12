@@ -97,10 +97,11 @@ See /app/memory/test_credentials.md
 
 ### Phase 10 - Unified Schedule View Across All Portals (DONE - 2026-04-12)
 - **Goal**: Replicate Owner's pastel CalendarGrid across all 8 portals without duplicating code
-- **CalendarGrid.jsx**: Extended with `readOnly`, `showTeacherPhoto`, `showAulaBadge` props
+- **CalendarGrid.jsx**: Extended with `readOnly`, `showTeacherPhoto`, `showAulaBadge`, `highlightProfesorId` props
   - readOnly: hides edit/delete hover actions, context menu, cell click handlers
   - showTeacherPhoto: renders profesor_foto as circular 20x20 image inside blocks
   - showAulaBadge: renders aula as pill badge (bg-black/10) in blocks
+  - highlightProfesorId: applies ring-2 ring-violet-300 to blocks matching that profesor_id
   - Fallback teacher info: checks schedule.profesor_nombre/profesor_foto when teachers[] lookup fails
 - **SchedulePage.jsx**: Extended with `readOnly`, `showFilters`, `lockedSeccionId`, `apiEndpoint`, `headerTitle`, `childSelector` props
   - Role-aware sidebar/header rendering based on user.role
@@ -126,6 +127,17 @@ See /app/memory/test_credentials.md
   | Aux PAE | /:subdomain/pae/horarios | true | true | No |
   | Aux Asist | /:subdomain/aux-asistencia/horarios | true | true | No |
 - **Testing**: Iteration 133 - 95% → 100% after data fix (parent child link)
+
+### Phase 10b - Teacher Schedule Enhancement (DONE - 2026-04-12)
+- **Goal**: In teacher portal, visually highlight sections where teacher has schedule blocks
+- **Backend**: `GET /api/teacher/my-sections` → returns `{seccion_ids: [...]}` by querying schedules.distinct("seccion_id") for logged-in teacher
+  - Endpoint in `routes/teacher_portal.py`, role-restricted to teacher
+- **Frontend**:
+  - Section dropdown: ★ prefix on sections where teacher has blocks (mySectionIds)
+  - Badge "★ Sección donde enseñas" above grid when viewing own section
+  - `highlightProfesorId` prop on CalendarGrid: ring-2 ring-violet-300 on teacher's own blocks
+  - All logic gated on `user.role === "teacher"` — zero impact on other roles
+- **Smoke test**: Teacher sees ★ in dropdown, badge, and ring. Owner sees none of these.
 
 - Modulo de Matriculas (Enrollments)
 - Psicologia: Log de auditoria estricto

@@ -16,7 +16,7 @@ function minutesToTime(mins) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections, breaks, onAddBreak, onEditBreak, onDeleteBreak, readOnly = false, showTeacherPhoto = true, showAulaBadge = true }) {
+export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections, breaks, onAddBreak, onEditBreak, onDeleteBreak, readOnly = false, showTeacherPhoto = true, showAulaBadge = true, highlightProfesorId = null }) {
   const visibleDays = getVisibleDays(settings);
   const viewMode = settings?.view_mode || "horizontal";
   const [contextMenu, setContextMenu] = useState(null);
@@ -198,10 +198,11 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
       const [sH] = schedule.hora_inicio.split(":").map(Number);
       const [eH] = schedule.hora_fin.split(":").map(Number);
       const spanRows = Math.max(eH - sH, 1);
+      const isHighlighted = highlightProfesorId && schedule.profesor_id === highlightProfesorId;
 
       return (
         <div key={schedule.id} data-testid={`schedule-block-${schedule.id}`}
-          className={`overflow-hidden group relative ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+          className={`overflow-hidden group relative ${readOnly ? "cursor-default" : "cursor-pointer"} ${isHighlighted ? "ring-2 ring-violet-300" : ""}`}
           style={{
             ...getPastelStyle(schedule.color),
             minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : "56px",
@@ -319,10 +320,11 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const leftPct = item._col * widthPct;
     const isHovered = hoveredId === item.id;
     const showTooltip = isHovered && sizeClass !== "tall";
+    const isHighlighted = highlightProfesorId && item.profesor_id === highlightProfesorId;
 
     return (
       <div key={item.id} data-testid={`schedule-block-${item.id}`}
-        className={`absolute overflow-hidden group z-20 ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+        className={`absolute overflow-hidden group z-20 ${readOnly ? "cursor-default" : "cursor-pointer"} ${isHighlighted ? "ring-2 ring-violet-300" : ""}`}
         style={{
           ...getPastelStyle(item.color, isHovered),
           top: `${topPx + 1}px`,

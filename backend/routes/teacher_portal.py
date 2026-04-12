@@ -624,6 +624,22 @@ async def save_teacher_grades(data: SaveGradesRequest, current_user = Depends(ge
     
     return {"message": "Notas guardadas correctamente", "count": len(data.grades)}
 
+
+@router.get("/teacher/my-sections")
+async def get_teacher_my_sections(current_user = Depends(get_current_user)):
+    """Get section IDs where the logged-in teacher has at least one schedule block."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo para profesores")
+    seccion_ids = await db.schedules.distinct("seccion_id", {
+        "school_id": user.get("school_id"),
+        "profesor_id": user["id"]
+    })
+    return {"seccion_ids": seccion_ids}
+
+
 @router.get("/teacher/attendance")
 async def get_teacher_attendance(
     section_id: str,
