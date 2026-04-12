@@ -139,6 +139,13 @@ See /app/memory/test_credentials.md
   - All logic gated on `user.role === "teacher"` — zero impact on other roles
 - **Smoke test**: Teacher sees ★ in dropdown, badge, and ring. Owner sees none of these.
 
+### Phase 10c - Breaks por grado/sección en vez de school-wide (DONE - 2026-04-12)
+- **Bug**: La query de conflicto de breaks en `check_schedule_conflicts()` filtraba solo por `school_id`, causando que un break de 1°A bloqueara la creación de clases en todos los grados/secciones
+- **Fix**: Añadido `grade_id` + `section_id` a la query de breaks en `check_schedule_conflicts()` (schedule.py L425-436)
+- **Modelo de datos**: Los breaks YA tenían `grade_id` + `section_id` almacenados. No se requirió migración.
+- **Smoke test**: 4/4 casos OK — break en A no bloquea B, break en A sí bloquea A, contiguos permitidos
+- **Nota**: La lógica de solapamiento (`$lt`/`$gt` estricto) ya era correcta. Solo se corrigió el scope del filtro de breaks.
+
 - Modulo de Matriculas (Enrollments)
 - Psicologia: Log de auditoria estricto
 

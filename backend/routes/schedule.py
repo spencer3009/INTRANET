@@ -422,11 +422,17 @@ async def check_schedule_conflicts(
     
     # 0. Check for break/block conflicts (recreo, almuerzo, evento)
     # Use $lt and $gt for strict comparison (consecutive times don't overlap)
-    break_conflict = await db.schedule_breaks.find_one({
+    # Filter by grade_id + section_id so breaks are per-section, not school-wide
+    break_query = {
         "school_id": school_id,
         "start_time": {"$lt": hora_fin},   # existing starts before new ends
         "end_time": {"$gt": hora_inicio}    # existing ends after new starts
-    }, {"_id": 0})
+    }
+    if grado_id:
+        break_query["grade_id"] = grado_id
+    if seccion_id:
+        break_query["section_id"] = seccion_id
+    break_conflict = await db.schedule_breaks.find_one(break_query, {"_id": 0})
     
     if break_conflict:
         conflicts.append({
