@@ -168,19 +168,16 @@ class ModernaTemplate(BaseQRTemplate):
             c.setFillColor(YELLOW)
             c.rect(x + 0.3, band_bottom, card_w - 0.6, band_h, fill=1, stroke=0)
 
-            # LAYER 2b: Watermark (22% opacity, centered in white area, behind content)
+            # LAYER 2b: Watermark (22% opacity, fills entire white area)
             if watermark_img:
                 try:
                     watermark_img.seek(0)
-                    wm_w = card_w * 0.55
                     wm_reader = ImageReader(watermark_img)
-                    wm_iw, wm_ih = wm_reader.getSize()
-                    wm_ratio = wm_ih / wm_iw
-                    wm_h = wm_w * wm_ratio
                     white_area_top = band_bottom
-                    white_area_bottom = y + 3 * mm
-                    white_center_y = (white_area_top + white_area_bottom) / 2
-                    c.drawImage(wm_reader, x + (card_w - wm_w) / 2, white_center_y - wm_h / 2, wm_w, wm_h, preserveAspectRatio=True, mask='auto')
+                    white_area_bottom = y + 2 * mm
+                    wm_w = card_w - 2 * mm
+                    wm_h = white_area_top - white_area_bottom - 2 * mm
+                    c.drawImage(wm_reader, x + 1 * mm, white_area_bottom + 1 * mm, wm_w, wm_h, preserveAspectRatio=True, mask='auto')
                 except Exception as wm_err:
                     logger.warning(f"[Moderna] Watermark render failed: {wm_err}")
 
