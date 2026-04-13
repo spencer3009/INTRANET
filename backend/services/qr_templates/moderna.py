@@ -164,7 +164,7 @@ class ModernaTemplate(BaseQRTemplate):
             c.setFillColor(white)
             c.setFont("Helvetica-Bold", 5.5)
             display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
-            c.drawCentredString(cx, logo_y - 1.5 * mm, display_name[:32])
+            c.drawCentredString(cx, logo_y - 2.9 * mm, display_name[:32])
 
             # LAYER 3: Photo square (centered ON the yellow band)
             photo_size = card_w * 0.40
