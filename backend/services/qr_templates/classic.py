@@ -17,7 +17,8 @@ class ClassicTemplate(BaseQRTemplate):
     display_name = "Clásica"
     description = "Carnet estándar con logo, foto, nombre, grado/sección y QR."
 
-    async def generate_pdf(self, db, school_id, data, user, limit=None) -> BytesIO:
+    async def generate_pdf(self, db, school_id, data, user, limit=None,
+                           color_principal: str = None, color_acento: str = None) -> BytesIO:
         """Generate PDF with QR cards for students (3x3 grid per page).
 
         ``data`` must have: nivel_id, grado_id, seccion_id and optionally

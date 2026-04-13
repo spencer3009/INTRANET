@@ -11,6 +11,15 @@ const FORMATS = [
   { id: "pdf_lista", label: "PDF tipo lista", desc: "Tabla con nombre y QR", icon: List },
 ];
 
+const PALETAS = [
+  { nombre: "Azul Marino + Dorado", principal: "#1e3a5f", acento: "#f5b800" },
+  { nombre: "Verde Bosque + Crema", principal: "#1f4d3a", acento: "#f0e6d2" },
+  { nombre: "Rojo Vino + Dorado", principal: "#7a1f2b", acento: "#d4a017" },
+  { nombre: "Púrpura + Lavanda", principal: "#3d2a5c", acento: "#c9b6e4" },
+  { nombre: "Negro + Naranja", principal: "#1a1a1a", acento: "#ff7a00" },
+  { nombre: "Turquesa + Coral", principal: "#0d5e6e", acento: "#ff9678" },
+];
+
 function CarnetClassicPreview({ data, incluirCodigo }) {
   if (!data) return null;
   return (
@@ -49,14 +58,15 @@ function CarnetClassicPreview({ data, incluirCodigo }) {
   );
 }
 
-function CarnetModernaPreview({ data, incluirCodigo, logoCarnet }) {
+function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal, colorAcento }) {
   if (!data) return null;
   const logoSrc = logoCarnet || data.school_logo;
+  const cp = colorPrincipal || "#1e3a5f";
+  const ca = colorAcento || "#F5B800";
   return (
     <div className="flex justify-center" data-testid="carnet-preview-moderna">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden relative">
-        {/* Blue header */}
-        <div className="bg-[#1e3a5f] pt-3 pb-6 px-4 text-center relative z-0">
+        <div style={{ backgroundColor: cp }} className="pt-3 pb-6 px-4 text-center relative z-0">
           {logoSrc ? (
             <img src={logoSrc} alt="" className="w-10 h-10 object-contain mx-auto mb-1.5" />
           ) : (
@@ -66,30 +76,25 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet }) {
           )}
           <p className="text-[10px] font-bold text-white leading-tight">{data.school_name}</p>
         </div>
-        {/* Yellow wave — inverted smile (high at edges, dips in center) */}
         <div className="relative -mt-2 z-10">
           <svg viewBox="0 0 240 32" className="w-full block" preserveAspectRatio="none">
-            <path d="M0 0 L0 8 C60 28, 180 28, 240 8 L240 0 Z" fill="#F5B800" />
+            <path d="M0 0 L0 8 C60 28, 180 28, 240 8 L240 0 Z" fill={ca} />
           </svg>
         </div>
-        {/* Photo — vertical rectangle overlapping wave, with yellow border */}
         <div className="flex justify-center -mt-10 relative z-20">
           {data.student_photo ? (
-            <img src={data.student_photo} alt="" className="w-[80px] h-[104px] object-cover border-[3px] border-[#F5B800] bg-white" style={{ borderRadius: "2px" }} />
+            <img src={data.student_photo} alt="" className="w-[80px] h-[104px] object-cover bg-white" style={{ border: `3px solid ${ca}`, borderRadius: "2px" }} />
           ) : (
-            <div className="w-[80px] h-[104px] bg-slate-100 border-[3px] border-[#F5B800] flex items-center justify-center" style={{ borderRadius: "2px" }}>
-              <span className="text-3xl font-bold text-[#1e3a5f]">{data.student_initial}</span>
+            <div className="w-[80px] h-[104px] bg-slate-100 flex items-center justify-center" style={{ border: `3px solid ${ca}`, borderRadius: "2px" }}>
+              <span className="text-3xl font-bold" style={{ color: cp }}>{data.student_initial}</span>
             </div>
           )}
         </div>
-        {/* Name */}
         <p className="text-[13px] font-bold text-[#1a1a2e] text-center px-3 mt-2 leading-tight">{data.student_name}</p>
         {incluirCodigo && data.codigo_alumno && <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>}
-        {/* Badge */}
         <div className="flex justify-center mt-1.5">
-          <span className="bg-[#F5B800] text-[#1e3a5f] text-[9px] font-bold px-3 py-0.5 rounded-full">{data.nivel} - {data.grado} - {data.seccion}</span>
+          <span className="text-[9px] font-bold px-3 py-0.5 rounded-full" style={{ backgroundColor: ca, color: cp }}>{data.nivel} - {data.grado} - {data.seccion}</span>
         </div>
-        {/* QR */}
         <div className="flex justify-center py-2.5">
           {data.qr_token ? <QRCodeSVG value={data.qr_token} size={100} /> : <div className="w-[100px] h-[100px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
         </div>
@@ -120,6 +125,11 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [logoCarnet, setLogoCarnet] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [colorPrincipal, setColorPrincipal] = useState("#1e3a5f");
+  const [colorAcento, setColorAcento] = useState("#F5B800");
+  const [savedColors, setSavedColors] = useState({});
+  const [showCustomColors, setShowCustomColors] = useState(false);
+  const [savingColors, setSavingColors] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -132,7 +142,8 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
       axios.get(`${API}/api/qr-templates/list`, { headers }),
       axios.get(`${API}/api/qr-templates/logo-carnet`, { headers }).catch(() => ({ data: {} })),
-    ]).then(([l, g, s, sh, tpl, logo]) => {
+      axios.get(`${API}/api/qr-templates/saved-colors`, { headers }).catch(() => ({ data: {} })),
+    ]).then(([l, g, s, sh, tpl, logo, colorsRes]) => {
       setLevels((l.data || []).filter(x => x.activo));
       setGrades((g.data || []).filter(x => x.activo));
       setSections((s.data || []).filter(x => x.activo));
@@ -140,6 +151,12 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       setTemplates(tpl.data.templates || [{ id: "classic", name: "Clásica", description: "Carnet estándar" }, { id: "moderna", name: "Moderna", description: "Header azul con curva amarilla" }]);
       if (tpl.data.templates?.length) setSelected(tpl.data.templates[0].id);
       setLogoCarnet(logo.data?.logo_carnet_url || null);
+      const sc = colorsRes.data?.colors || {};
+      setSavedColors(sc);
+      if (sc.moderna) {
+        setColorPrincipal(sc.moderna.color_principal || "#1e3a5f");
+        setColorAcento(sc.moderna.color_acento || "#F5B800");
+      }
     }).catch(() => {});
   }, [open]);
 
@@ -179,6 +196,29 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
     } finally { setUploadingLogo(false); }
   };
 
+  const handleSelectTemplate = (id) => {
+    setSelected(id);
+    const tpl = templates.find(t => t.id === id);
+    const sc = savedColors[id];
+    if (sc) {
+      setColorPrincipal(sc.color_principal);
+      setColorAcento(sc.color_acento);
+    } else if (tpl) {
+      setColorPrincipal(tpl.default_color_principal || "#1e3a5f");
+      setColorAcento(tpl.default_color_acento || "#F5B800");
+    }
+  };
+
+  const handleSaveColors = async () => {
+    setSavingColors(true);
+    try {
+      await axios.post(`${API}/api/qr-templates/save-colors`, { template_id: selected, color_principal: colorPrincipal, color_acento: colorAcento }, { headers });
+      setSavedColors(prev => ({ ...prev, [selected]: { color_principal: colorPrincipal, color_acento: colorAcento } }));
+      alert("Colores guardados. Se usarán por defecto la próxima vez.");
+    } catch { alert("Error al guardar colores."); }
+    finally { setSavingColors(false); }
+  };
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -187,6 +227,8 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
         nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection,
         turno_id: selShift || null,
         incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
+        color_principal: selectedTpl?.supports_custom_colors ? colorPrincipal : null,
+        color_acento: selectedTpl?.supports_custom_colors ? colorAcento : null,
       }, { headers, responseType: "blob" });
       const isZip = formato === "zip";
       const url = window.URL.createObjectURL(new Blob([res.data], { type: isZip ? "application/zip" : "application/pdf" }));
@@ -198,6 +240,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   if (!open) return null;
 
   const filtersComplete = selLevel && selGrade && selSection;
+  const selectedTpl = templates.find(t => t.id === selected);
   const downloadLabel = formato === "zip" ? "Descargar ZIP" : formato === "pdf_lista" ? "Descargar PDF (lista)" : "Descargar PDF";
   const showTemplate = formato !== "zip";
   const showCarnetPreview = formato === "pdf_grid";
@@ -291,7 +334,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
               {formato === "pdf_lista" && <p className="text-[10px] text-slate-400 mb-2">Se aplicarán colores de la plantilla al encabezado</p>}
               <div className="grid grid-cols-2 gap-2">
                 {templates.map(t => (
-                  <button key={t.id} onClick={() => setSelected(t.id)} data-testid={`template-card-${t.id}`}
+                  <button key={t.id} onClick={() => handleSelectTemplate(t.id)} data-testid={`template-card-${t.id}`}
                     className={`relative p-3 rounded-xl border-2 text-left transition-all ${selected === t.id ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
                     {selected === t.id && <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" /></div>}
                     <p className="font-semibold text-xs text-slate-800">{t.name}</p>
@@ -302,7 +345,50 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
             </div>
           )}
 
-          {/* 4b. Logo carnet (only for Moderna) */}
+          {/* 4b. Colors (only if template supports) */}
+          {selectedTpl?.supports_custom_colors && showTemplate && (
+            <div>
+              <p className="text-xs font-semibold text-slate-700 mb-2">Colores</p>
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
+                {PALETAS.map((p, i) => {
+                  const isActive = colorPrincipal === p.principal && colorAcento === p.acento;
+                  return (
+                    <button key={i} onClick={() => { setColorPrincipal(p.principal); setColorAcento(p.acento); }}
+                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border-2 transition-all ${isActive ? "border-teal-500 bg-teal-50" : "border-slate-200 hover:border-slate-300"}`}
+                      title={p.nombre} data-testid={`paleta-${i}`}>
+                      <div className="w-5 h-5 rounded-full flex-shrink-0 border border-white shadow-sm" style={{ backgroundColor: p.principal }} />
+                      <div className="w-5 h-5 rounded-full flex-shrink-0 border border-white shadow-sm" style={{ backgroundColor: p.acento }} />
+                      {isActive && <Check className="w-3 h-3 text-teal-600 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => setShowCustomColors(!showCustomColors)} className="text-[11px] text-teal-600 hover:underline mb-2">
+                {showCustomColors ? "Ocultar personalización" : "Personalizar colores"}
+              </button>
+              {showCustomColors && (
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-2.5 space-y-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-slate-600 w-16">Principal</label>
+                    <input type="color" value={colorPrincipal} onChange={e => setColorPrincipal(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <input type="text" value={colorPrincipal} onChange={e => setColorPrincipal(e.target.value)} className="text-[10px] w-20 px-1.5 py-1 border border-slate-200 rounded font-mono" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-slate-600 w-16">Acento</label>
+                    <input type="color" value={colorAcento} onChange={e => setColorAcento(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                    <input type="text" value={colorAcento} onChange={e => setColorAcento(e.target.value)} className="text-[10px] w-20 px-1.5 py-1 border border-slate-200 rounded font-mono" />
+                  </div>
+                </div>
+              )}
+              <button onClick={handleSaveColors} disabled={savingColors}
+                className="text-[11px] text-teal-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50">
+                {savingColors ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                {savingColors ? "Guardando..." : "Guardar como predeterminados"}
+              </button>
+            </div>
+          )}
+
+          {/* 4c. Logo carnet (only for Moderna) */}
           {selected === "moderna" && showTemplate && (
             <div>
               <p className="text-xs font-semibold text-slate-700 mb-1">Logo del carnet</p>
@@ -374,7 +460,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                   <>
                     <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>
                     {selected === "moderna" ? (
-                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} />
+                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} colorPrincipal={colorPrincipal} colorAcento={colorAcento} />
                     ) : (
                       <CarnetClassicPreview data={previewData} incluirCodigo={incluirCodigo} />
                     )}

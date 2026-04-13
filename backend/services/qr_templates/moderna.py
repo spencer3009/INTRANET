@@ -13,8 +13,12 @@ class ModernaTemplate(BaseQRTemplate):
     template_id = "moderna"
     display_name = "Moderna"
     description = "Header azul con curva amarilla, foto con borde y badge de grado."
+    supports_custom_colors = True
+    default_color_principal = "#1e3a5f"
+    default_color_acento = "#F5B800"
 
-    async def generate_pdf(self, db, school_id, data, user, limit=None) -> BytesIO:
+    async def generate_pdf(self, db, school_id, data, user, limit=None,
+                           color_principal: str = None, color_acento: str = None) -> BytesIO:
         import qrcode
         import httpx
         from PIL import Image as PILImage
@@ -90,9 +94,9 @@ class ModernaTemplate(BaseQRTemplate):
             except Exception as e:
                 logger.warning(f"[Moderna] Logo download failed: {e}")
 
-        # ── Colors ───────────────────────────────────────────────────
-        NAVY = HexColor("#1e3a5f")
-        YELLOW = HexColor("#F5B800")
+        # ── Colors (use params or defaults) ────────────────────────
+        NAVY = HexColor(color_principal or self.default_color_principal)
+        YELLOW = HexColor(color_acento or self.default_color_acento)
         DARK = HexColor("#1a1a2e")
         GRAY = HexColor("#64748b")
         LIGHT_BG = HexColor("#f1f5f9")

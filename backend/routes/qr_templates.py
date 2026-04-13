@@ -51,6 +51,8 @@ class TemplateDownloadRequest(BaseModel):
     incluir_codigo_alumno: bool = False
     incluir_foto: bool = True
     ordenar_alfabetico: bool = True
+    color_principal: Optional[str] = None
+    color_acento: Optional[str] = None
 
 
 @router.get("/qr-templates/preview")
@@ -139,7 +141,9 @@ async def download_with_template(
 
         else:  # pdf_grid (default)
             tpl = get_template(data.template)
-            buf = await tpl.generate_pdf(db, school_id, data, user)
+            buf = await tpl.generate_pdf(db, school_id, data, user,
+                                         color_principal=data.color_principal,
+                                         color_acento=data.color_acento)
             if buf is None:
                 raise HTTPException(status_code=404, detail="No se encontraron estudiantes")
             filename = f"qr_carnets_{data.template}_{now_str}.pdf"
@@ -211,3 +215,35 @@ async def get_logo_carnet(current_user=Depends(get_current_user)):
     school_id = user.get("school_id")
     settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1})
     return {"logo_carnet_url": (settings or {}).get("logo_carnet_url")}
+
+
+class SaveColorsRequest(BaseModel):
+    template_id: str
+    color_principal: str
+    color_acento: str
+
+
+@router.post("/qr-templates/save-colors")
+async def save_template_colors(data: SaveColorsRequest, current_user=Depends(get_current_user)):
+    """Save custom colors for a template (per school)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+    await db.tenant_settings.update_one(
+        {"school_id": school_id},
+        {"$set": {f"qr_template_colors.{data.template_id}": {"color_principal": data.color_principal, "color_acento": data.color_acento}}},
+        upsert=True
+    )
+    return {"message": "Colores guardados"}
+
+
+@router.get("/qr-templates/saved-colors")
+async def get_saved_colors(current_user=Depends(get_current_user)):
+    """Get saved custom colors for all templates."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user.get("school_id")
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "qr_template_colors": 1})
+    return {"colors": (settings or {}).get("qr_template_colors", {})}
