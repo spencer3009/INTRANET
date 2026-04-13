@@ -33,53 +33,50 @@ class TemplateDownloadRequest(BaseModel):
 
 @router.get("/qr-templates/preview")
 async def preview_template(
-    template: str = Query("classic"),
     nivel_id: str = Query(...),
     grado_id: str = Query(...),
     seccion_id: str = Query(...),
-    token: str = Query(None),
+    current_user=Depends(get_current_user),
 ):
-    """Generate a single-page PDF preview. Accepts token as query param for iframe usage."""
-    import jwt, os
-    if not token:
-        raise HTTPException(status_code=401, detail="Token requerido")
-    try:
-        secret = os.environ.get("JWT_SECRET", "edunet-saas-secret-key-2026-dev-only")
-        payload = jwt.decode(token, secret, algorithms=["HS256"])
-        user_id = payload.get("sub")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    """Return first student data + school info for HTML preview in the drawer."""
+    user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores")
-
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    tpl = get_template(template)
-    data = {
-        "nivel_id": nivel_id,
-        "grado_id": grado_id,
-        "seccion_id": seccion_id,
-        "turno_id": None,
-        "incluir_codigo_alumno": False,
-        "incluir_foto": True,
-        "ordenar_alfabetico": True,
-    }
+    student = await db.users.find_one(
+        {"school_id": school_id, "role": "student", "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "qr_token": {"$exists": True, "$ne": None}},
+        {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="No hay estudiantes con QR")
 
-    try:
-        buf = await tpl.generate_pdf(db, school_id, data, user)
-        if buf is None:
-            raise HTTPException(status_code=404, detail="No se encontraron estudiantes")
-        return StreamingResponse(buf, media_type="application/pdf",
-            headers={"Content-Disposition": "inline; filename=preview.pdf"})
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"[QR Templates] Preview error: {e}")
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "logo_url": 1})
+    school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
+
+    nivel = await db.academic_levels.find_one({"id": nivel_id}, {"_id": 0, "nombre": 1, "name": 1})
+    grado = await db.grados.find_one({"id": grado_id}, {"_id": 0, "nombre": 1, "name": 1})
+    if not grado:
+        grado = await db.grades.find_one({"id": grado_id}, {"_id": 0, "nombre": 1, "name": 1})
+    seccion = await db.secciones.find_one({"id": seccion_id}, {"_id": 0, "nombre": 1, "name": 1})
+    if not seccion:
+        seccion = await db.sections.find_one({"id": seccion_id}, {"_id": 0, "nombre": 1, "name": 1})
+
+    display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+
+    return {
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "student_photo": student.get("photo_url"),
+        "student_initial": (student.get("name", "?")[:1]).upper(),
+        "qr_token": student.get("qr_token"),
+        "school_name": display_name,
+        "school_logo": (school or {}).get("logo_url"),
+        "nivel": (nivel or {}).get("nombre") or (nivel or {}).get("name") or "",
+        "grado": (grado or {}).get("nombre") or (grado or {}).get("name") or "",
+        "seccion": (seccion or {}).get("nombre") or (seccion or {}).get("name") or "",
+    }
 
 
 @router.post("/qr-templates/download")

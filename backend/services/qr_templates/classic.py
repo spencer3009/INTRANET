@@ -17,11 +17,12 @@ class ClassicTemplate(BaseQRTemplate):
     display_name = "Clásica"
     description = "Carnet estándar con logo, foto, nombre, grado/sección y QR."
 
-    async def generate_pdf(self, db, school_id, data, user) -> BytesIO:
+    async def generate_pdf(self, db, school_id, data, user, limit=None) -> BytesIO:
         """Generate PDF with QR cards for students (3x3 grid per page).
 
         ``data`` must have: nivel_id, grado_id, seccion_id and optionally
         turno_id, formato, incluir_codigo_alumno, incluir_foto, ordenar_alfabetico.
+        ``limit``: if set, only render that many students (used for preview).
         Returns a BytesIO buffer with the finished PDF.
         """
         import qrcode
@@ -67,6 +68,9 @@ class ClassicTemplate(BaseQRTemplate):
         ordenar = _get("ordenar_alfabetico", True)
         if ordenar:
             students.sort(key=lambda s: f"{s.get('last_name', '')} {s.get('name', '')}".strip().lower())
+
+        if limit:
+            students = students[:limit]
 
         # ── Lookup grade/section names ───────────────────────────────
         nivel_id = _get("nivel_id")
@@ -127,16 +131,25 @@ class ClassicTemplate(BaseQRTemplate):
             except Exception as e:
                 logger.warning(f"[QR Template Classic] Logo download failed: {e}")
 
-        # ── PDF generation (grid 3x3) ───────────────────────────────
+        # ── PDF generation ────────────────────────────────────────
         buf = BytesIO()
         c = pdf_canvas.Canvas(buf, pagesize=A4)
         w, h = A4
 
-        cols, rows = 3, 3
-        card_w = 60 * mm
-        card_h = 88 * mm
-        margin_x = (w - cols * card_w) / (cols + 1)
-        margin_y = (h - rows * card_h) / (rows + 1)
+        # When rendering a single card (preview), scale it up and center
+        is_preview = limit == 1
+        if is_preview:
+            cols, rows = 1, 1
+            card_w = 80 * mm
+            card_h = 117 * mm
+            margin_x = (w - card_w) / 2
+            margin_y = (h - card_h) / 2
+        else:
+            cols, rows = 3, 3
+            card_w = 60 * mm
+            card_h = 88 * mm
+            margin_x = (w - cols * card_w) / (cols + 1)
+            margin_y = (h - rows * card_h) / (rows + 1)
 
         navy = HexColor("#001f4b")
         teal = HexColor("#94a3b8")
@@ -156,8 +169,15 @@ class ClassicTemplate(BaseQRTemplate):
             pos = card_idx % (cols * rows)
             col_pos = pos % cols
             row_pos = pos // cols
-            x = margin_x + col_pos * (card_w + margin_x)
-            y = h - margin_y - (row_pos + 1) * card_h - row_pos * margin_y
+            if is_preview:
+                x = margin_x
+                y = margin_y
+            else:
+                x = margin_x + col_pos * (card_w + margin_x)
+                y = h - margin_y - (row_pos + 1) * card_h - row_pos * margin_y
+
+            # Scale factor for preview (larger card)
+            sf = card_w / (60 * mm)
 
             # Card border
             c.setFillColor(HexColor("#ffffff"))
@@ -167,34 +187,35 @@ class ClassicTemplate(BaseQRTemplate):
 
             # Top bar
             c.setFillColor(teal)
-            c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
+            c.rect(x + 0.5, y + card_h - 4 * sf * mm, card_w - 1, 4 * sf * mm, fill=1, stroke=0)
 
             # Logo + School name header
-            logo_y = y + card_h - 19 * mm
+            logo_y = y + card_h - 19 * sf * mm
             if logo_img:
                 try:
                     logo_img.seek(0)
-                    c.drawImage(ImageReader(logo_img), x + (card_w - 10 * mm) / 2, logo_y + 2 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
+                    logo_s = 10 * sf * mm
+                    c.drawImage(ImageReader(logo_img), x + (card_w - logo_s) / 2, logo_y + 2 * sf * mm, logo_s, logo_s, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     pass
 
             c.setFillColor(navy)
-            c.setFont("Helvetica-Bold", 6)
+            c.setFont("Helvetica-Bold", 6 * sf)
             display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
             name_trunc = display_name[:30]
-            tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
-            c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
+            tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6 * sf)
+            c.drawString(x + (card_w - tw) / 2, logo_y - 2 * sf * mm, name_trunc)
 
             # Divider
             c.setStrokeColor(HexColor("#e2e8f0"))
             c.setLineWidth(0.4)
-            c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
+            c.line(x + 4 * sf * mm, logo_y - 4 * sf * mm, x + card_w - 4 * sf * mm, logo_y - 4 * sf * mm)
 
             # Student photo
             if incluir_foto:
-                photo_size = 20 * mm
+                photo_size = 20 * sf * mm
                 photo_x = x + (card_w - photo_size) / 2
-                photo_y = logo_y - 5 * mm - photo_size
+                photo_y = logo_y - 5 * sf * mm - photo_size
                 student_photo_buf = None
                 photo_url = s.get("photo_url")
                 if photo_url:
@@ -236,15 +257,15 @@ class ClassicTemplate(BaseQRTemplate):
                         c.setFillColor(light_bg)
                         c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                         c.setFillColor(navy)
-                        c.setFont("Helvetica-Bold", 16)
-                        c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                        c.setFont("Helvetica-Bold", 16 * sf)
+                        c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, (s.get("name", "?")[:1]).upper())
                 else:
                     c.setFillColor(light_bg)
                     c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                     c.setFillColor(navy)
-                    c.setFont("Helvetica-Bold", 16)
-                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
-                content_top = photo_y - 4 * mm
+                    c.setFont("Helvetica-Bold", 16 * sf)
+                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, (s.get("name", "?")[:1]).upper())
+                content_top = photo_y - 4 * sf * mm
 
                 if student_photo_buf:
                     try:
@@ -253,32 +274,32 @@ class ClassicTemplate(BaseQRTemplate):
                         pass
                     del student_photo_buf
             else:
-                content_top = logo_y - 8 * mm
+                content_top = logo_y - 8 * sf * mm
 
             # Student name
             info_y = content_top
             c.setFillColor(navy)
-            c.setFont("Helvetica-Bold", 7)
+            c.setFont("Helvetica-Bold", 7 * sf)
             full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
-            if len(full_name) > 22:
+            if not is_preview and len(full_name) > 22:
                 full_name = full_name[:21] + "."
-            tw = c.stringWidth(full_name, "Helvetica-Bold", 7)
+            tw = c.stringWidth(full_name, "Helvetica-Bold", 7 * sf)
             c.drawString(x + (card_w - tw) / 2, info_y, full_name)
 
             # Level - Grade - Section
             c.setFillColor(gray)
-            c.setFont("Helvetica", 5.5)
+            c.setFont("Helvetica", 5.5 * sf)
             info_line = f"{nivel_name} - {curso_label}"
-            tw2 = c.stringWidth(info_line, "Helvetica", 5.5)
-            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, info_line)
+            tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)
+            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * sf * mm, info_line)
 
             # QR
-            footer_y = y + 2 * mm
-            qr_top = info_y - 7 * mm
-            qr_bottom = footer_y + 4 * mm
+            footer_y = y + 2 * sf * mm
+            qr_top = info_y - 7 * sf * mm
+            qr_bottom = footer_y + 4 * sf * mm
             available = qr_top - qr_bottom
-            qr_size_px = min(available, 32 * mm)
-            qr_size_px = max(qr_size_px, 18 * mm)
+            qr_size_px = min(available, 32 * sf * mm)
+            qr_size_px = max(qr_size_px, 18 * sf * mm)
 
             qr_img = make_qr_image(s["qr_token"], 250)
             qr_buf = BytesIO()
@@ -291,7 +312,7 @@ class ClassicTemplate(BaseQRTemplate):
 
             # Footer
             c.setFillColor(HexColor("#94a3b8"))
-            c.setFont("Helvetica", 4)
+            c.setFont("Helvetica", 4 * sf)
             c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
 
             card_idx += 1

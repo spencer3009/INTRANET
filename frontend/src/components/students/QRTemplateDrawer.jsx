@@ -1,15 +1,75 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { X, Download, Loader2, Palette, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+function CarnetPreview({ data }) {
+  if (!data) return null;
+
+  return (
+    <div className="flex justify-center" data-testid="carnet-preview">
+      <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden">
+        {/* Top bar */}
+        <div className="h-3 bg-slate-400" />
+
+        {/* Logo + School name */}
+        <div className="flex flex-col items-center pt-3 pb-1 px-3">
+          {data.school_logo ? (
+            <img src={data.school_logo} alt="" className="w-10 h-10 object-contain mb-1" />
+          ) : (
+            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-1">
+              <span className="text-xs font-bold text-slate-400">LOGO</span>
+            </div>
+          )}
+          <p className="text-[11px] font-bold text-[#001f4b] text-center leading-tight">{data.school_name}</p>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-4 border-t border-slate-200 my-1" />
+
+        {/* Photo */}
+        <div className="flex justify-center py-2">
+          {data.student_photo ? (
+            <img src={data.student_photo} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-2 border-slate-200" />
+          ) : (
+            <div className="w-[72px] h-[72px] rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200">
+              <span className="text-2xl font-bold text-[#001f4b]">{data.student_initial}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Name */}
+        <p className="text-[13px] font-bold text-[#001f4b] text-center px-3 leading-tight">{data.student_name}</p>
+
+        {/* Level - Grade - Section */}
+        <p className="text-[10px] text-slate-500 text-center mt-0.5">{data.nivel} - {data.grado} - {data.seccion}</p>
+
+        {/* QR */}
+        <div className="flex justify-center py-3">
+          {data.qr_token ? (
+            <QRCodeSVG value={data.qr_token} size={120} />
+          ) : (
+            <div className="w-[120px] h-[120px] bg-slate-50 border border-dashed border-slate-300 rounded flex items-center justify-center">
+              <span className="text-xs text-slate-400">QR</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <p className="text-[8px] text-slate-400 text-center pb-2">Personal e intransferible</p>
+      </div>
+    </div>
+  );
+}
 
 export default function QRTemplateDrawer({ open, onClose, token, filters, studentCount }) {
   const [templates, setTemplates] = useState([]);
   const [selected, setSelected] = useState("classic");
-  const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -20,24 +80,23 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
         setTemplates(res.data.templates || []);
         if (res.data.templates?.length) setSelected(res.data.templates[0].id);
       })
-      .catch(() => setTemplates([{ id: "classic", name: "Clásica", description: "Carnet estándar" }]));
+      .catch(() => setTemplates([{ id: "classic", name: "Clásica", description: "Carnet estándar con logo, foto, nombre, grado/sección y QR." }]));
   }, [open]);
 
   useEffect(() => {
     if (!open || !filters?.nivel_id || !filters?.grado_id || !filters?.seccion_id) {
-      setPreviewUrl(null);
+      setPreviewData(null);
       return;
     }
-    setLoading(true);
-    const params = new URLSearchParams({
-      template: selected,
-      nivel_id: filters.nivel_id,
-      grado_id: filters.grado_id,
-      seccion_id: filters.seccion_id,
-    });
-    setPreviewUrl(`${API}/api/qr-templates/preview?${params.toString()}&token=${token}`);
-    setLoading(false);
-  }, [open, selected, filters]);
+    setLoadingPreview(true);
+    axios.get(`${API}/api/qr-templates/preview`, {
+      headers,
+      params: { nivel_id: filters.nivel_id, grado_id: filters.grado_id, seccion_id: filters.seccion_id }
+    })
+      .then(res => setPreviewData(res.data))
+      .catch(() => setPreviewData(null))
+      .finally(() => setLoadingPreview(false));
+  }, [open, filters?.nivel_id, filters?.grado_id, filters?.seccion_id]);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -73,16 +132,16 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
   return (
     <>
       <div className="fixed inset-0 bg-black/30 z-[190]" onClick={onClose} />
-      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[200] flex flex-col animate-in slide-in-from-right" data-testid="qr-template-drawer">
+      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[200] flex flex-col" data-testid="qr-template-drawer">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
-              <Palette className="w-5 h-5 text-teal-600" />
+            <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center">
+              <Palette className="w-4 h-4 text-teal-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Exportar Carnets QR</h2>
-              <p className="text-xs text-slate-500">Selecciona plantilla y descarga</p>
+              <h2 className="text-base font-bold text-slate-800">Exportar Carnets QR</h2>
+              <p className="text-[11px] text-slate-500">Selecciona plantilla y descarga</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" data-testid="qr-drawer-close">
@@ -91,60 +150,56 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Filter summary */}
           {filterSummary && (
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-              <p className="text-xs text-slate-500 mb-0.5">Filtros aplicados</p>
+              <p className="text-[11px] text-slate-500">Filtros aplicados</p>
               <p className="text-sm font-medium text-slate-800">{filterSummary}</p>
-              {studentCount > 0 && <p className="text-xs text-teal-600 mt-1">{studentCount} estudiante{studentCount !== 1 ? "s" : ""}</p>}
+              {studentCount > 0 && <p className="text-[11px] text-teal-600 mt-0.5">{studentCount} estudiante{studentCount !== 1 ? "s" : ""}</p>}
             </div>
           )}
 
           {/* Template selector */}
           <div>
-            <p className="text-sm font-semibold text-slate-700 mb-2">Plantilla</p>
-            <div className="grid grid-cols-2 gap-3">
+            <p className="text-xs font-semibold text-slate-700 mb-2">Plantilla</p>
+            <div className="grid grid-cols-2 gap-2">
               {templates.map(t => (
                 <button
                   key={t.id}
                   onClick={() => setSelected(t.id)}
                   data-testid={`template-card-${t.id}`}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative p-3 rounded-xl border-2 text-left transition-all ${
                     selected === t.id
-                      ? "border-teal-500 bg-teal-50 shadow-sm"
+                      ? "border-teal-500 bg-teal-50"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
                   {selected === t.id && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" />
                     </div>
                   )}
-                  <p className="font-semibold text-sm text-slate-800">{t.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">{t.description}</p>
+                  <p className="font-semibold text-xs text-slate-800">{t.name}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{t.description}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Carnet preview — rendered as HTML */}
           <div>
-            <p className="text-sm font-semibold text-slate-700 mb-2">Vista previa</p>
-            <div className="bg-slate-100 rounded-xl border border-slate-200 overflow-hidden" style={{ height: "360px" }}>
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
+            <p className="text-xs font-semibold text-slate-700 mb-1">Vista previa</p>
+            <p className="text-[10px] text-slate-400 mb-2">Primer estudiante del filtro</p>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 py-4">
+              {loadingPreview ? (
+                <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
                 </div>
-              ) : previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full"
-                  title="Preview"
-                  data-testid="qr-preview-iframe"
-                />
+              ) : previewData ? (
+                <CarnetPreview data={previewData} />
               ) : (
-                <div className="flex items-center justify-center h-full text-sm text-slate-400">
+                <div className="flex items-center justify-center py-12 text-xs text-slate-400">
                   Aplica filtros para ver la vista previa
                 </div>
               )}
@@ -153,7 +208,7 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
+        <div className="px-5 py-3 border-t border-slate-200 flex gap-3">
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
