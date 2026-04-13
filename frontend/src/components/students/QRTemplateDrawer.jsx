@@ -93,8 +93,8 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
         </div>
         {/* Watermark overlay */}
         {watermarkUrl && (
-          <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center pointer-events-none overflow-hidden" style={{ top: "52%", zIndex: 1 }}>
-            <img src={watermarkUrl} alt="" className="w-full h-full object-contain" style={{ opacity: 0.22 }} />
+          <div className="absolute left-0 right-0 bottom-0 pointer-events-none overflow-hidden" style={{ top: "46%", zIndex: 1 }}>
+            <img src={watermarkUrl} alt="" className="w-full h-full object-cover" style={{ opacity: 0.22 }} />
           </div>
         )}
         <div className="flex justify-center py-2.5 relative" style={{ zIndex: 2 }}>

@@ -173,11 +173,11 @@ class ModernaTemplate(BaseQRTemplate):
                 try:
                     watermark_img.seek(0)
                     wm_reader = ImageReader(watermark_img)
-                    white_area_top = band_bottom
-                    white_area_bottom = y + 2 * mm
-                    wm_w = card_w - 2 * mm
-                    wm_h = white_area_top - white_area_bottom - 2 * mm
-                    c.drawImage(wm_reader, x + 1 * mm, white_area_bottom + 1 * mm, wm_w, wm_h, preserveAspectRatio=True, mask='auto')
+                    wm_x = x + 0.5 * mm
+                    wm_y = y + 1 * mm
+                    wm_w = card_w - 1 * mm
+                    wm_h = band_bottom - y - 1 * mm
+                    c.drawImage(wm_reader, wm_x, wm_y, wm_w, wm_h, preserveAspectRatio=False, mask='auto')
                 except Exception as wm_err:
                     logger.warning(f"[Moderna] Watermark render failed: {wm_err}")
 
