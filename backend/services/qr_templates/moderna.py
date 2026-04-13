@@ -139,8 +139,8 @@ class ModernaTemplate(BaseQRTemplate):
 
             cx = x + card_w / 2  # horizontal center of card
 
-            # ── LAYER 1: Blue header (top ~36%) ─────────────────────
-            header_h = card_h * 0.36
+            # ── LAYER 1: Blue header (top ~32%) ─────────────────────
+            header_h = card_h * 0.32
             header_top = y + card_h
             header_bottom = header_top - header_h
 
@@ -156,27 +156,24 @@ class ModernaTemplate(BaseQRTemplate):
             c.rect(x, header_bottom, card_w, header_h, fill=1, stroke=0)
             c.restoreState()
 
-            # ── LAYER 2: Yellow wave (smooth cosine curve) ────────────
-            # Sample a cosine wave to guarantee smoothness
-            wave_edge_y = header_bottom + 2.5 * mm
-            wave_dip_y = header_bottom - 5 * mm
-            wave_fill_top = header_bottom + 3 * mm
+            # ── LAYER 2: Yellow wave (prominent, matching HTML preview) ─
+            # HTML SVG: viewBox="0 0 240 32", path dips from y=8 at edges to y=28 at center
+            # This is a THICK band, not a thin line. Fill from well into header down past the dip.
+            wave_edge_y = header_bottom + 5 * mm      # high at edges (extends INTO header)
+            wave_dip_y = header_bottom - 10 * mm      # deep dip (prominent belly)
+            wave_fill_top = header_bottom + 6 * mm    # fill extends well into header
+
             wave_amplitude = (wave_edge_y - wave_dip_y) / 2
             wave_center_y = (wave_edge_y + wave_dip_y) / 2
 
             p = c.beginPath()
             p.moveTo(x, wave_fill_top)
-            # Top edge of wave at left
             steps = 40
             for i in range(steps + 1):
                 t = i / steps
                 px = x + t * card_w
-                # Cosine: 1 at edges (t=0, t=1), -1 at center (t=0.5)
                 py = wave_center_y + wave_amplitude * math.cos(t * math.pi)
-                if i == 0:
-                    p.lineTo(px, py)
-                else:
-                    p.lineTo(px, py)
+                p.lineTo(px, py)
             p.lineTo(x + card_w, wave_fill_top)
             p.close()
             c.setFillColor(YELLOW)
@@ -187,7 +184,7 @@ class ModernaTemplate(BaseQRTemplate):
             if logo_img:
                 try:
                     logo_img.seek(0)
-                    c.drawImage(ImageReader(logo_img), cx - logo_s / 2, header_top - 2 * mm - logo_s, logo_s, logo_s, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(logo_img), cx - logo_s / 2, header_top - 1.5 * mm - logo_s, logo_s, logo_s, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     pass
 
@@ -195,14 +192,13 @@ class ModernaTemplate(BaseQRTemplate):
             c.setFillColor(white)
             c.setFont("Helvetica-Bold", 5.5)
             display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
-            c.drawCentredString(cx, header_top - 2 * mm - logo_s - 4 * mm, display_name[:32])
+            c.drawCentredString(cx, header_top - 1.5 * mm - logo_s - 3.5 * mm, display_name[:32])
 
-            # ── LAYER 3: Student photo (SQUARE 1:1, overlapping wave) ─
-            photo_size = card_w * 0.38  # square side = 38% of card width
+            # ── LAYER 3: Student photo (SQUARE, centered ON the wave) ─
+            photo_size = card_w * 0.36
             photo_x = cx - photo_size / 2
-            # Center the photo vertically on the wave midpoint
-            wave_mid_y = (wave_edge_y + wave_dip_y) / 2
-            photo_y = wave_mid_y - photo_size / 2
+            # Photo center aligns with wave center — so it truly sits ON the wave
+            photo_y = wave_center_y - photo_size / 2
 
             # Fetch student photo
             student_photo_buf = None
