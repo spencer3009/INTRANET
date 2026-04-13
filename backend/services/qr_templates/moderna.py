@@ -198,10 +198,11 @@ class ModernaTemplate(BaseQRTemplate):
             display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
             c.drawCentredString(cx, logo_y - 2.9 * mm, display_name[:32])
 
-            # LAYER 3: Photo square (centered ON the yellow band)
+            # LAYER 3: Photo circle (centered ON the yellow band)
             photo_size = card_w * 0.40
             photo_x = cx - photo_size / 2
             photo_y = band_center_y - photo_size / 2
+            photo_r = photo_size / 2
 
             student_photo_buf = None
             if s.get("photo_url"):
@@ -226,27 +227,39 @@ class ModernaTemplate(BaseQRTemplate):
 
             if student_photo_buf:
                 try:
+                    c.saveState()
+                    clip_path = c.beginPath()
+                    clip_path.circle(cx, band_center_y, photo_r)
+                    clip_path.close()
+                    c.clipPath(clip_path, stroke=0)
                     c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.restoreState()
                 except Exception:
+                    try:
+                        c.restoreState()
+                    except Exception:
+                        pass
                     c.setFillColor(LIGHT_BG)
-                    c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                    c.circle(cx, band_center_y, photo_r, fill=1, stroke=0)
                     c.setFillColor(NAVY)
                     c.setFont("Helvetica-Bold", 16)
-                    c.drawCentredString(cx, photo_y + photo_size / 2 - 4, (s.get("name", "?")[:1]).upper())
+                    c.drawCentredString(cx, band_center_y - 4, (s.get("name", "?")[:1]).upper())
                 finally:
-                    try: student_photo_buf.close()
-                    except: pass
+                    try:
+                        student_photo_buf.close()
+                    except Exception:
+                        pass
             else:
                 c.setFillColor(LIGHT_BG)
-                c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                c.circle(cx, band_center_y, photo_r, fill=1, stroke=0)
                 c.setFillColor(NAVY)
                 c.setFont("Helvetica-Bold", 16)
-                c.drawCentredString(cx, photo_y + photo_size / 2 - 4, (s.get("name", "?")[:1]).upper())
+                c.drawCentredString(cx, band_center_y - 4, (s.get("name", "?")[:1]).upper())
 
-            # Yellow border 3pt
+            # Yellow border circle 3pt
             c.setStrokeColor(YELLOW)
             c.setLineWidth(3)
-            c.rect(photo_x, photo_y, photo_size, photo_size, fill=0, stroke=1)
+            c.circle(cx, band_center_y, photo_r, fill=0, stroke=1)
 
             # Name
             name_y = photo_y - 4 * mm

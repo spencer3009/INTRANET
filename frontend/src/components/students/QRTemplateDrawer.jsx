@@ -79,9 +79,9 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
         <div style={{ backgroundColor: ca, height: "14px" }} />
         <div className="flex justify-center -mt-[44px] relative z-20">
           {data.student_photo ? (
-            <img src={data.student_photo} alt="" className="w-[80px] h-[80px] object-cover bg-white" style={{ border: `3px solid ${ca}`, borderRadius: "2px" }} />
+            <img src={data.student_photo} alt="" className="w-[80px] h-[80px] rounded-full object-cover bg-white" style={{ border: `3px solid ${ca}` }} />
           ) : (
-            <div className="w-[80px] h-[80px] bg-slate-100 flex items-center justify-center" style={{ border: `3px solid ${ca}`, borderRadius: "2px" }}>
+            <div className="w-[80px] h-[80px] rounded-full bg-slate-100 flex items-center justify-center" style={{ border: `3px solid ${ca}` }}>
               <span className="text-3xl font-bold" style={{ color: cp }}>{data.student_initial}</span>
             </div>
           )}
