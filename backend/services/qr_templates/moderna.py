@@ -150,28 +150,24 @@ class ModernaTemplate(BaseQRTemplate):
             c.rect(x, header_bottom, card_w, header_h, fill=1, stroke=0)
             c.restoreState()
 
-            # ── Yellow decorative curve ──────────────────────────────
-            curve_y = header_bottom
-            c.saveState()
-            path2 = c.beginPath()
-            path2.moveTo(x, curve_y + 3 * mm)
-            # Smooth wave
-            cp1x = x + card_w * 0.25
-            cp1y = curve_y + 6 * mm
-            cp2x = x + card_w * 0.75
-            cp2y = curve_y - 2 * mm
-            path2.curveTo(cp1x, cp1y, cp2x, cp2y, x + card_w, curve_y + 2 * mm)
-            path2.lineTo(x + card_w, curve_y - 1 * mm)
-            cp3x = x + card_w * 0.75
-            cp3y = curve_y - 5 * mm
-            cp4x = x + card_w * 0.25
-            cp4y = curve_y + 3 * mm
-            path2.curveTo(cp3x, cp3y, cp4x, cp4y, x, curve_y)
-            path2.close()
-            c.clipPath(path2, stroke=0)
+            # ── Yellow decorative wave (inverted smile shape) ────────
+            # Wide wave: high at edges, dips down in center (panza abajo)
+            wave_top = header_bottom + 4 * mm      # top of wave at edges
+            wave_bottom = header_bottom - 6 * mm    # bottom of wave dip at center
+            wave_fill_top = header_bottom + 5 * mm  # fill extends above wave top
+
+            p = c.beginPath()
+            p.moveTo(x, wave_fill_top)                          # start top-left
+            p.lineTo(x, wave_top)                               # left edge high point
+            p.curveTo(                                          # curve down to center
+                x + card_w * 0.3, wave_bottom,                  # cp1: left third, dips low
+                x + card_w * 0.7, wave_bottom,                  # cp2: right third, dips low
+                x + card_w, wave_top                            # end: right edge high
+            )
+            p.lineTo(x + card_w, wave_fill_top)                 # up to fill area
+            p.close()
             c.setFillColor(YELLOW)
-            c.rect(x, curve_y - 6 * mm, card_w, 12 * mm, fill=1, stroke=0)
-            c.restoreState()
+            c.drawPath(p, fill=1, stroke=0)
 
             # ── Logo in header ───────────────────────────────────────
             logo_size = 9 * mm
@@ -190,10 +186,12 @@ class ModernaTemplate(BaseQRTemplate):
             tw = c.stringWidth(name_trunc, "Helvetica-Bold", 5.5)
             c.drawString(x + (card_w - tw) / 2, header_top - 2 * mm - logo_size - 4 * mm, name_trunc)
 
-            # ── Student photo (overlapping header/body) ──────────────
-            photo_size = 18 * mm
-            photo_x = x + (card_w - photo_size) / 2
-            photo_y = header_bottom - photo_size * 0.4
+            # ── Student photo (vertical rectangle, overlapping wave) ─
+            # 3:4 ratio, ~40% of card width, positioned 40% in blue / 60% in white
+            photo_w = card_w * 0.40
+            photo_h = photo_w * 1.3
+            photo_x = x + (card_w - photo_w) / 2
+            photo_y = header_bottom - photo_h * 0.55  # 45% in header, 55% below
 
             student_photo_buf = None
             photo_url_val = s.get("photo_url")
@@ -205,33 +203,34 @@ class ModernaTemplate(BaseQRTemplate):
                             pil_img = PILImage.open(BytesIO(resp.content))
                             if pil_img.mode in ('RGBA', 'P', 'LA'):
                                 pil_img = pil_img.convert('RGB')
-                            pil_img.thumbnail((200, 200))
+                            pil_img.thumbnail((200, 300))
                             student_photo_buf = BytesIO()
                             pil_img.save(student_photo_buf, format='JPEG', quality=75)
                             student_photo_buf.seek(0)
                 except Exception:
                     student_photo_buf = None
 
-            # Yellow border around photo area
-            c.setStrokeColor(YELLOW)
-            c.setLineWidth(2)
-            c.rect(photo_x - 1, photo_y - 1, photo_size + 2, photo_size + 2, fill=0, stroke=1)
-
+            # Photo background + image or initial
             if student_photo_buf:
                 try:
-                    c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_w, photo_h, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     c.setFillColor(LIGHT_BG)
-                    c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                    c.rect(photo_x, photo_y, photo_w, photo_h, fill=1, stroke=0)
                     c.setFillColor(NAVY)
-                    c.setFont("Helvetica-Bold", 14)
-                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                    c.setFont("Helvetica-Bold", 16)
+                    c.drawCentredString(photo_x + photo_w / 2, photo_y + photo_h / 2 - 4, (s.get("name", "?")[:1]).upper())
             else:
                 c.setFillColor(LIGHT_BG)
-                c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                c.rect(photo_x, photo_y, photo_w, photo_h, fill=1, stroke=0)
                 c.setFillColor(NAVY)
-                c.setFont("Helvetica-Bold", 14)
-                c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                c.setFont("Helvetica-Bold", 16)
+                c.drawCentredString(photo_x + photo_w / 2, photo_y + photo_h / 2 - 4, (s.get("name", "?")[:1]).upper())
+
+            # Yellow thick border around photo (drawn OVER the photo)
+            c.setStrokeColor(YELLOW)
+            c.setLineWidth(3)
+            c.rect(photo_x, photo_y, photo_w, photo_h, fill=0, stroke=1)
 
             if student_photo_buf:
                 try:
@@ -240,7 +239,7 @@ class ModernaTemplate(BaseQRTemplate):
                     pass
 
             # ── Student name ─────────────────────────────────────────
-            name_y = photo_y - 5 * mm
+            name_y = photo_y - 4 * mm
             c.setFillColor(DARK)
             c.setFont("Helvetica-Bold", 7)
             full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()

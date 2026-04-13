@@ -56,7 +56,7 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet }) {
     <div className="flex justify-center" data-testid="carnet-preview-moderna">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden relative">
         {/* Blue header */}
-        <div className="bg-[#1e3a5f] pt-3 pb-10 px-4 text-center relative">
+        <div className="bg-[#1e3a5f] pt-3 pb-6 px-4 text-center relative z-0">
           {logoSrc ? (
             <img src={logoSrc} alt="" className="w-10 h-10 object-contain mx-auto mb-1.5" />
           ) : (
@@ -66,19 +66,19 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet }) {
           )}
           <p className="text-[10px] font-bold text-white leading-tight">{data.school_name}</p>
         </div>
-        {/* Yellow wave SVG */}
-        <div className="relative -mt-4 z-10">
-          <svg viewBox="0 0 240 24" className="w-full block" preserveAspectRatio="none">
-            <path d="M0 8 C60 24, 180 0, 240 12 L240 0 C180 12, 60 -4, 0 4 Z" fill="#F5B800" />
+        {/* Yellow wave — inverted smile (high at edges, dips in center) */}
+        <div className="relative -mt-2 z-10">
+          <svg viewBox="0 0 240 32" className="w-full block" preserveAspectRatio="none">
+            <path d="M0 0 L0 8 C60 28, 180 28, 240 8 L240 0 Z" fill="#F5B800" />
           </svg>
         </div>
-        {/* Photo overlapping */}
-        <div className="flex justify-center -mt-8 relative z-20">
+        {/* Photo — vertical rectangle overlapping wave, with yellow border */}
+        <div className="flex justify-center -mt-10 relative z-20">
           {data.student_photo ? (
-            <img src={data.student_photo} alt="" className="w-[72px] h-[72px] object-cover border-[3px] border-[#F5B800] rounded-sm bg-white" />
+            <img src={data.student_photo} alt="" className="w-[80px] h-[104px] object-cover border-[3px] border-[#F5B800] bg-white" style={{ borderRadius: "2px" }} />
           ) : (
-            <div className="w-[72px] h-[72px] bg-slate-100 border-[3px] border-[#F5B800] rounded-sm flex items-center justify-center">
-              <span className="text-2xl font-bold text-[#1e3a5f]">{data.student_initial}</span>
+            <div className="w-[80px] h-[104px] bg-slate-100 border-[3px] border-[#F5B800] flex items-center justify-center" style={{ borderRadius: "2px" }}>
+              <span className="text-3xl font-bold text-[#1e3a5f]">{data.student_initial}</span>
             </div>
           )}
         </div>
