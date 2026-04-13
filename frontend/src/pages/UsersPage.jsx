@@ -13,7 +13,7 @@ import {
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
   ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX,
-  FileSpreadsheet, Download, FileUp, CheckCircle2
+  FileSpreadsheet, Download, FileUp, CheckCircle2, Palette
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import TeacherQRCard from "@/components/TeacherQRCard";
@@ -23,6 +23,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 import CameraCaptureModal from "@/components/CameraCaptureModal";
 import BulkQRModal from "@/components/BulkQRModal";
+import QRTemplateDrawer from "@/components/students/QRTemplateDrawer";
 import BulkDeleteModal from "@/components/BulkDeleteModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1981,6 +1982,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [expandedSections, setExpandedSections] = useState({});
   const [generatingQR, setGeneratingQR] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
+  const [showTemplateDrawer, setShowTemplateDrawer] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [regeneratingQR, setRegeneratingQR] = useState(false);
 
@@ -2628,6 +2630,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <QrCode className="w-5 h-5 text-white" />
                       </div>
                       <span className="hidden sm:inline">Descargar QR</span>
+                    </button>
+                  )}
+                  {selectedRole === 'student' && (
+                    <button
+                      onClick={() => {
+                        if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection) {
+                          alert("Selecciona nivel, grado y sección antes de exportar con plantilla.");
+                          return;
+                        }
+                        setShowTemplateDrawer(true);
+                      }}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid="template-qr-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">QR con plantilla</span>
                     </button>
                   )}
                 </div>
@@ -4838,6 +4858,20 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* Bulk QR Download Modal */}
       <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
+      <QRTemplateDrawer
+        open={showTemplateDrawer}
+        onClose={() => setShowTemplateDrawer(false)}
+        token={token}
+        filters={{
+          nivel_id: studentFilterLevel,
+          grado_id: studentFilterGrade,
+          seccion_id: studentFilterSection,
+          nivelName: levels.find(l => l.id === studentFilterLevel)?.nombre,
+          gradoName: grades.find(g => g.id === studentFilterGrade)?.nombre,
+          seccionName: sections.find(s => s.id === studentFilterSection)?.nombre,
+        }}
+        studentCount={filteredStudents.length}
+      />
       <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
 
 
