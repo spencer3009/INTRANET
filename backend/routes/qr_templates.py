@@ -20,6 +20,27 @@ async def get_available_templates(current_user=Depends(get_current_user)):
     return {"templates": list_templates()}
 
 
+@router.get("/qr-templates/count")
+async def count_students_with_qr(
+    nivel_id: str = Query(...),
+    grado_id: str = Query(...),
+    seccion_id: str = Query(...),
+    current_user=Depends(get_current_user),
+):
+    """Count students with QR token for the given filters."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user.get("school_id")
+    count = await db.users.count_documents({
+        "school_id": school_id, "role": "student",
+        "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id,
+        "qr_token": {"$exists": True, "$ne": None},
+    })
+    return {"count": count}
+
+
+
 class TemplateDownloadRequest(BaseModel):
     formato: str = "pdf_grid"  # pdf_grid | zip | pdf_lista
     template: str = "classic"

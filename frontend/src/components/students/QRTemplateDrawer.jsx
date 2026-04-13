@@ -152,13 +152,17 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   useEffect(() => {
     if (!selLevel || !selGrade || !selSection) { setStudentCount(0); setPreviewData(null); return; }
     setLoadingPreview(true);
-    axios.get(`${API}/api/qr-templates/preview`, { headers, params: { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection } })
-      .then(res => setPreviewData(res.data))
-      .catch(() => setPreviewData(null))
-      .finally(() => setLoadingPreview(false));
-    axios.get(`${API}/api/users/students`, { headers, params: { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection, turno_id: selShift || undefined } })
-      .then(res => { const arr = res.data?.students || res.data || []; setStudentCount(Array.isArray(arr) ? arr.filter(s => s.qr_token).length : 0); })
-      .catch(() => {});
+    const params = { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection };
+    Promise.all([
+      axios.get(`${API}/api/qr-templates/preview`, { headers, params }),
+      axios.get(`${API}/api/qr-templates/count`, { headers, params }),
+    ]).then(([prevRes, countRes]) => {
+      setPreviewData(prevRes.data);
+      setStudentCount(countRes.data?.count || 0);
+    }).catch(() => {
+      setPreviewData(null);
+      setStudentCount(0);
+    }).finally(() => setLoadingPreview(false));
   }, [selLevel, selGrade, selSection, selShift]);
 
   const handleUploadLogo = async (e) => {
