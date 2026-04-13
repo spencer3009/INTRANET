@@ -69,7 +69,7 @@ class ModernaTemplate(BaseQRTemplate):
         school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "logo_url": 1})
         school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
 
-        tenant = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1, "logo_url": 1})
+        tenant = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1, "logo_url": 1, "watermark_moderna_url": 1})
         logo_url = (tenant or {}).get("logo_carnet_url") or (tenant or {}).get("logo_url") or (school or {}).get("logo_url")
 
         logo_img = None
