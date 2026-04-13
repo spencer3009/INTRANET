@@ -137,157 +137,157 @@ class ModernaTemplate(BaseQRTemplate):
             c.setLineWidth(0.5)
             c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
 
-            # ── Blue header (top ~38%) ───────────────────────────────
-            header_h = card_h * 0.38
+            cx = x + card_w / 2  # horizontal center of card
+
+            # ── LAYER 1: Blue header (top ~36%) ─────────────────────
+            header_h = card_h * 0.36
             header_top = y + card_h
             header_bottom = header_top - header_h
 
             c.saveState()
-            path = c.beginPath()
-            path.moveTo(x, header_top)
-            path.lineTo(x + card_w, header_top)
-            path.lineTo(x + card_w, header_bottom)
-            path.lineTo(x, header_bottom)
-            path.close()
-            c.clipPath(path, stroke=0)
+            clip = c.beginPath()
+            clip.moveTo(x, header_top)
+            clip.lineTo(x + card_w, header_top)
+            clip.lineTo(x + card_w, header_bottom)
+            clip.lineTo(x, header_bottom)
+            clip.close()
+            c.clipPath(clip, stroke=0)
             c.setFillColor(NAVY)
             c.rect(x, header_bottom, card_w, header_h, fill=1, stroke=0)
             c.restoreState()
 
-            # ── Yellow decorative wave (inverted smile shape) ────────
-            # Wide wave: high at edges, dips down in center (panza abajo)
-            wave_top = header_bottom + 4 * mm      # top of wave at edges
-            wave_bottom = header_bottom - 6 * mm    # bottom of wave dip at center
-            wave_fill_top = header_bottom + 5 * mm  # fill extends above wave top
+            # ── LAYER 2: Yellow wave (smooth cosine curve) ────────────
+            # Sample a cosine wave to guarantee smoothness
+            wave_edge_y = header_bottom + 2.5 * mm
+            wave_dip_y = header_bottom - 5 * mm
+            wave_fill_top = header_bottom + 3 * mm
+            wave_amplitude = (wave_edge_y - wave_dip_y) / 2
+            wave_center_y = (wave_edge_y + wave_dip_y) / 2
 
             p = c.beginPath()
-            p.moveTo(x, wave_fill_top)                          # start top-left
-            p.lineTo(x, wave_top)                               # left edge high point
-            p.curveTo(                                          # curve down to center
-                x + card_w * 0.3, wave_bottom,                  # cp1: left third, dips low
-                x + card_w * 0.7, wave_bottom,                  # cp2: right third, dips low
-                x + card_w, wave_top                            # end: right edge high
-            )
-            p.lineTo(x + card_w, wave_fill_top)                 # up to fill area
+            p.moveTo(x, wave_fill_top)
+            # Top edge of wave at left
+            steps = 40
+            for i in range(steps + 1):
+                t = i / steps
+                px = x + t * card_w
+                # Cosine: 1 at edges (t=0, t=1), -1 at center (t=0.5)
+                py = wave_center_y + wave_amplitude * math.cos(t * math.pi)
+                if i == 0:
+                    p.lineTo(px, py)
+                else:
+                    p.lineTo(px, py)
+            p.lineTo(x + card_w, wave_fill_top)
             p.close()
             c.setFillColor(YELLOW)
             c.drawPath(p, fill=1, stroke=0)
 
-            # ── Logo in header ───────────────────────────────────────
-            logo_size = 9 * mm
+            # ── Logo in header ──────────────────────────────────────
+            logo_s = 9 * mm
             if logo_img:
                 try:
                     logo_img.seek(0)
-                    c.drawImage(ImageReader(logo_img), x + (card_w - logo_size) / 2, header_top - 2 * mm - logo_size, logo_size, logo_size, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(logo_img), cx - logo_s / 2, header_top - 2 * mm - logo_s, logo_s, logo_s, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     pass
 
-            # ── School name in header ────────────────────────────────
+            # ── School name in header ───────────────────────────────
             c.setFillColor(white)
             c.setFont("Helvetica-Bold", 5.5)
             display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
-            name_trunc = display_name[:32]
-            tw = c.stringWidth(name_trunc, "Helvetica-Bold", 5.5)
-            c.drawString(x + (card_w - tw) / 2, header_top - 2 * mm - logo_size - 4 * mm, name_trunc)
+            c.drawCentredString(cx, header_top - 2 * mm - logo_s - 4 * mm, display_name[:32])
 
-            # ── Student photo (vertical rectangle, overlapping wave) ─
-            # 3:4 ratio, ~40% of card width, positioned 40% in blue / 60% in white
-            photo_w = card_w * 0.40
-            photo_h = photo_w * 1.3
-            photo_x = x + (card_w - photo_w) / 2
-            photo_y = header_bottom - photo_h * 0.55  # 45% in header, 55% below
+            # ── LAYER 3: Student photo (SQUARE 1:1, overlapping wave) ─
+            photo_size = card_w * 0.38  # square side = 38% of card width
+            photo_x = cx - photo_size / 2
+            # Center the photo vertically on the wave midpoint
+            wave_mid_y = (wave_edge_y + wave_dip_y) / 2
+            photo_y = wave_mid_y - photo_size / 2
 
+            # Fetch student photo
             student_photo_buf = None
-            photo_url_val = s.get("photo_url")
-            if photo_url_val:
+            if s.get("photo_url"):
                 try:
                     async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as pc:
-                        resp = await pc.get(photo_url_val)
+                        resp = await pc.get(s["photo_url"])
                         if resp.status_code == 200:
                             pil_img = PILImage.open(BytesIO(resp.content))
                             if pil_img.mode in ('RGBA', 'P', 'LA'):
                                 pil_img = pil_img.convert('RGB')
-                            pil_img.thumbnail((200, 300))
+                            # Crop to square (center crop)
+                            iw, ih = pil_img.size
+                            side = min(iw, ih)
+                            left = (iw - side) // 2
+                            top = (ih - side) // 2
+                            pil_img = pil_img.crop((left, top, left + side, top + side))
+                            pil_img = pil_img.resize((200, 200))
                             student_photo_buf = BytesIO()
                             pil_img.save(student_photo_buf, format='JPEG', quality=75)
                             student_photo_buf.seek(0)
                 except Exception:
                     student_photo_buf = None
 
-            # Photo background + image or initial
+            # Draw photo or placeholder
             if student_photo_buf:
                 try:
-                    c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_w, photo_h, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(student_photo_buf), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     c.setFillColor(LIGHT_BG)
-                    c.rect(photo_x, photo_y, photo_w, photo_h, fill=1, stroke=0)
+                    c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
                     c.setFillColor(NAVY)
                     c.setFont("Helvetica-Bold", 16)
-                    c.drawCentredString(photo_x + photo_w / 2, photo_y + photo_h / 2 - 4, (s.get("name", "?")[:1]).upper())
+                    c.drawCentredString(cx, photo_y + photo_size / 2 - 4, (s.get("name", "?")[:1]).upper())
+                finally:
+                    try: student_photo_buf.close()
+                    except: pass
             else:
                 c.setFillColor(LIGHT_BG)
-                c.rect(photo_x, photo_y, photo_w, photo_h, fill=1, stroke=0)
+                c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
                 c.setFillColor(NAVY)
                 c.setFont("Helvetica-Bold", 16)
-                c.drawCentredString(photo_x + photo_w / 2, photo_y + photo_h / 2 - 4, (s.get("name", "?")[:1]).upper())
+                c.drawCentredString(cx, photo_y + photo_size / 2 - 4, (s.get("name", "?")[:1]).upper())
 
-            # Yellow thick border around photo (drawn OVER the photo)
+            # Yellow border (3pt, on top of everything)
             c.setStrokeColor(YELLOW)
             c.setLineWidth(3)
-            c.rect(photo_x, photo_y, photo_w, photo_h, fill=0, stroke=1)
+            c.rect(photo_x, photo_y, photo_size, photo_size, fill=0, stroke=1)
 
-            if student_photo_buf:
-                try:
-                    student_photo_buf.close()
-                except Exception:
-                    pass
-
-            # ── Student name ─────────────────────────────────────────
+            # ── Student name (centered) ─────────────────────────────
             name_y = photo_y - 4 * mm
             c.setFillColor(DARK)
             c.setFont("Helvetica-Bold", 7)
             full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
             if len(full_name) > 24:
-                # Split into 2 lines
                 mid = len(full_name) // 2
                 split = full_name.rfind(' ', 0, mid + 5)
-                if split == -1:
-                    split = mid
-                line1 = full_name[:split].strip()
-                line2 = full_name[split:].strip()
-                tw1 = c.stringWidth(line1, "Helvetica-Bold", 7)
-                tw2 = c.stringWidth(line2, "Helvetica-Bold", 7)
-                c.drawString(x + (card_w - tw1) / 2, name_y, line1)
-                c.drawString(x + (card_w - tw2) / 2, name_y - 3.5 * mm, line2)
+                if split == -1: split = mid
+                c.drawCentredString(cx, name_y, full_name[:split].strip())
+                c.drawCentredString(cx, name_y - 3.5 * mm, full_name[split:].strip())
                 name_y -= 3.5 * mm
             else:
-                tw = c.stringWidth(full_name, "Helvetica-Bold", 7)
-                c.drawString(x + (card_w - tw) / 2, name_y, full_name)
+                c.drawCentredString(cx, name_y, full_name)
 
-            # ── Student code (optional) ──────────────────────────────
+            # ── Student code (optional, centered) ───────────────────
             if incluir_codigo and s.get("codigo_alumno"):
                 c.setFillColor(GRAY)
                 c.setFont("Helvetica", 5)
-                code_str = f"Cod: {s['codigo_alumno']}"
-                twc = c.stringWidth(code_str, "Helvetica", 5)
-                c.drawString(x + (card_w - twc) / 2, name_y - 3.5 * mm, code_str)
+                c.drawCentredString(cx, name_y - 3.5 * mm, f"Cod: {s['codigo_alumno']}")
                 name_y -= 3.5 * mm
 
-            # ── Badge: grado/sección ─────────────────────────────────
+            # ── Badge (centered) ────────────────────────────────────
             badge_y = name_y - 5 * mm
             badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
             c.setFont("Helvetica-Bold", 5)
             btw = c.stringWidth(badge_text, "Helvetica-Bold", 5)
             badge_w = btw + 6 * mm
             badge_h = 4 * mm
-            badge_x = x + (card_w - badge_w) / 2
 
             c.setFillColor(YELLOW)
-            c.roundRect(badge_x, badge_y, badge_w, badge_h, 2 * mm, fill=1, stroke=0)
+            c.roundRect(cx - badge_w / 2, badge_y, badge_w, badge_h, 2 * mm, fill=1, stroke=0)
             c.setFillColor(NAVY)
-            c.drawString(badge_x + 3 * mm, badge_y + 1.2 * mm, badge_text)
+            c.drawCentredString(cx, badge_y + 1.2 * mm, badge_text)
 
-            # ── QR ───────────────────────────────────────────────────
+            # ── QR (centered) ───────────────────────────────────────
             footer_y = y + 2 * mm
             qr_top = badge_y - 2 * mm
             qr_bottom = footer_y + 3 * mm
@@ -299,13 +299,13 @@ class ModernaTemplate(BaseQRTemplate):
             qr_buf = BytesIO()
             qr_img.save(qr_buf, format="PNG")
             qr_buf.seek(0)
-            c.drawImage(ImageReader(qr_buf), x + (card_w - qr_size) / 2, qr_bottom + (available - qr_size) / 2, qr_size, qr_size)
+            c.drawImage(ImageReader(qr_buf), cx - qr_size / 2, qr_bottom + (available - qr_size) / 2, qr_size, qr_size)
             del qr_buf
 
-            # ── Footer ───────────────────────────────────────────────
+            # ── Footer (centered) ───────────────────────────────────
             c.setFillColor(GRAY)
             c.setFont("Helvetica", 3.5)
-            c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
+            c.drawCentredString(cx, footer_y, "Personal e intransferible")
 
             card_idx += 1
 
