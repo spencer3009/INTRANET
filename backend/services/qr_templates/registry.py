@@ -1,6 +1,10 @@
 from .classic import ClassicTemplate
+from .moderna import ModernaTemplate
 
-AVAILABLE_TEMPLATES = {"classic": ClassicTemplate()}
+AVAILABLE_TEMPLATES = {
+    "classic": ClassicTemplate(),
+    "moderna": ModernaTemplate(),
+}
 DEFAULT_TEMPLATE = "classic"
 
 

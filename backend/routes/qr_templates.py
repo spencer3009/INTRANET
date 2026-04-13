@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
@@ -130,3 +130,63 @@ async def download_with_template(
     except Exception as e:
         logger.exception(f"[QR Templates] Download error: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
+
+
+# Endpoint colocado aquí por conveniencia del flujo del drawer.
+# Semánticamente el dato pertenece a tenant_settings.
+@router.post("/qr-templates/upload-logo-carnet")
+async def upload_logo_carnet(file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    """Upload an alternative logo for QR carnets. Stored in tenant_settings.logo_carnet_url."""
+    import cloudinary
+    import cloudinary.uploader
+
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    try:
+        # Delete previous carnet logo from Cloudinary if exists
+        existing = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_public_id": 1})
+        old_public_id = (existing or {}).get("logo_carnet_public_id")
+        if old_public_id:
+            try:
+                cloudinary.uploader.destroy(old_public_id)
+                logger.info(f"[Logo Carnet] Deleted old logo: {old_public_id}")
+            except Exception as e:
+                logger.warning(f"[Logo Carnet] Failed to delete old: {e}")
+
+        content = await file.read()
+        result = cloudinary.uploader.upload(
+            content,
+            folder=f"edunet/logos-carnet/{school_id}",
+            resource_type="image",
+            transformation={"width": 400, "height": 400, "crop": "limit"},
+        )
+        url = result.get("secure_url")
+        public_id = result.get("public_id")
+
+        await db.tenant_settings.update_one(
+            {"school_id": school_id},
+            {"$set": {"logo_carnet_url": url, "logo_carnet_public_id": public_id}},
+            upsert=True
+        )
+        return {"logo_carnet_url": url}
+
+    except Exception as e:
+        logger.exception(f"[Logo Carnet] Upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error subiendo logo: {str(e)}")
+
+
+@router.get("/qr-templates/logo-carnet")
+async def get_logo_carnet(current_user=Depends(get_current_user)):
+    """Get current carnet logo URL."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user.get("school_id")
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1})
+    return {"logo_carnet_url": (settings or {}).get("logo_carnet_url")}

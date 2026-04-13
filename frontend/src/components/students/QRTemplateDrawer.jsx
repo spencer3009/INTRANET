@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { X, Download, Loader2, Palette, Check, QrCode, FolderArchive, List } from "lucide-react";
+import { X, Download, Loader2, Palette, Check, QrCode, FolderArchive, List, Upload, Image } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -11,10 +11,10 @@ const FORMATS = [
   { id: "pdf_lista", label: "PDF tipo lista", desc: "Tabla con nombre y QR", icon: List },
 ];
 
-function CarnetPreview({ data, incluirCodigo }) {
+function CarnetClassicPreview({ data, incluirCodigo }) {
   if (!data) return null;
   return (
-    <div className="flex justify-center" data-testid="carnet-preview">
+    <div className="flex justify-center" data-testid="carnet-preview-classic">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden">
         <div className="h-3 bg-slate-400" />
         <div className="flex flex-col items-center pt-3 pb-1 px-3">
@@ -38,16 +38,10 @@ function CarnetPreview({ data, incluirCodigo }) {
           )}
         </div>
         <p className="text-[13px] font-bold text-[#001f4b] text-center px-3 leading-tight">{data.student_name}</p>
-        {incluirCodigo && data.codigo_alumno && (
-          <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>
-        )}
+        {incluirCodigo && data.codigo_alumno && <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>}
         <p className="text-[10px] text-slate-500 text-center mt-0.5">{data.nivel} - {data.grado} - {data.seccion}</p>
         <div className="flex justify-center py-3">
-          {data.qr_token ? <QRCodeSVG value={data.qr_token} size={120} /> : (
-            <div className="w-[120px] h-[120px] bg-slate-50 border border-dashed border-slate-300 rounded flex items-center justify-center">
-              <span className="text-xs text-slate-400">QR</span>
-            </div>
-          )}
+          {data.qr_token ? <QRCodeSVG value={data.qr_token} size={120} /> : <div className="w-[120px] h-[120px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
         </div>
         <p className="text-[8px] text-slate-400 text-center pb-2">Personal e intransferible</p>
       </div>
@@ -55,8 +49,57 @@ function CarnetPreview({ data, incluirCodigo }) {
   );
 }
 
+function CarnetModernaPreview({ data, incluirCodigo, logoCarnet }) {
+  if (!data) return null;
+  const logoSrc = logoCarnet || data.school_logo;
+  return (
+    <div className="flex justify-center" data-testid="carnet-preview-moderna">
+      <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden relative">
+        {/* Blue header */}
+        <div className="bg-[#1e3a5f] pt-3 pb-10 px-4 text-center relative">
+          {logoSrc ? (
+            <img src={logoSrc} alt="" className="w-10 h-10 object-contain mx-auto mb-1.5" />
+          ) : (
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-1.5">
+              <span className="text-[9px] font-bold text-white/60">LOGO</span>
+            </div>
+          )}
+          <p className="text-[10px] font-bold text-white leading-tight">{data.school_name}</p>
+        </div>
+        {/* Yellow wave SVG */}
+        <div className="relative -mt-4 z-10">
+          <svg viewBox="0 0 240 24" className="w-full block" preserveAspectRatio="none">
+            <path d="M0 8 C60 24, 180 0, 240 12 L240 0 C180 12, 60 -4, 0 4 Z" fill="#F5B800" />
+          </svg>
+        </div>
+        {/* Photo overlapping */}
+        <div className="flex justify-center -mt-8 relative z-20">
+          {data.student_photo ? (
+            <img src={data.student_photo} alt="" className="w-[72px] h-[72px] object-cover border-[3px] border-[#F5B800] rounded-sm bg-white" />
+          ) : (
+            <div className="w-[72px] h-[72px] bg-slate-100 border-[3px] border-[#F5B800] rounded-sm flex items-center justify-center">
+              <span className="text-2xl font-bold text-[#1e3a5f]">{data.student_initial}</span>
+            </div>
+          )}
+        </div>
+        {/* Name */}
+        <p className="text-[13px] font-bold text-[#1a1a2e] text-center px-3 mt-2 leading-tight">{data.student_name}</p>
+        {incluirCodigo && data.codigo_alumno && <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>}
+        {/* Badge */}
+        <div className="flex justify-center mt-1.5">
+          <span className="bg-[#F5B800] text-[#1e3a5f] text-[9px] font-bold px-3 py-0.5 rounded-full">{data.nivel} - {data.grado} - {data.seccion}</span>
+        </div>
+        {/* QR */}
+        <div className="flex justify-center py-2.5">
+          {data.qr_token ? <QRCodeSVG value={data.qr_token} size={100} /> : <div className="w-[100px] h-[100px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
+        </div>
+        <p className="text-[7px] text-slate-400 text-center pb-2">Personal e intransferible</p>
+      </div>
+    </div>
+  );
+}
+
 export default function QRTemplateDrawer({ open, onClose, token }) {
-  // Filter data
   const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
@@ -67,7 +110,6 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const [selShift, setSelShift] = useState("");
   const [studentCount, setStudentCount] = useState(0);
 
-  // Drawer state
   const [templates, setTemplates] = useState([]);
   const [selected, setSelected] = useState("classic");
   const [formato, setFormato] = useState("pdf_grid");
@@ -76,58 +118,62 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const [downloading, setDownloading] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [logoCarnet, setLogoCarnet] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load academic data on open
   useEffect(() => {
     if (!open) return;
-    const load = async () => {
-      try {
-        const [lRes, gRes, sRes, shRes] = await Promise.all([
-          axios.get(`${API}/api/academic/levels`, { headers }),
-          axios.get(`${API}/api/academic/grades`, { headers }),
-          axios.get(`${API}/api/academic/sections`, { headers }),
-          axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
-        ]);
-        setLevels((lRes.data || []).filter(l => l.activo));
-        setGrades((gRes.data || []).filter(g => g.activo));
-        setSections((sRes.data || []).filter(s => s.activo));
-        setShifts(shRes.data || []);
-      } catch (e) {
-        console.error("Load academic data:", e);
-      }
-    };
-    load();
-    axios.get(`${API}/api/qr-templates/list`, { headers })
-      .then(res => { setTemplates(res.data.templates || []); if (res.data.templates?.length) setSelected(res.data.templates[0].id); })
-      .catch(() => setTemplates([{ id: "classic", name: "Clásica", description: "Carnet estándar con logo, foto, nombre, grado/sección y QR." }]));
+    Promise.all([
+      axios.get(`${API}/api/academic/levels`, { headers }),
+      axios.get(`${API}/api/academic/grades`, { headers }),
+      axios.get(`${API}/api/academic/sections`, { headers }),
+      axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
+      axios.get(`${API}/api/qr-templates/list`, { headers }),
+      axios.get(`${API}/api/qr-templates/logo-carnet`, { headers }).catch(() => ({ data: {} })),
+    ]).then(([l, g, s, sh, tpl, logo]) => {
+      setLevels((l.data || []).filter(x => x.activo));
+      setGrades((g.data || []).filter(x => x.activo));
+      setSections((s.data || []).filter(x => x.activo));
+      setShifts(sh.data || []);
+      setTemplates(tpl.data.templates || [{ id: "classic", name: "Clásica", description: "Carnet estándar" }, { id: "moderna", name: "Moderna", description: "Header azul con curva amarilla" }]);
+      if (tpl.data.templates?.length) setSelected(tpl.data.templates[0].id);
+      setLogoCarnet(logo.data?.logo_carnet_url || null);
+    }).catch(() => {});
   }, [open]);
 
-  // Cascading filters
   const filteredGrades = useMemo(() => grades.filter(g => !selLevel || g.nivel_id === selLevel), [grades, selLevel]);
   const filteredSections = useMemo(() => sections.filter(s => !selGrade || s.grado_id === selGrade), [sections, selGrade]);
-  const filteredShifts = useMemo(() => shifts.filter(s => s.activo !== false), [shifts]);
 
-  // Reset dependent filters
   useEffect(() => { setSelGrade(""); setSelSection(""); }, [selLevel]);
   useEffect(() => { setSelSection(""); }, [selGrade]);
 
-  // Count students when filters change
   useEffect(() => {
     if (!selLevel || !selGrade || !selSection) { setStudentCount(0); setPreviewData(null); return; }
-    const params = { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection };
-    // Fetch preview (which also confirms students exist)
     setLoadingPreview(true);
-    axios.get(`${API}/api/qr-templates/preview`, { headers, params })
-      .then(res => { setPreviewData(res.data); setStudentCount(res.data ? 1 : 0); })
-      .catch(() => { setPreviewData(null); setStudentCount(0); })
+    axios.get(`${API}/api/qr-templates/preview`, { headers, params: { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection } })
+      .then(res => setPreviewData(res.data))
+      .catch(() => setPreviewData(null))
       .finally(() => setLoadingPreview(false));
-    // Count via download dry-run (or just use filtered list)
-    axios.get(`${API}/api/users/students`, { headers, params: { ...params, turno_id: selShift || undefined } })
+    axios.get(`${API}/api/users/students`, { headers, params: { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection, turno_id: selShift || undefined } })
       .then(res => { const arr = res.data?.students || res.data || []; setStudentCount(Array.isArray(arr) ? arr.filter(s => s.qr_token).length : 0); })
       .catch(() => {});
   }, [selLevel, selGrade, selSection, selShift]);
+
+  const handleUploadLogo = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await axios.post(`${API}/api/qr-templates/upload-logo-carnet`, fd, { headers: { ...headers, "Content-Type": "multipart/form-data" } });
+      setLogoCarnet(res.data.logo_carnet_url);
+    } catch (err) {
+      alert("Error al subir el logo.");
+    } finally { setUploadingLogo(false); }
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -142,10 +188,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       const url = window.URL.createObjectURL(new Blob([res.data], { type: isZip ? "application/zip" : "application/pdf" }));
       const a = document.createElement("a"); a.href = url; a.download = `qr_export.${isZip ? "zip" : "pdf"}`; a.click();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("Error al descargar. Verifica los filtros e intenta de nuevo.");
-    } finally { setDownloading(false); }
+    } catch (err) { alert("Error al descargar."); } finally { setDownloading(false); }
   };
 
   if (!open) return null;
@@ -162,17 +205,13 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center">
-              <Palette className="w-4 h-4 text-teal-600" />
-            </div>
+            <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center"><Palette className="w-4 h-4 text-teal-600" /></div>
             <div>
               <h2 className="text-base font-bold text-slate-800">Exportar Carnets QR</h2>
               <p className="text-[11px] text-slate-500">Configura filtros, formato y descarga</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" data-testid="qr-drawer-close">
-            <X className="w-5 h-5 text-slate-500" />
-          </button>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" data-testid="qr-drawer-close"><X className="w-5 h-5 text-slate-500" /></button>
         </div>
 
         {/* Body */}
@@ -183,46 +222,38 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-slate-500 mb-0.5 block">Nivel</label>
-                <select value={selLevel} onChange={e => setSelLevel(e.target.value)} data-testid="drawer-level"
-                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                <select value={selLevel} onChange={e => setSelLevel(e.target.value)} data-testid="drawer-level" className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
                   <option value="">Seleccionar...</option>
                   {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] text-slate-500 mb-0.5 block">Grado</label>
-                <select value={selGrade} onChange={e => setSelGrade(e.target.value)} disabled={!selLevel} data-testid="drawer-grade"
-                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
+                <select value={selGrade} onChange={e => setSelGrade(e.target.value)} disabled={!selLevel} data-testid="drawer-grade" className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
                   <option value="">Seleccionar...</option>
                   {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] text-slate-500 mb-0.5 block">Sección</label>
-                <select value={selSection} onChange={e => setSelSection(e.target.value)} disabled={!selGrade} data-testid="drawer-section"
-                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
+                <select value={selSection} onChange={e => setSelSection(e.target.value)} disabled={!selGrade} data-testid="drawer-section" className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
                   <option value="">Seleccionar...</option>
                   {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] text-slate-500 mb-0.5 block">Turno</label>
-                <select value={selShift} onChange={e => setSelShift(e.target.value)} data-testid="drawer-shift"
-                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                <select value={selShift} onChange={e => setSelShift(e.target.value)} data-testid="drawer-shift" className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
                   <option value="">Todos</option>
-                  {filteredShifts.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                  {shifts.filter(s => s.activo !== false).map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
                 </select>
               </div>
             </div>
-            {filtersComplete && studentCount > 0 && (
-              <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{studentCount} estudiante{studentCount !== 1 ? "s" : ""} con QR</p>
-            )}
-            {filtersComplete && studentCount === 0 && !loadingPreview && (
-              <p className="text-[11px] text-amber-600 mt-1.5">No se encontraron estudiantes con QR</p>
-            )}
+            {filtersComplete && studentCount > 0 && <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{studentCount} estudiante{studentCount !== 1 ? "s" : ""} con QR</p>}
+            {filtersComplete && studentCount === 0 && !loadingPreview && <p className="text-[11px] text-amber-600 mt-1.5">No se encontraron estudiantes con QR</p>}
           </div>
 
-          {/* 2. Format selector */}
+          {/* 2. Format */}
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">Formato de descarga</p>
             <div className="space-y-1.5">
@@ -244,18 +275,12 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">Opciones</p>
             <div className="space-y-2">
-              <label className="flex items-center gap-2.5 cursor-pointer" data-testid="opt-codigo">
-                <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                <span className="text-xs text-slate-700">Incluir código del alumno</span>
-              </label>
-              <label className="flex items-center gap-2.5 cursor-pointer" data-testid="opt-ordenar">
-                <input type="checkbox" checked={ordenar} onChange={e => setOrdenar(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                <span className="text-xs text-slate-700">Ordenar alfabéticamente</span>
-              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /><span className="text-xs text-slate-700">Incluir código del alumno</span></label>
+              <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={ordenar} onChange={e => setOrdenar(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /><span className="text-xs text-slate-700">Ordenar alfabéticamente</span></label>
             </div>
           </div>
 
-          {/* 4. Template selector */}
+          {/* 4. Template */}
           {showTemplate && (
             <div>
               <p className="text-xs font-semibold text-slate-700 mb-1">Plantilla</p>
@@ -269,6 +294,38 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                     <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{t.description}</p>
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4b. Logo carnet (only for Moderna) */}
+          {selected === "moderna" && showTemplate && (
+            <div>
+              <p className="text-xs font-semibold text-slate-700 mb-1">Logo del carnet</p>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3">
+                {logoCarnet ? (
+                  <div className="flex items-center gap-3">
+                    <img src={logoCarnet} alt="Logo carnet" className="w-12 h-12 object-contain rounded-lg border border-slate-200 bg-white p-1" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-slate-700 font-medium">Logo alternativo configurado</p>
+                      <label className="text-[10px] text-teal-600 cursor-pointer hover:underline inline-flex items-center gap-1 mt-0.5">
+                        <Upload className="w-3 h-3" /> Cambiar logo
+                        <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-2">
+                    <Image className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                    <p className="text-[10px] text-slate-500 mb-1.5">No has configurado un logo alternativo</p>
+                    <label className="inline-flex items-center gap-1.5 text-[11px] text-teal-600 font-medium cursor-pointer hover:underline">
+                      {uploadingLogo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {uploadingLogo ? "Subiendo..." : "Subir logo para carnet"}
+                      <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" disabled={uploadingLogo} />
+                    </label>
+                  </div>
+                )}
+                <p className="text-[9px] text-slate-400 mt-2 leading-tight">Opcional. Usa un logo con colores claros que contraste con el fondo azul del carnet. Si no configuras uno, se usará el logo principal.</p>
               </div>
             </div>
           )}
@@ -301,8 +358,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                     </div>
                   )}
                   <div className="flex items-center gap-2 px-2 py-1 border-t border-slate-100">
-                    <span className="text-[9px] text-slate-400">2</span>
-                    <span className="text-[9px] text-slate-300 flex-1">...</span>
+                    <span className="text-[9px] text-slate-400">2</span><span className="text-[9px] text-slate-300 flex-1">...</span>
                   </div>
                 </div>
               </div>
@@ -313,7 +369,11 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                 ) : previewData ? (
                   <>
                     <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>
-                    <CarnetPreview data={previewData} incluirCodigo={incluirCodigo} />
+                    {selected === "moderna" ? (
+                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} />
+                    ) : (
+                      <CarnetClassicPreview data={previewData} incluirCodigo={incluirCodigo} />
+                    )}
                   </>
                 ) : (
                   <div className="flex items-center justify-center py-12 text-xs text-slate-400">
