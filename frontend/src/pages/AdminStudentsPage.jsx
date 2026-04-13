@@ -1867,13 +1867,7 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                 Descargar QR
               </button>
               <button
-                onClick={() => {
-                  if (!filterLevel || !filterGrade || !filterSection) {
-                    alert("Selecciona nivel, grado y sección antes de exportar con plantilla.");
-                    return;
-                  }
-                  setShowTemplateDrawer(true);
-                }}
+                onClick={() => setShowTemplateDrawer(true)}
                 className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-colors border border-teal-200"
                 data-testid="template-qr-btn"
               >
@@ -2052,15 +2046,6 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
         open={showTemplateDrawer}
         onClose={() => setShowTemplateDrawer(false)}
         token={token}
-        filters={{
-          nivel_id: filterLevel,
-          grado_id: filterGrade,
-          seccion_id: filterSection,
-          nivelName: levels.find(l => l.id === filterLevel)?.nombre,
-          gradoName: grades.find(g => g.id === filterGrade)?.nombre,
-          seccionName: sections.find(s => s.id === filterSection)?.nombre,
-        }}
-        studentCount={filteredStudents.length}
       />
     </div>
   );

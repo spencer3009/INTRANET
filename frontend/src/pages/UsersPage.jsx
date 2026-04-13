@@ -2634,13 +2634,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   {selectedRole === 'student' && (
                     <button
-                      onClick={() => {
-                        if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection) {
-                          alert("Selecciona nivel, grado y sección antes de exportar con plantilla.");
-                          return;
-                        }
-                        setShowTemplateDrawer(true);
-                      }}
+                      onClick={() => setShowTemplateDrawer(true)}
                       className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="template-qr-btn"
                     >
@@ -4862,15 +4856,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         open={showTemplateDrawer}
         onClose={() => setShowTemplateDrawer(false)}
         token={token}
-        filters={{
-          nivel_id: studentFilterLevel,
-          grado_id: studentFilterGrade,
-          seccion_id: studentFilterSection,
-          nivelName: levels.find(l => l.id === studentFilterLevel)?.nombre,
-          gradoName: grades.find(g => g.id === studentFilterGrade)?.nombre,
-          seccionName: sections.find(s => s.id === studentFilterSection)?.nombre,
-        }}
-        studentCount={filteredStudents.length}
       />
       <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
 

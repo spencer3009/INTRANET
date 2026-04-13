@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { X, Download, Loader2, Palette, Check, QrCode, FolderArchive, List } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -43,9 +43,7 @@ function CarnetPreview({ data, incluirCodigo }) {
         )}
         <p className="text-[10px] text-slate-500 text-center mt-0.5">{data.nivel} - {data.grado} - {data.seccion}</p>
         <div className="flex justify-center py-3">
-          {data.qr_token ? (
-            <QRCodeSVG value={data.qr_token} size={120} />
-          ) : (
+          {data.qr_token ? <QRCodeSVG value={data.qr_token} size={120} /> : (
             <div className="w-[120px] h-[120px] bg-slate-50 border border-dashed border-slate-300 rounded flex items-center justify-center">
               <span className="text-xs text-slate-400">QR</span>
             </div>
@@ -57,7 +55,19 @@ function CarnetPreview({ data, incluirCodigo }) {
   );
 }
 
-export default function QRTemplateDrawer({ open, onClose, token, filters, studentCount }) {
+export default function QRTemplateDrawer({ open, onClose, token }) {
+  // Filter data
+  const [levels, setLevels] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [selLevel, setSelLevel] = useState("");
+  const [selGrade, setSelGrade] = useState("");
+  const [selSection, setSelSection] = useState("");
+  const [selShift, setSelShift] = useState("");
+  const [studentCount, setStudentCount] = useState(0);
+
+  // Drawer state
   const [templates, setTemplates] = useState([]);
   const [selected, setSelected] = useState("classic");
   const [formato, setFormato] = useState("pdf_grid");
@@ -69,68 +79,78 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
 
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Load academic data on open
   useEffect(() => {
     if (!open) return;
+    const load = async () => {
+      try {
+        const [lRes, gRes, sRes, shRes] = await Promise.all([
+          axios.get(`${API}/api/academic/levels`, { headers }),
+          axios.get(`${API}/api/academic/grades`, { headers }),
+          axios.get(`${API}/api/academic/sections`, { headers }),
+          axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
+        ]);
+        setLevels((lRes.data || []).filter(l => l.activo));
+        setGrades((gRes.data || []).filter(g => g.activo));
+        setSections((sRes.data || []).filter(s => s.activo));
+        setShifts(shRes.data || []);
+      } catch (e) {
+        console.error("Load academic data:", e);
+      }
+    };
+    load();
     axios.get(`${API}/api/qr-templates/list`, { headers })
-      .then(res => {
-        setTemplates(res.data.templates || []);
-        if (res.data.templates?.length) setSelected(res.data.templates[0].id);
-      })
+      .then(res => { setTemplates(res.data.templates || []); if (res.data.templates?.length) setSelected(res.data.templates[0].id); })
       .catch(() => setTemplates([{ id: "classic", name: "Clásica", description: "Carnet estándar con logo, foto, nombre, grado/sección y QR." }]));
   }, [open]);
 
+  // Cascading filters
+  const filteredGrades = useMemo(() => grades.filter(g => !selLevel || g.nivel_id === selLevel), [grades, selLevel]);
+  const filteredSections = useMemo(() => sections.filter(s => !selGrade || s.grado_id === selGrade), [sections, selGrade]);
+  const filteredShifts = useMemo(() => shifts.filter(s => s.activo !== false), [shifts]);
+
+  // Reset dependent filters
+  useEffect(() => { setSelGrade(""); setSelSection(""); }, [selLevel]);
+  useEffect(() => { setSelSection(""); }, [selGrade]);
+
+  // Count students when filters change
   useEffect(() => {
-    if (!open || !filters?.nivel_id || !filters?.grado_id || !filters?.seccion_id) {
-      setPreviewData(null);
-      return;
-    }
+    if (!selLevel || !selGrade || !selSection) { setStudentCount(0); setPreviewData(null); return; }
+    const params = { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection };
+    // Fetch preview (which also confirms students exist)
     setLoadingPreview(true);
-    axios.get(`${API}/api/qr-templates/preview`, {
-      headers,
-      params: { nivel_id: filters.nivel_id, grado_id: filters.grado_id, seccion_id: filters.seccion_id }
-    })
-      .then(res => setPreviewData(res.data))
-      .catch(() => setPreviewData(null))
+    axios.get(`${API}/api/qr-templates/preview`, { headers, params })
+      .then(res => { setPreviewData(res.data); setStudentCount(res.data ? 1 : 0); })
+      .catch(() => { setPreviewData(null); setStudentCount(0); })
       .finally(() => setLoadingPreview(false));
-  }, [open, filters?.nivel_id, filters?.grado_id, filters?.seccion_id]);
+    // Count via download dry-run (or just use filtered list)
+    axios.get(`${API}/api/users/students`, { headers, params: { ...params, turno_id: selShift || undefined } })
+      .then(res => { const arr = res.data?.students || res.data || []; setStudentCount(Array.isArray(arr) ? arr.filter(s => s.qr_token).length : 0); })
+      .catch(() => {});
+  }, [selLevel, selGrade, selSection, selShift]);
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
       const res = await axios.post(`${API}/api/qr-templates/download`, {
-        formato,
-        template: selected,
-        nivel_id: filters.nivel_id,
-        grado_id: filters.grado_id,
-        seccion_id: filters.seccion_id,
-        incluir_codigo_alumno: incluirCodigo,
-        ordenar_alfabetico: ordenar,
-        incluir_foto: true,
+        formato, template: selected,
+        nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection,
+        turno_id: selShift || null,
+        incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
       }, { headers, responseType: "blob" });
-
       const isZip = formato === "zip";
-      const mime = isZip ? "application/zip" : "application/pdf";
-      const ext = isZip ? "zip" : "pdf";
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: mime }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `qr_export.${ext}`;
-      a.click();
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: isZip ? "application/zip" : "application/pdf" }));
+      const a = document.createElement("a"); a.href = url; a.download = `qr_export.${isZip ? "zip" : "pdf"}`; a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Download error:", err);
       alert("Error al descargar. Verifica los filtros e intenta de nuevo.");
-    } finally {
-      setDownloading(false);
-    }
+    } finally { setDownloading(false); }
   };
 
   if (!open) return null;
 
-  const filterSummary = filters
-    ? [filters.nivelName, filters.gradoName, filters.seccionName ? `Sección ${filters.seccionName}` : null].filter(Boolean).join(" · ")
-    : "";
-
+  const filtersComplete = selLevel && selGrade && selSection;
   const downloadLabel = formato === "zip" ? "Descargar ZIP" : formato === "pdf_lista" ? "Descargar PDF (lista)" : "Descargar PDF";
   const showTemplate = formato !== "zip";
   const showCarnetPreview = formato === "pdf_grid";
@@ -147,7 +167,7 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-800">Exportar Carnets QR</h2>
-              <p className="text-[11px] text-slate-500">Configura formato y descarga</p>
+              <p className="text-[11px] text-slate-500">Configura filtros, formato y descarga</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" data-testid="qr-drawer-close">
@@ -157,40 +177,64 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {/* 1. Filter summary */}
-          {filterSummary && (
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-              <p className="text-[11px] text-slate-500">Filtros aplicados</p>
-              <p className="text-sm font-medium text-slate-800">{filterSummary}</p>
-              {studentCount > 0 && <p className="text-[11px] text-teal-600 mt-0.5">{studentCount} estudiante{studentCount !== 1 ? "s" : ""}</p>}
+          {/* 1. Filters */}
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Filtros</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-slate-500 mb-0.5 block">Nivel</label>
+                <select value={selLevel} onChange={e => setSelLevel(e.target.value)} data-testid="drawer-level"
+                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                  <option value="">Seleccionar...</option>
+                  {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 mb-0.5 block">Grado</label>
+                <select value={selGrade} onChange={e => setSelGrade(e.target.value)} disabled={!selLevel} data-testid="drawer-grade"
+                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
+                  <option value="">Seleccionar...</option>
+                  {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 mb-0.5 block">Sección</label>
+                <select value={selSection} onChange={e => setSelSection(e.target.value)} disabled={!selGrade} data-testid="drawer-section"
+                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50">
+                  <option value="">Seleccionar...</option>
+                  {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 mb-0.5 block">Turno</label>
+                <select value={selShift} onChange={e => setSelShift(e.target.value)} data-testid="drawer-shift"
+                  className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                  <option value="">Todos</option>
+                  {filteredShifts.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                </select>
+              </div>
             </div>
-          )}
+            {filtersComplete && studentCount > 0 && (
+              <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{studentCount} estudiante{studentCount !== 1 ? "s" : ""} con QR</p>
+            )}
+            {filtersComplete && studentCount === 0 && !loadingPreview && (
+              <p className="text-[11px] text-amber-600 mt-1.5">No se encontraron estudiantes con QR</p>
+            )}
+          </div>
 
           {/* 2. Format selector */}
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">Formato de descarga</p>
             <div className="space-y-1.5">
               {FORMATS.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setFormato(f.id)}
-                  data-testid={`format-${f.id}`}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${
-                    formato === f.id
-                      ? "border-teal-500 bg-teal-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
+                <button key={f.id} onClick={() => setFormato(f.id)} data-testid={`format-${f.id}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${formato === f.id ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
                   <f.icon className={`w-4 h-4 flex-shrink-0 ${formato === f.id ? "text-teal-600" : "text-slate-400"}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-slate-800">{f.label}</p>
                     <p className="text-[10px] text-slate-500">{f.desc}</p>
                   </div>
-                  {formato === f.id && (
-                    <div className="w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Check className="w-2.5 h-2.5 text-white" />
-                    </div>
-                  )}
+                  {formato === f.id && <div className="w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center flex-shrink-0"><Check className="w-2.5 h-2.5 text-white" /></div>}
                 </button>
               ))}
             </div>
@@ -201,50 +245,26 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
             <p className="text-xs font-semibold text-slate-700 mb-2">Opciones</p>
             <div className="space-y-2">
               <label className="flex items-center gap-2.5 cursor-pointer" data-testid="opt-codigo">
-                <input
-                  type="checkbox"
-                  checked={incluirCodigo}
-                  onChange={e => setIncluirCodigo(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                />
+                <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
                 <span className="text-xs text-slate-700">Incluir código del alumno</span>
               </label>
               <label className="flex items-center gap-2.5 cursor-pointer" data-testid="opt-ordenar">
-                <input
-                  type="checkbox"
-                  checked={ordenar}
-                  onChange={e => setOrdenar(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                />
+                <input type="checkbox" checked={ordenar} onChange={e => setOrdenar(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
                 <span className="text-xs text-slate-700">Ordenar alfabéticamente</span>
               </label>
             </div>
           </div>
 
-          {/* 4. Template selector (hidden for ZIP) */}
+          {/* 4. Template selector */}
           {showTemplate && (
             <div>
               <p className="text-xs font-semibold text-slate-700 mb-1">Plantilla</p>
-              {formato === "pdf_lista" && (
-                <p className="text-[10px] text-slate-400 mb-2">Se aplicarán colores de la plantilla al encabezado</p>
-              )}
+              {formato === "pdf_lista" && <p className="text-[10px] text-slate-400 mb-2">Se aplicarán colores de la plantilla al encabezado</p>}
               <div className="grid grid-cols-2 gap-2">
                 {templates.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelected(t.id)}
-                    data-testid={`template-card-${t.id}`}
-                    className={`relative p-3 rounded-xl border-2 text-left transition-all ${
-                      selected === t.id
-                        ? "border-teal-500 bg-teal-50"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    {selected === t.id && (
-                      <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 text-white" />
-                      </div>
-                    )}
+                  <button key={t.id} onClick={() => setSelected(t.id)} data-testid={`template-card-${t.id}`}
+                    className={`relative p-3 rounded-xl border-2 text-left transition-all ${selected === t.id ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                    {selected === t.id && <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" /></div>}
                     <p className="font-semibold text-xs text-slate-800">{t.name}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{t.description}</p>
                   </button>
@@ -277,9 +297,7 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
                       <span className="text-[9px] text-slate-500 w-4">1</span>
                       <span className="text-[9px] text-slate-800 flex-1 font-medium">{previewData.student_name}</span>
                       {incluirCodigo && <span className="text-[9px] text-slate-500 w-12">{previewData.codigo_alumno || "-"}</span>}
-                      <div className="w-12 flex justify-center">
-                        {previewData.qr_token && <QRCodeSVG value={previewData.qr_token} size={28} />}
-                      </div>
+                      <div className="w-12 flex justify-center">{previewData.qr_token && <QRCodeSVG value={previewData.qr_token} size={28} />}</div>
                     </div>
                   )}
                   <div className="flex items-center gap-2 px-2 py-1 border-t border-slate-100">
@@ -290,16 +308,16 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
               </div>
             ) : showCarnetPreview ? (
               <div className="bg-slate-50 rounded-xl border border-slate-200 py-4">
-                {previewData && <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>}
                 {loadingPreview ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
-                  </div>
+                  <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-teal-500" /></div>
                 ) : previewData ? (
-                  <CarnetPreview data={previewData} incluirCodigo={incluirCodigo} />
+                  <>
+                    <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>
+                    <CarnetPreview data={previewData} incluirCodigo={incluirCodigo} />
+                  </>
                 ) : (
                   <div className="flex items-center justify-center py-12 text-xs text-slate-400">
-                    Aplica filtros para ver la vista previa
+                    {filtersComplete ? "No se encontraron estudiantes" : "Selecciona nivel, grado y sección"}
                   </div>
                 )}
               </div>
@@ -309,19 +327,9 @@ export default function QRTemplateDrawer({ open, onClose, token, filters, studen
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-slate-200 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
-            data-testid="qr-drawer-cancel"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading || !filters?.nivel_id || !studentCount}
-            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            data-testid="qr-drawer-download"
-          >
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors" data-testid="qr-drawer-cancel">Cancelar</button>
+          <button onClick={handleDownload} disabled={downloading || !filtersComplete || !studentCount}
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50" data-testid="qr-drawer-download">
             {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {downloading ? "Generando..." : downloadLabel}
           </button>
