@@ -66,7 +66,7 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
   return (
     <div className="flex justify-center" data-testid="carnet-preview-moderna">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden relative">
-        <div style={{ backgroundColor: cp }} className="pt-3 pb-4 px-4 text-center">
+        <div style={{ backgroundColor: cp }} className="pt-3 pb-8 px-4 text-center">
           {logoSrc ? (
             <img src={logoSrc} alt="" className="w-10 h-10 object-contain mx-auto mb-1.5" />
           ) : (
@@ -77,7 +77,7 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
           <p className="text-[10px] font-bold text-white leading-tight">{data.school_name}</p>
         </div>
         <div style={{ backgroundColor: ca, height: "14px" }} />
-        <div className="flex justify-center -mt-[46px] relative z-20">
+        <div className="flex justify-center -mt-[50px] relative z-20">
           {data.student_photo ? (
             <img src={data.student_photo} alt="" className="w-[80px] h-[80px] object-cover bg-white" style={{ border: `3px solid ${ca}`, borderRadius: "2px" }} />
           ) : (
