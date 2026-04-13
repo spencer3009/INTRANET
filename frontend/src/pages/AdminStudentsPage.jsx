@@ -10,11 +10,12 @@ import {
   Check, AlertCircle, Plus, Eye, EyeOff, Search, UserCheck,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Users,
-  Filter, Download, Mail, ChevronDown, ChevronRight, QrCode, LayoutGrid, List
+  Filter, Download, Mail, ChevronDown, ChevronRight, QrCode, LayoutGrid, List, Palette
 } from "lucide-react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 import CameraCaptureModal from "@/components/CameraCaptureModal";
 import BulkQRModal from "@/components/BulkQRModal";
+import QRTemplateDrawer from "@/components/students/QRTemplateDrawer";
 
 // LocalStorage keys for filter persistence
 const STORAGE_KEYS = {
@@ -484,7 +485,6 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
-  const [showBulkQR, setShowBulkQR] = useState(false);
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -1479,6 +1479,8 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrStudent, setQRStudent] = useState(null);
+  const [showBulkQR, setShowBulkQR] = useState(false);
+  const [showTemplateDrawer, setShowTemplateDrawer] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
@@ -1864,6 +1866,20 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                 <Download className="w-4 h-4" />
                 Descargar QR
               </button>
+              <button
+                onClick={() => {
+                  if (!filterLevel || !filterGrade || !filterSection) {
+                    alert("Selecciona nivel, grado y sección antes de exportar con plantilla.");
+                    return;
+                  }
+                  setShowTemplateDrawer(true);
+                }}
+                className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-colors border border-teal-200"
+                data-testid="template-qr-btn"
+              >
+                <Palette className="w-4 h-4" />
+                QR con plantilla
+              </button>
             </div>
           </div>
 
@@ -2032,6 +2048,20 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
         </div>
       )}
       <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
+      <QRTemplateDrawer
+        open={showTemplateDrawer}
+        onClose={() => setShowTemplateDrawer(false)}
+        token={token}
+        filters={{
+          nivel_id: filterLevel,
+          grado_id: filterGrade,
+          seccion_id: filterSection,
+          nivelName: levels.find(l => l.id === filterLevel)?.nombre,
+          gradoName: grades.find(g => g.id === filterGrade)?.nombre,
+          seccionName: sections.find(s => s.id === filterSection)?.nombre,
+        }}
+        studentCount={filteredStudents.length}
+      />
     </div>
   );
 }
