@@ -286,16 +286,26 @@ class ClassicTemplate(BaseQRTemplate):
             tw = c.stringWidth(full_name, "Helvetica-Bold", 7 * sf)
             c.drawString(x + (card_w - tw) / 2, info_y, full_name)
 
+            # Student code (optional)
+            code_offset = 0
+            if incluir_codigo and s.get("codigo_alumno"):
+                c.setFillColor(gray)
+                c.setFont("Helvetica", 5 * sf)
+                code_str = f"Cod: {s['codigo_alumno']}"
+                tw_code = c.stringWidth(code_str, "Helvetica", 5 * sf)
+                c.drawString(x + (card_w - tw_code) / 2, info_y - 3.5 * sf * mm, code_str)
+                code_offset = 3.5 * sf * mm
+
             # Level - Grade - Section
             c.setFillColor(gray)
             c.setFont("Helvetica", 5.5 * sf)
             info_line = f"{nivel_name} - {curso_label}"
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)
-            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * sf * mm, info_line)
+            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * sf * mm - code_offset, info_line)
 
             # QR
             footer_y = y + 2 * sf * mm
-            qr_top = info_y - 7 * sf * mm
+            qr_top = info_y - 7 * sf * mm - code_offset
             qr_bottom = footer_y + 4 * sf * mm
             available = qr_top - qr_bottom
             qr_size_px = min(available, 32 * sf * mm)

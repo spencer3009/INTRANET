@@ -21,6 +21,7 @@ async def get_available_templates(current_user=Depends(get_current_user)):
 
 
 class TemplateDownloadRequest(BaseModel):
+    formato: str = "pdf_grid"  # pdf_grid | zip | pdf_lista
     template: str = "classic"
     nivel_id: str
     grado_id: str
@@ -48,7 +49,7 @@ async def preview_template(
 
     student = await db.users.find_one(
         {"school_id": school_id, "role": "student", "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "qr_token": {"$exists": True, "$ne": None}},
-        {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1}
+        {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1, "codigo_alumno": 1}
     )
     if not student:
         raise HTTPException(status_code=404, detail="No hay estudiantes con QR")
@@ -71,6 +72,7 @@ async def preview_template(
         "student_photo": student.get("photo_url"),
         "student_initial": (student.get("name", "?")[:1]).upper(),
         "qr_token": student.get("qr_token"),
+        "codigo_alumno": student.get("codigo_alumno"),
         "school_name": display_name,
         "school_logo": (school or {}).get("logo_url"),
         "nivel": (nivel or {}).get("nombre") or (nivel or {}).get("name") or "",
@@ -84,7 +86,7 @@ async def download_with_template(
     data: TemplateDownloadRequest,
     current_user=Depends(get_current_user)
 ):
-    """Generate full PDF using the selected template."""
+    """Generate PDF/ZIP using the selected format and template."""
     user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores")
@@ -93,16 +95,36 @@ async def download_with_template(
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    tpl = get_template(data.template)
     now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
 
     try:
-        buf = await tpl.generate_pdf(db, school_id, data, user)
-        if buf is None:
-            raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
-        filename = f"qr_carnets_{data.template}_{now_str}.pdf"
-        return StreamingResponse(buf, media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={filename}"})
+        if data.formato == "zip":
+            from services.qr_exports.zip_exporter import generate_zip
+            buf = await generate_zip(db, school_id, data, incluir_codigo=data.incluir_codigo_alumno, ordenar=data.ordenar_alfabetico)
+            if buf is None:
+                raise HTTPException(status_code=404, detail="No se encontraron estudiantes")
+            filename = f"qr_images_{now_str}.zip"
+            return StreamingResponse(buf, media_type="application/zip",
+                headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+        elif data.formato == "pdf_lista":
+            from services.qr_exports.list_pdf_exporter import generate_list_pdf
+            buf = await generate_list_pdf(db, school_id, data, incluir_codigo=data.incluir_codigo_alumno, ordenar=data.ordenar_alfabetico)
+            if buf is None:
+                raise HTTPException(status_code=404, detail="No se encontraron estudiantes")
+            filename = f"qr_lista_{now_str}.pdf"
+            return StreamingResponse(buf, media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+        else:  # pdf_grid (default)
+            tpl = get_template(data.template)
+            buf = await tpl.generate_pdf(db, school_id, data, user)
+            if buf is None:
+                raise HTTPException(status_code=404, detail="No se encontraron estudiantes")
+            filename = f"qr_carnets_{data.template}_{now_str}.pdf"
+            return StreamingResponse(buf, media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename={filename}"})
+
     except HTTPException:
         raise
     except Exception as e:
