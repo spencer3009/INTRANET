@@ -1916,7 +1916,7 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
 
             c.setFillColor(navy)
             c.setFont("Helvetica-Bold", 6)
-            display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+            display_name = "COLEGIO" + school_name[7:] if school_name.lower().startswith("colegio") else f"COLEGIO {school_name}"
             name_trunc = display_name[:30]
             tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
             c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
