@@ -157,13 +157,14 @@ async def download_with_template(
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
-# Endpoint colocado aquí por conveniencia del flujo del drawer.
-# Semánticamente el dato pertenece a tenant_settings.
+# Endpoint colocado aqui por conveniencia del flujo del drawer.
+# Semanticamente el dato pertenece a tenant_settings.
 @router.post("/qr-templates/upload-logo-carnet")
 async def upload_logo_carnet(file: UploadFile = File(...), current_user=Depends(get_current_user)):
-    """Upload an alternative logo for QR carnets. Stored in tenant_settings.logo_carnet_url."""
+    """Upload an alternative logo for QR carnets. Optimized to WebP."""
     import cloudinary
     import cloudinary.uploader
+    from services.image_optimizer import ImageOptimizer
 
     user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
@@ -174,23 +175,22 @@ async def upload_logo_carnet(file: UploadFile = File(...), current_user=Depends(
         raise HTTPException(status_code=403, detail="No autorizado")
 
     try:
-        # Delete previous carnet logo from Cloudinary if exists
-        existing = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_public_id": 1})
-        old_public_id = (existing or {}).get("logo_carnet_public_id")
-        if old_public_id:
-            try:
-                cloudinary.uploader.destroy(old_public_id)
-                logger.info(f"[Logo Carnet] Deleted old logo: {old_public_id}")
-            except Exception as e:
-                logger.warning(f"[Logo Carnet] Failed to delete old: {e}")
-
         content = await file.read()
-        result = cloudinary.uploader.upload(
-            content,
-            folder=f"edunet/logos-carnet/{school_id}",
-            resource_type="image",
-            transformation={"width": 400, "height": 400, "crop": "limit"},
-        )
+        try:
+            optimized_bytes, new_filename = ImageOptimizer.validate_and_optimize(content, file.filename or "logo.png")
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+
+        # Delete previous from Cloudinary
+        existing = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_public_id": 1})
+        old_pid = (existing or {}).get("logo_carnet_public_id")
+        if old_pid:
+            try:
+                cloudinary.uploader.destroy(old_pid)
+            except Exception:
+                pass
+
+        result = cloudinary.uploader.upload(optimized_bytes, folder=f"edunet/logos-carnet/{school_id}", resource_type="image", format="webp")
         url = result.get("secure_url")
         public_id = result.get("public_id")
 
@@ -201,6 +201,8 @@ async def upload_logo_carnet(file: UploadFile = File(...), current_user=Depends(
         )
         return {"logo_carnet_url": url}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"[Logo Carnet] Upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Error subiendo logo: {str(e)}")
@@ -247,3 +249,87 @@ async def get_saved_colors(current_user=Depends(get_current_user)):
     school_id = user.get("school_id")
     settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "qr_template_colors": 1})
     return {"colors": (settings or {}).get("qr_template_colors", {})}
+
+
+@router.post("/qr-templates/upload-watermark")
+async def upload_watermark(file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    """Upload watermark image for Moderna template. Optimized to WebP."""
+    import cloudinary
+    import cloudinary.uploader
+    from services.image_optimizer import ImageOptimizer
+
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    try:
+        content = await file.read()
+        try:
+            optimized_bytes, new_filename = ImageOptimizer.validate_and_optimize(content, file.filename or "watermark.png")
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+
+        existing = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "watermark_moderna_public_id": 1})
+        old_pid = (existing or {}).get("watermark_moderna_public_id")
+        if old_pid:
+            try:
+                cloudinary.uploader.destroy(old_pid)
+            except Exception:
+                pass
+
+        result = cloudinary.uploader.upload(optimized_bytes, folder=f"edunet/watermarks/{school_id}", resource_type="image", format="webp")
+        url = result.get("secure_url")
+        public_id = result.get("public_id")
+
+        await db.tenant_settings.update_one(
+            {"school_id": school_id},
+            {"$set": {"watermark_moderna_url": url, "watermark_moderna_public_id": public_id}},
+            upsert=True
+        )
+        return {"watermark_url": url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"[Watermark] Upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error subiendo marca de agua: {str(e)}")
+
+
+@router.delete("/qr-templates/watermark")
+async def delete_watermark(current_user=Depends(get_current_user)):
+    """Delete watermark from Cloudinary and tenant_settings."""
+    import cloudinary
+    import cloudinary.uploader
+
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+
+    existing = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "watermark_moderna_public_id": 1})
+    old_pid = (existing or {}).get("watermark_moderna_public_id")
+    if old_pid:
+        try:
+            cloudinary.uploader.destroy(old_pid)
+        except Exception:
+            pass
+
+    await db.tenant_settings.update_one(
+        {"school_id": school_id},
+        {"$set": {"watermark_moderna_url": None, "watermark_moderna_public_id": None}}
+    )
+    return {"message": "Marca de agua eliminada"}
+
+
+@router.get("/qr-templates/watermark")
+async def get_watermark(current_user=Depends(get_current_user)):
+    """Get current watermark URL."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user.get("school_id")
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "watermark_moderna_url": 1})
+    return {"watermark_url": (settings or {}).get("watermark_moderna_url")}

@@ -100,6 +100,25 @@ class ModernaTemplate(BaseQRTemplate):
         GRAY = HexColor("#64748b")
         LIGHT_BG = HexColor("#f1f5f9")
 
+        # Pre-fetch watermark (cached for all cards)
+        watermark_img = None
+        wm_url = (tenant or {}).get("watermark_moderna_url")
+        if wm_url:
+            try:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+                    resp = await client.get(wm_url)
+                    if resp.status_code == 200:
+                        wm_pil = PILImage.open(BytesIO(resp.content)).convert("RGBA")
+                        # Apply 22% opacity
+                        alpha = wm_pil.split()[3]
+                        alpha = alpha.point(lambda p: int(p * 0.22))
+                        wm_pil.putalpha(alpha)
+                        watermark_img = BytesIO()
+                        wm_pil.save(watermark_img, format="PNG")
+                        watermark_img.seek(0)
+            except Exception as e:
+                logger.warning(f"[Moderna] Watermark download failed: {e}")
+
         def make_qr(token_data, size=200):
             qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
             qr.add_data(token_data)
@@ -148,6 +167,22 @@ class ModernaTemplate(BaseQRTemplate):
             band_center_y = header_bottom - band_h / 2
             c.setFillColor(YELLOW)
             c.rect(x + 0.3, band_bottom, card_w - 0.6, band_h, fill=1, stroke=0)
+
+            # LAYER 2b: Watermark (22% opacity, centered in white area, behind content)
+            if watermark_img:
+                try:
+                    watermark_img.seek(0)
+                    wm_w = card_w * 0.55
+                    wm_reader = ImageReader(watermark_img)
+                    wm_iw, wm_ih = wm_reader.getSize()
+                    wm_ratio = wm_ih / wm_iw
+                    wm_h = wm_w * wm_ratio
+                    white_area_top = band_bottom
+                    white_area_bottom = y + 3 * mm
+                    white_center_y = (white_area_top + white_area_bottom) / 2
+                    c.drawImage(wm_reader, x + (card_w - wm_w) / 2, white_center_y - wm_h / 2, wm_w, wm_h, preserveAspectRatio=True, mask='auto')
+                except Exception as wm_err:
+                    logger.warning(f"[Moderna] Watermark render failed: {wm_err}")
 
             # Logo in header (3mm lower)
             logo_s = 9 * mm
@@ -260,7 +295,12 @@ class ModernaTemplate(BaseQRTemplate):
             qr_buf = BytesIO()
             qr_img.save(qr_buf, format="PNG")
             qr_buf.seek(0)
-            c.drawImage(ImageReader(qr_buf), cx - qr_size / 2, qr_bottom + (available - qr_size) / 2, qr_size, qr_size)
+            qr_draw_x = cx - qr_size / 2
+            qr_draw_y = qr_bottom + (available - qr_size) / 2
+            # White background behind QR (covers watermark)
+            c.setFillColor(white)
+            c.rect(qr_draw_x - 1, qr_draw_y - 1, qr_size + 2, qr_size + 2, fill=1, stroke=0)
+            c.drawImage(ImageReader(qr_buf), qr_draw_x, qr_draw_y, qr_size, qr_size)
             del qr_buf
 
             # Footer

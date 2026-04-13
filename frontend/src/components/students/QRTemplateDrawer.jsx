@@ -58,7 +58,7 @@ function CarnetClassicPreview({ data, incluirCodigo }) {
   );
 }
 
-function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal, colorAcento }) {
+function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal, colorAcento, watermarkUrl }) {
   if (!data) return null;
   const logoSrc = logoCarnet || data.school_logo;
   const cp = colorPrincipal || "#1e3a5f";
@@ -91,8 +91,16 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
         <div className="flex justify-center mt-1.5">
           <span className="text-[9px] font-bold px-3 py-0.5 rounded-full" style={{ backgroundColor: ca, color: cp }}>{data.nivel} - {data.grado} - {data.seccion}</span>
         </div>
-        <div className="flex justify-center py-2.5">
-          {data.qr_token ? <QRCodeSVG value={data.qr_token} size={100} /> : <div className="w-[100px] h-[100px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
+        {/* Watermark overlay */}
+        {watermarkUrl && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ top: "55%", zIndex: 1 }}>
+            <img src={watermarkUrl} alt="" className="w-[55%] object-contain" style={{ opacity: 0.22 }} />
+          </div>
+        )}
+        <div className="flex justify-center py-2.5 relative" style={{ zIndex: 2 }}>
+          <div className="bg-white p-0.5">
+            {data.qr_token ? <QRCodeSVG value={data.qr_token} size={100} /> : <div className="w-[100px] h-[100px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
+          </div>
         </div>
         <p className="text-[7px] text-slate-400 text-center pb-2">Personal e intransferible</p>
       </div>
@@ -126,6 +134,8 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const [savedColors, setSavedColors] = useState({});
   const [showCustomColors, setShowCustomColors] = useState(false);
   const [savingColors, setSavingColors] = useState(false);
+  const [watermarkUrl, setWatermarkUrl] = useState(null);
+  const [uploadingWatermark, setUploadingWatermark] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -139,7 +149,8 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       axios.get(`${API}/api/qr-templates/list`, { headers }),
       axios.get(`${API}/api/qr-templates/logo-carnet`, { headers }).catch(() => ({ data: {} })),
       axios.get(`${API}/api/qr-templates/saved-colors`, { headers }).catch(() => ({ data: {} })),
-    ]).then(([l, g, s, sh, tpl, logo, colorsRes]) => {
+      axios.get(`${API}/api/qr-templates/watermark`, { headers }).catch(() => ({ data: {} })),
+    ]).then(([l, g, s, sh, tpl, logo, colorsRes, wmRes]) => {
       setLevels((l.data || []).filter(x => x.activo));
       setGrades((g.data || []).filter(x => x.activo));
       setSections((s.data || []).filter(x => x.activo));
@@ -153,6 +164,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
         setColorPrincipal(sc.moderna.color_principal || "#1e3a5f");
         setColorAcento(sc.moderna.color_acento || "#F5B800");
       }
+      setWatermarkUrl(wmRes.data?.watermark_url || null);
     }).catch(() => {});
   }, [open]);
 
@@ -181,6 +193,11 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const handleUploadLogo = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_CLIENT_SIZE) {
+      alert(`El archivo excede el límite de 5MB (actual: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      e.target.value = "";
+      return;
+    }
     setUploadingLogo(true);
     try {
       const fd = new FormData();
@@ -188,8 +205,9 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       const res = await axios.post(`${API}/api/qr-templates/upload-logo-carnet`, fd, { headers: { ...headers, "Content-Type": "multipart/form-data" } });
       setLogoCarnet(res.data.logo_carnet_url);
     } catch (err) {
-      alert("Error al subir el logo.");
-    } finally { setUploadingLogo(false); }
+      const msg = err.response?.data?.detail || "Error al subir el logo.";
+      alert(msg);
+    } finally { setUploadingLogo(false); e.target.value = ""; }
   };
 
   const handleSelectTemplate = (id) => {
@@ -213,6 +231,37 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
       alert("Colores guardados. Se usarán por defecto la próxima vez.");
     } catch { alert("Error al guardar colores."); }
     finally { setSavingColors(false); }
+  };
+
+  const MAX_CLIENT_SIZE = 5 * 1024 * 1024;
+
+  const handleUploadWatermark = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_CLIENT_SIZE) {
+      alert(`El archivo excede el límite de 5MB (actual: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      e.target.value = "";
+      return;
+    }
+    setUploadingWatermark(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await axios.post(`${API}/api/qr-templates/upload-watermark`, fd, { headers: { ...headers, "Content-Type": "multipart/form-data" } });
+      setWatermarkUrl(res.data.watermark_url);
+      alert("Marca de agua guardada.");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Error al subir la imagen.";
+      alert(msg);
+    } finally { setUploadingWatermark(false); e.target.value = ""; }
+  };
+
+  const handleDeleteWatermark = async () => {
+    if (!confirm("¿Eliminar la marca de agua?")) return;
+    try {
+      await axios.delete(`${API}/api/qr-templates/watermark`, { headers });
+      setWatermarkUrl(null);
+    } catch { alert("Error al eliminar."); }
   };
 
   const handleDownload = async () => {
@@ -411,7 +460,43 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                     </label>
                   </div>
                 )}
-                <p className="text-[9px] text-slate-400 mt-2 leading-tight">Opcional. Usa un logo con colores claros que contraste con el fondo azul del carnet. Si no configuras uno, se usará el logo principal.</p>
+                <p className="text-[9px] text-slate-400 mt-2 leading-tight">Opcional. Usa un logo con colores claros que contraste con el fondo azul. Se optimiza a WebP (max 5MB, 800px).</p>
+              </div>
+            </div>
+          )}
+
+          {/* 4d. Watermark (only for Moderna) */}
+          {selected === "moderna" && showTemplate && (
+            <div>
+              <p className="text-xs font-semibold text-slate-700 mb-1">Marca de agua</p>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3">
+                {watermarkUrl ? (
+                  <div className="flex items-center gap-3">
+                    <img src={watermarkUrl} alt="Marca de agua" className="w-12 h-12 object-contain rounded-lg border border-slate-200 bg-white p-1 opacity-40" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-slate-700 font-medium">Marca de agua configurada</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <label className="text-[10px] text-teal-600 cursor-pointer hover:underline inline-flex items-center gap-1">
+                          {uploadingWatermark ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                          Cambiar
+                          <input type="file" accept="image/*" onChange={handleUploadWatermark} className="hidden" disabled={uploadingWatermark} />
+                        </label>
+                        <button onClick={handleDeleteWatermark} className="text-[10px] text-red-500 hover:underline">Quitar</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-2">
+                    <Image className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                    <p className="text-[10px] text-slate-500 mb-1.5">Sin marca de agua. El carnet se generará limpio.</p>
+                    <label className="inline-flex items-center gap-1.5 text-[11px] text-teal-600 font-medium cursor-pointer hover:underline">
+                      {uploadingWatermark ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {uploadingWatermark ? "Subiendo..." : "Subir imagen"}
+                      <input type="file" accept="image/*" onChange={handleUploadWatermark} className="hidden" disabled={uploadingWatermark} />
+                    </label>
+                  </div>
+                )}
+                <p className="text-[9px] text-slate-400 mt-2 leading-tight">Se optimiza a WebP (max 5MB, 800px). Se renderiza al 22% de opacidad detrás del contenido.</p>
               </div>
             </div>
           )}
@@ -456,7 +541,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
                   <>
                     <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>
                     {selected === "moderna" ? (
-                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} colorPrincipal={colorPrincipal} colorAcento={colorAcento} />
+                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} colorPrincipal={colorPrincipal} colorAcento={colorAcento} watermarkUrl={watermarkUrl} />
                     ) : (
                       <CarnetClassicPreview data={previewData} incluirCodigo={incluirCodigo} />
                     )}

@@ -33,6 +33,7 @@ router = APIRouter(prefix="/api")
 class TenantSettings(BaseModel):
     logo_url: Optional[str] = None
     logo_carnet_url: Optional[str] = None
+    watermark_moderna_url: Optional[str] = None
     system_name: Optional[str] = None
     system_title: Optional[str] = None
     system_email: Optional[str] = None
@@ -43,6 +44,7 @@ class TenantSettings(BaseModel):
 class TenantSettingsUpdate(BaseModel):
     logo_url: Optional[str] = None
     logo_carnet_url: Optional[str] = None
+    watermark_moderna_url: Optional[str] = None
     system_name: Optional[str] = None
     system_title: Optional[str] = None
     system_email: Optional[str] = None
