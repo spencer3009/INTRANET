@@ -9,6 +9,7 @@ Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos 
 - Horarios unificados en 8 portales con CalendarGrid.jsx
 - Portal Selector post-login para usuarios con múltiples roles
 - Wizard anti-fraude para pagos Yape con operation_code único
+- Escáneres QR unificados visualmente entre Asistencia, PAE y Movilidad
 
 ## What's Been Implemented (Completed)
 - Unificación de horarios en 8 portales (CalendarGrid.jsx pastel)
@@ -22,7 +23,9 @@ Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos 
 - Configuración pronto pago (Fijo/Porcentaje)
 - Roles auxiliares múltiples con PortalSelector
 - Wizard suscripción 3 pasos con unique index operation_code
-- **FIX (2026-04-14)**: Badge PDF de profesores muestra "Docente" correctamente (classic.py + moderna.py)
+- **FIX (2026-04-14)**: Badge PDF de profesores muestra "Docente" correctamente
+- **FIX (2026-04-14)**: Referencias cruzadas Movilidad↔PAE eliminadas (MobileBottomNav, goBack, títulos)
+- **REDESIGN (2026-04-14)**: Escáneres PAE y Movilidad rediseñados con estilo visual unificado al de Asistencia (header gradiente, permisos cámara, toasts flotantes, esquinas guía, botones Frontal/Detener)
 
 ## Prioritized Backlog
 ### P0 (Done)
@@ -54,5 +57,10 @@ Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos 
 - `/app/backend/services/qr_templates/classic.py`
 - `/app/backend/routes/qr_templates.py`
 - `/app/frontend/src/components/students/QRTemplateDrawer.jsx`
+- `/app/frontend/src/components/QRScannerTab.jsx` (escáner referencia de Asistencia)
+- `/app/frontend/src/pages/movilidad/MovilidadScanner.jsx` (rediseñado)
+- `/app/frontend/src/pages/pae/PaeScanner.jsx` (rediseñado)
+- `/app/frontend/src/pages/movilidad/MovilidadDashboard.jsx`
+- `/app/frontend/src/components/MobileBottomNav.jsx`
 - `/app/backend/routes/core.py`
 - `/app/frontend/src/components/PaymentBlockModal.jsx`
