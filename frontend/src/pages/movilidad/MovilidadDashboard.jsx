@@ -13,7 +13,7 @@ import MovilidadSettingsModal from "../../components/MovilidadSettingsModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function MovilidadDashboard({ user, token, onLogout }) {
+export default function MovilidadDashboard({ user, token, onLogout, onSwitchPortal }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -96,6 +96,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
           schoolName={settings?.school_name}
           subdomain={subdomain}
           token={token}
+          onSwitchPortal={onSwitchPortal}
           extraActions={
             <button
               onClick={() => setShowSettings(true)}
@@ -216,6 +217,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
         onClose={() => setShowSettings(false)}
         token={token}
         onLogout={onLogout}
+        onSwitchPortal={onSwitchPortal}
       />
     </div>
   );

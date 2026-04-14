@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, User, ChevronDown, LogOut, GraduationCap, Headset, ArrowLeft } from "lucide-react";
+import { Menu, User, ChevronDown, LogOut, GraduationCap, Headset, ArrowLeft, ArrowLeftRight } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import { useOwnerNotifications } from "../hooks/useOwnerNotifications";
 
@@ -37,7 +37,7 @@ function getRoleDisplay(role, isOwner, isSuperAdmin) {
   return ROLE_DISPLAY_MAP[role] || role || "Usuario";
 }
 
-export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token, extraActions }) {
+export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token, extraActions, onSwitchPortal }) {
   const navigate = useNavigate();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
@@ -171,6 +171,12 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><User className="w-4 h-4 text-blue-600" /></div>
                     <span className="font-medium">Mi Perfil</span>
                   </button>
+                  {onSwitchPortal && (
+                    <button onClick={() => { setProfileMenuOpen(false); onSwitchPortal(); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-600 flex items-center gap-3 transition-colors" data-testid="header-dropdown-switch-portal">
+                      <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center"><ArrowLeftRight className="w-4 h-4 text-violet-500" /></div>
+                      <span className="font-medium">Cambiar portal</span>
+                    </button>
+                  )}
                   <button onClick={handleLogoutClick} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-3 transition-colors" data-testid="header-dropdown-logout">
                     <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center"><LogOut className="w-4 h-4 text-red-500" /></div>
                     <span className="font-medium">Cerrar sesion</span>

@@ -1238,7 +1238,7 @@ function App() {
             path="/pae"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <PaeDashboard user={user} token={token} onLogout={handleLogout} />
+                <PaeDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />
@@ -1256,7 +1256,7 @@ function App() {
             path="/movilidad"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} />
+                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />
@@ -1276,7 +1276,7 @@ function App() {
             path="/aux-asistencia"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} />
+                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />
@@ -1926,7 +1926,7 @@ function App() {
             path="/:subdomain/pae"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <PaeDashboard user={user} token={token} onLogout={handleLogout} />
+                <PaeDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />
@@ -1952,7 +1952,7 @@ function App() {
             path="/:subdomain/movilidad"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} />
+                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />
@@ -1970,7 +1970,7 @@ function App() {
             path="/:subdomain/aux-asistencia"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} />
+                <AuxAsistenciaDashboard user={user} token={token} onLogout={handleLogout} onSwitchPortal={handleSwitchPortal} />
               </ProtectedRoute>
             }
           />

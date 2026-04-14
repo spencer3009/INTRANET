@@ -93,7 +93,7 @@ function CustomBarTooltip({ active, payload, label }) {
   );
 }
 
-export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
+export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitchPortal }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -220,6 +220,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout }) {
           schoolName={settings?.school_name}
           subdomain={subdomain}
           token={token}
+          onSwitchPortal={onSwitchPortal}
         />
 
         {loading ? (

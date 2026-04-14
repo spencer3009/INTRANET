@@ -21,7 +21,7 @@ function savePreferences(prefs) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
 }
 
-export default function MovilidadSettingsModal({ open, onClose, token, onLogout }) {
+export default function MovilidadSettingsModal({ open, onClose, token, onLogout, onSwitchPortal }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [turnos, setTurnos] = useState([]);
 
@@ -196,6 +196,16 @@ export default function MovilidadSettingsModal({ open, onClose, token, onLogout 
           {/* Account */}
           <div>
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Cuenta</h3>
+            {onSwitchPortal && (
+              <button
+                onClick={() => { onClose(); onSwitchPortal(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-xl transition-colors text-sm font-medium mb-3"
+                data-testid="movilidad-settings-switch-portal"
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                Cambiar portal
+              </button>
+            )}
             <button
               onClick={onLogout}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors text-sm font-medium"
