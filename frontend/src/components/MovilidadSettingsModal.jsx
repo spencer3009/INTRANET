@@ -7,9 +7,9 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const STORAGE_KEY = "pae_scan_preferences";
+const STORAGE_KEY = "movilidad_scan_preferences";
 
-export function getPaePreferences() {
+export function getMovilidadPreferences() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -32,11 +32,11 @@ export default function MovilidadSettingsModal({ open, onClose, token, onLogout 
     vibracion: true,
   };
 
-  const [prefs, setPrefs] = useState(() => ({ ...defaults, ...getPaePreferences() }));
+  const [prefs, setPrefs] = useState(() => ({ ...defaults, ...getMovilidadPreferences() }));
 
   useEffect(() => {
     if (open) {
-      axios.get(`${API}/pae/registro/dashboard`, { headers })
+      axios.get(`${API}/movilidad/registro/dashboard`, { headers })
         .then(res => setTurnos(res.data?.conteo_por_turno || []))
         .catch(() => {});
     }
@@ -55,12 +55,12 @@ export default function MovilidadSettingsModal({ open, onClose, token, onLogout 
       <div
         className="bg-white h-full w-full max-w-md shadow-2xl overflow-y-auto animate-in slide-in-from-right"
         onClick={e => e.stopPropagation()}
-        data-testid="pae-settings-modal"
+        data-testid="movilidad-settings-modal"
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-lg font-bold text-slate-800">Configuracion</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400" data-testid="pae-settings-close">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400" data-testid="movilidad-settings-close">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -199,7 +199,7 @@ export default function MovilidadSettingsModal({ open, onClose, token, onLogout 
             <button
               onClick={onLogout}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors text-sm font-medium"
-              data-testid="pae-settings-logout"
+              data-testid="movilidad-settings-logout"
             >
               <LogOut className="w-4 h-4" />
               Cerrar sesion

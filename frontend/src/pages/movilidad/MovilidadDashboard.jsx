@@ -38,13 +38,13 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
 
   const loadDashboard = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/pae/registro/dashboard`, { headers });
+      const res = await axios.get(`${API}/movilidad/registro/dashboard`, { headers });
       setDashboard(res.data);
       if (!selectedTurno && res.data.conteo_por_turno?.length > 0) {
         setSelectedTurno(res.data.conteo_por_turno[0].turno_id);
       }
     } catch (err) {
-      console.error("Error loading PAE dashboard:", err);
+      console.error("Error loading Movilidad dashboard:", err);
       toast.error("Error al cargar datos del dashboard");
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
   const totalHoy = turnos.reduce((s, t) => s + t.total, 0);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="pae-dashboard">
+    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="movilidad-dashboard">
       <Sidebar
         active="movilidad"
         onNavigate={() => {}}
@@ -101,7 +101,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
               onClick={() => setShowSettings(true)}
               className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
               title="Configuracion"
-              data-testid="pae-gear-btn"
+              data-testid="movilidad-gear-btn"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -115,7 +115,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
         ) : (
           <main className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Turno selector + scan button */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="pae-turno-selector">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="movilidad-turno-selector">
               <h2 className="text-base font-bold text-slate-800 mb-4">Seleccionar Turno</h2>
               {turnos.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
@@ -156,7 +156,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
                     onClick={handleStartScan}
                     disabled={!selectedTurno}
                     className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:from-orange-600 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                    data-testid="pae-start-scan"
+                    data-testid="movilidad-start-scan"
                   >
                     <QrCode className="w-6 h-6" />
                     Iniciar Escaneo
@@ -182,7 +182,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
             </div>
 
             {/* Last records */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm" data-testid="pae-recent-records">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm" data-testid="movilidad-recent-records">
               <div className="px-6 py-4 border-b border-slate-100">
                 <h2 className="text-base font-bold text-slate-800">Ultimos Registros</h2>
               </div>

@@ -7,7 +7,7 @@ import {
   Keyboard, Camera, Users, Hand
 } from "lucide-react";
 import { toast } from "sonner";
-import { getPaePreferences } from "../../components/MovilidadSettingsModal";
+import { getMovilidadPreferences } from "../../components/MovilidadSettingsModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SCAN_DEBOUNCE_MS = 1500;
@@ -18,7 +18,7 @@ export default function MovilidadScanner({ user, token }) {
   const turnoId = searchParams.get("turno");
 
   // Load preferences from localStorage
-  const prefs = getPaePreferences() || {};
+  const prefs = getMovilidadPreferences() || {};
   const prefMode = prefs.modo_escaneo || "auto";
   const prefReadMode = prefs.modo_lectura || "continuo";
   const prefSounds = prefs.sonidos !== false;
@@ -65,7 +65,7 @@ export default function MovilidadScanner({ user, token }) {
     if (!turnoId) return;
     (async () => {
       try {
-        const res = await axios.get(`${API}/pae/registro/dashboard`, { headers });
+        const res = await axios.get(`${API}/movilidad/registro/dashboard`, { headers });
         const t = res.data.conteo_por_turno?.find(x => x.turno_id === turnoId);
         if (t) {
           setTurnoInfo(t);
@@ -98,7 +98,7 @@ export default function MovilidadScanner({ user, token }) {
     }
 
     try {
-      const res = await axios.post(`${API}/pae/registro`, { qr_data: qrData, turno_id: turnoId }, { headers });
+      const res = await axios.post(`${API}/movilidad/registro`, { qr_data: qrData, turno_id: turnoId }, { headers });
       const { estudiante, total_turno } = res.data;
       scannedSetRef.current.add(qrData);
       setTotalTurno(total_turno);
@@ -190,16 +190,16 @@ export default function MovilidadScanner({ user, token }) {
   };
 
   const goBack = () => {
-    const basePath = subdomain ? `/${subdomain}/pae` : '/pae';
+    const basePath = subdomain ? `/${subdomain}/movilidad` : '/movilidad';
     navigate(basePath);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col" data-testid="pae-scanner">
+    <div className="min-h-screen bg-slate-900 flex flex-col" data-testid="movilidad-scanner">
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          <button onClick={goBack} className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" data-testid="pae-scanner-back">
+          <button onClick={goBack} className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" data-testid="movilidad-scanner-back">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -212,13 +212,13 @@ export default function MovilidadScanner({ user, token }) {
             <button
               onClick={() => setMode(m => m === "camera" ? "usb" : "camera")}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 rounded-lg text-slate-300 hover:text-white text-xs transition-colors"
-              data-testid="pae-mode-toggle"
+              data-testid="movilidad-mode-toggle"
             >
               {mode === "camera" ? <Keyboard className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
               {mode === "camera" ? "USB" : "Camara"}
             </button>
           )}
-          <div className="bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-1.5" data-testid="pae-scanner-count">
+          <div className="bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-1.5" data-testid="movilidad-scanner-count">
             <Users className="w-4 h-4" />
             {totalTurno}
           </div>
@@ -243,7 +243,7 @@ export default function MovilidadScanner({ user, token }) {
               </div>
             </div>
           ) : (
-            <div className="text-center px-6" data-testid="pae-usb-mode">
+            <div className="text-center px-6" data-testid="movilidad-usb-mode">
               <div className="w-24 h-24 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Keyboard className="w-12 h-12 text-orange-400" />
               </div>
@@ -257,7 +257,7 @@ export default function MovilidadScanner({ user, token }) {
                   onKeyDown={handleUSBInput}
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white text-center font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500"
                   placeholder="Esperando escaneo..."
-                  data-testid="pae-usb-input"
+                  data-testid="movilidad-usb-input"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
@@ -274,7 +274,7 @@ export default function MovilidadScanner({ user, token }) {
             <button
               onClick={confirmManualScan}
               className="w-full py-4 bg-gradient-to-r from-violet-500 to-violet-500 text-white font-bold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3 animate-pulse"
-              data-testid="pae-confirm-scan"
+              data-testid="movilidad-confirm-scan"
             >
               <Hand className="w-6 h-6" />
               Confirmar Lectura
@@ -286,7 +286,7 @@ export default function MovilidadScanner({ user, token }) {
             <div className={`p-4 rounded-xl ${
               lastResult.type === "success" ? "bg-violet-500/10 border border-violet-500/30" :
               "bg-red-500/10 border border-red-500/30"
-            }`} data-testid="pae-last-result">
+            }`} data-testid="movilidad-last-result">
               <div className="flex items-center gap-3">
                 {lastResult.type === "success" ? (
                   <CheckCircle2 className="w-6 h-6 text-violet-400 flex-shrink-0" />
@@ -322,7 +322,7 @@ export default function MovilidadScanner({ user, token }) {
           <button
             onClick={goBack}
             className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-            data-testid="pae-scanner-back-bottom"
+            data-testid="movilidad-scanner-back-bottom"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver al Dashboard

@@ -36,7 +36,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
           fetch(`${API}/academic/levels`, { headers }),
           fetch(`${API}/academic/grades`, { headers }),
           fetch(`${API}/academic/sections`, { headers }),
-          axios.get(`${API}/pae/turnos`, { headers }),
+          axios.get(`${API}/movilidad/turnos`, { headers }),
         ]);
         if (lR.ok) setLevels(await lR.json());
         if (gR.ok) { const d = await gR.json(); setGrades(Array.isArray(d) ? d : d.grades || []); }
@@ -90,13 +90,13 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
   });
 
   return (
-    <div className="space-y-6" data-testid="pae-registros-dia">
+    <div className="space-y-6" data-testid="movilidad-registros-dia">
       {/* Back button - only when not embedded */}
       {!embedded && (
         <button
           onClick={goBack}
           className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-all font-medium text-sm shadow-sm"
-          data-testid="pae-registros-back"
+          data-testid="movilidad-registros-back"
         >
           <ChevronLeft className="w-4 h-4" />
           Volver a Asistencias
@@ -104,7 +104,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
       )}
 
       {/* Filters Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="pae-filters-card">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="movilidad-filters-card">
         <div className="flex items-center gap-2 mb-5">
           <Filter className="w-5 h-5 text-indigo-500" />
           <h2 className="text-base font-bold text-slate-800">Filtros de Asistencia</h2>
@@ -116,7 +116,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={nivelId}
               onChange={e => { setNivelId(e.target.value); setGradoId(""); setSeccionId(""); }}
               className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none appearance-none"
-              data-testid="pae-filter-nivel"
+              data-testid="movilidad-filter-nivel"
             >
               <option value="">Seleccionar nivel</option>
               {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
@@ -128,7 +128,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={gradoId}
               onChange={e => { setGradoId(e.target.value); setSeccionId(""); }}
               className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none appearance-none"
-              data-testid="pae-filter-grado"
+              data-testid="movilidad-filter-grado"
             >
               <option value="">Seleccionar grado</option>
               {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
@@ -140,7 +140,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={seccionId}
               onChange={e => setSeccionId(e.target.value)}
               className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none appearance-none"
-              data-testid="pae-filter-seccion"
+              data-testid="movilidad-filter-seccion"
             >
               <option value="">Seleccionar seccion</option>
               {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -152,7 +152,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={turnoFilter}
               onChange={e => setTurnoFilter(e.target.value)}
               className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none appearance-none"
-              data-testid="pae-filter-turno"
+              data-testid="movilidad-filter-turno"
             >
               <option value="">Todos los turnos</option>
               {turnos.map(t => (
@@ -167,7 +167,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={fecha}
               onChange={e => setFecha(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none"
-              data-testid="pae-filter-fecha"
+              data-testid="movilidad-filter-fecha"
             />
           </div>
           <div className="flex items-end">
@@ -175,7 +175,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               onClick={loadData}
               disabled={loading}
               className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
-              data-testid="pae-btn-cargar"
+              data-testid="movilidad-btn-cargar"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Cargar
@@ -212,7 +212,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none"
-              data-testid="pae-filter-search"
+              data-testid="movilidad-filter-search"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm" data-testid="pae-registros-table">
+                <table className="w-full text-sm" data-testid="movilidad-registros-table">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">#</th>
