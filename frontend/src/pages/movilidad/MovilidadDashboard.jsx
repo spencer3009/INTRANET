@@ -110,7 +110,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
-            <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+            <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
           </div>
         ) : (
           <main className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -131,14 +131,14 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
                         onClick={() => setSelectedTurno(t.turno_id)}
                         className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                           selectedTurno === t.turno_id
-                            ? "border-orange-500 bg-orange-50 shadow-sm"
-                            : "border-slate-200 hover:border-orange-300 bg-white"
+                            ? "border-purple-500 bg-purple-50 shadow-sm"
+                            : "border-slate-200 hover:border-purple-300 bg-white"
                         }`}
                         data-testid={`turno-${t.turno_id}`}
                       >
                         {selectedTurno === t.turno_id && (
                           <div className="absolute top-2 right-2">
-                            <CheckCircle2 className="w-5 h-5 text-orange-500" />
+                            <CheckCircle2 className="w-5 h-5 text-purple-500" />
                           </div>
                         )}
                         <p className="font-bold text-slate-800">{t.turno_nombre}</p>
@@ -146,7 +146,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
                           <Clock className="w-3 h-3 inline mr-1" />
                           {t.hora_inicio} - {t.hora_fin}
                         </p>
-                        <p className="text-2xl font-bold text-orange-600 mt-2">{t.total}</p>
+                        <p className="text-2xl font-bold text-purple-600 mt-2">{t.total}</p>
                         <p className="text-xs text-slate-400">registros hoy</p>
                       </button>
                     ))}
@@ -155,7 +155,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
                   <button
                     onClick={handleStartScan}
                     disabled={!selectedTurno}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:from-orange-600 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:from-purple-600 hover:to-violet-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                     data-testid="movilidad-start-scan"
                   >
                     <QrCode className="w-6 h-6" />
@@ -167,14 +167,14 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl p-5 text-white shadow-lg">
+              <div className="bg-gradient-to-br from-purple-500 to-violet-500 rounded-2xl p-5 text-white shadow-lg">
                 <Users className="w-8 h-8 mb-2 opacity-80" />
                 <p className="text-3xl font-bold">{totalHoy}</p>
-                <p className="text-sm text-orange-100">Total Hoy</p>
+                <p className="text-sm text-purple-100">Total Hoy</p>
               </div>
               {turnos.map((t) => (
                 <div key={t.turno_id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-                  <Bus className="w-6 h-6 text-orange-500 mb-2" />
+                  <Bus className="w-6 h-6 text-purple-500 mb-2" />
                   <p className="text-2xl font-bold text-slate-800">{t.total}</p>
                   <p className="text-xs text-slate-500">{t.turno_nombre}</p>
                 </div>

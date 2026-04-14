@@ -81,9 +81,9 @@ async def ensure_movilidad_indexes():
         logger.warning(f"PAE index creation: {e}")
 
 
-DEFAULT_PAE_TURNOS = [
-    {"nombre": "Desayuno Escolar", "hora_inicio": "07:00", "hora_fin": "08:30", "orden": 1, "activo": False},
-    {"nombre": "Almuerzo", "hora_inicio": "12:00", "hora_fin": "13:30", "orden": 2, "activo": True},
+DEFAULT_MOVILIDAD_TURNOS = [
+    {"nombre": "Entrada", "hora_inicio": "07:00", "hora_fin": "08:30", "orden": 1, "activo": True},
+    {"nombre": "Salida", "hora_inicio": "13:00", "hora_fin": "15:30", "orden": 2, "activo": True},
 ]
 
 
@@ -94,7 +94,7 @@ async def seed_movilidad_default_turnos(school_id: str):
         return False  # Already has turnos
 
     now = datetime.now(timezone.utc).isoformat()
-    for t in DEFAULT_PAE_TURNOS:
+    for t in DEFAULT_MOVILIDAD_TURNOS:
         await db.movilidad_turnos.insert_one({
             "id": generate_id(),
             "school_id": school_id,

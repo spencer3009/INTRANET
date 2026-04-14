@@ -218,7 +218,7 @@ export default function MovilidadScanner({ user, token }) {
               {mode === "camera" ? "USB" : "Camara"}
             </button>
           )}
-          <div className="bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-1.5" data-testid="movilidad-scanner-count">
+          <div className="bg-purple-500/20 text-purple-400 px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-1.5" data-testid="movilidad-scanner-count">
             <Users className="w-4 h-4" />
             {totalTurno}
           </div>
@@ -239,13 +239,13 @@ export default function MovilidadScanner({ user, token }) {
                 styles={{ container: { width: "100%", height: "100%" } }}
               />
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-orange-400/50 rounded-2xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-purple-400/50 rounded-2xl" />
               </div>
             </div>
           ) : (
             <div className="text-center px-6" data-testid="movilidad-usb-mode">
               <div className="w-24 h-24 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Keyboard className="w-12 h-12 text-orange-400" />
+                <Keyboard className="w-12 h-12 text-purple-400" />
               </div>
               <p className="text-white font-bold text-lg mb-1">Modo Lector USB</p>
               <p className="text-slate-400 text-sm mb-6">Escanea el codigo con la pistola lectora</p>
@@ -255,7 +255,7 @@ export default function MovilidadScanner({ user, token }) {
                   type="text"
                   autoFocus
                   onKeyDown={handleUSBInput}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white text-center font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white text-center font-mono focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
                   placeholder="Esperando escaneo..."
                   data-testid="movilidad-usb-input"
                 />
@@ -310,7 +310,7 @@ export default function MovilidadScanner({ user, token }) {
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {alerts.map((a, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-slate-700/50">
-                  {a.type === "error" ? <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" /> : <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                  {a.type === "error" ? <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" /> : <AlertTriangle className="w-3 h-3 text-violet-400 flex-shrink-0" />}
                   <span className="text-slate-400 flex-1 truncate">{a.msg}</span>
                   <span className="text-slate-600 font-mono">{a.time}</span>
                 </div>
