@@ -30,14 +30,21 @@ class ModernaTemplate(BaseQRTemplate):
         def _get(key, default=None):
             return data.get(key, default) if isinstance(data, dict) else getattr(data, key, default)
 
-        student_filter = {
-            "school_id": school_id, "role": "student",
-            "nivel_id": _get("nivel_id"), "grado_id": _get("grado_id"),
-            "seccion_id": _get("seccion_id"),
-            "qr_token": {"$exists": True, "$ne": None},
-        }
-        if _get("turno_id"):
-            student_filter["turno_id"] = _get("turno_id")
+        target_role = _get("role", "student")
+        if target_role == "teacher":
+            student_filter = {
+                "school_id": school_id, "role": "teacher",
+                "qr_token": {"$exists": True, "$ne": None},
+            }
+        else:
+            student_filter = {
+                "school_id": school_id, "role": "student",
+                "nivel_id": _get("nivel_id"), "grado_id": _get("grado_id"),
+                "seccion_id": _get("seccion_id"),
+                "qr_token": {"$exists": True, "$ne": None},
+            }
+            if _get("turno_id"):
+                student_filter["turno_id"] = _get("turno_id")
 
         students = await db.users.find(
             student_filter,

@@ -37,23 +37,31 @@ class ClassicTemplate(BaseQRTemplate):
 
         logger.info(f"[QR Template Classic] === Starting for school {school_id} ===")
 
-        # ── Phase 1: Fetch students ──────────────────────────────────
+        # ── Phase 1: Fetch users ───────────────────────────────────
         # Support both dict and Pydantic model
         def _get(key, default=None):
             if isinstance(data, dict):
                 return data.get(key, default)
             return getattr(data, key, default)
 
-        student_filter = {
-            "school_id": school_id,
-            "role": "student",
-            "nivel_id": _get("nivel_id"),
-            "grado_id": _get("grado_id"),
-            "seccion_id": _get("seccion_id"),
-        }
-        turno_id = _get("turno_id")
-        if turno_id:
-            student_filter["turno_id"] = turno_id
+        target_role = _get("role", "student")
+        if target_role == "teacher":
+            student_filter = {
+                "school_id": school_id,
+                "role": "teacher",
+                "qr_token": {"$exists": True, "$ne": None},
+            }
+        else:
+            student_filter = {
+                "school_id": school_id,
+                "role": "student",
+                "nivel_id": _get("nivel_id"),
+                "grado_id": _get("grado_id"),
+                "seccion_id": _get("seccion_id"),
+            }
+            turno_id = _get("turno_id")
+            if turno_id:
+                student_filter["turno_id"] = turno_id
 
         students = await db.users.find(
             student_filter,

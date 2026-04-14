@@ -44,9 +44,10 @@ async def count_students_with_qr(
 class TemplateDownloadRequest(BaseModel):
     formato: str = "pdf_grid"  # pdf_grid | zip | pdf_lista
     template: str = "classic"
-    nivel_id: str
-    grado_id: str
-    seccion_id: str
+    role: str = "student"  # "student" | "teacher"
+    nivel_id: Optional[str] = None
+    grado_id: Optional[str] = None
+    seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
     incluir_codigo_alumno: bool = False
     incluir_foto: bool = True
@@ -102,6 +103,55 @@ async def preview_template(
         "grado": (grado or {}).get("nombre") or (grado or {}).get("name") or "",
         "seccion": (seccion or {}).get("nombre") or (seccion or {}).get("name") or "",
     }
+
+
+@router.get("/qr-templates/preview-teacher")
+async def preview_teacher_template(current_user=Depends(get_current_user)):
+    """Return a random teacher's data for HTML preview in the drawer."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+
+    teacher = await db.users.find_one(
+        {"school_id": school_id, "role": "teacher", "qr_token": {"$exists": True, "$ne": None}},
+        {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1}
+    )
+    if not teacher:
+        raise HTTPException(status_code=404, detail="No hay profesores con QR")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "logo_url": 1})
+    school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
+    tenant = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1, "logo_url": 1})
+    display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+
+    return {
+        "student_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+        "student_photo": teacher.get("photo_url"),
+        "student_initial": (teacher.get("name", "?")[:1]).upper(),
+        "qr_token": teacher.get("qr_token"),
+        "codigo_alumno": None,
+        "school_name": display_name,
+        "school_logo": (tenant or {}).get("logo_carnet_url") or (tenant or {}).get("logo_url") or (school or {}).get("logo_url"),
+        "nivel": "Docente",
+        "grado": "",
+        "seccion": "",
+    }
+
+
+@router.get("/qr-templates/count-teachers")
+async def count_teachers_with_qr(current_user=Depends(get_current_user)):
+    """Count teachers with QR token."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+    count = await db.users.count_documents({
+        "school_id": school_id, "role": "teacher",
+        "qr_token": {"$exists": True, "$ne": None},
+    })
+    return {"count": count}
+
 
 
 @router.post("/qr-templates/download")

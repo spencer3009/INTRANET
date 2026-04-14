@@ -4880,6 +4880,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         open={showTemplateDrawer}
         onClose={() => setShowTemplateDrawer(false)}
         token={token}
+        mode={selectedRole === "teacher" ? "teacher" : "student"}
       />
       <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
 

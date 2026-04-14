@@ -108,7 +108,7 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
   );
 }
 
-export default function QRTemplateDrawer({ open, onClose, token }) {
+export default function QRTemplateDrawer({ open, onClose, token, mode = "student" }) {
   const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
@@ -138,34 +138,52 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   const [uploadingWatermark, setUploadingWatermark] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
+  const isTeacher = mode === "teacher";
 
   useEffect(() => {
     if (!open) return;
-    Promise.all([
-      axios.get(`${API}/api/academic/levels`, { headers }),
-      axios.get(`${API}/api/academic/grades`, { headers }),
-      axios.get(`${API}/api/academic/sections`, { headers }),
-      axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
+    const commonLoads = [
       axios.get(`${API}/api/qr-templates/list`, { headers }),
       axios.get(`${API}/api/qr-templates/logo-carnet`, { headers }).catch(() => ({ data: {} })),
       axios.get(`${API}/api/qr-templates/saved-colors`, { headers }).catch(() => ({ data: {} })),
       axios.get(`${API}/api/qr-templates/watermark`, { headers }).catch(() => ({ data: {} })),
-    ]).then(([l, g, s, sh, tpl, logo, colorsRes, wmRes]) => {
-      setLevels((l.data || []).filter(x => x.activo));
-      setGrades((g.data || []).filter(x => x.activo));
-      setSections((s.data || []).filter(x => x.activo));
-      setShifts(sh.data || []);
-      setTemplates(tpl.data.templates || [{ id: "classic", name: "Clásica", description: "Carnet estándar" }, { id: "moderna", name: "Moderna", description: "Header azul con curva amarilla" }]);
+    ];
+    if (!isTeacher) {
+      commonLoads.unshift(
+        axios.get(`${API}/api/academic/levels`, { headers }),
+        axios.get(`${API}/api/academic/grades`, { headers }),
+        axios.get(`${API}/api/academic/sections`, { headers }),
+        axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
+      );
+    }
+    Promise.all(commonLoads).then((results) => {
+      let tpl, logo, colorsRes, wmRes;
+      if (isTeacher) {
+        [tpl, logo, colorsRes, wmRes] = results;
+      } else {
+        const [l, g, s, sh, ...rest] = results;
+        [tpl, logo, colorsRes, wmRes] = rest;
+        setLevels((l.data || []).filter(x => x.activo));
+        setGrades((g.data || []).filter(x => x.activo));
+        setSections((s.data || []).filter(x => x.activo));
+        setShifts(sh.data || []);
+      }
+      setTemplates(tpl.data.templates || []);
       if (tpl.data.templates?.length) setSelected(tpl.data.templates[0].id);
       setLogoCarnet(logo.data?.logo_carnet_url || null);
       const sc = colorsRes.data?.colors || {};
       setSavedColors(sc);
-      if (sc.moderna) {
-        setColorPrincipal(sc.moderna.color_principal || "#1e3a5f");
-        setColorAcento(sc.moderna.color_acento || "#F5B800");
-      }
+      if (sc.moderna) { setColorPrincipal(sc.moderna.color_principal || "#1e3a5f"); setColorAcento(sc.moderna.color_acento || "#F5B800"); }
       setWatermarkUrl(wmRes.data?.watermark_url || null);
     }).catch(() => {});
+    if (isTeacher) {
+      setLoadingPreview(true);
+      Promise.all([
+        axios.get(`${API}/api/qr-templates/preview-teacher`, { headers }),
+        axios.get(`${API}/api/qr-templates/count-teachers`, { headers }),
+      ]).then(([prev, cnt]) => { setPreviewData(prev.data); setStudentCount(cnt.data?.count || 0); })
+        .catch(() => {}).finally(() => setLoadingPreview(false));
+    }
   }, [open]);
 
   const filteredGrades = useMemo(() => grades.filter(g => !selLevel || g.nivel_id === selLevel), [grades, selLevel]);
@@ -175,6 +193,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
   useEffect(() => { setSelSection(""); }, [selGrade]);
 
   useEffect(() => {
+    if (isTeacher) return; // Teacher mode loads preview separately
     if (!selLevel || !selGrade || !selSection) { setStudentCount(0); setPreviewData(null); return; }
     setLoadingPreview(true);
     const params = { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection };
@@ -269,8 +288,11 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
     try {
       const res = await axios.post(`${API}/api/qr-templates/download`, {
         formato, template: selected,
-        nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection,
-        turno_id: selShift || null,
+        role: isTeacher ? "teacher" : "student",
+        nivel_id: isTeacher ? null : selLevel,
+        grado_id: isTeacher ? null : selGrade,
+        seccion_id: isTeacher ? null : selSection,
+        turno_id: isTeacher ? null : (selShift || null),
         incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
         color_principal: selectedTpl?.supports_custom_colors ? colorPrincipal : null,
         color_acento: selectedTpl?.supports_custom_colors ? colorAcento : null,
@@ -284,7 +306,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
 
   if (!open) return null;
 
-  const filtersComplete = selLevel && selGrade && selSection;
+  const filtersComplete = isTeacher || (selLevel && selGrade && selSection);
   const selectedTpl = templates.find(t => t.id === selected);
   const downloadLabel = formato === "zip" ? "Descargar ZIP" : formato === "pdf_lista" ? "Descargar PDF (lista)" : "Descargar PDF";
   const showTemplate = formato !== "zip";
@@ -299,7 +321,7 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center"><Palette className="w-4 h-4 text-teal-600" /></div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">Exportar Carnets QR</h2>
+              <h2 className="text-base font-bold text-slate-800">{isTeacher ? "Exportar Carnets QR Profesores" : "Exportar Carnets QR"}</h2>
               <p className="text-[11px] text-slate-500">Configura filtros, formato y descarga</p>
             </div>
           </div>
@@ -308,7 +330,8 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {/* 1. Filters */}
+          {/* 1. Filters (student mode only) */}
+          {!isTeacher ? (
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">Filtros</p>
             <div className="grid grid-cols-2 gap-2">
@@ -344,6 +367,11 @@ export default function QRTemplateDrawer({ open, onClose, token }) {
             {filtersComplete && studentCount > 0 && <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{studentCount} estudiante{studentCount !== 1 ? "s" : ""} con QR</p>}
             {filtersComplete && studentCount === 0 && !loadingPreview && <p className="text-[11px] text-amber-600 mt-1.5">No se encontraron estudiantes con QR</p>}
           </div>
+          ) : (
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+            <p className="text-sm font-medium text-slate-800">{studentCount} profesor{studentCount !== 1 ? "es" : ""} con QR</p>
+          </div>
+          )}
 
           {/* 2. Format */}
           <div>
