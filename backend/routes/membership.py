@@ -40,20 +40,38 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
     if not req.operation_code.strip():
         raise HTTPException(status_code=400, detail="El numero de operacion es obligatorio")
 
-    if not req.operation_code.strip().isdigit() or len(req.operation_code.strip()) != 8:
-        raise HTTPException(status_code=400, detail="El numero de operacion debe tener exactamente 8 digitos")
+    operation_code = req.operation_code.strip()
+
+    if not operation_code.isdigit() or len(operation_code) != 8:
+        raise HTTPException(status_code=400, detail="INVALID_OPERATION_FORMAT")
+
+    INVALID_OPERATION_PATTERNS = {
+        "12345678", "87654321", "00000000",
+        "11111111", "22222222", "33333333", "44444444",
+        "55555555", "66666666", "77777777", "88888888", "99999999"
+    }
+    if operation_code in INVALID_OPERATION_PATTERNS:
+        raise HTTPException(status_code=400, detail="INVALID_OPERATION_PATTERN")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
 
-    # Check for existing pending request
+    # Check for existing pending request from this school
     existing = await db.payment_requests.find_one(
         {"school_id": school_id, "status": "processing"},
         {"_id": 0}
     )
     if existing:
         raise HTTPException(status_code=409, detail="Ya existe una solicitud de pago en verificacion")
+
+    # Check global uniqueness of operation_code
+    duplicate = await db.payment_requests.find_one(
+        {"operation_code": operation_code},
+        {"_id": 0, "id": 1}
+    )
+    if duplicate:
+        raise HTTPException(status_code=409, detail="OPERATION_CODE_DUPLICATE")
 
     # Calculate amount from pricing
     pricing = school.get("pricing_override", {})
@@ -98,7 +116,7 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
         "school_name": school.get("name", school.get("subdomain", "")),
         "amount": amount,
         "payment_method": req.payment_method,
-        "operation_code": req.operation_code or "",
+        "operation_code": operation_code,
         "status": "processing",
         "requested_by": user["id"],
         "requested_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
