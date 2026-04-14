@@ -331,12 +331,12 @@ def is_admin_user(user: dict) -> bool:
 ROLE_HIERARCHY = {
     "owner": 100, "admin": 90, "director": 80, "coordinator": 70,
     "teacher": 50, "psicologo": 45, "auxiliar": 40,
-    "auxiliar_asistencia": 38, "auxiliar_alimentacion": 35,
+    "auxiliar_asistencia": 38, "auxiliar_alimentacion": 35, "auxiliar_movilidad": 34,
     "parent": 20, "student": 10
 }
 
 ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
-STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion"]
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad"]
 
 def has_role(user: dict, allowed_roles: list) -> bool:
     return user.get("role") in allowed_roles
@@ -396,6 +396,7 @@ SECTION_PERMISSIONS = {
     "internal_mail": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "auxiliar_asistencia", "psicologo", "student", "parent"], "feature_flag": None},
     "psychology": {"allowed_roles": ["owner", "admin", "director", "coordinator", "psicologo"], "feature_flag": None},
     "pae": {"allowed_roles": ["owner", "admin", "auxiliar_alimentacion"], "feature_flag": None},
+    "movilidad": {"allowed_roles": ["owner", "admin", "auxiliar_movilidad"], "feature_flag": None},
     "coordinacion": {"allowed_roles": ["owner", "admin", "director", "coordinator", "psicologo"], "feature_flag": None},
 }
 

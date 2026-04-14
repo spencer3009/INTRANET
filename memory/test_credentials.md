@@ -52,3 +52,13 @@
 - Email: carlos.comedor@elroble.edu
 - Password: (not set/unknown)
 - Role: auxiliar_alimentacion
+
+### Auxiliar de Movilidad
+- Email: pedro.movilidad@elroble.edu
+- Password: Movilidad123!
+- Role: auxiliar_movilidad
+
+### Auxiliar PAE (updated password)
+- Email: carlos.comedor@elroble.edu
+- Password: Pae1234!
+- Role: auxiliar_alimentacion

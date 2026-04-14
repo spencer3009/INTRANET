@@ -117,6 +117,9 @@ import PsicologiaTalleresPage from "@/pages/psicologia/PsicologiaTalleresPage";
 import PaeDashboard from "@/pages/pae/PaeDashboard";
 import PaeScanner from "@/pages/pae/PaeScanner";
 import PaeRegistrosDia from "@/pages/pae/PaeRegistrosDia";
+import MovilidadDashboard from "@/pages/movilidad/MovilidadDashboard";
+import MovilidadScanner from "@/pages/movilidad/MovilidadScanner";
+import MovilidadRegistrosDia from "@/pages/movilidad/MovilidadRegistrosDia";
 import AuxAsistenciaDashboard from "@/pages/aux-asistencia/AuxAsistenciaDashboard";
 import AuxAsistenciaScanner from "@/pages/aux-asistencia/AuxAsistenciaScanner";
 import AuxAsistenciaMisEscaneos from "@/pages/aux-asistencia/AuxAsistenciaMisEscaneos";
@@ -153,6 +156,7 @@ const isTeacher = (user) => user?.role === "teacher";
 const isPsicologo = (user) => user?.role === "psicologo";
 const isCoordinator = (user) => user?.role === "coordinator";
 const isAuxiliarAlimentacion = (user) => user?.role === "auxiliar_alimentacion";
+const isAuxiliarMovilidad = (user) => user?.role === "auxiliar_movilidad";
 const isAuxiliarAsistencia = (user) => user?.role === "auxiliar_asistencia";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
@@ -570,6 +574,14 @@ function App() {
       return user?.subdomain ? `/${user.subdomain}/pae` : '/pae';
     }
     
+    // Auxiliar de Movilidad gets redirected to Movilidad dashboard
+    if (isAuxiliarMovilidad(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/movilidad';
+      }
+      return user?.subdomain ? `/${user.subdomain}/movilidad` : '/movilidad';
+    }
+    
     // Auxiliar de Asistencia gets redirected to their portal
     if (isAuxiliarAsistencia(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
@@ -708,6 +720,8 @@ function App() {
                   <Navigate to="/psicologia" replace />
                 ) : isAuxiliarAlimentacion(user) ? (
                   <Navigate to="/pae" replace />
+                ) : isAuxiliarMovilidad(user) ? (
+                  <Navigate to="/movilidad" replace />
                 ) : isAuxiliarAsistencia(user) ? (
                   <Navigate to="/aux-asistencia" replace />
                 ) : (
@@ -1178,6 +1192,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <PaeScanner user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Movilidad Portal - Direct paths */}
+          <Route
+            path="/movilidad"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/movilidad/scanner"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MovilidadScanner user={user} token={token} />
               </ProtectedRoute>
             }
           />
@@ -1856,6 +1888,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <SchedulePage user={user} token={token} onLogout={handleLogout} readOnly={true} showFilters={true} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Movilidad Portal - Route based (subdomain) */}
+          <Route
+            path="/:subdomain/movilidad"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MovilidadDashboard user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/movilidad/scanner"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MovilidadScanner user={user} token={token} />
               </ProtectedRoute>
             }
           />

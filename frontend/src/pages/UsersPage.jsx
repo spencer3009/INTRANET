@@ -174,6 +174,19 @@ const ROLE_CARDS = [
     lightGradient: "from-orange-50 to-amber-50",
     image: "https://cdn-icons-png.flaticon.com/512/3480/3480823.png"
   },
+  { 
+    id: "auxiliar_movilidad", 
+    label: "Aux. Movilidad", 
+    labelSingular: "Auxiliar de Movilidad",
+    color: "from-purple-500 to-purple-600",
+    bgColor: "bg-purple-50",
+    iconBg: "bg-purple-100",
+    textColor: "text-purple-600",
+    borderColor: "border-purple-200",
+    gradientBg: "from-purple-500 to-violet-600",
+    lightGradient: "from-purple-50 to-violet-50",
+    image: "https://cdn-icons-png.flaticon.com/512/3097/3097180.png"
+  },
 ];
 
 // Add User Modal Component
@@ -1036,6 +1049,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="psicologo">Psicologo</option>
                   <option value="coordinator">Coordinador</option>
                   <option value="auxiliar_alimentacion">Auxiliar de Alimentación</option>
+                  <option value="auxiliar_movilidad">Auxiliar de Movilidad</option>
                   <option value="auxiliar_asistencia">Auxiliar de Asistencia</option>
                 </select>
               )}

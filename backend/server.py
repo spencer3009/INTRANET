@@ -56,6 +56,7 @@ from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
 from routes.pae import router as pae_router, ensure_pae_indexes, seed_pae_default_turnos
+from routes.movilidad import router as movilidad_router, ensure_movilidad_indexes, seed_movilidad_default_turnos
 from routes.coordinacion import router as coordinacion_router, ensure_coordinacion_indexes
 from routes.boletas import router as boletas_router
 from routes.seed_accounting import router as seed_accounting_router
@@ -213,6 +214,7 @@ app.include_router(psychology_router)
 app.include_router(psychology_messages_router)
 app.include_router(psychology_agenda_router)
 app.include_router(pae_router)
+app.include_router(movilidad_router)
 app.include_router(coordinacion_router)
 app.include_router(boletas_router)
 app.include_router(seed_accounting_router)
@@ -333,6 +335,7 @@ async def create_indexes():
         await ensure_global_support_user()
         await seed_academia_categories()
         await ensure_pae_indexes()
+        await ensure_movilidad_indexes()
         await ensure_coordinacion_indexes()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
@@ -413,6 +416,7 @@ async def create_indexes():
             already_ok = 0
             for s in all_schools:
                 seeded = await seed_pae_default_turnos(s["id"])
+                await seed_movilidad_default_turnos(s["id"])
                 if seeded:
                     updated += 1
                 else:

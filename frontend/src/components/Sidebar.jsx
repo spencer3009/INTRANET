@@ -18,6 +18,7 @@ import {
   Trophy,
   Video,
   UtensilsCrossed,
+  Bus,
   QrCode,
   ListChecks,
   GraduationCap,
@@ -42,6 +43,7 @@ const allNavItems = [
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },
   { id: "pae", label: "Alimentación", icon: UtensilsCrossed, route: "/pae", section: "pae", roles: ["auxiliar_alimentacion"] },
+  { id: "movilidad", label: "Movilidad", icon: Bus, route: "/movilidad", section: "movilidad", roles: ["auxiliar_movilidad"] },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];

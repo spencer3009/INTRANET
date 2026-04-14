@@ -7,13 +7,14 @@ import MobileBottomNav from "../components/MobileBottomNav";
 import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import QRScannerTab from "../components/QRScannerTab";
 import PaeRegistrosDia from "./pae/PaeRegistrosDia";
+import MovilidadRegistrosDia from "./movilidad/MovilidadRegistrosDia";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
-  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText
+  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText, Bus
 } from "lucide-react";
 import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 
@@ -2044,6 +2045,40 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                 </div>
               </div>
               )}
+
+              {/* SECTION 5: Movilidad - Solo owner/admin */}
+              {(user?.role === "owner" || user?.role === "admin") && (
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-movilidad">
+                <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Bus className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Movilidad</h2>
+                      <p className="text-purple-200 text-sm">Control de transporte escolar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button onClick={() => setActiveView("movilidad")} className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-300 rounded-xl transition-all group" data-testid="btn-movilidad-registros">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 group-hover:bg-purple-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Registros del dia</p>
+                      <p className="text-xs text-slate-400">Ver registros de movilidad</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
+                  </button>
+                  <button disabled className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed" data-testid="btn-movilidad-reportes">
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><FileText className="w-5 h-5 text-slate-400" /></div>
+                    <div className="text-left flex-1"><p className="font-semibold text-slate-500 text-sm">Reportes Movilidad</p><p className="text-xs text-slate-400">Proximamente</p></div>
+                  </button>
+                </div>
+              </div>
+              )}
+
             </div>
           )}
 
@@ -2070,6 +2105,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
 
           {activeView === "alimentacion" && (
             <PaeRegistrosDia user={user} token={token} subdomain={subdomain} embedded />
+          )}
+
+          {activeView === "movilidad" && (
+            <MovilidadRegistrosDia user={user} token={token} subdomain={subdomain} embedded />
           )}
         </main>
       </div>
