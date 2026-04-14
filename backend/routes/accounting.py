@@ -1022,7 +1022,10 @@ class FinancialSettingsUpdate(BaseModel):
     interes_activo: Optional[bool] = None
     interes_tipo: Optional[str] = None
     interes_valor: Optional[float] = None
-    activacion_modo: Optional[str] = None  # "matricula" or "matricula_pension"
+    interes_frecuencia: Optional[str] = None  # "mensual" | "diario"
+    interes_modalidad: Optional[str] = None   # "monto_fijo" | "porcentaje"
+    interes_tope_maximo: Optional[float] = None
+    activacion_modo: Optional[str] = None
 
 @router.get("/accounting/financial-settings")
 async def get_financial_settings(current_user = Depends(require_section_access("accounting"))):
@@ -1039,8 +1042,17 @@ async def get_financial_settings(current_user = Depends(require_section_access("
             "pronto_pago_fecha_limite": 5,
             "interes_activo": False,
             "interes_tipo": "porcentaje",
-            "interes_valor": 0
+            "interes_valor": 0,
+            "interes_frecuencia": "mensual",
+            "interes_modalidad": "porcentaje",
+            "interes_tope_maximo": 0
         }
+    # Retrocompatibility: migrate legacy interes_tipo → frecuencia + modalidad
+    if "interes_frecuencia" not in settings:
+        tipo = settings.get("interes_tipo", "porcentaje")
+        settings["interes_frecuencia"] = "mensual"
+        settings["interes_modalidad"] = tipo if tipo in ("monto_fijo", "porcentaje") else "porcentaje"
+        settings["interes_tope_maximo"] = settings.get("interes_tope_maximo", 0)
     return settings
 
 @router.put("/accounting/financial-settings")

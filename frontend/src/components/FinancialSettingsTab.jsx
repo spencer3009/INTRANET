@@ -21,6 +21,9 @@ export default function FinancialSettingsTab({ token, user }) {
     interes_activo: false,
     interes_tipo: "porcentaje",
     interes_valor: 0,
+    interes_frecuencia: "mensual",
+    interes_modalidad: "porcentaje",
+    interes_tope_maximo: 0,
     activacion_modo: "on_create"
   });
 
@@ -39,6 +42,9 @@ export default function FinancialSettingsTab({ token, user }) {
           interes_activo: d.interes_activo ?? false,
           interes_tipo: d.interes_tipo ?? "porcentaje",
           interes_valor: d.interes_valor ?? 0,
+          interes_frecuencia: d.interes_frecuencia ?? "mensual",
+          interes_modalidad: d.interes_modalidad ?? d.interes_tipo ?? "porcentaje",
+          interes_tope_maximo: d.interes_tope_maximo ?? 0,
           activacion_modo: d.activacion_modo ?? "on_create"
         });
       })
@@ -245,48 +251,100 @@ export default function FinancialSettingsTab({ token, user }) {
             </p>
             {form.interes_activo && (
               <div className="space-y-4 animate-in fade-in">
+                {/* Frecuencia toggle */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Tipo de interes</label>
-                  <select
-                    value={form.interes_tipo}
-                    onChange={(e) => set("interes_tipo", e.target.value)}
-                    disabled={!isOwnerOrAdmin}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
-                    data-testid="interes-tipo-select"
-                  >
-                    <option value="porcentaje">Porcentaje mensual</option>
-                    <option value="monto_fijo">Monto fijo mensual</option>
-                  </select>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Frecuencia del recargo</label>
+                  <div className="flex bg-slate-100 rounded-xl p-1" data-testid="interes-frecuencia-toggle">
+                    {[{id: "mensual", label: "Mensual"}, {id: "diario", label: "Diario"}].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => set("interes_frecuencia", opt.id)}
+                        disabled={!isOwnerOrAdmin}
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${form.interes_frecuencia === opt.id ? "bg-white text-amber-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                        data-testid={`freq-${opt.id}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {/* Modalidad toggle */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Modalidad de calculo</label>
+                  <div className="flex bg-slate-100 rounded-xl p-1" data-testid="interes-modalidad-toggle">
+                    {[{id: "monto_fijo", label: "Monto fijo"}, {id: "porcentaje", label: "Porcentaje"}].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => { set("interes_modalidad", opt.id); set("interes_tipo", opt.id); }}
+                        disabled={!isOwnerOrAdmin}
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${form.interes_modalidad === opt.id ? "bg-white text-amber-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                        data-testid={`mod-${opt.id}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Valor input with dynamic label */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                    {form.interes_tipo === "porcentaje" ? "Porcentaje mensual" : "Monto mensual"}
+                    {form.interes_modalidad === "porcentaje"
+                      ? (form.interes_frecuencia === "diario" ? "Porcentaje diario" : "Porcentaje mensual")
+                      : (form.interes_frecuencia === "diario" ? "Monto diario" : "Monto mensual")}
                   </label>
                   <div className="relative">
-                    {form.interes_tipo === "monto_fijo" && (
+                    {form.interes_modalidad === "monto_fijo" && (
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">S/</span>
                     )}
                     <input
                       type="number"
-                      step={form.interes_tipo === "porcentaje" ? "0.1" : "0.01"}
+                      step={form.interes_modalidad === "porcentaje" ? "0.1" : "0.01"}
                       value={form.interes_valor}
                       onChange={(e) => set("interes_valor", parseFloat(e.target.value) || 0)}
                       disabled={!isOwnerOrAdmin}
-                      className={`w-full ${form.interes_tipo === "monto_fijo" ? "pl-8" : "pl-4"} pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all`}
-                      placeholder={form.interes_tipo === "porcentaje" ? "5" : "20.00"}
+                      className={`w-full ${form.interes_modalidad === "monto_fijo" ? "pl-8" : "pl-4"} pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all`}
+                      placeholder={form.interes_modalidad === "porcentaje" ? "2.5" : "0.50"}
                       data-testid="interes-valor-input"
                     />
-                    {form.interes_tipo === "porcentaje" && (
+                    {form.interes_modalidad === "porcentaje" && (
                       <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     )}
                   </div>
                 </div>
-                {form.pension_mensual > 0 && form.interes_valor > 0 && (
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-                    {form.interes_tipo === "porcentaje"
-                      ? <>Recargo: <strong>S/ {(form.pension_mensual * form.interes_valor / 100).toFixed(2)}</strong> mensual ({form.interes_valor}% de S/ {form.pension_mensual.toFixed(2)})</>
-                      : <>Recargo: <strong>S/ {form.interes_valor.toFixed(2)}</strong> fijo por cada mes de atraso</>
+                {/* Tope maximo */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Tope maximo de recargo (S/)
+                    <span className="text-slate-400 font-normal ml-1" title="Opcional. Si se define, el recargo acumulado nunca superara este monto.">opcional</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">S/</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.interes_tope_maximo || ""}
+                      onChange={(e) => set("interes_tope_maximo", parseFloat(e.target.value) || 0)}
+                      disabled={!isOwnerOrAdmin}
+                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                      placeholder="0 = sin tope"
+                      data-testid="interes-tope-input"
+                    />
+                  </div>
+                </div>
+                {/* Preview */}
+                {form.interes_valor > 0 && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700" data-testid="interes-preview">
+                    {form.interes_modalidad === "porcentaje"
+                      ? <>Recargo: <strong>{form.interes_valor}%</strong> del monto de la cuota por cada {form.interes_frecuencia === "diario" ? "dia" : "mes"} de atraso
+                          {form.pension_mensual > 0 && <> (ej: <strong>S/ {(form.pension_mensual * form.interes_valor / 100).toFixed(2)}</strong> por {form.interes_frecuencia === "diario" ? "dia" : "mes"})</>}
+                        </>
+                      : <>Recargo: <strong>S/ {form.interes_valor.toFixed(2)}</strong> fijo por cada {form.interes_frecuencia === "diario" ? "dia" : "mes"} de atraso</>
                     }
+                    {form.interes_tope_maximo > 0 && (
+                      <> <span className="text-amber-600">(tope maximo: S/ {form.interes_tope_maximo.toFixed(2)})</span></>
+                    )}
                   </div>
                 )}
               </div>
