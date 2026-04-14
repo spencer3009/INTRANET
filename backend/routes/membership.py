@@ -7,8 +7,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 import uuid
+import logging
 
 from .core import db, get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/membership", tags=["membership"])
 
@@ -41,8 +44,10 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
         raise HTTPException(status_code=400, detail="El numero de operacion es obligatorio")
 
     operation_code = req.operation_code.strip()
+    logger.info(f"[PAYMENT] Received: school={school_id}, operation_code={operation_code}")
 
     if not operation_code.isdigit() or len(operation_code) != 8:
+        logger.warning(f"[PAYMENT] REJECTED: INVALID_FORMAT code={operation_code}")
         raise HTTPException(status_code=400, detail="INVALID_OPERATION_FORMAT")
 
     INVALID_OPERATION_PATTERNS = {
@@ -51,6 +56,7 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
         "55555555", "66666666", "77777777", "88888888", "99999999"
     }
     if operation_code in INVALID_OPERATION_PATTERNS:
+        logger.warning(f"[PAYMENT] REJECTED: INVALID_PATTERN code={operation_code}")
         raise HTTPException(status_code=400, detail="INVALID_OPERATION_PATTERN")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})

@@ -47,7 +47,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
     try {
       const res = await fetch(`${API}/api/membership/request-payment`, {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ operation_code: operationCode, payment_method: "yape" }),
       });
       if (res.ok) {
@@ -56,17 +56,25 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
         setStep(3);
         ctx?.refresh?.();
       } else {
-        const data = await res.json();
-        const detail = data.detail || "";
+        let detail = "";
+        try {
+          const data = await res.json();
+          detail = data.detail || "";
+        } catch {
+          detail = `Error del servidor (${res.status})`;
+        }
         if (detail === "OPERATION_CODE_DUPLICATE") {
           setCodeError("Este numero de operacion ya fue registrado previamente. Verifica tu comprobante de Yape e intentalo nuevamente.");
         } else if (detail === "INVALID_OPERATION_PATTERN" || detail === "INVALID_OPERATION_FORMAT") {
           setCodeError("Este numero de operacion no es valido. Revisa tu comprobante de Yape.");
+        } else if (detail.includes("Ya existe una solicitud")) {
+          setCodeError("Ya tienes un pago en verificacion. Espera a que soporte lo confirme.");
         } else {
-          setCodeError(detail || "Error al registrar el pago.");
+          setCodeError(detail || `Error al registrar el pago (${res.status}).`);
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("Payment request error:", err);
       setCodeError("Error de conexion. Intenta nuevamente.");
     } finally {
       setSubmitting(false);
