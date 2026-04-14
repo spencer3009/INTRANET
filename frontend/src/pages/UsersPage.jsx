@@ -185,7 +185,7 @@ const ROLE_CARDS = [
     borderColor: "border-purple-200",
     gradientBg: "from-purple-500 to-violet-600",
     lightGradient: "from-purple-50 to-violet-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3097/3097180.png"
+    image: "https://customer-assets.emergentagent.com/job_07dda940-ffba-401b-80ce-abc43257745f/artifacts/tqlsmmh9_image.png"
   },
 ];
 
