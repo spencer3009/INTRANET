@@ -281,6 +281,7 @@ async def emitir_boleta_para_ingreso(payment: dict, school_id: str, user: dict) 
             "grado_seccion": grado_seccion,
         },
         "concepto": concepto_label,
+        "conceptos": payment.get("conceptos", []),
         "mes": mes_label,
         "metodo_pago": payment.get("payment_method", "efectivo"),
         "monto_base": monto_base,

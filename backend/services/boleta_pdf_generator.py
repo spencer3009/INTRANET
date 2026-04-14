@@ -206,6 +206,7 @@ def generar_boleta_pdf(boleta: dict) -> bytes:
 
     # ── DETAIL TABLE ────────────────────────────────────────────────
     concepto = boleta.get("concepto", "---")
+    conceptos_arr = boleta.get("conceptos", [])
     mes = boleta.get("mes", "")
     total = boleta.get("total", 0)
     monto_base = boleta.get("monto_base", 0)
@@ -223,18 +224,33 @@ def generar_boleta_pdf(boleta: dict) -> bytes:
         Paragraph("TOTAL", header_style),
     ]
 
-    detail_row = [
-        Paragraph("1", cell_style),
-        Paragraph(concepto, cell_style),
-        Paragraph(mes or "-", cell_style),
-        Paragraph("1.00", cell_right),
-        Paragraph(f"S/ {monto_base:.2f}", cell_right),
-        Paragraph(f"S/ {monto_base:.2f}", cell_right),
-    ]
+    detail_rows = [detail_header]
+
+    if conceptos_arr and len(conceptos_arr) > 1:
+        for idx, c_item in enumerate(conceptos_arr, 1):
+            c_name = c_item.get("concepto", "---")
+            c_monto = c_item.get("monto", 0)
+            detail_rows.append([
+                Paragraph(str(idx), cell_style),
+                Paragraph(c_name, cell_style),
+                Paragraph(mes or "-", cell_style),
+                Paragraph("1.00", cell_right),
+                Paragraph(f"S/ {c_monto:.2f}", cell_right),
+                Paragraph(f"S/ {c_monto:.2f}", cell_right),
+            ])
+    else:
+        detail_rows.append([
+            Paragraph("1", cell_style),
+            Paragraph(concepto, cell_style),
+            Paragraph(mes or "-", cell_style),
+            Paragraph("1.00", cell_right),
+            Paragraph(f"S/ {monto_base:.2f}", cell_right),
+            Paragraph(f"S/ {monto_base:.2f}", cell_right),
+        ])
 
     col_widths = [1 * cm, avail_w - 11 * cm, 3 * cm, 2 * cm, 2.5 * cm, 2.5 * cm]
 
-    detail_table = Table([detail_header, detail_row], colWidths=col_widths, repeatRows=1)
+    detail_table = Table(detail_rows, colWidths=col_widths, repeatRows=1)
     detail_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EEEEEE")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#333333")),
