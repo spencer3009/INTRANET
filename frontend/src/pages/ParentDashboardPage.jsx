@@ -26,6 +26,7 @@ import {
   Eye,
   User,
   UserCheck,
+  UserPlus,
   Wallet,
   AlertTriangle,
   CircleDollarSign,
@@ -229,27 +230,27 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
   if (!loading && children.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-slate-50 flex">
         <ParentSidebar active={activeSection} onNavigate={setActiveSection} expanded={sidebarExpanded}
           onToggle={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} schoolName={schoolName}
           subdomain={subdomain} user={user} children={[]} selectedChild={null} onSelectChild={() => {}} />
-        <div className="flex-1 flex flex-col lg:ml-16">
+        <div className="flex-1 flex flex-col min-w-0">
           <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout}
             logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain} token={token}
             roleLabel="Padre/Apoderado" profilePath="/parent/profile" />
-          <main className="flex-1 p-6 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
-              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-12 h-12 text-slate-400" />
+              <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <GraduationCap className="w-12 h-12 text-emerald-500" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Sin estudiantes vinculados</h2>
-              <p className="text-slate-500 mb-6">No tienes estudiantes vinculados a tu cuenta.</p>
+              <h2 className="text-2xl font-bold text-slate-800 mb-3">Bienvenido al Portal de Padres</h2>
+              <p className="text-slate-500 mb-8">Registra a tu hijo/a para iniciar el proceso de matricula. El colegio revisara los datos y te notificara cuando sea aprobada.</p>
               <button
                 onClick={() => navigateTo("/parent/registrar-alumno")}
-                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 mx-auto"
+                className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-base transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3"
                 data-testid="register-child-btn"
               >
-                <GraduationCap className="w-5 h-5" />
+                <UserPlus className="w-6 h-6" />
                 Registrar a mi hijo
               </button>
             </div>

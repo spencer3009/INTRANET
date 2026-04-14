@@ -119,7 +119,9 @@ async def get_parent_profile(current_user = Depends(get_current_user)):
             "grado_id": student.get("grado_id"),
             "seccion_id": student.get("seccion_id"),
             "grado_name": grado.get("name") if grado else None,
-            "seccion_name": seccion.get("name") if seccion else None
+            "seccion_name": seccion.get("name") if seccion else None,
+            "enrollment_status": student.get("enrollment_status"),
+            "enrollment_rejection_reason": student.get("enrollment_rejection_reason"),
         })
     
     # Method 2: Check parent's student_ids/children_ids arrays
@@ -148,7 +150,9 @@ async def get_parent_profile(current_user = Depends(get_current_user)):
                         "grado_id": student.get("grado_id"),
                         "seccion_id": student.get("seccion_id"),
                         "grado_name": grado.get("name") if grado else None,
-                        "seccion_name": seccion.get("name") if seccion else None
+                        "seccion_name": seccion.get("name") if seccion else None,
+                        "enrollment_status": student.get("enrollment_status"),
+                        "enrollment_rejection_reason": student.get("enrollment_rejection_reason"),
                     })
     
     return {
