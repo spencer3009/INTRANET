@@ -465,7 +465,16 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="text-sm text-gray-600 font-medium">{payment.concept_label}</span>
+                        <div>
+                          <span className="text-sm text-gray-600 font-medium" title={payment.concept_label_full || payment.concept_label}>
+                            {payment.concept_label}
+                          </span>
+                          {payment.conceptos && payment.conceptos.length > 1 && (
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {payment.conceptos.map(c => `${c.concepto}: S/ ${formatNumber(c.monto)}`).join(" | ")}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <span className="text-sm text-gray-500">{payment.pension_month_label || "-"}</span>
@@ -970,34 +979,6 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     return "";
   };
 
-  // Combo mode: Matrícula + Mensualidad
-  const COMBO_CONCEPT = "__combo_matricula_mensualidad__";
-
-  // Show combo option only if Matrícula is available (not already paid)
-  const showComboOption = useMemo(() => {
-    const hasMatricula = availableConcepts.some(c => c.name.toLowerCase() === "matricula" || c.name === "Matrícula");
-    const hasMensualidad = availableConcepts.some(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad");
-    return hasMatricula && hasMensualidad;
-  }, [availableConcepts]);
-
-  // Combo amounts: prefer payment concepts, fallback to financial settings
-  const comboMatriculaAmount = useMemo(() => {
-    const c = paymentConcepts.find(c => c.name === "Matrícula" || c.name.toLowerCase() === "matricula");
-    if (c && c.amount > 0) return c.amount;
-    // Fallback to financial settings
-    return financialSettings?.matricula || financialSettings?.matricula_monto || 0;
-  }, [paymentConcepts, financialSettings]);
-  const comboMensualidadAmount = useMemo(() => {
-    // Use student's individual pension if available
-    if (studentPension && studentPension.final_pension > 0) {
-      return studentPension.final_pension;
-    }
-    const c = paymentConcepts.find(c => c.name === "Mensualidad" || c.name.toLowerCase() === "mensualidad");
-    if (c && c.amount > 0) return c.amount;
-    // Fallback to financial settings
-    return financialSettings?.pension_mensual || 0;
-  }, [paymentConcepts, financialSettings, studentPension]);
-
   const [formData, setFormData] = useState({
     student_id: "",
     grade_id: "",
@@ -1014,13 +995,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     receipt_number: "",
     notes: ""
   });
+  const [addedConcepts, setAddedConcepts] = useState([]);
   const [filteredSections, setFilteredSections] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [applyDiscount, setApplyDiscount] = useState(false);
   const [applyInterest, setApplyInterest] = useState(false);
-  const isComboMode = formData.concept === COMBO_CONCEPT;
+  const isEditMode = !!payment?.id;
+  const hasMensualidadConcept = addedConcepts.some(c => c.concepto.toLowerCase() === "mensualidad");
 
   // Financial settings
   const fs = financialSettings || {};
@@ -1029,7 +1012,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const pensionMensual = parseFloat(fs.pension_mensual) || 0;
   const prontoPagoDescuento = pensionMensual > 0 && prontoPagoMonto > 0 ? pensionMensual - prontoPagoMonto : 0;
   const prontoPagoFechaLimite = parseInt(fs.pronto_pago_fecha_limite) || 5;
-  const isMensualidad = formData.concept.toLowerCase() === "mensualidad";
+  const isMensualidad = isEditMode ? formData.concept.toLowerCase() === "mensualidad" : hasMensualidadConcept;
   const canApplyDiscount = prontoPagoActivo && isMensualidad && prontoPagoDescuento > 0;
 
   // Interest logic
@@ -1076,7 +1059,9 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     }
   }, [formData.payment_date, formData.pension_month, canApplyDiscount, canApplyInterest, prontoPagoFechaLimite]);
 
-  const amountBase = isComboMode ? 0 : (parseFloat(formData.amount_base) || 0);
+  // Multi-concept total calculation
+  const multiConceptSubtotal = addedConcepts.reduce((sum, c) => sum + (c.monto || 0), 0);
+  const amountBase = isEditMode ? (parseFloat(formData.amount_base) || 0) : multiConceptSubtotal;
   const discountAmount = (applyDiscount && canApplyDiscount) ? prontoPagoDescuento : 0;
   const amountAfterDiscount = Math.max(amountBase - discountAmount, 0);
   const interestAmount = calcInterestAmount(amountAfterDiscount);
@@ -1084,8 +1069,6 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const igvAmount = formData.igv_applicable ? amountWithInterest * (formData.igv_percentage / 100) : 0;
   const totalAmount = amountWithInterest + igvAmount;
 
-  // Combo calculations (read-only from registered concepts)
-  const comboTotal = isComboMode ? (comboMatriculaAmount + comboMensualidadAmount) : 0;
 
   useEffect(() => {
     if (payment) {
@@ -1105,13 +1088,13 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         receipt_number: payment.receipt_number || "",
         notes: payment.notes || ""
       });
+      setAddedConcepts([]);
     } else {
       // For new payments, start with empty concept (user must select)
       setFormData(prev => ({
         ...prev,
         concept: "",
         amount_base: "",
-        // Only reset student fields on modal open, not on concept list change
         ...(prev.student_id ? {} : {
           student_id: "",
           grade_id: "",
@@ -1127,22 +1110,43 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         receipt_number: prev.student_id ? prev.receipt_number : "",
         notes: prev.student_id ? prev.notes : ""
       }));
+      setAddedConcepts([]);
     }
     setError("");
   }, [payment, isOpen, availableConcepts]);
 
   // Auto-fill amount when concept changes (only for new payments)
   const handleConceptChange = (newConcept) => {
-    const updates = { concept: newConcept };
-    if (!payment?.id) {
-      if (newConcept === COMBO_CONCEPT) {
-        updates.amount_base = "0";
-      } else {
-        updates.amount_base = getDefaultAmount(newConcept);
-      }
+    if (!newConcept) return;
+    // Editing existing single-concept payment
+    if (payment?.id) {
+      const updates = { concept: newConcept };
+      updates.amount_base = getDefaultAmount(newConcept);
+      setFormData(prev => ({ ...prev, ...updates }));
+      return;
     }
-    setFormData(prev => ({ ...prev, ...updates }));
+    // New payment: add concept to list
+    if (addedConcepts.find(c => c.concepto === newConcept)) return; // No duplicates
+    const defaultAmt = parseFloat(getDefaultAmount(newConcept)) || 0;
+    setAddedConcepts(prev => [...prev, { concepto: newConcept, monto: defaultAmt }]);
+    setFormData(prev => ({ ...prev, concept: "" })); // Reset selector
   };
+
+  const removeAddedConcept = (conceptName) => {
+    setAddedConcepts(prev => prev.filter(c => c.concepto !== conceptName));
+  };
+
+  const updateAddedConceptAmount = (conceptName, newAmount) => {
+    setAddedConcepts(prev => prev.map(c =>
+      c.concepto === conceptName ? { ...c, monto: parseFloat(newAmount) || 0 } : c
+    ));
+  };
+
+  // Filter out already-added concepts from the dropdown
+  const dropdownConcepts = useMemo(() =>
+    availableConcepts.filter(c => !addedConcepts.find(ac => ac.concepto === c.name)),
+    [availableConcepts, addedConcepts]
+  );
 
   useEffect(() => {
     if (formData.grade_id) {
@@ -1171,75 +1175,58 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       return;
     }
 
-    // Combo mode validation
-    if (isComboMode) {
-      if (comboMatriculaAmount <= 0) {
-        setError("No se encontró el monto de Matrícula en los conceptos registrados");
+    // Edit mode: single concept
+    if (payment?.id) {
+      if (!formData.amount_base || parseFloat(formData.amount_base) <= 0) {
+        setError("Ingresa un monto válido");
         return;
       }
-      if (comboMensualidadAmount <= 0) {
-        setError("No se encontró el monto de Mensualidad en los conceptos registrados");
-        return;
-      }
-      if (!formData.pension_month) {
-        setError("Selecciona el mes de pensión");
-        return;
-      }
-
       setSaving(true);
       try {
-        const baseData = {
-          student_id: formData.student_id,
-          grade_id: formData.grade_id,
-          section_id: formData.section_id,
-          igv_applicable: formData.igv_applicable,
-          igv_percentage: formData.igv_percentage,
-          payment_method: formData.payment_method,
-          payment_status: formData.payment_status,
-          payment_date: formData.payment_date,
-          notes: formData.notes,
-        };
-
-        // Create Matrícula payment
-        const matriculaConceptName = availableConcepts.find(c => c.name.toLowerCase() === "matricula" || c.name === "Matrícula")?.name || "Matrícula";
-        await onSave({ ...baseData, concept: matriculaConceptName, amount_base: comboMatriculaAmount, description: "Pago combinado: Matrícula" });
-
-        // Create Mensualidad payment
-        const mensualidadConceptName = availableConcepts.find(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad")?.name || "Mensualidad";
-        await onSave({ ...baseData, concept: mensualidadConceptName, amount_base: comboMensualidadAmount, pension_month: formData.pension_month, description: "Pago combinado: Mensualidad" });
-
+        await onSave({ ...formData, amount_base: parseFloat(formData.amount_base) });
         onClose();
       } catch (err) {
-        setError(err.response?.data?.detail || "Error al guardar pagos");
+        setError(err.response?.data?.detail || "Error al guardar pago");
       } finally {
         setSaving(false);
       }
       return;
     }
 
-    // Normal mode
-    if (!formData.amount_base || parseFloat(formData.amount_base) <= 0) {
-      setError("Ingresa un monto válido");
+    // New payment: multi-concept mode
+    if (addedConcepts.length === 0) {
+      setError("Agrega al menos un concepto");
       return;
     }
-    if (formData.concept.toLowerCase() === "mensualidad" && !formData.pension_month) {
+
+    for (const c of addedConcepts) {
+      if (!c.monto || c.monto <= 0) {
+        setError(`El monto de "${c.concepto}" debe ser mayor a 0`);
+        return;
+      }
+    }
+
+    if (hasMensualidadConcept && !formData.pension_month) {
       setError("Selecciona el mes de pensión");
       return;
     }
 
     setSaving(true);
     try {
-      const saveData = { ...formData, amount_base: amountWithInterest };
-      if (applyDiscount && canApplyDiscount) {
-        saveData.pronto_pago_applied = true;
-        saveData.pronto_pago_discount = prontoPagoDescuento;
-        saveData.amount_base_original = amountBase;
-      }
-      if (applyInterest && canApplyInterest && interestAmount > 0) {
-        saveData.interes_applied = true;
-        saveData.interes_amount = interestAmount;
-        saveData.interes_days = daysLate;
-      }
+      const saveData = {
+        student_id: formData.student_id,
+        grade_id: formData.grade_id,
+        section_id: formData.section_id,
+        conceptos: addedConcepts,
+        igv_applicable: formData.igv_applicable,
+        igv_percentage: formData.igv_percentage,
+        payment_method: formData.payment_method,
+        payment_status: formData.payment_status,
+        payment_date: formData.payment_date,
+        pension_month: hasMensualidadConcept ? formData.pension_month : undefined,
+        notes: formData.notes,
+        description: formData.description,
+      };
       await onSave(saveData);
       onClose();
     } catch (err) {
@@ -1334,24 +1321,35 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           )}
 
-          {/* Concept and method */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Concept selector — adds to list for new payments */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Concepto</label>
-              <select
-                value={formData.concept}
-                onChange={(e) => handleConceptChange(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                data-testid="concept-select"
-              >
-                <option value="">Seleccionar concepto</option>
-                {showComboOption && !payment?.id && (
-                  <option value={COMBO_CONCEPT} className="font-bold">Matrícula + Mensualidad</option>
-                )}
-                {availableConcepts.map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
+              {isEditMode ? (
+                <select
+                  value={formData.concept}
+                  onChange={(e) => handleConceptChange(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  data-testid="concept-select"
+                >
+                  <option value="">Seleccionar concepto</option>
+                  {availableConcepts.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  value=""
+                  onChange={(e) => handleConceptChange(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  data-testid="concept-select"
+                >
+                  <option value="">Agregar concepto...</option>
+                  {dropdownConcepts.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
@@ -1367,8 +1365,41 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           </div>
 
-          {/* Pension Month - shown when concept is mensualidad or combo */}
-          {(formData.concept.toLowerCase() === "mensualidad" || isComboMode) && (
+          {/* Added concepts list (new payment mode) */}
+          {!isEditMode && addedConcepts.length > 0 && (
+            <div className="mb-6 space-y-2" data-testid="added-concepts-list">
+              {addedConcepts.map((c, idx) => (
+                <div key={c.concepto} className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 animate-in slide-in-from-top-1 duration-200" data-testid={`concept-item-${idx}`}>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-800">{c.concepto}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium">S/</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={c.monto || ""}
+                      onChange={(e) => updateAddedConceptAmount(c.concepto, e.target.value)}
+                      className="w-28 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 text-right focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      data-testid={`concept-amount-${idx}`}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAddedConcept(c.concepto)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    data-testid={`concept-remove-${idx}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pension Month - shown when concept is mensualidad */}
+          {(hasMensualidadConcept || (isEditMode && formData.concept.toLowerCase() === "mensualidad")) && (
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">Mes de Pensión *</label>
               <input
@@ -1382,41 +1413,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           )}
 
-          {/* Combo Mode: Read-only amounts from registered concepts */}
-          {isComboMode && (
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6 border border-emerald-200">
-              <div className="flex items-center gap-2 mb-4">
-                <CircleDollarSign className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm font-bold text-gray-700">Pago Combinado</span>
-                <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-semibold">2 registros</span>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-200">
-                <div className="flex justify-between items-center text-sm mb-3 pb-3 border-b border-gray-100">
-                  <span className="text-gray-600 font-medium">Matrícula</span>
-                  <span className="text-lg font-bold text-gray-800">S/ {formatNumber(comboMatriculaAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm mb-3 pb-3 border-b border-gray-100">
-                  <span className="text-gray-600 font-medium">Mensualidad</span>
-                  <span className="text-lg font-bold text-gray-800">S/ {formatNumber(comboMensualidadAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-base pt-1">
-                  <span className="font-bold text-gray-700">Total a Pagar</span>
-                  <span className="text-xl font-bold text-emerald-600">S/ {formatNumber(comboTotal)}</span>
-                </div>
-              </div>
-              {(comboMatriculaAmount <= 0 || comboMensualidadAmount <= 0) && (
-                <p className="text-xs text-red-500 mt-2 font-medium">Configure los montos de Matrícula y Mensualidad en Configuración &gt; Conceptos de Pago</p>
-              )}
-            </div>
-          )}
-
-          {/* Amount and IGV - Premium calculator style (hidden in combo mode) */}
-          {!isComboMode && (
+          {/* Amount calculator */}
+          {(addedConcepts.length > 0 || isEditMode) && (
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-6 border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
               <CircleDollarSign className="w-5 h-5 text-emerald-600" />
               <span className="text-sm font-bold text-gray-700">Cálculo del Monto</span>
             </div>
+
+            {/* Edit mode: editable single amount */}
+            {isEditMode && (
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monto Base (S/.)</label>
@@ -1425,8 +1431,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                   step="0.01"
                   min="0"
                   value={formData.amount_base}
-                  readOnly
-                  className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-lg font-bold text-gray-700 cursor-not-allowed"
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount_base: e.target.value }))}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold text-gray-700"
                 />
               </div>
               <div className="flex items-end pb-1">
@@ -1441,56 +1447,28 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 </label>
               </div>
             </div>
+            )}
+
+            {/* New mode: IGV checkbox only */}
+            {!isEditMode && (
+              <div className="mb-4">
+                <label className="flex items-center gap-3 cursor-pointer select-none bg-white px-4 py-3 rounded-xl border border-gray-200 w-fit">
+                  <input
+                    type="checkbox"
+                    checked={formData.igv_applicable}
+                    onChange={(e) => setFormData(prev => ({ ...prev, igv_applicable: e.target.checked }))}
+                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">Incluye IGV (18%)</span>
+                </label>
+              </div>
+            )}
             
             <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 font-medium">Subtotal</span>
                 <span className="font-bold text-gray-700">S/ {formatNumber(amountBase)}</span>
               </div>
-              {canApplyDiscount && (
-                <div className="flex justify-between items-center text-sm">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={applyDiscount}
-                      onChange={(e) => setApplyDiscount(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      data-testid="pronto-pago-checkbox"
-                    />
-                    <span className="text-blue-600 font-medium">
-                      Pronto Pago (antes del {prontoPagoFechaLimite})
-                    </span>
-                  </label>
-                  <span className={`font-bold ${applyDiscount ? "text-blue-600" : "text-gray-300 line-through"}`}>
-                    - S/ {formatNumber(prontoPagoDescuento)}
-                  </span>
-                </div>
-              )}
-              {applyDiscount && canApplyDiscount && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 font-medium">Base con descuento</span>
-                  <span className="font-bold text-gray-700">S/ {formatNumber(amountAfterDiscount)}</span>
-                </div>
-              )}
-              {canApplyInterest && daysLate > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={applyInterest}
-                      onChange={(e) => setApplyInterest(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
-                      data-testid="interest-checkbox"
-                    />
-                    <span className="text-rose-600 font-medium">
-                      Interes por mora ({daysLate} {daysLate === 1 ? "dia" : "dias"})
-                    </span>
-                  </label>
-                  <span className={`font-bold ${applyInterest ? "text-rose-600" : "text-gray-300 line-through"}`}>
-                    + S/ {formatNumber(interestAmount > 0 ? interestAmount : calcInterestAmount(amountAfterDiscount))}
-                  </span>
-                </div>
-              )}
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-medium">IGV (18%)</span>
@@ -1559,7 +1537,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             data-testid="save-payment-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {payment?.id ? "Actualizar" : isComboMode ? "Registrar 2 pagos" : "Registrar"}
+            {payment?.id ? "Actualizar" : addedConcepts.length > 1 ? `Registrar (${addedConcepts.length} conceptos)` : "Registrar"}
           </button>
         </div>
       </div>

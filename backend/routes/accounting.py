@@ -68,13 +68,18 @@ EXPENSE_CATEGORIES = {
     "otros": "Otros gastos"
 }
 
+class ConceptItem(BaseModel):
+    concepto: str
+    monto: float = Field(..., gt=0)
+
 class PaymentCreate(BaseModel):
     student_id: str
     grade_id: str
     section_id: str
-    concept: str
+    concept: Optional[str] = None
+    conceptos: Optional[List[ConceptItem]] = None
     description: Optional[str] = None
-    amount_base: float = Field(..., gt=0)
+    amount_base: Optional[float] = Field(None, gt=0)
     igv_applicable: bool = False
     igv_percentage: float = DEFAULT_IGV_PERCENTAGE
     payment_method: str
@@ -207,7 +212,15 @@ async def get_payments(
         payment["section_name"] = section_info.get("nombre") if section_info else "Sin sección"
         
         # Labels
-        payment["concept_label"] = PAYMENT_CONCEPTS.get(payment.get("concept", ""), payment.get("concept", ""))
+        conceptos_arr = payment.get("conceptos", [])
+        if conceptos_arr and len(conceptos_arr) > 1:
+            first_label = conceptos_arr[0]["concepto"]
+            extra = len(conceptos_arr) - 1
+            payment["concept_label"] = f"{first_label} +{extra} más"
+            payment["concept_label_full"] = " + ".join(c["concepto"] for c in conceptos_arr)
+        else:
+            payment["concept_label"] = PAYMENT_CONCEPTS.get(payment.get("concept", ""), payment.get("concept", ""))
+            payment["concept_label_full"] = payment["concept_label"]
         payment["method_label"] = PAYMENT_METHODS.get(payment.get("payment_method", ""), payment.get("payment_method", ""))
         payment["status_label"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("label", "")
         payment["status_color"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("color", "#64748B")
@@ -251,8 +264,8 @@ async def get_payments(
 
 @router.post("/accounting/payments")
 async def create_payment(data: PaymentCreate, current_user = Depends(require_section_access("accounting"))):
-    """Create a new payment (ingreso). RBAC protected."""
-    user = current_user  # Already validated by require_section_access
+    """Create a new payment (ingreso). Supports single concept or multiple concepts array. RBAC protected."""
+    user = current_user
     school_id = user["school_id"]
     
     # Verify student exists
@@ -260,8 +273,25 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     if not student:
         raise HTTPException(status_code=400, detail="Estudiante no encontrado")
     
-    # Calculate IGV
-    amounts = calculate_igv(data.amount_base, data.igv_applicable, data.igv_percentage)
+    # Determine if multi-concept or single-concept mode
+    if data.conceptos and len(data.conceptos) > 0:
+        # Multi-concept mode
+        conceptos_list = [{"concepto": c.concepto, "monto": round(c.monto, 2)} for c in data.conceptos]
+        total_base = round(sum(c["monto"] for c in conceptos_list), 2)
+        concept_label = " + ".join(c["concepto"] for c in conceptos_list)
+        concept_key = conceptos_list[0]["concepto"] if len(conceptos_list) == 1 else concept_label
+    else:
+        # Single concept mode (backward compatible)
+        if not data.concept:
+            raise HTTPException(status_code=400, detail="Debe especificar al menos un concepto")
+        if not data.amount_base or data.amount_base <= 0:
+            raise HTTPException(status_code=400, detail="Monto base debe ser mayor a 0")
+        conceptos_list = [{"concepto": data.concept, "monto": round(data.amount_base, 2)}]
+        total_base = round(data.amount_base, 2)
+        concept_key = data.concept
+    
+    # Calculate IGV on total base
+    amounts = calculate_igv(total_base, data.igv_applicable, data.igv_percentage)
     
     now = datetime.now(timezone.utc).isoformat()
     
@@ -271,7 +301,8 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
         "student_id": data.student_id,
         "grade_id": data.grade_id,
         "section_id": data.section_id,
-        "concept": data.concept,
+        "concept": concept_key,
+        "conceptos": conceptos_list,
         "description": data.description,
         "amount_base": amounts["amount_base"],
         "igv_amount": amounts["igv_amount"],
@@ -294,16 +325,17 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     
     # Auto-update student status based on payment concept
     if data.payment_status == "paid":
-        await auto_update_student_status_on_payment(data.student_id, school_id, data.concept)
+        for c_item in conceptos_list:
+            await auto_update_student_status_on_payment(data.student_id, school_id, c_item["concepto"])
     
     # Enrich response
     payment["student_name"] = f"{student.get('name', '')} {student.get('last_name', '')}".strip()
-    payment["concept_label"] = PAYMENT_CONCEPTS.get(data.concept, data.concept)
+    payment["concept_label"] = concept_key
     payment["method_label"] = PAYMENT_METHODS.get(data.payment_method, data.payment_method)
     payment["status_label"] = PAYMENT_STATUSES.get(data.payment_status, {}).get("label", "")
     payment["status_color"] = PAYMENT_STATUSES.get(data.payment_status, {}).get("color", "#64748B")
     
-    logger.info(f"Payment created: {payment['id']} - S/{payment['total_amount']} by {user['id']}")
+    logger.info(f"Payment created: {payment['id']} - S/{payment['total_amount']} ({len(conceptos_list)} concepts) by {user['id']}")
     
     # Emit boleta if config exists
     boleta_info = None

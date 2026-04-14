@@ -1,36 +1,34 @@
 # PRD — EduNet (Colegio El Roble)
 
 ## Original Problem Statement
-Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos de asistencia QR, alimentación (PAE), movilidad, horarios unificados, psicología, contabilidad y suscripción.
+Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos de asistencia QR, alimentación (PAE), movilidad, horarios, psicología, contabilidad y suscripción.
 
 ## Core Requirements
 - RBAC dinámico con roles múltiples (additional_roles en JWT)
-- Carnets QR con plantillas personalizables (Classic, Moderna) y exportación PDF/ZIP
-- Horarios unificados en 8 portales con CalendarGrid.jsx
-- Portal Selector post-login para usuarios con múltiples roles
-- Wizard anti-fraude para pagos Yape con operation_code único
-- Escáneres QR unificados visualmente entre Asistencia, PAE y Movilidad
+- Carnets QR con plantillas personalizables (Classic, Moderna)
+- Horarios unificados en 8 portales
+- Portal Selector post-login multi-rol
+- Wizard anti-fraude para pagos Yape
+- Escáneres QR unificados visualmente (Asistencia/PAE/Movilidad)
+- Contabilidad con multi-concepto por ingreso
 
-## What's Been Implemented (Completed)
-- Unificación de horarios en 8 portales (CalendarGrid.jsx pastel)
-- Corrección bugs responsivos grilla horarios mobile
+## Completed Features
+- Unificación horarios (CalendarGrid.jsx)
 - Breaks independientes por grado/sección
-- Drawer QR con preview HTML, plantillas classic/moderna, colores custom, PDF Grid/ZIP/Lista
-- Optimización imágenes WebP (logos, marcas de agua)
-- Rol Auxiliar de Movilidad (clon PAE con colores morados)
-- Filtros cascada (Nivel->Grado->Sección) en Mis Cursos/Mis Alumnos
-- Configuración recargos mora (Diario/Mensual, Fijo/Porcentaje)
-- Configuración pronto pago (Fijo/Porcentaje)
+- Drawer QR (preview HTML, plantillas, colores, PDF/ZIP/Lista)
+- Optimización imágenes WebP
+- Rol Auxiliar Movilidad
+- Filtros cascada (Nivel->Grado->Sección)
+- Recargos mora + Pronto pago (porcentaje)
 - Roles auxiliares múltiples con PortalSelector
-- Wizard suscripción 3 pasos con unique index operation_code
-- **FIX (2026-04-14)**: Badge PDF de profesores muestra "Docente" correctamente
-- **FIX (2026-04-14)**: Referencias cruzadas Movilidad↔PAE eliminadas (MobileBottomNav, goBack, títulos)
-- **REDESIGN (2026-04-14)**: Escáneres PAE y Movilidad rediseñados con estilo visual unificado al de Asistencia (header gradiente, permisos cámara, toasts flotantes, esquinas guía, botones Frontal/Detener)
+- Wizard suscripción 3 pasos con unique index
+- FIX: Badge PDF profesores "Docente"
+- FIX: Referencias cruzadas Movilidad↔PAE
+- REDESIGN: Escáneres PAE/Movilidad estilo Asistencia
+- Botón "Cambiar Portal" en DashboardHeader y Settings Modals
+- **Multi-concepto en Registrar Ingreso** (backend conceptos array + frontend lista editable + tabla con desglose)
 
 ## Prioritized Backlog
-### P0 (Done)
-- All items above
-
 ### P1 (Next)
 - Dashboard Owner con métricas reales
 - Módulo de Matrículas (Enrollments)
@@ -38,29 +36,23 @@ Sistema de gestión escolar full-stack (FastAPI + React + MongoDB) con módulos 
 
 ### P2 (Future)
 - Módulo de Encuestas
-- Optimización rendimiento carga masiva (3000 estudiantes)
-- Refactorización CourseDetailPage.jsx (>11,000 líneas)
+- Optimización rendimiento (3000 estudiantes)
+- Refactorización CourseDetailPage.jsx (>11K líneas)
 - Plantilla "Adventista" para carnets QR
 
 ## Architecture
-- Backend: FastAPI (Python) on port 8001
+- Backend: FastAPI on port 8001
 - Frontend: React on port 3000
 - Database: MongoDB Atlas
-- PDF generation: ReportLab
-- Image optimization: Pillow (WebP)
-- QR: qrcode (backend) + qrcode.react (frontend preview)
-- Storage: Cloudinary
-- Auth: JWT with additional_roles array
+- PDF: ReportLab | Images: Pillow (WebP)
+- QR: qrcode + qrcode.react
+- Storage: Cloudinary | Auth: JWT
 
 ## Key Files
-- `/app/backend/services/qr_templates/moderna.py`
-- `/app/backend/services/qr_templates/classic.py`
-- `/app/backend/routes/qr_templates.py`
-- `/app/frontend/src/components/students/QRTemplateDrawer.jsx`
-- `/app/frontend/src/components/QRScannerTab.jsx` (escáner referencia de Asistencia)
-- `/app/frontend/src/pages/movilidad/MovilidadScanner.jsx` (rediseñado)
-- `/app/frontend/src/pages/pae/PaeScanner.jsx` (rediseñado)
-- `/app/frontend/src/pages/movilidad/MovilidadDashboard.jsx`
+- `/app/backend/routes/accounting.py` (multi-concepto endpoint)
+- `/app/frontend/src/pages/AccountingPage.jsx` (PaymentFormModal multi-concepto)
+- `/app/backend/services/qr_templates/moderna.py`, `classic.py`
+- `/app/frontend/src/pages/movilidad/MovilidadScanner.jsx`
+- `/app/frontend/src/pages/pae/PaeScanner.jsx`
+- `/app/frontend/src/components/DashboardHeader.jsx` (Cambiar portal)
 - `/app/frontend/src/components/MobileBottomNav.jsx`
-- `/app/backend/routes/core.py`
-- `/app/frontend/src/components/PaymentBlockModal.jsx`
