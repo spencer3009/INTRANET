@@ -1019,6 +1019,7 @@ class FinancialSettingsUpdate(BaseModel):
     pronto_pago_activo: Optional[bool] = None
     pronto_pago_monto: Optional[float] = None
     pronto_pago_fecha_limite: Optional[int] = None
+    pronto_pago_modalidad: Optional[str] = None  # "monto_fijo" | "porcentaje"
     interes_activo: Optional[bool] = None
     interes_tipo: Optional[str] = None
     interes_valor: Optional[float] = None
@@ -1040,6 +1041,7 @@ async def get_financial_settings(current_user = Depends(require_section_access("
             "pronto_pago_activo": False,
             "pronto_pago_monto": 0,
             "pronto_pago_fecha_limite": 5,
+            "pronto_pago_modalidad": "monto_fijo",
             "interes_activo": False,
             "interes_tipo": "porcentaje",
             "interes_valor": 0,
@@ -1053,6 +1055,9 @@ async def get_financial_settings(current_user = Depends(require_section_access("
         settings["interes_frecuencia"] = "mensual"
         settings["interes_modalidad"] = tipo if tipo in ("monto_fijo", "porcentaje") else "porcentaje"
         settings["interes_tope_maximo"] = settings.get("interes_tope_maximo", 0)
+    # Retrocompatibility: add pronto_pago_modalidad if missing
+    if "pronto_pago_modalidad" not in settings:
+        settings["pronto_pago_modalidad"] = "monto_fijo"
     return settings
 
 @router.put("/accounting/financial-settings")
@@ -1646,7 +1651,14 @@ async def get_student_pension(student_id: str, current_user=Depends(require_sect
     base_pension = settings.get("pension_mensual", 0) if settings else 0
     pronto_pago_activo = settings.get("pronto_pago_activo", False) if settings else False
     pronto_pago_monto = settings.get("pronto_pago_monto", 0) if settings else 0
-    pronto_pago_descuento = base_pension - pronto_pago_monto if pronto_pago_activo and pronto_pago_monto > 0 else 30
+    pronto_pago_modalidad = settings.get("pronto_pago_modalidad", "monto_fijo") if settings else "monto_fijo"
+    if pronto_pago_activo and pronto_pago_monto > 0:
+        if pronto_pago_modalidad == "porcentaje":
+            pronto_pago_descuento = base_pension * pronto_pago_monto / 100
+        else:
+            pronto_pago_descuento = base_pension - pronto_pago_monto
+    else:
+        pronto_pago_descuento = 30
 
     override = student.get("monthly_pension_override")
     if override is not None:

@@ -18,6 +18,7 @@ export default function FinancialSettingsTab({ token, user }) {
     pronto_pago_activo: false,
     pronto_pago_monto: 0,
     pronto_pago_fecha_limite: 5,
+    pronto_pago_modalidad: "monto_fijo",
     interes_activo: false,
     interes_tipo: "porcentaje",
     interes_valor: 0,
@@ -39,6 +40,7 @@ export default function FinancialSettingsTab({ token, user }) {
           pronto_pago_activo: d.pronto_pago_activo ?? false,
           pronto_pago_monto: d.pronto_pago_monto ?? 0,
           pronto_pago_fecha_limite: d.pronto_pago_fecha_limite ?? 5,
+          pronto_pago_modalidad: d.pronto_pago_modalidad ?? "monto_fijo",
           interes_activo: d.interes_activo ?? false,
           interes_tipo: d.interes_tipo ?? "porcentaje",
           interes_valor: d.interes_valor ?? 0,
@@ -180,22 +182,49 @@ export default function FinancialSettingsTab({ token, user }) {
             </p>
             {form.pronto_pago_activo && (
               <div className="space-y-4 animate-in fade-in">
+                {/* Modalidad toggle */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Monto con pronto pago</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Modalidad de descuento</label>
+                  <div className="flex bg-slate-100 rounded-xl p-1" data-testid="pronto-pago-modalidad-toggle">
+                    {[{id: "monto_fijo", label: "Monto fijo"}, {id: "porcentaje", label: "Porcentaje"}].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => set("pronto_pago_modalidad", opt.id)}
+                        disabled={!isOwnerOrAdmin}
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${form.pronto_pago_modalidad === opt.id ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                        data-testid={`pp-mod-${opt.id}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Valor input */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    {form.pronto_pago_modalidad === "porcentaje" ? "Porcentaje de descuento" : "Monto con pronto pago"}
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">S/</span>
+                    {form.pronto_pago_modalidad === "monto_fijo" && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">S/</span>
+                    )}
                     <input
                       type="number"
-                      step="0.01"
+                      step={form.pronto_pago_modalidad === "porcentaje" ? "0.1" : "0.01"}
                       value={form.pronto_pago_monto}
                       onChange={(e) => set("pronto_pago_monto", parseFloat(e.target.value) || 0)}
                       disabled={!isOwnerOrAdmin}
-                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
-                      placeholder="320.00"
+                      className={`w-full ${form.pronto_pago_modalidad === "monto_fijo" ? "pl-8" : "pl-4"} pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all`}
+                      placeholder={form.pronto_pago_modalidad === "porcentaje" ? "10" : "320.00"}
                       data-testid="pronto-pago-monto-input"
                     />
+                    {form.pronto_pago_modalidad === "porcentaje" && (
+                      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    )}
                   </div>
                 </div>
+                {/* Fecha limite */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
@@ -215,9 +244,15 @@ export default function FinancialSettingsTab({ token, user }) {
                     <span className="text-sm text-slate-500">de cada mes</span>
                   </div>
                 </div>
-                {form.pension_mensual > 0 && form.pronto_pago_monto > 0 && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-                    Ahorro: <strong>S/ {(form.pension_mensual - form.pronto_pago_monto).toFixed(2)}</strong> si paga antes del dia {form.pronto_pago_fecha_limite}
+                {/* Preview */}
+                {form.pronto_pago_monto > 0 && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700" data-testid="pronto-pago-preview">
+                    {form.pronto_pago_modalidad === "porcentaje"
+                      ? <>Ahorro: <strong>{form.pronto_pago_monto}%</strong> de descuento
+                          {form.pension_mensual > 0 && <> (S/ {(form.pension_mensual * form.pronto_pago_monto / 100).toFixed(2)})</>}
+                          {" "}si paga antes del dia {form.pronto_pago_fecha_limite}</>
+                      : <>Ahorro: <strong>S/ {form.pension_mensual > 0 ? (form.pension_mensual - form.pronto_pago_monto).toFixed(2) : "—"}</strong> si paga antes del dia {form.pronto_pago_fecha_limite}</>
+                    }
                   </div>
                 )}
               </div>
