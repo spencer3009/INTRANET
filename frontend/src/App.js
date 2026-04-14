@@ -67,6 +67,7 @@ import TeacherLiveClassesPage from "@/pages/TeacherLiveClassesPage";
 import StudentLiveClassesPage from "@/pages/StudentLiveClassesPage";
 // Parent Portal imports
 import ParentDashboardPage from "@/pages/ParentDashboardPage";
+import ParentEnrollmentForm from "@/pages/ParentEnrollmentForm";
 import ParentProfilePage from "@/pages/ParentProfilePage";
 import ParentTasksPage from "@/pages/ParentTasksPage";
 import ParentGradesPage from "@/pages/ParentGradesPage";
@@ -1151,6 +1152,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/registrar-alumno"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentEnrollmentForm user={user} token={token} />
               </ProtectedRoute>
             }
           />
@@ -2255,6 +2264,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/parent/registrar-alumno"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentEnrollmentForm user={user} token={token} />
               </ProtectedRoute>
             }
           />

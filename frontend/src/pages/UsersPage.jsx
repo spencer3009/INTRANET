@@ -25,6 +25,7 @@ import CameraCaptureModal from "@/components/CameraCaptureModal";
 import BulkQRModal from "@/components/BulkQRModal";
 import QRTemplateDrawer from "@/components/students/QRTemplateDrawer";
 import BulkDeleteModal from "@/components/BulkDeleteModal";
+import PendingEnrollmentsTab from "@/components/PendingEnrollmentsTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1622,6 +1623,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState({ title: "", message: "", type: "info" });
+  const [showPendingEnrollments, setShowPendingEnrollments] = useState(false);
+  const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   // Edit user states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -2125,6 +2128,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       setLoadingPendingImports(false);
     }
   };
+
+  // Load enrollment pending count
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/enrollment/pending/count`, { headers });
+        setPendingEnrollmentCount(res.data?.count || 0);
+      } catch {}
+    })();
+  }, [showPendingEnrollments]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -2656,6 +2669,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <span className="hidden sm:inline">Descargar QR</span>
                     </button>
                   )}
+                  {selectedRole === 'student' && pendingEnrollmentCount > 0 && (
+                    <button
+                      onClick={() => setShowPendingEnrollments(true)}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 relative"
+                      data-testid="pending-enrollments-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                        <UserPlus className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">Matriculas</span>
+                      <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{pendingEnrollmentCount}</span>
+                    </button>
+                  )}
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
@@ -2673,6 +2699,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             </div>
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            PENDING ENROLLMENTS OVERLAY
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {showPendingEnrollments && selectedRole === 'student' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6 shadow-sm">
+            <PendingEnrollmentsTab
+              token={token}
+              onClose={() => { setShowPendingEnrollments(false); loadUsers(); }}
+            />
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════════════════
             STUDENT FILTERS BAR - Only for student role

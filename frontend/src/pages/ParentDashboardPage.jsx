@@ -243,7 +243,15 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 <Users className="w-12 h-12 text-slate-400" />
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Sin estudiantes vinculados</h2>
-              <p className="text-slate-500">No tienes estudiantes vinculados a tu cuenta. Contacta al administrador del colegio para vincular a tu hijo/a.</p>
+              <p className="text-slate-500 mb-6">No tienes estudiantes vinculados a tu cuenta.</p>
+              <button
+                onClick={() => navigateTo("/parent/registrar-alumno")}
+                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 mx-auto"
+                data-testid="register-child-btn"
+              >
+                <GraduationCap className="w-5 h-5" />
+                Registrar a mi hijo
+              </button>
             </div>
           </main>
         </div>
@@ -304,11 +312,19 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
         <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Read-only info banner */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3" data-testid="parent-dashboard-banner">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3 flex-wrap" data-testid="parent-dashboard-banner">
             <Eye className="w-5 h-5 text-emerald-600 shrink-0" />
             <p className="text-sm text-emerald-700">
               Estás viendo la información de <span className="font-semibold">{studentInfo.name} {studentInfo.last_name}</span>
             </p>
+            <button
+              onClick={() => navigateTo("/parent/registrar-alumno")}
+              className="ml-auto text-xs px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5"
+              data-testid="register-another-child-btn"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              Registrar otro hijo
+            </button>
             {children.length > 1 && (
               <div className="ml-auto relative group">
                 <button className="flex items-center gap-2 bg-white/80 hover:bg-white rounded-lg px-3 py-1.5 border border-emerald-200 transition-colors cursor-pointer" data-testid="child-switcher-btn">
@@ -333,7 +349,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       }`}>
                         {(child.name || "A")[0]}
                       </div>
-                      <span>{child.name} {child.last_name || ""}</span>
+                      <span className="flex-1">{child.name} {child.last_name || ""}</span>
+                      {child.enrollment_status === "pending" && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">Pendiente</span>
+                      )}
+                      {child.enrollment_status === "rejected" && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">No aprobado</span>
+                      )}
                       {selectedChild?.id === child.id && <CheckCircle className="w-3.5 h-3.5 ml-auto text-emerald-500" />}
                     </button>
                   ))}
@@ -341,6 +363,28 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               </div>
             )}
           </div>
+
+          {/* Enrollment status banner */}
+          {selectedChild?.enrollment_status === "pending" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3" data-testid="enrollment-pending-banner">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Matricula pendiente de aprobacion</p>
+                <p className="text-xs text-amber-600">El colegio esta revisando la solicitud de matricula. Te notificaremos cuando sea aprobada.</p>
+              </div>
+            </div>
+          )}
+          {selectedChild?.enrollment_status === "rejected" && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3" data-testid="enrollment-rejected-banner">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Matricula no aprobada</p>
+                {selectedChild.enrollment_rejection_reason && (
+                  <p className="text-xs text-red-600 mt-1">Motivo: {selectedChild.enrollment_rejection_reason}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Mobile-only: Student Profile at top */}
           <div className="lg:hidden mb-4" data-testid="mobile-student-profile">
