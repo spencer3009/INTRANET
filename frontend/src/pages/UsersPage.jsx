@@ -2622,6 +2622,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         </div>
                         <span className="hidden sm:inline">{downloadingTeacherQR ? `Generando... ${qrDownloadProgress}%` : "Descargar QR"}</span>
                       </button>
+                      <button
+                        onClick={() => setShowTemplateDrawer(true)}
+                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                        data-testid="template-qr-btn-teacher"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                          <Palette className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="hidden sm:inline">QR con plantilla</span>
+                      </button>
                     </>
                   )}
                   <button
