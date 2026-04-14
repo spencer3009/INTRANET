@@ -45,9 +45,9 @@ export default function AdditionalRolesManager({ token }) {
 
   useEffect(() => { loadUsers(); }, [roleFilter]);
 
-  const filteredUsers = search
+  const filteredUsers = search.length >= 2
     ? users.filter(u => `${u.name} ${u.last_name} ${u.dni || ""}`.toLowerCase().includes(search.toLowerCase()))
-    : users;
+    : users.filter(u => (u.additional_roles || []).length > 0);
 
   const uniqueRoles = [...new Set(users.map(u => u.role))].sort();
 
@@ -109,7 +109,9 @@ export default function AdditionalRolesManager({ token }) {
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-indigo-500" /></div>
       ) : filteredUsers.length === 0 ? (
-        <div className="text-center py-8 text-sm text-slate-400">No se encontraron usuarios elegibles</div>
+        <div className="text-center py-8 text-sm text-slate-400">
+          {search.length >= 2 ? "No se encontraron usuarios" : "Busca un profesor o administrador por nombre para asignarle roles auxiliares"}
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
