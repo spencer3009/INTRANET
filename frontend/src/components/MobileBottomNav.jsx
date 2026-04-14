@@ -41,6 +41,11 @@ const auxiliarAlimentacionItems = [
   { id: "escaneo", label: "Escaneo", icon: QrCode, route: "/pae/scanner" },
 ];
 
+const auxiliarMovilidadItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/movilidad" },
+  { id: "escaneo", label: "Escaneo", icon: QrCode, route: "/movilidad/scanner" },
+];
+
 const coordinatorItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/coordinacion" },
   { id: "incidencias", label: "Incidencias", icon: ScanLine, route: "/coordinacion/incidencias" },

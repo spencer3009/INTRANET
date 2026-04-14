@@ -210,7 +210,7 @@ export default function MovilidadDashboard({ user, token, onLogout }) {
           </main>
         )}
       </div>
-      <MobileBottomNav role="auxiliar_alimentacion" />
+      <MobileBottomNav role="auxiliar_movilidad" />
       <MovilidadSettingsModal
         open={showSettings}
         onClose={() => setShowSettings(false)}

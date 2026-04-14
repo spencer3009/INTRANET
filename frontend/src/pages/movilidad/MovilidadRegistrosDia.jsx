@@ -79,7 +79,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
   };
 
   const goBack = () => {
-    const path = subdomain ? `/${subdomain}/asistencias` : "/asistencias";
+    const path = subdomain ? `/${subdomain}/movilidad` : "/movilidad";
     navigate(path);
   };
 
@@ -99,7 +99,7 @@ export default function MovilidadRegistrosDia({ user, token, subdomain, embedded
           data-testid="movilidad-registros-back"
         >
           <ChevronLeft className="w-4 h-4" />
-          Volver a Asistencias
+          Volver a Movilidad
         </button>
       )}
 

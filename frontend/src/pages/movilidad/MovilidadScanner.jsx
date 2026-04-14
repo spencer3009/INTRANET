@@ -203,7 +203,7 @@ export default function MovilidadScanner({ user, token }) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-white font-bold text-sm">Escaneo PAE</h1>
+            <h1 className="text-white font-bold text-sm">Escaneo Movilidad</h1>
             <p className="text-slate-400 text-xs">{turnoInfo?.turno_nombre || "Cargando..."} ({turnoInfo?.hora_inicio} - {turnoInfo?.hora_fin})</p>
           </div>
         </div>
