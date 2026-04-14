@@ -44,7 +44,7 @@ const allNavItems = [
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },
   { id: "pae", label: "Alimentación", icon: UtensilsCrossed, route: "/pae", section: "pae", roles: ["auxiliar_alimentacion"] },
-  { id: "movilidad", label: "Movilidad", icon: null, route: "/movilidad", section: "movilidad", roles: ["auxiliar_movilidad"], iconImage: "https://customer-assets.emergentagent.com/job_07dda940-ffba-401b-80ce-abc43257745f/artifacts/tqlsmmh9_image.png" },
+  { id: "movilidad", label: "Movilidad", icon: null, route: "/movilidad", section: "movilidad", roles: ["auxiliar_movilidad"], iconImage: "https://customer-assets.emergentagent.com/job_07dda940-ffba-401b-80ce-abc43257745f/artifacts/ntzw2yae_image.png" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
