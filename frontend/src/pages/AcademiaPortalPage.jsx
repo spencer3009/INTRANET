@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
-import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
+import FloatingHelpAvatar, { isHelpAvatarEnabled, setHelpAvatarEnabled } from "@/components/FloatingHelpAvatar";
 import {
   Video, FolderOpen, Search, X, Loader2, Play, Clock,
   ChevronDown, ArrowLeft, GraduationCap, BookOpen, BarChart3,
@@ -131,6 +131,7 @@ function AcademiaContent({ token }) {
   const [loading, setLoading] = useState(true);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [playerVideo, setPlayerVideo] = useState(null);
+  const [avatarEnabled, setAvatarEnabled] = useState(isHelpAvatarEnabled());
 
   const loadData = useCallback(async () => {
     try {
@@ -249,6 +250,36 @@ function AcademiaContent({ token }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Avatar Toggle */}
+      <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 mb-5 border border-slate-200 shadow-sm" data-testid="avatar-toggle-card">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center">
+            <img
+              src="https://res.cloudinary.com/dhn5pzinf/image/upload/q_auto,f_auto,fl_preserve_transparency/v1774413654/avatar_-transparente_vc7dsq.png"
+              alt=""
+              className="w-7 h-7 rounded-full object-cover"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Asistente flotante</p>
+            <p className="text-xs text-slate-400">Muestra el avatar de ayuda en todas las paginas</p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            const next = !avatarEnabled;
+            setAvatarEnabled(next);
+            setHelpAvatarEnabled(next);
+            toast.success(next ? "Asistente activado" : "Asistente desactivado");
+          }}
+          className={`relative w-12 h-7 rounded-full transition-colors ${avatarEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+          data-testid="avatar-toggle-switch"
+        >
+          <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${avatarEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+        </button>
       </div>
 
       {/* Search Bar — Separada del banner, fondo blanco */}

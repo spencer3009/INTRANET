@@ -5,11 +5,24 @@ import { X } from "lucide-react";
 const AVATAR_URL = "https://res.cloudinary.com/dhn5pzinf/image/upload/q_auto,f_auto,fl_preserve_transparency/v1774413654/avatar_-transparente_vc7dsq.png";
 const FALLBACK_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3E%3Ccircle cx='72' cy='72' r='72' fill='%23e2e8f0'/%3E%3Ccircle cx='72' cy='56' r='24' fill='%2394a3b8'/%3E%3Cellipse cx='72' cy='110' rx='36' ry='28' fill='%2394a3b8'/%3E%3C/svg%3E";
 
+const STORAGE_KEY = "floating_help_avatar_enabled";
+
+export function isHelpAvatarEnabled() {
+  try {
+    const val = localStorage.getItem(STORAGE_KEY);
+    return val !== "false";
+  } catch { return true; }
+}
+
+export function setHelpAvatarEnabled(enabled) {
+  localStorage.setItem(STORAGE_KEY, enabled ? "true" : "false");
+}
+
 export default function FloatingHelpAvatar({ subdomain }) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+  if (dismissed || !isHelpAvatarEnabled()) return null;
 
   return (
     <>
