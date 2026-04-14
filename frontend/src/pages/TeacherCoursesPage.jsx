@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
@@ -18,7 +18,9 @@ import {
   Calendar,
   Star,
   Layers,
-  FileText
+  FileText,
+  Filter,
+  X
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -31,6 +33,9 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
   const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState(null);
+  const [filtroNivel, setFiltroNivel] = useState("");
+  const [filtroGrado, setFiltroGrado] = useState("todos");
+  const [filtroSeccion, setFiltroSeccion] = useState("todos");
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -65,10 +70,53 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
     }
   };
 
-  const filteredCourses = courses.filter(course =>
-    course.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.section_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const nivelSeleccionado = filtroNivel !== "";
+
+  const nivelesDisponibles = useMemo(() =>
+    [...new Set(courses.map(c => c.level_name).filter(Boolean))].sort()
+  , [courses]);
+
+  const gradosDisponibles = useMemo(() => {
+    if (!nivelSeleccionado) return [];
+    return [...new Set(courses.filter(c => c.level_name === filtroNivel).map(c => c.grade_name).filter(Boolean))].sort();
+  }, [courses, filtroNivel, nivelSeleccionado]);
+
+  const seccionesDisponibles = useMemo(() => {
+    if (!nivelSeleccionado || filtroGrado === "todos") return [];
+    return [...new Set(courses.filter(c => c.level_name === filtroNivel && c.grade_name === filtroGrado).map(c => c.section_name).filter(Boolean))].sort();
+  }, [courses, filtroNivel, filtroGrado, nivelSeleccionado]);
+
+  const filteredCourses = useMemo(() => {
+    if (!nivelSeleccionado) return [];
+    return courses.filter(c => {
+      if (c.level_name !== filtroNivel) return false;
+      if (filtroGrado !== "todos" && c.grade_name !== filtroGrado) return false;
+      if (filtroSeccion !== "todos" && c.section_name !== filtroSeccion) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!c.name?.toLowerCase().includes(q) && !c.section_name?.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [courses, filtroNivel, filtroGrado, filtroSeccion, searchQuery, nivelSeleccionado]);
+
+  const handleNivelChange = (val) => {
+    setFiltroNivel(val);
+    setFiltroGrado("todos");
+    setFiltroSeccion("todos");
+  };
+
+  const handleGradoChange = (val) => {
+    setFiltroGrado(val);
+    setFiltroSeccion("todos");
+  };
+
+  const handleLimpiar = () => {
+    setFiltroNivel("");
+    setFiltroGrado("todos");
+    setFiltroSeccion("todos");
+    setSearchQuery("");
+  };
 
   // Calculate stats
   const totalStudents = courses.reduce((sum, c) => sum + (c.students_count || 0), 0);
@@ -196,22 +244,79 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-8">
-            <div className="relative max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar curso o sección..."
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all shadow-sm"
-                data-testid="course-search-input"
-              />
+          {/* Filter Bar */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 mb-6" data-testid="teacher-filter-bar">
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nivel <span className="text-red-400">*</span></label>
+                <select
+                  value={filtroNivel}
+                  onChange={(e) => handleNivelChange(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                  data-testid="filter-nivel"
+                >
+                  <option value="">Selecciona un nivel</option>
+                  {nivelesDisponibles.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Grado</label>
+                <select
+                  value={filtroGrado}
+                  onChange={(e) => handleGradoChange(e.target.value)}
+                  disabled={!nivelSeleccionado}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!nivelSeleccionado ? "Selecciona un nivel primero" : ""}
+                  data-testid="filter-grado"
+                >
+                  <option value="todos">Todos los grados</option>
+                  {gradosDisponibles.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Sección</label>
+                <select
+                  value={filtroSeccion}
+                  onChange={(e) => setFiltroSeccion(e.target.value)}
+                  disabled={!nivelSeleccionado || filtroGrado === "todos"}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={filtroGrado === "todos" ? "Selecciona un grado primero" : ""}
+                  data-testid="filter-seccion"
+                >
+                  <option value="todos">Todas las secciones</option>
+                  {seccionesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {nivelSeleccionado && (
+                <button
+                  onClick={handleLimpiar}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors whitespace-nowrap"
+                  data-testid="filter-limpiar"
+                >
+                  <X className="w-4 h-4" />
+                  Limpiar
+                </button>
+              )}
             </div>
+            {nivelSeleccionado && (
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                <p className="text-xs text-slate-500">Mostrando <span className="font-semibold text-slate-700">{filteredCourses.length}</span> curso{filteredCourses.length !== 1 ? "s" : ""}</p>
+                <div className="relative max-w-[200px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    data-testid="course-search-input"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Courses Grid */}
+          {/* Courses Grid or Empty State */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mb-4">
@@ -219,20 +324,22 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
               </div>
               <p className="text-slate-500">Cargando cursos...</p>
             </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-24 h-24 bg-gradient-to-br from-violet-100 to-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-500/10">
-                <BookOpen className="w-12 h-12 text-violet-500" />
+          ) : !nivelSeleccionado ? (
+            <div className="text-center py-16" data-testid="empty-state-select-nivel">
+              <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-violet-500/10">
+                <Filter className="w-10 h-10 text-violet-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">
-                {searchQuery ? "Sin resultados" : "Sin cursos asignados"}
-              </h3>
-              <p className="text-slate-500 max-w-md mx-auto">
-                {searchQuery 
-                  ? "No encontramos cursos que coincidan con tu búsqueda"
-                  : "Contacta al coordinador para que te asigne cursos"
-                }
-              </p>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">Selecciona un nivel para ver tus cursos</h3>
+              <p className="text-sm text-slate-400 max-w-sm mx-auto">Usa el filtro de arriba para elegir el nivel educativo y acceder a tus cursos asignados.</p>
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="text-center py-16" data-testid="empty-state-no-results">
+              <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <BookOpen className="w-10 h-10 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">No hay cursos que coincidan</h3>
+              <p className="text-sm text-slate-400 max-w-sm mx-auto mb-4">No se encontraron cursos con los filtros seleccionados.</p>
+              <button onClick={handleLimpiar} className="px-4 py-2 text-sm text-violet-600 hover:bg-violet-50 rounded-xl transition-colors font-medium">Limpiar filtros</button>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
