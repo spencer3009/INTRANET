@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { QRCodeSVG } from "qrcode.react";
@@ -35,7 +35,9 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
   const [students, setStudents] = useState([]);
   const [sections, setSections] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterSection, setFilterSection] = useState("");
+  const [filtroNivel, setFiltroNivel] = useState("");
+  const [filtroGrado, setFiltroGrado] = useState("todos");
+  const [filtroSeccion, setFiltroSeccion] = useState("todos");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentDetail, setStudentDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -92,14 +94,41 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
     loadStudentDetail(student.id);
   };
 
-  // Filter students
-  const filteredStudents = students.filter(student => {
-    const fullName = `${student.name || ""} ${student.last_name || ""}`.toLowerCase();
-    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         student.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSection = !filterSection || student.section_id === filterSection;
-    return matchesSearch && matchesSection;
-  });
+  // Cascade filter options — derived ONLY from teacher's own students
+  const nivelSeleccionado = filtroNivel !== "";
+
+  const nivelesDisponibles = useMemo(() =>
+    [...new Set(students.map(s => s.level_name).filter(Boolean))].sort()
+  , [students]);
+
+  const gradosDisponibles = useMemo(() => {
+    if (!nivelSeleccionado) return [];
+    return [...new Set(students.filter(s => s.level_name === filtroNivel).map(s => s.grade_name).filter(Boolean))].sort();
+  }, [students, filtroNivel, nivelSeleccionado]);
+
+  const seccionesDisponibles = useMemo(() => {
+    if (!nivelSeleccionado || filtroGrado === "todos") return [];
+    return [...new Set(students.filter(s => s.level_name === filtroNivel && s.grade_name === filtroGrado).map(s => s.section_name).filter(Boolean))].sort();
+  }, [students, filtroNivel, filtroGrado, nivelSeleccionado]);
+
+  const filteredStudents = useMemo(() => {
+    if (!nivelSeleccionado) return [];
+    return students.filter(s => {
+      if (s.level_name !== filtroNivel) return false;
+      if (filtroGrado !== "todos" && s.grade_name !== filtroGrado) return false;
+      if (filtroSeccion !== "todos" && s.section_name !== filtroSeccion) return false;
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        const fullName = `${s.name || ""} ${s.last_name || ""}`.toLowerCase();
+        if (!fullName.includes(q) && !s.email?.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [students, filtroNivel, filtroGrado, filtroSeccion, searchTerm, nivelSeleccionado]);
+
+  const handleNivelChange = (val) => { setFiltroNivel(val); setFiltroGrado("todos"); setFiltroSeccion("todos"); };
+  const handleGradoChange = (val) => { setFiltroGrado(val); setFiltroSeccion("todos"); };
+  const handleLimpiarFiltros = () => { setFiltroNivel(""); setFiltroGrado("todos"); setFiltroSeccion("todos"); };
 
   // Format date
   const formatDate = (dateString) => {
@@ -177,7 +206,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                   </h1>
                   <div className="flex items-center gap-3 mt-2">
                     <span className="px-3 py-1 bg-violet-400 text-white text-sm font-semibold rounded-full shadow-lg">
-                      {filteredStudents.length} estudiantes
+                      {students.length} estudiantes
                     </span>
                     <span className="text-white/80 text-sm flex items-center gap-1">
                       <Users className="w-4 h-4" />
@@ -190,41 +219,69 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o correo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  data-testid="student-search-input"
-                />
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm" data-testid="teacher-students-filter-bar">
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre o correo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                data-testid="student-search-input"
+              />
+            </div>
+            {/* Cascade filters */}
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nivel <span className="text-red-400">*</span></label>
+                <select value={filtroNivel} onChange={(e) => handleNivelChange(e.target.value)} data-testid="filter-nivel"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                  <option value="">Selecciona un nivel</option>
+                  {nivelesDisponibles.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
               </div>
-              
-              {sections.length > 0 && (
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <select
-                    value={filterSection}
-                    onChange={(e) => setFilterSection(e.target.value)}
-                    className="pl-10 pr-8 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white appearance-none cursor-pointer"
-                    data-testid="student-filter-section"
-                  >
-                    <option value="">Todas las secciones</option>
-                    {sections.map(section => (
-                      <option key={section.id} value={section.id}>{section.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Grado</label>
+                <select value={filtroGrado} onChange={(e) => handleGradoChange(e.target.value)} disabled={!nivelSeleccionado} data-testid="filter-grado"
+                  title={!nivelSeleccionado ? "Selecciona un nivel primero" : ""}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <option value="todos">Todos los grados</option>
+                  {gradosDisponibles.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Sección</label>
+                <select value={filtroSeccion} onChange={(e) => setFiltroSeccion(e.target.value)} disabled={!nivelSeleccionado || filtroGrado === "todos"} data-testid="filter-seccion"
+                  title={filtroGrado === "todos" ? "Selecciona un grado primero" : ""}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <option value="todos">Todas las secciones</option>
+                  {seccionesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {nivelSeleccionado && (
+                <button onClick={handleLimpiarFiltros} className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors whitespace-nowrap" data-testid="filter-limpiar">
+                  <X className="w-4 h-4" /> Limpiar
+                </button>
               )}
             </div>
+            {/* Counter */}
+            <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
+              Mostrando <span className="font-semibold text-slate-700">{filteredStudents.length}</span> de {students.length} estudiantes
+            </p>
           </div>
 
-          {/* Students Grid */}
-          {filteredStudents.length > 0 ? (
+          {/* Students Grid or Empty State */}
+          {!nivelSeleccionado ? (
+            <div className="text-center py-16" data-testid="empty-state-select-nivel">
+              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/10">
+                <Filter className="w-10 h-10 text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">Selecciona un nivel para ver tus alumnos</h3>
+              <p className="text-sm text-slate-400 max-w-sm mx-auto">Usa los filtros de arriba para elegir el nivel educativo y acceder a la lista de estudiantes.</p>
+            </div>
+          ) : filteredStudents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredStudents.map((student) => (
                 <div
@@ -328,19 +385,13 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm" data-testid="empty-state-no-results">
               <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-10 h-10 text-indigo-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                {searchTerm || filterSection ? "Sin resultados" : "Sin alumnos asignados"}
-              </h3>
-              <p className="text-slate-500">
-                {searchTerm || filterSection 
-                  ? "No se encontraron alumnos con los filtros aplicados" 
-                  : "No tienes secciones asignadas con alumnos. Contacta a coordinación."
-                }
-              </p>
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">No hay alumnos que coincidan</h3>
+              <p className="text-slate-500 mb-4">No se encontraron alumnos con los filtros seleccionados.</p>
+              <button onClick={handleLimpiarFiltros} className="px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors font-medium">Limpiar filtros</button>
             </div>
           )}
         </main>
