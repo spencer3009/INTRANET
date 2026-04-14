@@ -2297,7 +2297,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     if (roleId === 'student') {
       return users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id).length;
     }
-    return users.filter(u => u.role === roleId).length;
+    return users.filter(u => u.role === roleId || (u.additional_roles || []).includes(roleId)).length;
   };
 
   const handleCardClick = (roleId) => {
@@ -2548,7 +2548,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             const email = (u.email || '').toLowerCase();
             return fullName.includes(q) || dni.includes(q) || email.includes(q);
           })
-        : users.filter(u => u.role === selectedRole);
+        : users.filter(u => u.role === selectedRole || (u.additional_roles || []).includes(selectedRole));
     
     // Get total students count (unfiltered, exclude orphans without nivel)
     const totalStudents = users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id).length;

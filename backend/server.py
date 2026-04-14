@@ -61,6 +61,7 @@ from routes.coordinacion import router as coordinacion_router, ensure_coordinaci
 from routes.boletas import router as boletas_router
 from routes.seed_accounting import router as seed_accounting_router
 from routes.qr_templates import router as qr_templates_router
+from routes.role_assignment import router as role_assignment_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -219,6 +220,7 @@ app.include_router(coordinacion_router)
 app.include_router(boletas_router)
 app.include_router(seed_accounting_router)
 app.include_router(qr_templates_router)
+app.include_router(role_assignment_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT

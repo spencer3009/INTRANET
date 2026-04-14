@@ -77,7 +77,11 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
     : isOwner(user) 
       ? allNavItems.filter(item => !item.roles || item.roles.includes(user?.role))
       : allNavItems.filter(item => {
-          if (item.roles && !item.roles.includes(user?.role)) return false;
+          if (item.roles && !item.roles.includes(user?.role)) {
+            // Also check active_portal from localStorage
+            const activePortal = typeof window !== 'undefined' ? localStorage.getItem('active_portal') : null;
+            if (!activePortal || !item.roles.includes(activePortal)) return false;
+          }
           if (!item.section) return true;
           return canAccessSection(user, item.section);
         });

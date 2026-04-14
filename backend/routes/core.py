@@ -278,7 +278,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_token(user_id: str, email: str, name: str, role: str, school_id: str = None, subdomain: str = None, email_verified: bool = False) -> str:
+def create_token(user_id: str, email: str, name: str, role: str, school_id: str = None, subdomain: str = None, email_verified: bool = False, additional_roles: list = None) -> str:
     payload = {
         "sub": user_id,
         "email": email,
@@ -287,6 +287,7 @@ def create_token(user_id: str, email: str, name: str, role: str, school_id: str 
         "school_id": school_id,
         "subdomain": subdomain,
         "email_verified": email_verified,
+        "additional_roles": additional_roles or [],
         "exp": datetime.now(timezone.utc).timestamp() + 86400 * 7
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -339,7 +340,12 @@ ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
 STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad"]
 
 def has_role(user: dict, allowed_roles: list) -> bool:
-    return user.get("role") in allowed_roles
+    if user.get("role") in allowed_roles:
+        return True
+    for ar in user.get("additional_roles", []):
+        if ar in allowed_roles:
+            return True
+    return False
 
 def is_student(user: dict) -> bool:
     return user.get("role") == "student"
@@ -348,7 +354,12 @@ def is_parent(user: dict) -> bool:
     return user.get("role") == "parent"
 
 def is_staff(user: dict) -> bool:
-    return user.get("role") in STAFF_ROLES
+    if user.get("role") in STAFF_ROLES:
+        return True
+    for ar in user.get("additional_roles", []):
+        if ar in STAFF_ROLES:
+            return True
+    return False
 
 def require_role(allowed_roles: list):
     async def check_role(current_user = Depends(get_current_user)):
@@ -367,8 +378,11 @@ def require_role(allowed_roles: list):
             logger.info(f"DEMO_DEBUG require_role: GRANTED (demo owner bypass) roles={allowed_roles}")
             return user
         if role not in allowed_roles:
-            logger.error(f"DEMO_DEBUG require_role: DENIED role={role}, is_demo={is_demo}, allowed={allowed_roles}")
-            raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta funcion")
+            # Check additional_roles
+            additional = user.get("additional_roles", [])
+            if not any(ar in allowed_roles for ar in additional):
+                logger.error(f"DEMO_DEBUG require_role: DENIED role={role}, additional={additional}, is_demo={is_demo}, allowed={allowed_roles}")
+                raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta funcion")
         return user
     return check_role
 
@@ -408,6 +422,11 @@ async def can_access_section(user: dict, section: str, school_id: str = None) ->
     if not section_config:
         return False
     allowed_roles = section_config.get("allowed_roles", [])
+    if role in allowed_roles:
+        return True
+    for ar in user.get("additional_roles", []):
+        if ar in allowed_roles:
+            return True
     feature_flag = section_config.get("feature_flag")
     if role == "owner" or user.get("is_owner"):
         return True

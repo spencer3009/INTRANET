@@ -6,13 +6,14 @@ import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import CarouselManager from "@/components/CarouselManager";
 import AccessDenied from "@/components/AccessDenied";
+import AdditionalRolesManager from "@/components/AdditionalRolesManager";
 import { canAccessSection } from "@/lib/permissions";
 import { 
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
   Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse,
-  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X
+  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 
@@ -1049,6 +1050,20 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     Solo el propietario puede acceder a Ajustes del sistema.
                   </p>
                 </div>
+              </section>
+
+              {/* Additional Roles Assignment Section */}
+              <section className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm mt-8" data-testid="additional-roles-section">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <UserCog className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800">Asignacion de Roles Auxiliares al Personal</h2>
+                    <p className="text-sm text-slate-500">Otorga roles adicionales (Alimentacion, Movilidad, Asistencia) a profesores y personal sin perder su rol principal</p>
+                  </div>
+                </div>
+                <AdditionalRolesManager token={token} />
               </section>
 
               {/* Broadcast Settings Section */}

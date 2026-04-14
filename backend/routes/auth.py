@@ -123,7 +123,8 @@ async def verify_email(data: VerifyEmailRequest):
         # Already verified, just return token
         token = create_token(
             user["id"], user["email"], user["name"], user["role"],
-            user.get("school_id"), None, True
+            user.get("school_id"), None, True,
+            additional_roles=user.get("additional_roles", [])
         )
         return {
             "message": "Email ya verificado",
@@ -136,7 +137,8 @@ async def verify_email(data: VerifyEmailRequest):
                 "role": user["role"],
                 "school_id": user.get("school_id"),
                 "subdomain": None,
-                "email_verified": True
+                "email_verified": True,
+                "additional_roles": user.get("additional_roles", [])
             }
         }
 
@@ -364,7 +366,8 @@ async def login(creds: UserLogin):
         try:
             token = create_token(
                 user["id"], user["email"], user["name"], user["role"],
-                school_id, subdomain, user.get("email_verified", False)
+                school_id, subdomain, user.get("email_verified", False),
+                additional_roles=user.get("additional_roles", [])
             )
         except Exception as token_err:
             logger.error(f"[LOGIN] Token creation error: {token_err}")
@@ -397,7 +400,8 @@ async def login(creds: UserLogin):
                 "is_demo_user": user.get("is_demo_user", False),
                 "photo_url": user.get("photo_url"),
                 "phone": user.get("phone"),
-                "permissions": permissions
+                "permissions": permissions,
+                "additional_roles": user.get("additional_roles", [])
             },
             "redirect_to_subdomain": subdomain is not None,
             "redirect_url": f"https://{subdomain}.{BASE_DOMAIN}" if subdomain else None

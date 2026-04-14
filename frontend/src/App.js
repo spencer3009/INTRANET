@@ -120,6 +120,7 @@ import PaeRegistrosDia from "@/pages/pae/PaeRegistrosDia";
 import MovilidadDashboard from "@/pages/movilidad/MovilidadDashboard";
 import MovilidadScanner from "@/pages/movilidad/MovilidadScanner";
 import MovilidadRegistrosDia from "@/pages/movilidad/MovilidadRegistrosDia";
+import PortalSelector from "@/components/PortalSelector";
 import AuxAsistenciaDashboard from "@/pages/aux-asistencia/AuxAsistenciaDashboard";
 import AuxAsistenciaScanner from "@/pages/aux-asistencia/AuxAsistenciaScanner";
 import AuxAsistenciaMisEscaneos from "@/pages/aux-asistencia/AuxAsistenciaMisEscaneos";
@@ -458,12 +459,45 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [environment] = useState(() => detectEnvironment());
+  const [activePortal, setActivePortal] = useState(() => localStorage.getItem("active_portal") || null);
+  const [showPortalSelector, setShowPortalSelector] = useState(false);
 
   const handleLogin = (tokenVal, userData) => {
     localStorage.setItem("token", tokenVal);
     localStorage.setItem("user", JSON.stringify(userData));
     setToken(tokenVal);
     setUser(userData);
+    // If user has additional_roles, show portal selector
+    if ((userData?.additional_roles || []).length > 0) {
+      setShowPortalSelector(true);
+    } else {
+      localStorage.setItem("active_portal", userData?.role || "");
+      setActivePortal(userData?.role || "");
+    }
+  };
+
+  const handlePortalSelect = (portalRole) => {
+    localStorage.setItem("active_portal", portalRole);
+    setActivePortal(portalRole);
+    setShowPortalSelector(false);
+    // Navigate to the correct portal
+    const portalPaths = {
+      auxiliar_alimentacion: "/pae",
+      auxiliar_movilidad: "/movilidad",
+      auxiliar_asistencia: "/aux-asistencia",
+    };
+    const path = portalPaths[portalRole];
+    if (path) {
+      const sub = user?.subdomain;
+      window.location.href = sub ? `/${sub}${path}` : path;
+    } else {
+      // Primary role — go to default dashboard
+      window.location.href = user?.subdomain ? `/${user.subdomain}/dashboard` : "/dashboard";
+    }
+  };
+
+  const handleSwitchPortal = () => {
+    setShowPortalSelector(true);
   };
 
   const handleUserUpdate = (updatedUser) => {
@@ -477,6 +511,7 @@ function App() {
     const sub = user?.subdomain;
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("active_portal");
     setToken("");
     setUser(null);
     if (sub) {
@@ -529,6 +564,21 @@ function App() {
 
   // Determine dashboard redirect path based on environment and role
   const getDashboardPath = () => {
+    // If user has activePortal set (multi-role), route based on that
+    const ap = activePortal || localStorage.getItem("active_portal");
+    if (ap && ap !== user?.role && (user?.additional_roles || []).includes(ap)) {
+      const portalPaths = {
+        auxiliar_alimentacion: "/pae",
+        auxiliar_movilidad: "/movilidad",
+        auxiliar_asistencia: "/aux-asistencia",
+      };
+      const path = portalPaths[ap];
+      if (path) {
+        if (environment.mode === 'subdomain' || environment.supportsWildcard) return path;
+        return user?.subdomain ? `/${user.subdomain}${path}` : path;
+      }
+    }
+
     // Global support users always go to /support
     if (isSupportGlobal(user)) {
       return '/support';
@@ -622,6 +672,11 @@ function App() {
           <ChatPalRouteGuard />
           <GlobalSubscriptionOverlay token={token} user={user} />
         
+        {showPortalSelector && user && (
+          <PortalSelector user={user} onSelect={handlePortalSelect} />
+        )}
+
+        {!showPortalSelector && (
         <Routes>
           {/* ════════════════════════════════════════════════════════════════════
               PUBLIC ROUTES
@@ -2709,6 +2764,7 @@ function App() {
           ════════════════════════════════════════════════════════════════════ */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        )}
           </SubscriptionProvider>
       </BrowserRouter>
       </DemoModeProvider>
