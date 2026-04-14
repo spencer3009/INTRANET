@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
-import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, Pencil, X, Check } from "lucide-react";
+import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 /* ═══════════════════════════════════════════════════════════════
-   COLUMN DEFINITIONS — exact Excel structure
+   COLUMN DEFINITIONS — exact Excel structure (internal keys)
    ═══════════════════════════════════════════════════════════════ */
 const CRITERIA = [
   {
@@ -55,6 +56,26 @@ const CRITERIA = [
   },
 ];
 
+/* Map from internal category id → API category_id */
+const CATEGORY_ID_MAP = {
+  actitudinal: "actitudinal",
+  rev_fichas: "revision_fichas",
+  competencia: "competencia",
+  participaciones: "participaciones",
+  exam_mensual: "examen_mensual",
+  exam_bimestral: "examen_bimestral",
+};
+
+/* Map from internal sub key → API column_id */
+const SUB_COLUMN_ID_MAP = {
+  act_co: "CO", act_re: "RE",
+  rf_r1: "R1", rf_r2: "R2", rf_r3: "R3", rf_r4: "R4", rf_r5: "R5",
+  comp_c1: "C1", comp_c2: "C2",
+  part_p1: "P1", part_p2: "P2", part_p3: "P3", part_exp: "EXP", part_tg: "TG", part_p: "P",
+  exam_mensual: "EM",
+  exam_bimestral: "EB",
+};
+
 /* helpers */
 function avg(vals) {
   const nums = vals.filter(v => v !== null && v !== undefined && v !== "");
@@ -94,159 +115,78 @@ const totalSubCols = CRITERIA.reduce((sum, c) => sum + c.subs.length + (c.noAvg 
    STYLES — matching the Excel exactly
    ═══════════════════════════════════════════════════════════════ */
 const S = {
-  table: {
-    borderCollapse: "collapse",
-    fontSize: "12px",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    width: "max-content",
-    minWidth: "100%",
-  },
-  thTop: {
-    background: "#4472C4",
-    color: "#fff",
-    fontWeight: 700,
-    textAlign: "center",
-    border: "1px solid #2F5496",
-    padding: "6px 4px",
-    fontSize: "12px",
-    letterSpacing: "0.5px",
-  },
-  thWeight: {
-    background: "#FFD700",
-    color: "#000",
-    fontWeight: 800,
-    textAlign: "center",
-    border: "1px solid #C9A800",
-    padding: "4px 2px",
-    fontSize: "12px",
-  },
-  thGroup: {
-    background: "#D9D9D9",
-    color: "#000",
-    fontWeight: 700,
-    textAlign: "center",
-    border: "1px solid #BFBFBF",
-    padding: "4px 2px",
-    fontSize: "10px",
-    textTransform: "uppercase",
-    letterSpacing: "0.3px",
-  },
-  thSub: {
-    background: "#F2F2F2",
-    color: "#333",
-    fontWeight: 700,
-    textAlign: "center",
-    border: "1px solid #D0D0D0",
-    padding: "4px 2px",
-    fontSize: "10px",
-    minWidth: "36px",
-    writingMode: "horizontal-tb",
-  },
-  thSubVertical: {
-    background: "#F2F2F2",
-    color: "#333",
-    fontWeight: 700,
-    textAlign: "center",
-    border: "1px solid #D0D0D0",
-    padding: "4px 2px",
-    fontSize: "10px",
-    minWidth: "30px",
-    writingMode: "vertical-rl",
-    textOrientation: "mixed",
-    height: "80px",
-    whiteSpace: "nowrap",
-  },
-  thAvg: {
-    background: "#E2EFDA",
-    color: "#375623",
-    fontWeight: 700,
-    textAlign: "center",
-    border: "1px solid #A9D18E",
-    padding: "4px 2px",
-    fontSize: "10px",
-    writingMode: "vertical-rl",
-    textOrientation: "mixed",
-    height: "80px",
-    whiteSpace: "nowrap",
-    minWidth: "30px",
-  },
-  thFinal: {
-    background: "#4472C4",
-    color: "#fff",
-    fontWeight: 800,
-    textAlign: "center",
-    border: "1px solid #2F5496",
-    padding: "4px 2px",
-    fontSize: "10px",
-    writingMode: "vertical-rl",
-    textOrientation: "mixed",
-    height: "80px",
-    whiteSpace: "nowrap",
-    minWidth: "36px",
-  },
-  tdNum: {
-    background: "#F8F8F8",
-    textAlign: "center",
-    border: "1px solid #D0D0D0",
-    padding: "2px 4px",
-    fontWeight: 600,
-    width: "32px",
-    minWidth: "32px",
-  },
-  tdName: {
-    background: "#FFFFDD",
-    textAlign: "left",
-    border: "1px solid #D0D0D0",
-    padding: "2px 6px",
-    fontWeight: 500,
-    minWidth: "200px",
-    maxWidth: "240px",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-  tdInput: {
-    border: "1px solid #D0D0D0",
-    padding: 0,
-    textAlign: "center",
-    width: "36px",
-    minWidth: "36px",
-  },
-  tdAvg: {
-    background: "#E2EFDA",
-    border: "1px solid #A9D18E",
-    textAlign: "center",
-    padding: "2px",
-    fontWeight: 700,
-    fontSize: "11px",
-    color: "#375623",
-    minWidth: "36px",
-  },
-  tdFinal: {
-    background: "#D6E4F0",
-    border: "1px solid #4472C4",
-    textAlign: "center",
-    padding: "2px",
-    fontWeight: 800,
-    fontSize: "12px",
-    color: "#1F3864",
-    minWidth: "40px",
-  },
-  input: {
-    width: "100%",
-    border: "none",
-    outline: "none",
-    textAlign: "center",
-    fontSize: "12px",
-    padding: "4px 0",
-    background: "transparent",
-    fontFamily: "inherit",
-  },
+  table: { borderCollapse: "collapse", fontSize: "12px", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", width: "max-content", minWidth: "100%" },
+  thTop: { background: "#4472C4", color: "#fff", fontWeight: 700, textAlign: "center", border: "1px solid #2F5496", padding: "6px 4px", fontSize: "12px", letterSpacing: "0.5px" },
+  thWeight: { background: "#FFD700", color: "#000", fontWeight: 800, textAlign: "center", border: "1px solid #C9A800", padding: "4px 2px", fontSize: "12px" },
+  thGroup: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px" },
+  thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "4px 2px", fontSize: "10px", minWidth: "36px", writingMode: "horizontal-tb" },
+  thSubVertical: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "4px 2px", fontSize: "10px", minWidth: "30px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
+  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap", minWidth: "30px" },
+  thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap", minWidth: "36px" },
+  tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600, width: "32px", minWidth: "32px" },
+  tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, minWidth: "200px", maxWidth: "240px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", width: "36px", minWidth: "36px" },
+  tdAvg: { background: "#E2EFDA", border: "1px solid #A9D18E", textAlign: "center", padding: "2px", fontWeight: 700, fontSize: "11px", color: "#375623", minWidth: "36px" },
+  tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864", minWidth: "40px" },
+  input: { width: "100%", border: "none", outline: "none", textAlign: "center", fontSize: "12px", padding: "4px 0", background: "transparent", fontFamily: "inherit" },
   stickyNum: { position: "sticky", left: 0, zIndex: 2 },
   stickyName: { position: "sticky", left: "32px", zIndex: 2 },
   stickyNumHeader: { position: "sticky", left: 0, zIndex: 4 },
   stickyNameHeader: { position: "sticky", left: "32px", zIndex: 4 },
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   INLINE EDITABLE CELL
+   ═══════════════════════════════════════════════════════════════ */
+function EditableCell({ value, onSave, canEdit, style, isModified, colSpan }) {
+  const [editing, setEditing] = useState(false);
+  const [tempVal, setTempVal] = useState(value);
+  const inputRef = useRef(null);
+
+  useEffect(() => { setTempVal(value); }, [value]);
+  useEffect(() => {
+    if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
+  }, [editing]);
+
+  const confirm = () => {
+    const trimmed = tempVal.trim();
+    if (trimmed && trimmed !== value) onSave(trimmed);
+    else setTempVal(value);
+    setEditing(false);
+  };
+
+  const cancel = () => { setTempVal(value); setEditing(false); };
+
+  if (editing) {
+    return (
+      <th colSpan={colSpan} style={{ ...style, padding: "2px", border: "2px solid #f59e0b" }}>
+        <input
+          ref={inputRef}
+          type="text"
+          maxLength={30}
+          value={tempVal}
+          onChange={e => setTempVal(e.target.value)}
+          onBlur={confirm}
+          onKeyDown={e => { if (e.key === "Enter") confirm(); if (e.key === "Escape") cancel(); }}
+          style={{ width: "100%", textAlign: "center", fontSize: "inherit", fontWeight: "inherit", border: "none", outline: "none", background: "#FFF9E6", padding: "2px 4px", fontFamily: "inherit" }}
+          data-testid="criteria-edit-input"
+        />
+      </th>
+    );
+  }
+
+  return (
+    <th
+      colSpan={colSpan}
+      style={{ ...style, cursor: canEdit ? "pointer" : "default" }}
+      onClick={() => canEdit && setEditing(true)}
+      title={canEdit ? "Clic para editar" : undefined}
+      data-testid={`criteria-cell-${value}`}
+    >
+      {value}
+    </th>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -265,6 +205,115 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   const [dirty, setDirty] = useState(false);
   const autoSaveTimer = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Criteria config state
+  const [criteriaConfig, setCriteriaConfig] = useState(null);
+  const [criteriaOriginal, setCriteriaOriginal] = useState(null);
+  const [criteriaDirty, setCriteriaDirty] = useState(false);
+  const [criteriaSaving, setCriteriaSaving] = useState(false);
+
+  const canEditCriteria = ["owner", "admin", "director"].includes(user?.role);
+
+  // Load criteria config on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/api/evaluation-criteria`, { headers });
+        setCriteriaConfig(res.data);
+        setCriteriaOriginal(JSON.parse(JSON.stringify(res.data)));
+      } catch (err) { console.error("Error loading criteria config:", err); }
+    })();
+  }, []);
+
+  // Build display label maps from criteriaConfig
+  const { categoryLabels, subLabels, modifiedCategories, modifiedSubs } = useMemo(() => {
+    const catLabels = {};
+    const sLabels = {};
+    const modCats = new Set();
+    const modSbs = new Set();
+
+    if (!criteriaConfig?.categories) return { categoryLabels: catLabels, subLabels: sLabels, modifiedCategories: modCats, modifiedSubs: modSbs };
+
+    for (const cat of criteriaConfig.categories) {
+      // Map API category_id → internal id
+      const internalId = Object.entries(CATEGORY_ID_MAP).find(([, v]) => v === cat.category_id)?.[0];
+      if (internalId) catLabels[internalId] = cat.display_name;
+
+      for (const sub of cat.subcolumns) {
+        const internalKey = Object.entries(SUB_COLUMN_ID_MAP).find(([, v]) => v === sub.column_id)?.[0];
+        if (internalKey) sLabels[internalKey] = sub.display_name;
+      }
+    }
+
+    // Detect modifications vs original
+    if (criteriaOriginal?.categories) {
+      for (let i = 0; i < criteriaConfig.categories.length; i++) {
+        const curr = criteriaConfig.categories[i];
+        const orig = criteriaOriginal.categories[i];
+        if (!orig) continue;
+        const internalCatId = Object.entries(CATEGORY_ID_MAP).find(([, v]) => v === curr.category_id)?.[0];
+        if (curr.display_name !== orig.display_name && internalCatId) modCats.add(internalCatId);
+        for (let j = 0; j < curr.subcolumns.length; j++) {
+          const cSub = curr.subcolumns[j];
+          const oSub = orig.subcolumns?.[j];
+          if (oSub && cSub.display_name !== oSub.display_name) {
+            const internalKey = Object.entries(SUB_COLUMN_ID_MAP).find(([, v]) => v === cSub.column_id)?.[0];
+            if (internalKey) modSbs.add(internalKey);
+          }
+        }
+      }
+    }
+
+    return { categoryLabels: catLabels, subLabels: sLabels, modifiedCategories: modCats, modifiedSubs: modSbs };
+  }, [criteriaConfig, criteriaOriginal]);
+
+  const updateCategoryLabel = (internalId, newLabel) => {
+    const apiCatId = CATEGORY_ID_MAP[internalId];
+    if (!apiCatId || !criteriaConfig) return;
+    const updated = { ...criteriaConfig, categories: criteriaConfig.categories.map(c =>
+      c.category_id === apiCatId ? { ...c, display_name: newLabel } : c
+    )};
+    setCriteriaConfig(updated);
+    setCriteriaDirty(true);
+  };
+
+  const updateSubLabel = (internalKey, newLabel) => {
+    const colId = SUB_COLUMN_ID_MAP[internalKey];
+    if (!colId || !criteriaConfig) return;
+    const updated = { ...criteriaConfig, categories: criteriaConfig.categories.map(c => ({
+      ...c, subcolumns: c.subcolumns.map(s => s.column_id === colId ? { ...s, display_name: newLabel } : s)
+    }))};
+    setCriteriaConfig(updated);
+    setCriteriaDirty(true);
+  };
+
+  const saveCriteriaConfig = async () => {
+    if (!criteriaDirty || !criteriaConfig) return;
+    if (!window.confirm("Estos cambios afectaran a TODAS las asignaturas del colegio.\nLas notas ya registradas se mantendran intactas.\n\n¿Deseas continuar?")) return;
+    setCriteriaSaving(true);
+    try {
+      const res = await axios.put(`${API}/api/evaluation-criteria`, {
+        categories: criteriaConfig.categories.map(c => ({
+          category_id: c.category_id,
+          display_name: c.display_name,
+          subcolumns: c.subcolumns.map(s => ({ column_id: s.column_id, display_name: s.display_name })),
+        })),
+      }, { headers });
+      setCriteriaConfig(res.data);
+      setCriteriaOriginal(JSON.parse(JSON.stringify(res.data)));
+      setCriteriaDirty(false);
+      toast.success("Estructura actualizada correctamente");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al guardar estructura");
+    } finally { setCriteriaSaving(false); }
+  };
+
+  const discardCriteriaChanges = () => {
+    if (criteriaOriginal) {
+      setCriteriaConfig(JSON.parse(JSON.stringify(criteriaOriginal)));
+      setCriteriaDirty(false);
+    }
+  };
 
   useEffect(() => {
     const loadPeriods = async () => {
@@ -396,7 +445,24 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             {periods.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* Criteria dirty indicator + buttons */}
+          {criteriaDirty && (
+            <>
+              <span style={{ fontSize: 11, padding: "3px 8px", background: "#FEF3C7", color: "#92400E", borderRadius: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                <Pencil size={12} /> Cambios sin guardar
+              </span>
+              <button onClick={saveCriteriaConfig} disabled={criteriaSaving} data-testid="save-criteria-btn"
+                style={{ padding: "5px 12px", background: "#f59e0b", color: "#fff", borderRadius: 8, fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                {criteriaSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                Guardar estructura
+              </button>
+              <button onClick={discardCriteriaChanges} data-testid="discard-criteria-btn"
+                style={{ padding: "5px 12px", background: "#e5e7eb", color: "#374151", borderRadius: 8, fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <X size={12} /> Descartar
+              </button>
+            </>
+          )}
           {saveStatus === "saved" && <span style={{ fontSize: 12, color: "#16a34a", display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={14} /> Guardado</span>}
           {saveStatus === "error" && <span style={{ fontSize: 12, color: "#dc2626", display: "flex", alignItems: "center", gap: 4 }}><AlertTriangle size={14} /> Error</span>}
           {saving && <Loader2 size={14} className="animate-spin" style={{ color: "#6366f1" }} />}
@@ -460,23 +526,48 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                   );
                 })}
               </tr>
-              {/* ROW 3: Category names */}
+              {/* ROW 3: Category names (EDITABLE) */}
               <tr>
                 {CRITERIA.map(c => {
                   const cols = c.subs.length + (c.noAvg ? 0 : 1);
+                  const displayLabel = categoryLabels[c.id] || c.label;
+                  const isModified = modifiedCategories.has(c.id);
+                  const baseStyle = { ...S.thGroup };
+                  if (isModified) {
+                    baseStyle.border = "2px solid #f59e0b";
+                    baseStyle.background = "#FEF3C7";
+                  }
                   return (
-                    <th key={c.id} colSpan={cols} style={S.thGroup}>{c.label}</th>
+                    <EditableCell
+                      key={c.id}
+                      value={displayLabel}
+                      onSave={(newVal) => updateCategoryLabel(c.id, newVal)}
+                      canEdit={canEditCriteria}
+                      style={baseStyle}
+                      colSpan={cols}
+                      isModified={isModified}
+                    />
                   );
                 })}
                 <th rowSpan={2} style={S.thFinal}>PROM. BIMESTRAL</th>
               </tr>
-              {/* ROW 4: Sub-column headers */}
+              {/* ROW 4: Sub-column headers (EDITABLE) */}
               <tr>
                 {CRITERIA.map(c => (
                   <React.Fragment key={c.id}>
-                    {c.subs.map(sub => (
-                      <th key={sub.key} style={S.thSub}>{sub.label}</th>
-                    ))}
+                    {c.subs.map(sub => {
+                      const displayLabel = subLabels[sub.key] || sub.label;
+                      return (
+                        <EditableCell
+                          key={sub.key}
+                          value={displayLabel}
+                          onSave={(newVal) => updateSubLabel(sub.key, newVal)}
+                          canEdit={canEditCriteria}
+                          style={S.thSub}
+                          isModified={modifiedSubs.has(sub.key)}
+                        />
+                      );
+                    })}
                     {!c.noAvg && (
                       <th key={`${c.id}_avg`} style={S.thAvg}>PROMEDIO</th>
                     )}
