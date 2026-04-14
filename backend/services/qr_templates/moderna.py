@@ -291,7 +291,10 @@ class ModernaTemplate(BaseQRTemplate):
 
             # Badge
             badge_y = name_y - 5 * mm
-            badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
+            if target_role == "teacher":
+                badge_text = "Docente"
+            else:
+                badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
             c.setFont("Helvetica-Bold", 5)
             btw = c.stringWidth(badge_text, "Helvetica-Bold", 5)
             badge_w = btw + 6 * mm

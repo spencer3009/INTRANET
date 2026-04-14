@@ -308,7 +308,10 @@ class ClassicTemplate(BaseQRTemplate):
             # Level - Grade - Section
             c.setFillColor(gray)
             c.setFont("Helvetica", 5.5 * sf)
-            info_line = f"{nivel_name} - {curso_label}"
+            if target_role == "teacher":
+                info_line = "Docente"
+            else:
+                info_line = f"{nivel_name} - {curso_label}"
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)
             c.drawString(x + (card_w - tw2) / 2, info_y - 4 * sf * mm - code_offset, info_line)
 

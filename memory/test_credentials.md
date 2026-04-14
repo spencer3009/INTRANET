@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://schedule-unify.preview.emergentagent.com/elroble/login
+- Login URL: https://carnet-qr-export.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu
