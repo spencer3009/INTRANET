@@ -767,9 +767,23 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     const key1 = `${m}-${y}`;
                     const key2 = `${y}-${String(m).padStart(2,'0')}`;
                     if (!paidOrReportedMonths.has(key1) && !paidOrReportedMonths.has(key2)) {
-                      // Check if pronto pago applies (within first X days of the month)
-                      const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && now.getDate() <= prontoPagoFechaLimite && m === (now.getMonth() + 1) && y === now.getFullYear();
-                      const finalAmount = isProntoPago ? prontoPagoMonto : pension;
+                      // Determine if this month is overdue (past month)
+                      const isMonthOverdue = (y < now.getFullYear()) || (y === now.getFullYear() && m < (now.getMonth() + 1));
+
+                      // Check if pronto pago applies (within first X days of the current month)
+                      const isCurrentMonth = m === (now.getMonth() + 1) && y === now.getFullYear();
+                      const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && now.getDate() <= prontoPagoFechaLimite && isCurrentMonth;
+
+                      // Calculate interest if overdue
+                      const interesActivo = fc.interes_activo;
+                      const interesTipo = fc.interes_tipo || 'porcentaje';
+                      const interesValor = fc.interes_valor || 0;
+                      let interesAmount = 0;
+                      if (isMonthOverdue && interesActivo && interesValor > 0) {
+                        interesAmount = interesTipo === 'porcentaje' ? pension * (interesValor / 100) : interesValor;
+                      }
+
+                      const finalAmount = isProntoPago ? prontoPagoMonto : (pension + interesAmount);
 
                       nextCuota = {
                         concept: "mensualidad",
@@ -777,12 +791,14 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         amount: finalAmount,
                         month: m,
                         year: y,
-                        status: "pending",
+                        status: isMonthOverdue ? "overdue" : "pending",
                         yape_status: null,
                         _derived: true,
                         _isProntoPago: isProntoPago,
                         _prontoPagoFechaLimite: prontoPagoFechaLimite,
                         _pensionNormal: pension,
+                        _interesAmount: interesAmount,
+                        _isOverdue: isMonthOverdue,
                       };
                       break;
                     }
@@ -875,6 +891,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                               <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">PRONTO PAGO</span>
                             </div>
                           )}
+                          {nextCuota._interesAmount > 0 && (
+                            <div className="mb-1">
+                              <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">INCLUYE INTERES</span>
+                            </div>
+                          )}
                           <p className="text-2xl font-black text-purple-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             S/ {(nextCuota.amount || 0).toFixed(2)}
                           </p>
@@ -882,6 +903,10 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                             <div>
                               <p className="text-xs text-slate-400 line-through mt-0.5">S/ {(nextCuota._pensionNormal || 0).toFixed(2)}</p>
                               <p className="text-xs text-emerald-600 font-medium">Paga antes del {nextCuota._prontoPagoFechaLimite} del mes</p>
+                            </div>
+                          ) : nextCuota._interesAmount > 0 ? (
+                            <div>
+                              <p className="text-xs text-slate-500 mt-0.5">Pension S/ {(nextCuota._pensionNormal || 0).toFixed(2)} + Interes S/ {nextCuota._interesAmount.toFixed(2)}</p>
                             </div>
                           ) : (
                             <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
