@@ -140,6 +140,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [activeSection, setActiveSection] = useState("inicio");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [enrollmentEnabled, setEnrollmentEnabled] = useState(false);
   
   const [parentProfile, setParentProfile] = useState(null);
   const [children, setChildren] = useState([]);
@@ -165,11 +166,12 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
         const startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         const endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0).toISOString().split('T')[0];
 
-        const [profileRes, settingsRes, bannersRes, calendarRes] = await Promise.all([
+        const [profileRes, settingsRes, bannersRes, calendarRes, enrollConfigRes] = await Promise.all([
           axios.get(`${API}/api/parent/me`, { headers }),
           axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
           axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
-          axios.get(`${API}/api/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] }))
+          axios.get(`${API}/api/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/school/enrollment-config`, { headers }).catch(() => ({ data: {} })),
         ]);
         
         setParentProfile(profileRes.data);
@@ -178,6 +180,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
         if (settingsRes.data) setSettings(settingsRes.data);
         setBanners(bannersRes.data || []);
         setCalendarEvents(calendarRes.data || []);
+        setEnrollmentEnabled(enrollConfigRes.data?.parent_self_enrollment_enabled || false);
         
         if (childrenList.length > 0) {
           const savedChildId = localStorage.getItem('selected_child_id');
@@ -244,7 +247,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 <GraduationCap className="w-12 h-12 text-emerald-500" />
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-3">Bienvenido al Portal de Padres</h2>
-              <p className="text-slate-500 mb-8">Registra a tu hijo/a para iniciar el proceso de matricula. El colegio revisara los datos y te notificara cuando sea aprobada.</p>
+              <p className="text-slate-500 mb-8">{enrollmentEnabled ? "Registra a tu hijo/a para iniciar el proceso de matricula. El colegio revisara los datos y te notificara cuando sea aprobada." : "No tienes estudiantes vinculados a tu cuenta. Contacta al administrador del colegio para vincular a tu hijo/a."}</p>
+              {enrollmentEnabled && (
               <button
                 onClick={() => navigateTo("/parent/registrar-alumno")}
                 className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-base transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3"
@@ -253,6 +257,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 <UserPlus className="w-6 h-6" />
                 Registrar a mi hijo
               </button>
+              )}
             </div>
           </main>
         </div>
@@ -318,6 +323,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             <p className="text-sm text-emerald-700">
               Estás viendo la información de <span className="font-semibold">{studentInfo.name} {studentInfo.last_name}</span>
             </p>
+            {enrollmentEnabled && (
             <button
               onClick={() => navigateTo("/parent/registrar-alumno")}
               className="ml-auto text-xs px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5"
@@ -326,6 +332,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               <GraduationCap className="w-3.5 h-3.5" />
               Registrar otro hijo
             </button>
+            )}
             {children.length > 1 && (
               <div className="ml-auto relative group">
                 <button className="flex items-center gap-2 bg-white/80 hover:bg-white rounded-lg px-3 py-1.5 border border-emerald-200 transition-colors cursor-pointer" data-testid="child-switcher-btn">

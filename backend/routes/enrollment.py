@@ -99,6 +99,17 @@ async def self_register_student(data: SelfRegisterRequest, current_user=Depends(
     if not school_id:
         raise HTTPException(status_code=400, detail="No tienes un colegio asociado")
 
+    # Check school enrollment config
+    school = await db.schools.find_one({"school_id": school_id}, {"_id": 0, "settings": 1})
+    enrollment_cfg = (school or {}).get("settings", {}).get("parent_self_enrollment", {})
+    if not enrollment_cfg.get("enabled", False):
+        # Also check tenant_settings as fallback
+        ts = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "parent_self_enrollment": 1})
+        ts_cfg = (ts or {}).get("parent_self_enrollment", {})
+        if not ts_cfg.get("enabled", False):
+            raise HTTPException(status_code=403, detail="El auto-registro no esta habilitado en este colegio")
+        enrollment_cfg = ts_cfg
+
     parent_id = user["id"]
     dni = data.dni.strip()
 
@@ -130,14 +141,14 @@ async def self_register_student(data: SelfRegisterRequest, current_user=Depends(
     if existing_user:
         username = f"{dni.lower()}_{random.randint(100,999)}"
 
-    temp_password = generate_temp_password()
+    # Password = DNI (as per school policy)
     now = datetime.now(timezone.utc).isoformat()
 
     new_student = {
         "id": str(uuid.uuid4()),
         "username": username,
-        "password": hash_password(temp_password),
-        "plain_password": temp_password,
+        "password": hash_password(dni),
+        "plain_password": dni,
         "name": data.name.strip(),
         "last_name": (data.last_name or "").strip(),
         "email": None,
@@ -411,3 +422,73 @@ async def get_pending_count(current_user=Depends(require_role(["owner", "admin",
         "enrollment_status": "pending",
     })
     return {"count": count}
+
+
+
+# ══════════════════════════════════════════════════════════════════
+#  6. GET /api/school/enrollment-config — Read config (any user)
+# ══════════════════════════════════════════════════════════════════
+
+@router.get("/school/enrollment-config")
+async def get_enrollment_config(current_user=Depends(get_current_user)):
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="school_id no encontrado")
+
+    # Check both schools and tenant_settings collections
+    school = await db.schools.find_one({"school_id": school_id}, {"_id": 0, "settings": 1})
+    cfg = (school or {}).get("settings", {}).get("parent_self_enrollment", {})
+
+    # Fallback to tenant_settings
+    if not cfg:
+        ts = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "parent_self_enrollment": 1})
+        cfg = (ts or {}).get("parent_self_enrollment", {})
+
+    return {
+        "parent_self_enrollment_enabled": cfg.get("enabled", False),
+        "academic_info_editable": cfg.get("academic_info_editable", False),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════
+#  7. PATCH /api/school/settings/enrollment — Update config
+# ══════════════════════════════════════════════════════════════════
+
+class EnrollmentConfigUpdate(BaseModel):
+    enabled: bool
+    academic_info_editable: bool = False
+
+@router.patch("/school/settings/enrollment")
+async def update_enrollment_config(
+    data: EnrollmentConfigUpdate,
+    current_user=Depends(require_role(["owner", "admin"]))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="school_id no encontrado")
+
+    # Business rule: if enabled=false, academic_info_editable must be false
+    if not data.enabled:
+        data.academic_info_editable = False
+
+    config = {
+        "enabled": data.enabled,
+        "academic_info_editable": data.academic_info_editable,
+    }
+
+    # Store in tenant_settings (main config collection)
+    await db.tenant_settings.update_one(
+        {"school_id": school_id},
+        {"$set": {"parent_self_enrollment": config}},
+        upsert=True,
+    )
+
+    logger.info(f"[ENROLLMENT] Config updated for school {school_id}: enabled={data.enabled}, academic={data.academic_info_editable}")
+    return {
+        "parent_self_enrollment_enabled": data.enabled,
+        "academic_info_editable": data.academic_info_editable,
+        "message": "Configuracion guardada correctamente",
+    }

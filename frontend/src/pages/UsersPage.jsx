@@ -13,7 +13,7 @@ import {
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
   ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX,
-  FileSpreadsheet, Download, FileUp, CheckCircle2, Palette
+  FileSpreadsheet, Download, FileUp, CheckCircle2, Palette, Settings
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import TeacherQRCard from "@/components/TeacherQRCard";
@@ -26,6 +26,7 @@ import BulkQRModal from "@/components/BulkQRModal";
 import QRTemplateDrawer from "@/components/students/QRTemplateDrawer";
 import BulkDeleteModal from "@/components/BulkDeleteModal";
 import PendingEnrollmentsTab from "@/components/PendingEnrollmentsTab";
+import EnrollmentConfigModal from "@/components/EnrollmentConfigModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1624,6 +1625,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [infoModalContent, setInfoModalContent] = useState({ title: "", message: "", type: "info" });
   const [showPendingEnrollments, setShowPendingEnrollments] = useState(false);
   const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
+  const [showEnrollmentConfig, setShowEnrollmentConfig] = useState(false);
   // Edit user states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -2679,6 +2681,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       </div>
                       <span className="hidden sm:inline">Matriculas</span>
                       <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{pendingEnrollmentCount}</span>
+                    </button>
+                  )}
+                  {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
+                    <button
+                      onClick={() => setShowEnrollmentConfig(true)}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid="enrollment-config-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">Config</span>
                     </button>
                   )}
                   {selectedRole === 'student' && (
@@ -5816,6 +5830,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       <FloatingHelpAvatar subdomain={subdomain} />
+      <EnrollmentConfigModal
+        isOpen={showEnrollmentConfig}
+        onClose={() => setShowEnrollmentConfig(false)}
+        token={token}
+      />
     </div>
   );
 }

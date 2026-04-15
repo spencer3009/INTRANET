@@ -21,6 +21,9 @@ export default function ParentEnrollmentForm({ user, token }) {
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [academicEditable, setAcademicEditable] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [ageWarning, setAgeWarning] = useState("");
 
   const [form, setForm] = useState({
     name: "", last_name: "", dni: "", birthday: "", gender: "",
@@ -32,16 +35,20 @@ export default function ParentEnrollmentForm({ user, token }) {
     notas: "",
   });
 
+  // Load enrollment config + academic data
   useEffect(() => {
     (async () => {
       try {
-        const [levelsRes, turnosRes] = await Promise.all([
+        const [configRes, levelsRes, turnosRes] = await Promise.all([
+          axios.get(`${API}/api/school/enrollment-config`, { headers }),
           axios.get(`${API}/api/academic/levels`, { headers }),
           axios.get(`${API}/api/academic/turnos`, { headers }).catch(() => ({ data: [] })),
         ]);
+        setAcademicEditable(configRes.data?.academic_info_editable || false);
         setLevels(levelsRes.data || []);
         setTurnos(turnosRes.data || []);
       } catch {}
+      setConfigLoading(false);
     })();
   }, []);
 
@@ -67,6 +74,35 @@ export default function ParentEnrollmentForm({ user, token }) {
       } catch { setSections([]); }
     })();
   }, [form.grado_id]);
+
+  // Age vs grade validation
+  useEffect(() => {
+    setAgeWarning("");
+    if (!form.birthday || !form.grado_id || !academicEditable) return;
+    const birthDate = new Date(form.birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+
+    const gradeName = grades.find(g => g.id === form.grado_id)?.nombre?.toLowerCase() || "";
+    const nivelName = levels.find(l => l.id === form.nivel_id)?.nombre?.toLowerCase() || "";
+
+    let expectedMin = 0, expectedMax = 99;
+    if (nivelName.includes("inicial")) {
+      if (gradeName.includes("3")) { expectedMin = 3; expectedMax = 4; }
+      else if (gradeName.includes("4")) { expectedMin = 4; expectedMax = 5; }
+      else if (gradeName.includes("5")) { expectedMin = 5; expectedMax = 6; }
+    } else if (nivelName.includes("primaria")) {
+      expectedMin = 6; expectedMax = 12;
+    } else if (nivelName.includes("secundaria")) {
+      expectedMin = 12; expectedMax = 17;
+    }
+
+    if (age < expectedMin || age > expectedMax) {
+      setAgeWarning(`La edad del alumno (${age} anios) no corresponde al grado seleccionado. El colegio verificara esta informacion.`);
+    }
+  }, [form.birthday, form.grado_id, form.nivel_id, grades, levels, academicEditable]);
 
   const goBack = () => {
     const base = subdomain ? `/${subdomain}/parent` : "/parent";
@@ -182,7 +218,8 @@ export default function ParentEnrollmentForm({ user, token }) {
           </div>
         </div>
 
-        {/* Academic Info */}
+        {/* Academic Info — Conditional */}
+        {academicEditable && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-blue-500" /> Informacion Academica
@@ -201,6 +238,12 @@ export default function ParentEnrollmentForm({ user, token }) {
                 <option value="">Seleccionar grado</option>
                 {grades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
               </select>
+              {ageWarning && (
+                <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">{ageWarning}</p>
+                </div>
+              )}
             </div>
             <div>
               <label className={labelCls}>Seccion</label>
@@ -219,9 +262,10 @@ export default function ParentEnrollmentForm({ user, token }) {
           </div>
           <div className="mt-3 flex items-start gap-2 bg-blue-50 rounded-lg px-3 py-2">
             <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-600">Esta informacion es referencial. El colegio asignara el grado y seccion oficial al aprobar la matricula.</p>
+            <p className="text-xs text-blue-600">Esta informacion es referencial. El colegio confirmara o ajustara el grado y seccion al aprobar la matricula.</p>
           </div>
         </div>
+        )}
 
         {/* Complementary Info */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
