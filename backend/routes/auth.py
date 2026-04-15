@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body, Form, Upload
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
 from enum import Enum
 import uuid
 import re
@@ -697,7 +698,7 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         }
         # Set expiration_date if not already set
         if not existing_school.get("expiration_date"):
-            update_fields["expiration_date"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            update_fields["expiration_date"] = (datetime.now(timezone.utc) + relativedelta(months=1)).isoformat()
         await db.schools.update_one(
             {"id": school_id},
             {"$set": update_fields}

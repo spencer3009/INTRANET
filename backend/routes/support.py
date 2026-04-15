@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
 import uuid
 import bcrypt
 import logging
@@ -877,13 +878,13 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
             current_exp = None
 
     if current_exp and current_exp >= now:
-        # Paying before or on expiration: extend from current expiration
+        # Paying before or on expiration: extend from current expiration (respects billing cycle)
         base_date = current_exp
     else:
         # Paying after expiration (or no expiration set): extend from today
         base_date = now
 
-    new_expiration_dt = base_date + timedelta(days=30)
+    new_expiration_dt = base_date + relativedelta(months=1)
     new_expiration = new_expiration_dt.isoformat()
 
     logger.info(
@@ -1823,7 +1824,7 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "status": "active",
         "owner_user_id": owner_id,
         "subscription_status": "active",
-        "expiration_date": (now + timedelta(days=30)).isoformat(),
+        "expiration_date": (now + relativedelta(months=1)).isoformat(),
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
     }
