@@ -115,7 +115,18 @@ export default function ParentEnrollmentForm({ user, token }) {
     setError("");
 
     if (!form.name.trim()) { setError("El nombre es obligatorio"); return; }
-    if (!form.dni.trim()) { setError("El DNI es obligatorio"); return; }
+    if (!form.last_name.trim()) { setError("Los apellidos son obligatorios"); return; }
+    if (!form.dni.trim() || form.dni.length !== 8) { setError("El DNI debe tener exactamente 8 d\u00edgitos"); return; }
+    if (!form.birthday) { setError("La fecha de nacimiento es obligatoria"); return; }
+    if (!form.gender) { setError("El g\u00e9nero es obligatorio"); return; }
+    if (!form.phone.trim()) { setError("El tel\u00e9fono es obligatorio"); return; }
+    if (!form.address.trim()) { setError("La direcci\u00f3n es obligatoria"); return; }
+    if (academicEditable) {
+      if (!form.nivel_id) { setError("El nivel es obligatorio"); return; }
+      if (!form.grado_id) { setError("El grado es obligatorio"); return; }
+      if (!form.seccion_id) { setError("La secci\u00f3n es obligatoria"); return; }
+      if (!form.turno_id) { setError("El turno es obligatorio"); return; }
+    }
 
     setSaving(true);
     try {
@@ -135,7 +146,7 @@ export default function ParentEnrollmentForm({ user, token }) {
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-3">Solicitud enviada correctamente</h2>
           <p className="text-slate-500 text-sm mb-6">
-            El colegio revisara los datos y te notificaremos cuando sea aprobada. El proceso puede tardar unos dias habiles.
+            El colegio revisar\u00e1 los datos y te notificaremos cuando sea aprobada. El proceso puede tardar unos d\u00edas h\u00e1biles.
           </p>
           <button onClick={goBack} data-testid="enrollment-success-accept"
             className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors">
@@ -159,7 +170,7 @@ export default function ParentEnrollmentForm({ user, token }) {
         </button>
         <div>
           <h1 className="text-base font-bold text-slate-800">Registrar a mi hijo</h1>
-          <p className="text-xs text-slate-500">Completa los datos para solicitar la matricula</p>
+          <p className="text-xs text-slate-500">Completa los datos para solicitar la matr\u00edcula</p>
         </div>
       </header>
 
@@ -182,37 +193,41 @@ export default function ParentEnrollmentForm({ user, token }) {
                 className={inputCls} placeholder="Nombres del alumno" required data-testid="enrollment-name" />
             </div>
             <div>
-              <label className={labelCls}>Apellidos</label>
+              <label className={labelCls}>Apellidos *</label>
               <input type="text" value={form.last_name} onChange={e => updateField("last_name", e.target.value)}
-                className={inputCls} placeholder="Apellidos del alumno" data-testid="enrollment-lastname" />
+                className={inputCls} placeholder="Apellidos del alumno" required data-testid="enrollment-lastname" />
             </div>
             <div>
               <label className={labelCls}>DNI *</label>
-              <input type="text" value={form.dni} onChange={e => updateField("dni", e.target.value)}
-                className={inputCls} placeholder="DNI del alumno" required maxLength={20} data-testid="enrollment-dni" />
+              <input type="text" value={form.dni}
+                onChange={e => { const v = e.target.value.replace(/\D/g, "").slice(0, 8); updateField("dni", v); }}
+                className={inputCls} placeholder="8 d\u00edgitos" required maxLength={8} inputMode="numeric" pattern="[0-9]{8}" data-testid="enrollment-dni" />
+              {form.dni && form.dni.length > 0 && form.dni.length < 8 && (
+                <p className="text-xs text-amber-600 mt-1">El DNI debe tener 8 d\u00edgitos ({form.dni.length}/8)</p>
+              )}
             </div>
             <div>
-              <label className={labelCls}>Fecha de nacimiento</label>
+              <label className={labelCls}>Fecha de nacimiento *</label>
               <input type="date" value={form.birthday} onChange={e => updateField("birthday", e.target.value)}
-                className={inputCls} data-testid="enrollment-birthday" />
+                className={inputCls} required data-testid="enrollment-birthday" />
             </div>
             <div>
-              <label className={labelCls}>Genero</label>
-              <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className={selectCls} data-testid="enrollment-gender">
+              <label className={labelCls}>G\u00e9nero *</label>
+              <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className={selectCls} required data-testid="enrollment-gender">
                 <option value="">Seleccionar</option>
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>
               </select>
             </div>
             <div>
-              <label className={labelCls}>Telefono</label>
+              <label className={labelCls}>Tel\u00e9fono *</label>
               <input type="tel" value={form.phone} onChange={e => updateField("phone", e.target.value)}
-                className={inputCls} placeholder="Telefono de contacto" data-testid="enrollment-phone" />
+                className={inputCls} placeholder="Tel\u00e9fono de contacto" required data-testid="enrollment-phone" />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Direccion</label>
+              <label className={labelCls}>Direcci\u00f3n *</label>
               <input type="text" value={form.address} onChange={e => updateField("address", e.target.value)}
-                className={inputCls} placeholder="Direccion del domicilio" data-testid="enrollment-address" />
+                className={inputCls} placeholder="Direcci\u00f3n del domicilio" required data-testid="enrollment-address" />
             </div>
           </div>
         </div>
@@ -221,19 +236,19 @@ export default function ParentEnrollmentForm({ user, token }) {
         {academicEditable && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-blue-500" /> Informacion Academica
+            <GraduationCap className="w-4 h-4 text-blue-500" /> Informaci\u00f3n Acad\u00e9mica
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Nivel</label>
-              <select value={form.nivel_id} onChange={e => updateField("nivel_id", e.target.value)} className={selectCls} data-testid="enrollment-nivel">
+              <label className={labelCls}>Nivel *</label>
+              <select value={form.nivel_id} onChange={e => updateField("nivel_id", e.target.value)} className={selectCls} required data-testid="enrollment-nivel">
                 <option value="">Seleccionar nivel</option>
                 {levels.map(l => <option key={l.id} value={l.id}>{l.nombre || l.name}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Grado</label>
-              <select value={form.grado_id} onChange={e => updateField("grado_id", e.target.value)} className={selectCls} disabled={!form.nivel_id} data-testid="enrollment-grado">
+              <label className={labelCls}>Grado *</label>
+              <select value={form.grado_id} onChange={e => updateField("grado_id", e.target.value)} className={selectCls} disabled={!form.nivel_id} required data-testid="enrollment-grado">
                 <option value="">Seleccionar grado</option>
                 {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
               </select>
@@ -245,15 +260,15 @@ export default function ParentEnrollmentForm({ user, token }) {
               )}
             </div>
             <div>
-              <label className={labelCls}>Seccion</label>
-              <select value={form.seccion_id} onChange={e => updateField("seccion_id", e.target.value)} className={selectCls} disabled={!form.grado_id} data-testid="enrollment-seccion">
-                <option value="">Seleccionar seccion</option>
+              <label className={labelCls}>Secci\u00f3n *</label>
+              <select value={form.seccion_id} onChange={e => updateField("seccion_id", e.target.value)} className={selectCls} disabled={!form.grado_id} required data-testid="enrollment-seccion">
+                <option value="">Seleccionar secci\u00f3n</option>
                 {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Turno</label>
-              <select value={form.turno_id} onChange={e => updateField("turno_id", e.target.value)} className={selectCls} data-testid="enrollment-turno">
+              <label className={labelCls}>Turno *</label>
+              <select value={form.turno_id} onChange={e => updateField("turno_id", e.target.value)} className={selectCls} required data-testid="enrollment-turno">
                 <option value="">Seleccionar turno</option>
                 {turnos.map(t => <option key={t.id} value={t.id}>{t.nombre || t.name}</option>)}
               </select>
@@ -261,7 +276,7 @@ export default function ParentEnrollmentForm({ user, token }) {
           </div>
           <div className="mt-3 flex items-start gap-2 bg-blue-50 rounded-lg px-3 py-2">
             <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-600">Esta informacion es referencial. El colegio confirmara o ajustara el grado y seccion al aprobar la matricula.</p>
+            <p className="text-xs text-blue-600">Esta informaci\u00f3n es referencial. El colegio confirmar\u00e1 o ajustar\u00e1 el grado y secci\u00f3n al aprobar la matr\u00edcula.</p>
           </div>
         </div>
         )}
@@ -269,14 +284,14 @@ export default function ParentEnrollmentForm({ user, token }) {
         {/* Complementary Info */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Heart className="w-4 h-4 text-rose-500" /> Informacion Complementaria
+            <Heart className="w-4 h-4 text-rose-500" /> Informaci\u00f3n Complementaria
             <span className="text-xs font-normal text-slate-400">(Opcional)</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className={labelCls}>Condiciones medicas</label>
+              <label className={labelCls}>Condiciones m\u00e9dicas</label>
               <textarea value={form.condiciones_medicas} onChange={e => updateField("condiciones_medicas", e.target.value)}
-                className={`${inputCls} min-h-[60px]`} placeholder="Condiciones medicas relevantes" rows={2} />
+                className={`${inputCls} min-h-[60px]`} placeholder="Condiciones m\u00e9dicas relevantes" rows={2} />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Alergias</label>
@@ -289,9 +304,9 @@ export default function ParentEnrollmentForm({ user, token }) {
                 className={inputCls} placeholder="Nombre del doctor" />
             </div>
             <div>
-              <label className={labelCls}>Telefono del doctor</label>
+              <label className={labelCls}>Tel\u00e9fono del doctor</label>
               <input type="tel" value={form.doctor_telefono} onChange={e => updateField("doctor_telefono", e.target.value)}
-                className={inputCls} placeholder="Telefono" />
+                className={inputCls} placeholder="Tel\u00e9fono" />
             </div>
             <div>
               <label className={labelCls}>Persona autorizada para recoger</label>
@@ -299,14 +314,14 @@ export default function ParentEnrollmentForm({ user, token }) {
                 className={inputCls} placeholder="Nombre completo" />
             </div>
             <div>
-              <label className={labelCls}>Telefono persona autorizada</label>
+              <label className={labelCls}>Tel\u00e9fono persona autorizada</label>
               <input type="tel" value={form.persona_autorizada_telefono} onChange={e => updateField("persona_autorizada_telefono", e.target.value)}
-                className={inputCls} placeholder="Telefono" />
+                className={inputCls} placeholder="Tel\u00e9fono" />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Notas adicionales</label>
               <textarea value={form.notas} onChange={e => updateField("notas", e.target.value)}
-                className={`${inputCls} min-h-[60px]`} placeholder="Cualquier informacion adicional relevante" rows={2} />
+                className={`${inputCls} min-h-[60px]`} placeholder="Cualquier informaci\u00f3n adicional relevante" rows={2} />
             </div>
           </div>
         </div>
@@ -315,7 +330,7 @@ export default function ParentEnrollmentForm({ user, token }) {
         <button type="submit" disabled={saving} data-testid="enrollment-submit"
           className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-          {saving ? "Enviando solicitud..." : "Enviar solicitud de matricula"}
+          {saving ? "Enviando solicitud..." : "Enviar solicitud de matr\u00edcula"}
         </button>
       </form>
     </div>
