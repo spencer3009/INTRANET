@@ -157,6 +157,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [yapeConfig, setYapeConfig] = useState(null);
   const [yapeSchedule, setYapeSchedule] = useState([]);
+  const [yapeHistory, setYapeHistory] = useState([]);
   const [yapeModalPayment, setYapeModalPayment] = useState(null);
   
   const [coursesPage, setCoursesPage] = useState(1);
@@ -208,16 +209,18 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
   const loadChildDashboard = async (childId) => {
     try {
-      const [dashboardRes, coursesRes, paymentsRes, yapeScheduleRes] = await Promise.all([
+      const [dashboardRes, coursesRes, paymentsRes, yapeScheduleRes, yapeHistoryRes] = await Promise.all([
         axios.get(`${API}/api/parent/dashboard?student_id=${childId}`, { headers }),
         axios.get(`${API}/api/parent/courses?student_id=${childId}`, { headers }),
         axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API}/api/parent-payments/schedule/${childId}`, { headers }).catch(() => ({ data: { schedule: [] } })),
+        axios.get(`${API}/api/parent-payments/history?student_id=${childId}`, { headers }).catch(() => ({ data: { payments: [] } })),
       ]);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
       setPaymentData(paymentsRes.data);
       setYapeSchedule(yapeScheduleRes.data?.schedule || []);
+      setYapeHistory(yapeHistoryRes.data?.payments || []);
       setCoursesPage(1);
       setTasksPage(1);
     } catch (err) {
@@ -736,21 +739,47 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
                 // If no schedule items but student has debt, derive next cuota from financial config
-                if (!nextCuota && yapeSchedule.length === 0 && paymentData?.financial_config?.pension_mensual > 0) {
+                // Find the next month that doesn't have a payment (pending_verificacion or verificado)
+                if (!nextCuota && paymentData?.financial_config?.pension_mensual > 0) {
                   const pension = paymentData.financial_config.pension_mensual;
                   const now = new Date();
-                  const m = now.getMonth() + 1;
-                  const y = now.getFullYear();
-                  nextCuota = {
-                    concept: "mensualidad",
-                    description: `Pension ${monthNames[m] || ''} ${y}`,
-                    amount: pension,
-                    month: m,
-                    year: y,
-                    status: "pending",
-                    yape_status: null,
-                    _derived: true,
-                  };
+                  // Check parent_payments (yapeSchedule + yapeHistory) to find months already paid/reported
+                  const paidOrReportedMonths = new Set();
+                  yapeSchedule.forEach(s => {
+                    if (s.yape_status === 'pendiente_verificacion' || s.yape_status === 'verificado' || s.status === 'paid') {
+                      if (s.month && s.year) paidOrReportedMonths.add(`${s.month}-${s.year}`);
+                    }
+                  });
+                  yapeHistory.forEach(h => {
+                    if (h.status === 'pendiente_verificacion' || h.status === 'verificado') {
+                      if (h.month && h.year) paidOrReportedMonths.add(`${h.month}-${h.year}`);
+                    }
+                  });
+
+                  // Find next available month starting from current
+                  let m = now.getMonth() + 1;
+                  let y = now.getFullYear();
+                  let found = false;
+                  for (let i = 0; i < 12; i++) {
+                    const key1 = `${m}-${y}`;
+                    const key2 = `${y}-${String(m).padStart(2,'0')}`;
+                    if (!paidOrReportedMonths.has(key1) && !paidOrReportedMonths.has(key2)) {
+                      nextCuota = {
+                        concept: "mensualidad",
+                        description: `Pension ${monthNames[m] || ''} ${y}`,
+                        amount: pension,
+                        month: m,
+                        year: y,
+                        status: "pending",
+                        yape_status: null,
+                        _derived: true,
+                      };
+                      found = true;
+                      break;
+                    }
+                    m++;
+                    if (m > 12) { m = 1; y++; }
+                  }
                 }
 
                 const isVerifying = nextCuota?.yape_status === 'pendiente_verificacion';
