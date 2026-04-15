@@ -603,9 +603,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         delete submitData.turno_id;
       }
 
-      // Remove parent fields for non-parents
+      // Remove parent-specific fields for non-parents (but keep DNI for all roles)
       if (form.role !== 'parent' && roleId !== 'parent') {
-        delete submitData.dni;
         delete submitData.ocupacion;
         delete submitData.lugar_trabajo;
         delete submitData.telefono_trabajo;
