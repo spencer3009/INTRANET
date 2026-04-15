@@ -577,7 +577,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4 items-start" data-testid="financial-profile-section">
             {/* Left Column: Financial + Yape */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
-              <div className={`grid gap-5 ${yapeConfig?.enabled ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+              <div className={`grid gap-5 items-start ${yapeConfig?.enabled ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
               {paymentData ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid="financial-status">
                   <div className="flex items-center justify-between mb-4">
@@ -739,7 +739,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 const monthNames = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};
 
                 return (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col" data-testid="yape-dashboard-card">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid="yape-dashboard-card">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -787,13 +787,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
                     {/* Next cuota info */}
                     {allPaid ? (
-                      <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+                      <div className="flex flex-col items-center justify-center py-4 text-center">
                         <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
                         <p className="font-bold text-emerald-700 text-sm">Estas al dia con tus pagos</p>
                         <p className="text-xs text-slate-500 mt-1">Todas las cuotas estan pagadas</p>
                       </div>
                     ) : nextCuota ? (
-                      <div className="flex-1">
+                      <div>
                         <p className="font-bold text-slate-800 text-base mb-1">
                           {nextCuota.description || nextCuota.concept || `Pension ${monthNames[nextCuota.month] || ''} ${nextCuota.year || ''}`}
                         </p>
@@ -847,7 +847,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         )}
                       </div>
                     ) : (
-                      <div className="flex-1 flex items-center justify-center py-4 text-center text-slate-400">
+                      <div className="flex items-center justify-center py-4 text-center text-slate-400">
                         <p className="text-sm">Sin cuotas registradas</p>
                       </div>
                     )}
