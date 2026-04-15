@@ -251,9 +251,12 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["qr_token"] = qr_token
         new_user["qr_version"] = 2
     
+    # Add DNI for all roles
+    if data.dni:
+        new_user["dni"] = data.dni
+
     # Add parent-specific fields
     if data.role == "parent":
-        new_user["dni"] = data.dni
         new_user["ocupacion"] = data.ocupacion
         new_user["lugar_trabajo"] = data.lugar_trabajo
         new_user["telefono_trabajo"] = data.telefono_trabajo
