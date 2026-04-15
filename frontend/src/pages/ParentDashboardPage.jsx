@@ -31,8 +31,12 @@ import {
   AlertTriangle,
   CircleDollarSign,
   TrendingUp,
-  Receipt
+  Receipt,
+  QrCode,
+  Clock,
+  XCircle
 } from "lucide-react";
+import YapePaymentModal from "../components/YapePaymentModal";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -151,6 +155,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [settings, setSettings] = useState(null);
   const [banners, setBanners] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [yapeConfig, setYapeConfig] = useState(null);
+  const [yapeSchedule, setYapeSchedule] = useState([]);
+  const [yapeModalPayment, setYapeModalPayment] = useState(null);
   
   const [coursesPage, setCoursesPage] = useState(1);
   const [tasksPage, setTasksPage] = useState(1);
@@ -166,12 +173,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
         const startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         const endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0).toISOString().split('T')[0];
 
-        const [profileRes, settingsRes, bannersRes, calendarRes, enrollConfigRes] = await Promise.all([
+        const [profileRes, settingsRes, bannersRes, calendarRes, enrollConfigRes, yapeConfigRes] = await Promise.all([
           axios.get(`${API}/api/parent/me`, { headers }),
           axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
           axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/school/enrollment-config`, { headers }).catch(() => ({ data: {} })),
+          axios.get(`${API}/api/parent-payments/yape-config`, { headers }).catch(() => ({ data: { enabled: false } })),
         ]);
         
         setParentProfile(profileRes.data);
@@ -181,6 +189,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
         setBanners(bannersRes.data || []);
         setCalendarEvents(calendarRes.data || []);
         setEnrollmentEnabled(enrollConfigRes.data?.parent_self_enrollment_enabled || false);
+        if (yapeConfigRes.data) setYapeConfig(yapeConfigRes.data);
         
         if (childrenList.length > 0) {
           const savedChildId = localStorage.getItem('selected_child_id');
@@ -199,14 +208,16 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
   const loadChildDashboard = async (childId) => {
     try {
-      const [dashboardRes, coursesRes, paymentsRes] = await Promise.all([
+      const [dashboardRes, coursesRes, paymentsRes, yapeScheduleRes] = await Promise.all([
         axios.get(`${API}/api/parent/dashboard?student_id=${childId}`, { headers }),
         axios.get(`${API}/api/parent/courses?student_id=${childId}`, { headers }),
-        axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/parent-payments/schedule/${childId}`, { headers }).catch(() => ({ data: { schedule: [] } })),
       ]);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
       setPaymentData(paymentsRes.data);
+      setYapeSchedule(yapeScheduleRes.data?.schedule || []);
       setCoursesPage(1);
       setTasksPage(1);
     } catch (err) {
@@ -562,10 +573,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           </div>
 
 
-          {/* Financial Status + Student Profile - Two Column Layout */}
+          {/* Financial Status + Yape Card + Student Profile */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4 items-start" data-testid="financial-profile-section">
-            {/* Left Column: Financial Status (70%) */}
+            {/* Left Column: Financial + Yape */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+              <div className={`grid gap-5 ${yapeConfig?.enabled ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
               {paymentData ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid="financial-status">
                   <div className="flex items-center justify-between mb-4">
@@ -713,6 +725,136 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   </div>
                 </div>
               )}
+
+              {/* Yape Payment Card - only when enabled */}
+              {yapeConfig?.enabled && (() => {
+                const pendingItems = yapeSchedule.filter(s =>
+                  (s.status === 'pending' || s.status === 'overdue') && s.yape_status !== 'pendiente_verificacion'
+                );
+                const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion');
+                const nextCuota = pendingItems[0] || verifyingItems[0] || null;
+                const isVerifying = nextCuota?.yape_status === 'pendiente_verificacion';
+                const isOverdue = nextCuota?.status === 'overdue';
+                const allPaid = !nextCuota && yapeSchedule.length > 0;
+                const monthNames = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};
+
+                return (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col" data-testid="yape-dashboard-card">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                          <QrCode className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800">Pagar con Yape</h3>
+                          <p className="text-xs text-slate-500">Proxima cuota del alumno</p>
+                        </div>
+                      </div>
+                      {nextCuota && (
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                          isVerifying ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          isOverdue ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {isVerifying ? 'EN VERIFICACION' : isOverdue ? 'VENCIDO' : 'PENDIENTE'}
+                        </span>
+                      )}
+                      {allPaid && (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">AL DIA</span>
+                      )}
+                    </div>
+
+                    {/* Progress bar */}
+                    {paymentData && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Progreso: {paymentData.summary.paid_percentage}%</span>
+                          <span className="text-xs text-slate-500">{paymentData.summary.paid_count}/{paymentData.summary.total_months} meses</span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                          {paymentData.summary.paid_count > 0 && (
+                            <div className="h-full bg-purple-500 transition-all duration-700"
+                              style={{ width: `${(paymentData.summary.paid_count / paymentData.summary.total_months) * 100}%` }} />
+                          )}
+                          {paymentData.summary.pending_count > 0 && (
+                            <div className="h-full bg-purple-200 transition-all duration-700"
+                              style={{ width: `${(paymentData.summary.pending_count / paymentData.summary.total_months) * 100}%` }} />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Next cuota info */}
+                    {allPaid ? (
+                      <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+                        <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
+                        <p className="font-bold text-emerald-700 text-sm">Estas al dia con tus pagos</p>
+                        <p className="text-xs text-slate-500 mt-1">Todas las cuotas estan pagadas</p>
+                      </div>
+                    ) : nextCuota ? (
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800 text-base mb-1">
+                          {nextCuota.description || nextCuota.concept || `Pension ${monthNames[nextCuota.month] || ''} ${nextCuota.year || ''}`}
+                        </p>
+                        {nextCuota.payment_date && (
+                          <p className={`text-xs mb-3 ${isOverdue ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                            {isOverdue ? (
+                              <>Vencido hace {Math.ceil((Date.now() - new Date(nextCuota.payment_date).getTime()) / 86400000)} dias</>
+                            ) : (
+                              <>Vence: {new Date(nextCuota.payment_date).toLocaleDateString('es-PE', {day:'numeric',month:'long',year:'numeric'})}</>
+                            )}
+                          </p>
+                        )}
+
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 text-center mb-4 border border-purple-100">
+                          <p className="text-2xl font-black text-purple-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                            S/ {(nextCuota.amount || 0).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
+                        </div>
+
+                        {isVerifying ? (
+                          <div className="w-full py-3 rounded-xl bg-blue-50 border border-blue-200 text-center">
+                            <span className="text-sm font-semibold text-blue-700 flex items-center justify-center gap-2">
+                              <Clock className="w-4 h-4" /> Pago en verificacion
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              let m = nextCuota.month;
+                              let y = nextCuota.year;
+                              if (!m && nextCuota.payment_date) {
+                                m = parseInt(nextCuota.payment_date.split("-")[1]);
+                                y = parseInt(nextCuota.payment_date.split("-")[0]);
+                              }
+                              setYapeModalPayment({
+                                ...nextCuota,
+                                student_id: selectedChild?.id,
+                                student_name: `${selectedChild?.name || ''} ${selectedChild?.last_name || ''}`.trim(),
+                                month: m,
+                                year: y,
+                                month_name: nextCuota.description || nextCuota.concept,
+                              });
+                            }}
+                            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 shadow-md"
+                            data-testid="yape-dashboard-pay-btn"
+                          >
+                            <QrCode className="w-4 h-4" />
+                            Pagar con Yape
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center py-4 text-center text-slate-400">
+                        <p className="text-sm">Sin cuotas registradas</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              </div>
             </div>
 
             {/* Right Column: Student Profile (30%) - desktop only */}
@@ -1008,6 +1150,16 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
       <MessageCenter token={token} user={user} />
       <MobileBottomNav role="parent" />
+      <YapePaymentModal
+        isOpen={!!yapeModalPayment}
+        onClose={() => setYapeModalPayment(null)}
+        payment={yapeModalPayment}
+        yapeConfig={yapeConfig}
+        token={token}
+        onSuccess={() => {
+          if (selectedChild) loadChildDashboard(selectedChild.id);
+        }}
+      />
     </div>
   );
 }
