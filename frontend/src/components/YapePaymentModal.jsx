@@ -146,15 +146,9 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
               )}
 
               {yapeConfig?.account_holder_name && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1.5">
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                   <User className="w-4 h-4 text-gray-400" />
                   <span>Titular: <strong>{yapeConfig.account_holder_name}</strong></span>
-                </div>
-              )}
-              {yapeConfig?.instructions_text && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-sm text-blue-700 flex gap-2 mb-4">
-                  <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>{yapeConfig.instructions_text}</span>
                 </div>
               )}
 
