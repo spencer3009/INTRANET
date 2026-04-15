@@ -82,12 +82,10 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
           <div className="p-6 space-y-6">
             {/* Switch 1: Auto-registro */}
             <div className="flex items-start gap-4" data-testid="switch-self-enrollment">
-              <button onClick={toggleEnabled} className="mt-1 shrink-0" data-testid="toggle-self-enrollment">
-                {enabled ? (
-                  <ToggleRight className="w-10 h-6 text-emerald-500" />
-                ) : (
-                  <ToggleLeft className="w-10 h-6 text-slate-300" />
-                )}
+              <button onClick={toggleEnabled} className="mt-0.5 shrink-0" data-testid="toggle-self-enrollment">
+                <div className={`relative w-14 h-8 rounded-full transition-colors ${enabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${enabled ? "translate-x-[26px]" : "translate-x-1"}`} />
+                </div>
               </button>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -107,15 +105,13 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
             <div className={`flex items-start gap-4 transition-opacity ${enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`} data-testid="switch-academic-info">
               <button
                 onClick={() => enabled && setAcademicEditable(!academicEditable)}
-                className="mt-1 shrink-0"
+                className="mt-0.5 shrink-0"
                 disabled={!enabled}
                 data-testid="toggle-academic-info"
               >
-                {academicEditable && enabled ? (
-                  <ToggleRight className="w-10 h-6 text-emerald-500" />
-                ) : (
-                  <ToggleLeft className="w-10 h-6 text-slate-300" />
-                )}
+                <div className={`relative w-14 h-8 rounded-full transition-colors ${academicEditable && enabled ? "bg-emerald-500" : "bg-slate-300"}`}>
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${academicEditable && enabled ? "translate-x-[26px]" : "translate-x-1"}`} />
+                </div>
               </button>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">

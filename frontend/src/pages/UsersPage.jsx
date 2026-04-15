@@ -2683,18 +2683,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{pendingEnrollmentCount}</span>
                     </button>
                   )}
-                  {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
-                    <button
-                      onClick={() => setShowEnrollmentConfig(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
-                      data-testid="enrollment-config-btn"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
-                        <Settings className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="hidden sm:inline">Config</span>
-                    </button>
-                  )}
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
@@ -2705,6 +2693,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <Palette className="w-5 h-5 text-white" />
                       </div>
                       <span className="hidden sm:inline">QR con plantilla</span>
+                    </button>
+                  )}
+                  {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
+                    <button
+                      onClick={() => setShowEnrollmentConfig(true)}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid="enrollment-config-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">Config</span>
                     </button>
                   )}
                 </div>
