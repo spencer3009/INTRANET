@@ -2679,7 +2679,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
                         <UserPlus className="w-5 h-5 text-white" />
                       </div>
-                      <span className="hidden sm:inline">Matriculas</span>
+                      <span className="hidden sm:inline">Pendientes</span>
                       <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{pendingEnrollmentCount}</span>
                     </button>
                   )}

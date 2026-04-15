@@ -18,8 +18,8 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
   const [approveForm, setApproveForm] = useState({ nivel_id: "", grade_id: "", section_id: "", turno_id: "" });
   const [approving, setApproving] = useState(false);
   const [levels, setLevels] = useState([]);
-  const [grades, setGrades] = useState([]);
-  const [sections, setSections] = useState([]);
+  const [allGrades, setAllGrades] = useState([]);
+  const [allSections, setAllSections] = useState([]);
   const [turnos, setTurnos] = useState([]);
 
   // Reject modal
@@ -41,37 +41,35 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
 
   const loadAcademicData = async () => {
     try {
-      const [levelsRes, turnosRes] = await Promise.all([
+      const [levelsRes, gradesRes, sectionsRes, shiftsRes] = await Promise.all([
         axios.get(`${API}/api/academic/levels`, { headers }),
-        axios.get(`${API}/api/academic/turnos`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/api/academic/grades`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/api/academic/sections`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
       ]);
       setLevels(levelsRes.data || []);
-      setTurnos(turnosRes.data || []);
+      setAllGrades(gradesRes.data || []);
+      setAllSections(sectionsRes.data || []);
+      setTurnos(shiftsRes.data || []);
     } catch {}
   };
 
-  useEffect(() => {
-    if (!approveForm.nivel_id) { setGrades([]); setSections([]); return; }
-    (async () => {
-      try {
-        const res = await axios.get(`${API}/api/academic/levels/${approveForm.nivel_id}/grades`, { headers });
-        setGrades(res.data || []);
-        setSections([]);
-        setApproveForm(p => ({ ...p, grade_id: "", section_id: "" }));
-      } catch { setGrades([]); }
-    })();
-  }, [approveForm.nivel_id]);
+  // Filter grades/sections based on selection
+  const filteredGrades = approveForm.nivel_id
+    ? allGrades.filter(g => g.nivel_id === approveForm.nivel_id && g.activo !== false)
+    : [];
+  const filteredSections = approveForm.grade_id
+    ? allSections.filter(s => s.grado_id === approveForm.grade_id && s.activo !== false)
+    : [];
 
-  useEffect(() => {
-    if (!approveForm.grade_id) { setSections([]); return; }
-    (async () => {
-      try {
-        const res = await axios.get(`${API}/api/academic/grades/${approveForm.grade_id}/sections`, { headers });
-        setSections(res.data || []);
-        setApproveForm(p => ({ ...p, section_id: "" }));
-      } catch { setSections([]); }
-    })();
-  }, [approveForm.grade_id]);
+  const updateApproveField = (field, value) => {
+    setApproveForm(p => {
+      const updated = { ...p, [field]: value };
+      if (field === "nivel_id") { updated.grade_id = ""; updated.section_id = ""; }
+      if (field === "grade_id") { updated.section_id = ""; }
+      return updated;
+    });
+  };
 
   const handleApprove = async () => {
     if (!approveTarget) return;
@@ -225,28 +223,28 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
             <div className="space-y-3 mb-6">
               <div>
                 <label className={labelCls}>Nivel</label>
-                <select value={approveForm.nivel_id} onChange={e => setApproveForm(p => ({ ...p, nivel_id: e.target.value }))} className={selectCls}>
+                <select value={approveForm.nivel_id} onChange={e => updateApproveField("nivel_id", e.target.value)} className={selectCls}>
                   <option value="">Seleccionar nivel</option>
                   {levels.map(l => <option key={l.id} value={l.id}>{l.nombre || l.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelCls}>Grado</label>
-                <select value={approveForm.grade_id} onChange={e => setApproveForm(p => ({ ...p, grade_id: e.target.value }))} className={selectCls} disabled={!approveForm.nivel_id}>
+                <select value={approveForm.grade_id} onChange={e => updateApproveField("grade_id", e.target.value)} className={selectCls} disabled={!approveForm.nivel_id}>
                   <option value="">Seleccionar grado</option>
-                  {grades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
+                  {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Seccion</label>
-                <select value={approveForm.section_id} onChange={e => setApproveForm(p => ({ ...p, section_id: e.target.value }))} className={selectCls} disabled={!approveForm.grade_id}>
-                  <option value="">Seleccionar seccion</option>
-                  {sections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                <label className={labelCls}>Sección</label>
+                <select value={approveForm.section_id} onChange={e => updateApproveField("section_id", e.target.value)} className={selectCls} disabled={!approveForm.grade_id}>
+                  <option value="">Seleccionar sección</option>
+                  {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelCls}>Turno</label>
-                <select value={approveForm.turno_id} onChange={e => setApproveForm(p => ({ ...p, turno_id: e.target.value }))} className={selectCls}>
+                <select value={approveForm.turno_id} onChange={e => updateApproveField("turno_id", e.target.value)} className={selectCls}>
                   <option value="">Seleccionar turno</option>
                   {turnos.map(t => <option key={t.id} value={t.id}>{t.nombre || t.name}</option>)}
                 </select>
