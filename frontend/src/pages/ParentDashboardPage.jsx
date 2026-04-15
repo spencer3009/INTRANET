@@ -741,7 +741,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 // If no schedule items but student has debt, derive next cuota from financial config
                 // Find the next month that doesn't have a payment (pending_verificacion or verificado)
                 if (!nextCuota && paymentData?.financial_config?.pension_mensual > 0) {
-                  const pension = paymentData.financial_config.pension_mensual;
+                  const fc = paymentData.financial_config;
+                  const pension = fc.pension_mensual;
+                  const prontoPagoActivo = fc.pronto_pago_activo;
+                  const prontoPagoMonto = fc.pronto_pago_monto || 0;
+                  const prontoPagoFechaLimite = fc.pronto_pago_fecha_limite || 5;
                   const now = new Date();
                   // Check parent_payments (yapeSchedule + yapeHistory) to find months already paid/reported
                   const paidOrReportedMonths = new Set();
@@ -759,22 +763,27 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   // Find next available month starting from current
                   let m = now.getMonth() + 1;
                   let y = now.getFullYear();
-                  let found = false;
                   for (let i = 0; i < 12; i++) {
                     const key1 = `${m}-${y}`;
                     const key2 = `${y}-${String(m).padStart(2,'0')}`;
                     if (!paidOrReportedMonths.has(key1) && !paidOrReportedMonths.has(key2)) {
+                      // Check if pronto pago applies (within first X days of the month)
+                      const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && now.getDate() <= prontoPagoFechaLimite && m === (now.getMonth() + 1) && y === now.getFullYear();
+                      const finalAmount = isProntoPago ? prontoPagoMonto : pension;
+
                       nextCuota = {
                         concept: "mensualidad",
                         description: `Pension ${monthNames[m] || ''} ${y}`,
-                        amount: pension,
+                        amount: finalAmount,
                         month: m,
                         year: y,
                         status: "pending",
                         yape_status: null,
                         _derived: true,
+                        _isProntoPago: isProntoPago,
+                        _prontoPagoFechaLimite: prontoPagoFechaLimite,
+                        _pensionNormal: pension,
                       };
-                      found = true;
                       break;
                     }
                     m++;
@@ -861,10 +870,22 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         )}
 
                         <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 text-center mb-4 border border-purple-100">
+                          {nextCuota._isProntoPago && (
+                            <div className="mb-1">
+                              <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">PRONTO PAGO</span>
+                            </div>
+                          )}
                           <p className="text-2xl font-black text-purple-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             S/ {(nextCuota.amount || 0).toFixed(2)}
                           </p>
-                          <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
+                          {nextCuota._isProntoPago ? (
+                            <div>
+                              <p className="text-xs text-slate-400 line-through mt-0.5">S/ {(nextCuota._pensionNormal || 0).toFixed(2)}</p>
+                              <p className="text-xs text-emerald-600 font-medium">Paga antes del {nextCuota._prontoPagoFechaLimite} del mes</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
+                          )}
                         </div>
 
                         {isVerifying ? (
