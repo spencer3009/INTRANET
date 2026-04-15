@@ -784,6 +784,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       )}
                     </div>
 
+                    {/* Yape Logo */}
+                    <div className="flex justify-center mb-3">
+                      <img src="/yape_logo.png" alt="Yape" className="h-14 object-contain" />
+                    </div>
+
                     {/* Progress bar */}
                     {paymentData && (
                       <div className="mb-4">
