@@ -118,8 +118,8 @@ export default function YapeConfigPanel({ token }) {
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-            <QrCode className="w-5 h-5 text-purple-600" />
+          <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center overflow-hidden">
+            <img src="/yape_logo_white.png" alt="Yape" className="w-8 h-8 object-cover" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-800">Cobro por Yape</h3>

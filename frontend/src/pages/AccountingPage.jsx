@@ -2596,7 +2596,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               }`}
               data-testid="tab-yape"
             >
-              <QrCode className="w-4 h-4" />
+              <img src="/yape_logo_white.png" alt="Yape" className="w-6 h-6 rounded object-cover" />
               Cobro Yape
             </button>
           </div>
