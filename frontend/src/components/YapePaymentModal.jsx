@@ -127,44 +127,55 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
           {/* STEP 1: QR */}
           {step === 1 && (
             <div data-testid="yape-step-1">
-              <p className="text-base font-bold text-gray-800 mb-4 text-center">Escanea el codigo QR con Yape</p>
+              <p className="text-base font-bold text-gray-800 mb-3 text-center">Escanea el codigo QR con Yape</p>
 
               {yapeConfig?.qr_image_base64 ? (
-                <div className="border border-gray-200 rounded-xl p-4 flex justify-center bg-white mb-4">
+                <div className="border border-gray-200 rounded-xl p-2 flex justify-center bg-white mb-3">
                   <img
                     src={yapeConfig.qr_image_base64}
                     alt="QR Yape"
-                    className="max-w-[260px] w-full rounded-lg"
+                    className="max-w-[190px] w-full rounded-lg"
                     data-testid="yape-modal-qr-image"
                   />
                 </div>
               ) : (
-                <div className="border border-gray-200 rounded-xl p-8 text-center bg-gray-50 mb-4">
+                <div className="border border-gray-200 rounded-xl p-6 text-center bg-gray-50 mb-3">
                   <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-sm text-gray-400">QR no disponible</p>
                 </div>
               )}
 
               {yapeConfig?.account_holder_name && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-1.5">
                   <User className="w-4 h-4 text-gray-400" />
                   <span>Titular: <strong>{yapeConfig.account_holder_name}</strong></span>
                 </div>
               )}
               {yapeConfig?.instructions_text && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-700 flex gap-2 mb-5">
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-sm text-blue-700 flex gap-2 mb-4">
                   <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>{yapeConfig.instructions_text}</span>
                 </div>
               )}
 
+              <style>{`
+                @keyframes bounce-x {
+                  0%, 100% { transform: translateX(0); }
+                  50% { transform: translateX(6px); }
+                }
+                .animate-bounce-x { animation: bounce-x 1s ease-in-out infinite; }
+              `}</style>
+
               <button
                 onClick={() => setStep(2)}
-                className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-base transition-colors flex items-center justify-center gap-2 shadow-lg"
+                className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-base transition-colors flex items-center justify-center gap-2 shadow-lg relative overflow-hidden group"
                 data-testid="yape-step1-next-btn"
               >
-                Siguiente
-                <ChevronRight className="w-5 h-5" />
+                <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+                <span className="relative flex items-center gap-2">
+                  Siguiente
+                  <span className="animate-bounce-x inline-flex"><ChevronRight className="w-5 h-5" /></span>
+                </span>
               </button>
             </div>
           )}
