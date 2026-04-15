@@ -769,10 +769,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     if (!paidOrReportedMonths.has(key1) && !paidOrReportedMonths.has(key2)) {
                       // Determine if this month is overdue (past month)
                       const isMonthOverdue = (y < now.getFullYear()) || (y === now.getFullYear() && m < (now.getMonth() + 1));
-
-                      // Check if pronto pago applies (within first X days of the current month)
+                      const isFutureMonth = (y > now.getFullYear()) || (y === now.getFullYear() && m > (now.getMonth() + 1));
                       const isCurrentMonth = m === (now.getMonth() + 1) && y === now.getFullYear();
-                      const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && now.getDate() <= prontoPagoFechaLimite && isCurrentMonth;
+
+                      // Pronto pago applies if:
+                      // - Future month (paying in advance = always pronto pago)
+                      // - Current month AND within first X days of the month
+                      const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && !isMonthOverdue && (isFutureMonth || (isCurrentMonth && now.getDate() <= prontoPagoFechaLimite));
 
                       // Calculate interest if overdue
                       const interesActivo = fc.interes_activo;
