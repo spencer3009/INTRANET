@@ -210,6 +210,74 @@ async def get_monthly_attendance(current_user=Depends(require_school)):
     return result
 
 
+@router.get("/dashboard/current-month-attendance")
+async def get_current_month_attendance(current_user=Depends(require_school)):
+    """Asistencia del mes actual desglosada: presentes, tardanzas, ausentes."""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
+
+    now = datetime.now(timezone.utc)
+    first_day = f"{now.year}-{now.month:02d}-01"
+    if now.month == 12:
+        next_month = f"{now.year + 1}-01-01"
+    else:
+        next_month = f"{now.year}-{now.month + 1:02d}-01"
+
+    months_es = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+
+    base_filter = {
+        "school_id": school_id,
+        "type": "student",
+        "date": {"$gte": first_day, "$lt": next_month},
+    }
+
+    total = await db.attendances.count_documents(base_filter)
+    present = await db.attendances.count_documents({**base_filter, "status": "present"})
+    late = await db.attendances.count_documents({**base_filter, "status": "late"})
+    absent = await db.attendances.count_documents({**base_filter, "status": "absent"})
+    justified = await db.attendances.count_documents({**base_filter, "status": "justified"})
+
+    if total > 0:
+        present_pct = round(((present + justified) / total) * 100, 1)
+        late_pct = round((late / total) * 100, 1)
+        absent_pct = round((absent / total) * 100, 1)
+    else:
+        present_pct = 0
+        late_pct = 0
+        absent_pct = 0
+
+    # Previous month for trend
+    if now.month == 1:
+        prev_first = f"{now.year - 1}-12-01"
+        prev_next = f"{now.year}-01-01"
+    else:
+        prev_first = f"{now.year}-{now.month - 1:02d}-01"
+        prev_next = first_day
+
+    prev_total = await db.attendances.count_documents({
+        "school_id": school_id, "type": "student",
+        "date": {"$gte": prev_first, "$lt": prev_next},
+    })
+    prev_present = await db.attendances.count_documents({
+        "school_id": school_id, "type": "student",
+        "date": {"$gte": prev_first, "$lt": prev_next},
+        "status": {"$in": ["present", "justified"]},
+    })
+    prev_pct = round((prev_present / prev_total) * 100, 1) if prev_total > 0 else 0
+    trend = round(present_pct - prev_pct, 1) if prev_total > 0 else 0
+
+    return {
+        "month_name": months_es[now.month - 1],
+        "year": now.year,
+        "total_records": total,
+        "present_pct": present_pct,
+        "late_pct": late_pct,
+        "absent_pct": absent_pct,
+        "trend": trend,
+    }
+
+
+
 @router.get("/dashboard/monthly-payments")
 async def get_monthly_payments(current_user=Depends(require_school)):
     """Ingresos mensuales: pagados, pendientes y vencidos por mes"""

@@ -1,18 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { CheckCircle, AlertTriangle, XCircle, TrendingUp, Newspaper, Clock, Pin, X, Calendar, User } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Newspaper, Clock, Pin, X, Calendar, User, Loader2 } from "lucide-react";
 
-const attendanceData = [
-  { name: "Presentes", value: 89, color: "#10b981" },
-  { name: "Tardanzas", value: 7, color: "#e1b82c" },
-  { name: "Ausentes", value: 4, color: "#ef4444" },
-];
-
-const legendItems = [
-  { label: "Presentes", value: "89%", icon: CheckCircle, color: "text-emerald-500" },
-  { label: "Tardanzas", value: "7%", icon: AlertTriangle, color: "text-[#e1b82c]" },
-  { label: "Ausentes", value: "4%", icon: XCircle, color: "text-red-500" },
-];
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Helper function to format relative time
 function formatRelativeTime(dateStr) {
@@ -204,12 +195,45 @@ function NewsDetailModal({ news, onClose }) {
   );
 }
 
-export default function AttendanceAndNews({ news = [] }) {
+export default function AttendanceAndNews({ news = [], token }) {
   const [selectedNews, setSelectedNews] = useState(null);
-  
+  const [attData, setAttData] = useState(null);
+  const [attLoading, setAttLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) { setAttLoading(false); return; }
+    const headers = { Authorization: `Bearer ${token}` };
+    axios.get(`${API}/api/dashboard/current-month-attendance`, { headers })
+      .then(r => setAttData(r.data))
+      .catch(() => {})
+      .finally(() => setAttLoading(false));
+  }, [token]);
+
   // Use real news if available, otherwise show defaults
   const displayNews = news.length > 0 ? news.slice(0, 4) : defaultAnnouncements;
   const hasRealNews = news.length > 0;
+
+  // Build chart data from real attendance
+  const presentPct = attData?.present_pct || 0;
+  const latePct = attData?.late_pct || 0;
+  const absentPct = attData?.absent_pct || 0;
+  const hasAttData = attData && attData.total_records > 0;
+  const trend = attData?.trend || 0;
+  const isPositive = trend >= 0;
+
+  const chartData = hasAttData ? [
+    { name: "Presentes", value: presentPct, color: "#10b981" },
+    { name: "Tardanzas", value: latePct, color: "#e1b82c" },
+    { name: "Ausentes", value: absentPct, color: "#ef4444" },
+  ] : [
+    { name: "Sin datos", value: 100, color: "#e2e8f0" },
+  ];
+
+  const legendItemsReal = [
+    { label: "Presentes", value: `${presentPct}%`, icon: CheckCircle, color: "text-emerald-500" },
+    { label: "Tardanzas", value: `${latePct}%`, icon: AlertTriangle, color: "text-[#e1b82c]" },
+    { label: "Ausentes", value: `${absentPct}%`, icon: XCircle, color: "text-red-500" },
+  ];
 
   return (
     <>
@@ -223,27 +247,37 @@ export default function AttendanceAndNews({ news = [] }) {
             >
               Asistencia del Mes
             </h3>
-            <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-              <TrendingUp className="w-3.5 h-3.5" /> +2.3%
+            {hasAttData && (
+            <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg ${isPositive ? "text-emerald-600 bg-emerald-50" : "text-red-600 bg-red-50"}`}>
+              {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+              {isPositive ? "+" : ""}{trend}%
             </span>
+            )}
           </div>
-          <p className="text-xs text-slate-500 mb-4">Febrero 2026 — Resumen general</p>
+          <p className="text-xs text-slate-500 mb-4">
+            {attData ? `${attData.month_name} ${attData.year}` : "Cargando..."} — {hasAttData ? `${attData.total_records} registros` : "Resumen general"}
+          </p>
 
+          {attLoading ? (
+            <div className="flex items-center justify-center h-36">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+            </div>
+          ) : (
           <div className="flex items-center gap-6">
             <div className="w-36 h-36 relative flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={attendanceData}
+                    data={chartData}
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
                     outerRadius={62}
-                    paddingAngle={4}
+                    paddingAngle={hasAttData ? 4 : 0}
                     dataKey="value"
                     strokeWidth={0}
                   >
-                    {attendanceData.map((entry, index) => (
+                    {chartData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
@@ -251,14 +285,14 @@ export default function AttendanceAndNews({ news = [] }) {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-2xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope, sans-serif" }}>
-                  89%
+                  {hasAttData ? `${presentPct}%` : "—"}
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">asistencia</span>
               </div>
             </div>
 
             <div className="flex-1 space-y-3">
-              {legendItems.map((item) => {
+              {hasAttData ? legendItemsReal.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div key={item.label} className="flex items-center justify-between">
@@ -269,9 +303,12 @@ export default function AttendanceAndNews({ news = [] }) {
                     <span className="text-sm font-bold text-slate-800">{item.value}</span>
                   </div>
                 );
-              })}
+              }) : (
+                <p className="text-sm text-slate-400 text-center">No hay registros de asistencia este mes</p>
+              )}
             </div>
           </div>
+          )}
         </div>
 
         {/* Announcements */}

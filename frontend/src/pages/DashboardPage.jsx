@@ -349,7 +349,7 @@ function DashboardInner({
                   <StudentChart data={enrollment} />
                 </>
               )}
-              <AttendanceAndNews news={news} />
+              <AttendanceAndNews news={news} token={token} />
             </div>
 
             {/* Right column */}
