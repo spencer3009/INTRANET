@@ -155,9 +155,9 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
               <style>{`
                 @keyframes bounce-x {
                   0%, 100% { transform: translateX(0); }
-                  50% { transform: translateX(6px); }
+                  50% { transform: translateX(8px); }
                 }
-                .animate-bounce-x { animation: bounce-x 1s ease-in-out infinite; }
+                .animate-bounce-x { animation: bounce-x 0.5s ease-in-out infinite; }
               `}</style>
 
               <button
@@ -168,7 +168,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
                 <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
                 <span className="relative flex items-center gap-2">
                   Siguiente
-                  <span className="animate-bounce-x inline-flex"><ChevronRight className="w-5 h-5" /></span>
+                  <span className="animate-bounce-x inline-flex"><ChevronRight className="w-7 h-7" /></span>
                 </span>
               </button>
             </div>
