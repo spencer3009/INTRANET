@@ -15,8 +15,8 @@ export default function ParentEnrollmentForm({ user, token }) {
   const headers = { Authorization: `Bearer ${token}` };
 
   const [levels, setLevels] = useState([]);
-  const [grades, setGrades] = useState([]);
-  const [sections, setSections] = useState([]);
+  const [allGrades, setAllGrades] = useState([]);
+  const [allSections, setAllSections] = useState([]);
   const [turnos, setTurnos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -35,45 +35,46 @@ export default function ParentEnrollmentForm({ user, token }) {
     notas: "",
   });
 
-  // Load enrollment config + academic data
+  // Load enrollment config + all academic data at once
   useEffect(() => {
     (async () => {
       try {
-        const [configRes, levelsRes, turnosRes] = await Promise.all([
+        const [configRes, levelsRes, gradesRes, sectionsRes, shiftsRes] = await Promise.all([
           axios.get(`${API}/api/school/enrollment-config`, { headers }),
-          axios.get(`${API}/api/academic/levels`, { headers }),
-          axios.get(`${API}/api/academic/turnos`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/academic/levels`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/academic/grades`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/academic/sections`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
         ]);
         setAcademicEditable(configRes.data?.academic_info_editable || false);
         setLevels(levelsRes.data || []);
-        setTurnos(turnosRes.data || []);
+        setAllGrades(gradesRes.data || []);
+        setAllSections(sectionsRes.data || []);
+        setTurnos(shiftsRes.data || []);
       } catch {}
       setConfigLoading(false);
     })();
   }, []);
 
-  useEffect(() => {
-    if (!form.nivel_id) { setGrades([]); setSections([]); return; }
-    (async () => {
-      try {
-        const res = await axios.get(`${API}/api/academic/levels/${form.nivel_id}/grades`, { headers });
-        setGrades(res.data || []);
-        setSections([]);
-        setForm(p => ({ ...p, grado_id: "", seccion_id: "" }));
-      } catch { setGrades([]); }
-    })();
-  }, [form.nivel_id]);
+  // Filter grades by selected nivel
+  const filteredGrades = form.nivel_id
+    ? allGrades.filter(g => g.nivel_id === form.nivel_id && g.activo !== false)
+    : [];
 
-  useEffect(() => {
-    if (!form.grado_id) { setSections([]); return; }
-    (async () => {
-      try {
-        const res = await axios.get(`${API}/api/academic/grades/${form.grado_id}/sections`, { headers });
-        setSections(res.data || []);
-        setForm(p => ({ ...p, seccion_id: "" }));
-      } catch { setSections([]); }
-    })();
-  }, [form.grado_id]);
+  // Filter sections by selected grado
+  const filteredSections = form.grado_id
+    ? allSections.filter(s => s.grado_id === form.grado_id && s.activo !== false)
+    : [];
+
+  // Reset dependent fields on parent change
+  const updateField = (field, value) => {
+    setForm(p => {
+      const updated = { ...p, [field]: value };
+      if (field === "nivel_id") { updated.grado_id = ""; updated.seccion_id = ""; }
+      if (field === "grado_id") { updated.seccion_id = ""; }
+      return updated;
+    });
+  };
 
   // Age vs grade validation
   useEffect(() => {
@@ -85,7 +86,7 @@ export default function ParentEnrollmentForm({ user, token }) {
     const m = today.getMonth() - birthDate.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
 
-    const gradeName = grades.find(g => g.id === form.grado_id)?.nombre?.toLowerCase() || "";
+    const gradeName = filteredGrades.find(g => g.id === form.grado_id)?.nombre?.toLowerCase() || "";
     const nivelName = levels.find(l => l.id === form.nivel_id)?.nombre?.toLowerCase() || "";
 
     let expectedMin = 0, expectedMax = 99;
@@ -102,7 +103,7 @@ export default function ParentEnrollmentForm({ user, token }) {
     if (age < expectedMin || age > expectedMax) {
       setAgeWarning(`La edad del alumno (${age} anios) no corresponde al grado seleccionado. El colegio verificara esta informacion.`);
     }
-  }, [form.birthday, form.grado_id, form.nivel_id, grades, levels, academicEditable]);
+  }, [form.birthday, form.grado_id, form.nivel_id, filteredGrades, levels, academicEditable]);
 
   const goBack = () => {
     const base = subdomain ? `/${subdomain}/parent` : "/parent";
@@ -124,8 +125,6 @@ export default function ParentEnrollmentForm({ user, token }) {
       setError(err.response?.data?.detail || "Error al enviar la solicitud");
     } finally { setSaving(false); }
   };
-
-  const updateField = (field, value) => setForm(p => ({ ...p, [field]: value }));
 
   if (showSuccess) {
     return (
@@ -236,7 +235,7 @@ export default function ParentEnrollmentForm({ user, token }) {
               <label className={labelCls}>Grado</label>
               <select value={form.grado_id} onChange={e => updateField("grado_id", e.target.value)} className={selectCls} disabled={!form.nivel_id} data-testid="enrollment-grado">
                 <option value="">Seleccionar grado</option>
-                {grades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
+                {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
               </select>
               {ageWarning && (
                 <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -249,7 +248,7 @@ export default function ParentEnrollmentForm({ user, token }) {
               <label className={labelCls}>Seccion</label>
               <select value={form.seccion_id} onChange={e => updateField("seccion_id", e.target.value)} className={selectCls} disabled={!form.grado_id} data-testid="enrollment-seccion">
                 <option value="">Seleccionar seccion</option>
-                {sections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
               </select>
             </div>
             <div>
