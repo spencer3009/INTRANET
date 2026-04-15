@@ -728,15 +728,34 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
               {/* Yape Payment Card - only when enabled */}
               {yapeConfig?.enabled && (() => {
+                const monthNames = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};
                 const pendingItems = yapeSchedule.filter(s =>
                   (s.status === 'pending' || s.status === 'overdue') && s.yape_status !== 'pendiente_verificacion'
                 );
                 const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion');
-                const nextCuota = pendingItems[0] || verifyingItems[0] || null;
+                let nextCuota = pendingItems[0] || verifyingItems[0] || null;
+
+                // If no schedule items but student has debt, derive next cuota from financial config
+                if (!nextCuota && yapeSchedule.length === 0 && paymentData?.financial_config?.pension_mensual > 0) {
+                  const pension = paymentData.financial_config.pension_mensual;
+                  const now = new Date();
+                  const m = now.getMonth() + 1;
+                  const y = now.getFullYear();
+                  nextCuota = {
+                    concept: "mensualidad",
+                    description: `Pension ${monthNames[m] || ''} ${y}`,
+                    amount: pension,
+                    month: m,
+                    year: y,
+                    status: "pending",
+                    yape_status: null,
+                    _derived: true,
+                  };
+                }
+
                 const isVerifying = nextCuota?.yape_status === 'pendiente_verificacion';
                 const isOverdue = nextCuota?.status === 'overdue';
-                const allPaid = !nextCuota && yapeSchedule.length > 0;
-                const monthNames = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};
+                const allPaid = !nextCuota && yapeSchedule.length > 0 && paymentData?.summary?.debt_amount <= 0;
 
                 return (
                   <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid="yape-dashboard-card">
