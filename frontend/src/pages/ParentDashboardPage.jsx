@@ -786,7 +786,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
                     {/* Yape Logo */}
                     <div className="flex justify-center mb-3">
-                      <img src="/yape_logo.png" alt="Yape" className="h-14 object-contain" />
+                      <img src="/yape_logo.png" alt="Yape" className="object-contain" style={{ height: '6.5rem' }} />
                     </div>
 
                     {/* Progress bar */}
