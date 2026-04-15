@@ -2620,7 +2620,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
                           {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
                         </div>
-                        <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Exportar Credenciales"}</span>
+                        <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Credenciales"}</span>
                       </button>
                       <button
                         onClick={handleDownloadTeacherQR}
