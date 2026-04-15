@@ -214,6 +214,11 @@ export default function YapePaymentVerification({ token }) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-sm font-semibold text-gray-800">{formatCurrency(p.amount)}</span>
+                      {p.is_pronto_pago && (
+                        <div className="mt-1">
+                          <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">PRONTO PAGO</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <code className="text-sm bg-gray-100 px-2 py-0.5 rounded font-mono text-gray-700">{p.yape_operation_code}</code>

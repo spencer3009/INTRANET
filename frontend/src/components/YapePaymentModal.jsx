@@ -42,6 +42,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
         amount: parseFloat(amount),
         yape_operation_code: operationCode.trim(),
         concept: payment.concept || payment.description || payment.month_name,
+        is_pronto_pago: !!payment._isProntoPago,
       }, { headers });
 
       toast.success("Pago reportado exitosamente. Sera verificado por el colegio.");

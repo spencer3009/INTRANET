@@ -171,6 +171,7 @@ class ReportYapePayment(BaseModel):
     amount: float = Field(..., gt=0)
     yape_operation_code: str = Field(..., min_length=4, max_length=30)
     concept: Optional[str] = None
+    is_pronto_pago: bool = False
 
 
 @router.post("/report", status_code=201)
@@ -233,6 +234,7 @@ async def report_yape_payment(data: ReportYapePayment, current_user=Depends(get_
         "payment_date": now,
         "yape_operation_code": code,
         "status": "pendiente_verificacion",
+        "is_pronto_pago": data.is_pronto_pago,
         "verified_by": None,
         "verified_at": None,
         "rejection_reason": None,
