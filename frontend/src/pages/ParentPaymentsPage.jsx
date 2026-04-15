@@ -15,8 +15,13 @@ import {
   Receipt,
   CheckCircle,
   ArrowLeft,
-  CreditCard
+  CreditCard,
+  QrCode,
+  Clock,
+  XCircle,
+  RotateCcw
 } from "lucide-react";
+import YapePaymentModal from "../components/YapePaymentModal";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -32,6 +37,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
   const [selectedChild, setSelectedChild] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [yapeConfig, setYapeConfig] = useState(null);
+  const [yapeSchedule, setYapeSchedule] = useState([]);
+  const [yapeModalPayment, setYapeModalPayment] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -39,12 +47,14 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
     const init = async () => {
       setLoading(true);
       try {
-        const [profileRes, settingsRes] = await Promise.all([
+        const [profileRes, settingsRes, yapeRes] = await Promise.all([
           axios.get(`${API}/api/parent/me`, { headers }),
-          axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
+          axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
+          axios.get(`${API}/api/parent-payments/yape-config`, { headers }).catch(() => ({ data: { enabled: false } }))
         ]);
         setParentProfile(profileRes.data);
         if (settingsRes.data) setSettings(settingsRes.data);
+        if (yapeRes.data) setYapeConfig(yapeRes.data);
         const childrenList = profileRes.data.children || [];
         setChildren(childrenList);
         if (childrenList.length > 0) {
@@ -64,8 +74,12 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
 
   const loadPayments = async (childId) => {
     try {
-      const res = await axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers });
-      setPaymentData(res.data);
+      const [payRes, scheduleRes] = await Promise.all([
+        axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers }),
+        axios.get(`${API}/api/parent-payments/schedule/${childId}`, { headers }).catch(() => ({ data: { schedule: [] } }))
+      ]);
+      setPaymentData(payRes.data);
+      setYapeSchedule(scheduleRes.data?.schedule || []);
     } catch (err) {
       console.error("Error loading payments:", err);
     }
@@ -255,29 +269,81 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   </h2>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {paymentData.monthly_detail.map((month, idx) => (
-                    <div key={month.id || idx} className="px-6 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors" data-testid={`payment-row-${idx}`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                          month.payment_status === 'paid' ? 'bg-emerald-500' :
-                          month.payment_status === 'overdue' ? 'bg-red-500' : 'bg-amber-500'
-                        }`} />
-                        <span className="text-base text-slate-700 font-medium">{month.month_name}</span>
+                  {paymentData.monthly_detail.map((month, idx) => {
+                    // Cross-reference with yape schedule to find yape_status
+                    const yapeEntry = yapeSchedule.find(s =>
+                      s.pension_month === month.payment_date?.substring(0, 7) ||
+                      (s.id === month.id)
+                    );
+                    const yapeStatus = yapeEntry?.yape_status;
+                    const isPaid = month.payment_status === 'paid';
+                    const isOverdue = month.payment_status === 'overdue';
+                    const isPending = month.payment_status === 'pending';
+                    const isYapePending = yapeStatus === 'pendiente_verificacion';
+                    const isYapeRejected = yapeStatus === 'rechazado';
+                    const canPayYape = yapeConfig?.enabled && (isPending || isOverdue) && !isYapePending;
+
+                    return (
+                      <div key={month.id || idx} className="px-6 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors" data-testid={`payment-row-${idx}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                            isPaid ? 'bg-emerald-500' :
+                            isYapePending ? 'bg-blue-500' :
+                            isOverdue ? 'bg-red-500' : 'bg-amber-500'
+                          }`} />
+                          <div>
+                            <span className="text-base text-slate-700 font-medium">{month.month_name}</span>
+                            {isYapePending && (
+                              <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> Pago reportado, en verificacion
+                              </p>
+                            )}
+                            {isYapeRejected && (
+                              <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
+                                <XCircle className="w-3 h-3" /> Pago rechazado - puede reintentar
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-bold text-slate-800">S/ {month.total_amount.toFixed(2)}</span>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${
+                            isPaid
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : isYapePending
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : isOverdue
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {isPaid ? 'PAGADO' : isYapePending ? 'EN VERIFICACION' : isOverdue ? 'MOROSO' : 'PENDIENTE'}
+                          </span>
+                          {canPayYape && (
+                            <button
+                              onClick={() => {
+                                // Extract month/year from pension_month or payment_date
+                                let m = month.payment_date ? parseInt(month.payment_date.split("-")[1]) : null;
+                                let y = month.payment_date ? parseInt(month.payment_date.split("-")[0]) : null;
+                                setYapeModalPayment({
+                                  ...month,
+                                  student_id: selectedChild?.id,
+                                  student_name: `${selectedChild?.name || ''} ${selectedChild?.last_name || ''}`.trim(),
+                                  month: m,
+                                  year: y,
+                                  amount: month.total_amount,
+                                });
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors shadow-sm"
+                              data-testid={`yape-pay-btn-${idx}`}
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              Pagar con Yape
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-5">
-                        <span className="text-base font-bold text-slate-800">S/ {month.total_amount.toFixed(2)}</span>
-                        <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${
-                          month.payment_status === 'paid'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : month.payment_status === 'overdue'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {month.payment_status === 'paid' ? 'PAGADO' : month.payment_status === 'overdue' ? 'MOROSO' : 'PENDIENTE'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -285,6 +351,16 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
         </main>
       </div>
       <MobileBottomNav role="parent" />
+      <YapePaymentModal
+        isOpen={!!yapeModalPayment}
+        onClose={() => setYapeModalPayment(null)}
+        payment={yapeModalPayment}
+        yapeConfig={yapeConfig}
+        token={token}
+        onSuccess={() => {
+          if (selectedChild) loadPayments(selectedChild.id);
+        }}
+      />
     </div>
   );
 }

@@ -4,28 +4,38 @@
 Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + MongoDB).
 
 ## Latest Session (2026-04-15)
-### Bug Fix: Calculo incorrecto de renovacion de suscripcion
-- **Problema**: Al renovar suscripcion, el sistema sumaba 30 dias a la fecha de pago (`hoy + 30 dias`) en lugar de 1 mes calendario a la fecha de vencimiento actual (`max(vencimiento, hoy) + 1 mes`).
-- **Fix**: Reemplazo de `timedelta(days=30)` por `relativedelta(months=1)` en `support.py` (renovacion) y `auth.py` (creacion inicial de colegios).
-- **Logica**: Si paga antes/el dia del vencimiento → extiende desde vencimiento actual. Si paga despues → extiende desde hoy.
-- **Archivos modificados**: `backend/routes/support.py`, `backend/routes/auth.py`
-- **Tests**: 7 unit tests en `backend/tests/test_renewal_calculation.py` + 2 e2e via cURL + verificacion visual en Panel de Soporte.
+### Feature: Sistema de Cobro a Padres via Yape (QR)
+Implementacion completa del sistema de pagos Yape para padres de familia:
 
-### Previous Session (2026-04-15)
-#### Auto-Registro de Alumnos por Padres — Sistema Completo
-- **Backend**: 7 endpoints en `enrollment.py` (self-register, pending, approve, reject, count, get-config, update-config)
-- **Config**: 2 switches en `tenant_settings.parent_self_enrollment` (enabled + academic_info_editable)
-- **Password**: username = DNI, password = DNI (hasheado bcrypt)
-- **Validaciones**: Config del colegio, DNI duplicado, edad vs grado
-- **Frontend**: EnrollmentConfigModal (2 switches), ParentEnrollmentForm (condicional), PendingEnrollmentsTab (aprobar/rechazar)
-- **Condicional**: Boton "Registrar a mi hijo" solo aparece si config enabled=true
-- **Notificaciones**: Internas a admins (nuevo pendiente) y padres (aprobado/rechazado)
+#### Fase 1 - Backend (DONE)
+- Coleccion `yape_config`: Config QR por colegio (imagen base64, titular, instrucciones, switch)
+- Coleccion `parent_payments`: Pagos reportados por padres (separada de `payments`)
+- 4 endpoints padre: GET yape-config, GET schedule/{student_id}, POST report, GET history
+- 4 endpoints owner: GET/PUT yape-config, GET yape-payments, PUT verify/reject
+- Validaciones: duplicado mes, duplicado codigo operacion, QR requerido para activar, parentesco
+
+#### Fase 2 - Frontend Propietario (DONE)
+- Tab "Cobro Yape" en AccountingPage.jsx (6to tab, estilo purple)
+- `YapeConfigPanel.jsx`: Toggle grande (pill style), upload QR cuadrado (borde dashed verde), titular, instrucciones
+- `YapePaymentVerification.jsx`: Tabla con filtros (Pendientes/Verificados/Rechazados/Todos), modal verificar/rechazar
+
+#### Fase 3 - Frontend Padre (DONE)
+- Boton "Pagar con Yape" en cada cuota pendiente/vencida de ParentPaymentsPage.jsx
+- `YapePaymentModal.jsx`: Modal paso a paso (QR + codigo operacion + monto)
+- Estados visuales: Pendiente (amarillo), En Verificacion (azul), Pagado (verde), Rechazado (rojo)
+- Recarga automatica al reportar pago
+
+### Previous Changes
+- Bug fix: Calculo de renovacion de suscripcion (relativedelta months=1)
+- Auto-Registro de Alumnos por Padres
+- Contabilidad: Multiples conceptos de pago
+- Dashboard Owner: Metricas reales de asistencia
 
 ## Prioritized Backlog
 ### P1 (Next)
 - Guard global para bloquear servicios a alumnos pending/rejected
-- Dashboard Owner con metricas reales (cards restantes: Estudiantes Activos, Ingresos del Mes, etc.)
-- Psicologia — Log de auditoria estricto (parametrizar `log_audit()`)
+- Dashboard Owner con metricas reales (cards restantes)
+- Psicologia — Log de auditoria estricto
 
 ### P2 (Future)
 - Modulo de Encuestas
@@ -34,18 +44,24 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Plantilla "Adventista" para carnets QR
 
 ## Key Files
-- `/app/backend/routes/support.py` (renovacion de suscripciones)
-- `/app/backend/routes/auth.py` (creacion de colegios)
-- `/app/backend/routes/enrollment.py`
-- `/app/backend/tests/test_renewal_calculation.py`
-- `/app/frontend/src/components/EnrollmentConfigModal.jsx`
-- `/app/frontend/src/pages/ParentEnrollmentForm.jsx`
-- `/app/frontend/src/components/PendingEnrollmentsTab.jsx`
-- `/app/frontend/src/pages/ParentDashboardPage.jsx`
+### Yape Payment System
+- `/app/backend/routes/parent_payments.py` - Endpoints del padre
+- `/app/backend/routes/accounting.py` - Endpoints owner (yape-config + verificacion, lineas 1996+)
+- `/app/frontend/src/components/YapeConfigPanel.jsx` - Config QR owner
+- `/app/frontend/src/components/YapePaymentVerification.jsx` - Verificar/rechazar owner
+- `/app/frontend/src/components/YapePaymentModal.jsx` - Modal pago padre
+- `/app/frontend/src/pages/ParentPaymentsPage.jsx` - Pagina pagos padre (modificada)
+- `/app/frontend/src/pages/AccountingPage.jsx` - Tab "Cobro Yape" agregado
+
+### Other Key Files
+- `/app/backend/routes/support.py` - Renovacion suscripciones
+- `/app/backend/routes/enrollment.py` - Auto-registro padres
 - `/app/frontend/src/pages/UsersPage.jsx`
 
 ## Key DB Schema
-- `users`: `role`, `dni`, `enrollment_status` (pending, active, rejected), `enrollment_submitted_by_parent_id`
-- `tenant_settings`: `admin_subscription_visible` (boolean), `parent_self_enrollment_enabled`, `academic_info_editable`
-- `evaluation_criteria_config`: `school_id`, array de `categories` (con `category_id`, `display_name` y `subcolumns`)
-- `schools`: `expiration_date`, `fecha_vencimiento`, `subscription_status`, `plan_estado`, `last_renewal_date`
+- `yape_config`: `school_id` (unique), `enabled`, `qr_image_base64`, `account_holder_name`, `instructions_text`
+- `parent_payments`: `school_id`, `student_id`, `parent_id`, `amount`, `month`, `year`, `yape_operation_code`, `status` (pendiente_verificacion/verificado/rechazado)
+- `payments`: Pagos confirmados del colegio (contabilidad)
+- `users`: `role`, `dni`, `enrollment_status`
+- `tenant_settings`: `admin_subscription_visible`, `parent_self_enrollment_enabled`
+- `schools`: `expiration_date`, `fecha_vencimiento`, `subscription_status`

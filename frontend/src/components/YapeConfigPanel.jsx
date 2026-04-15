@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
-  QrCode, Upload, Save, ToggleLeft, ToggleRight,
-  Loader2, ImageIcon, User, FileText, AlertCircle, Check
+  QrCode, Upload, Save, Loader2, User, FileText, AlertCircle, Check
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -129,20 +128,15 @@ export default function YapeConfigPanel({ token }) {
         </div>
         <button
           onClick={handleToggle}
-          className="flex items-center gap-2 transition-colors"
+          className="flex items-center gap-3 transition-colors"
           data-testid="yape-toggle-switch"
         >
-          {config.enabled ? (
-            <>
-              <span className="text-sm font-medium text-emerald-600">Activado</span>
-              <ToggleRight className="w-10 h-10 text-emerald-500" />
-            </>
-          ) : (
-            <>
-              <span className="text-sm font-medium text-gray-400">Desactivado</span>
-              <ToggleLeft className="w-10 h-10 text-gray-300" />
-            </>
-          )}
+          <span className={`text-base font-semibold ${config.enabled ? "text-emerald-600" : "text-gray-400"}`}>
+            {config.enabled ? "Activado" : "Desactivado"}
+          </span>
+          <div className={`relative w-16 h-9 rounded-full transition-colors duration-200 ${config.enabled ? "bg-emerald-500" : "bg-gray-300"}`}>
+            <div className={`absolute top-1 w-7 h-7 bg-white rounded-full shadow-md transition-transform duration-200 ${config.enabled ? "translate-x-8" : "translate-x-1"}`} />
+          </div>
         </button>
       </div>
 
@@ -153,29 +147,31 @@ export default function YapeConfigPanel({ token }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Imagen del codigo QR de Yape</label>
             <div
-              className="relative border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center min-h-[280px] hover:border-purple-300 transition-colors cursor-pointer bg-gray-50/50"
+              className="relative border-[3px] border-dashed border-emerald-300 rounded-2xl flex flex-col items-center justify-center aspect-square max-w-[360px] hover:border-emerald-400 transition-colors cursor-pointer bg-gray-50/30"
               onClick={() => fileInputRef.current?.click()}
               data-testid="yape-qr-upload-area"
             >
               {displayQr ? (
-                <div className="relative">
+                <div className="relative p-4">
                   <img
                     src={displayQr}
                     alt="QR Yape"
-                    className="max-w-[240px] max-h-[240px] rounded-lg shadow-sm"
+                    className="max-w-full max-h-full rounded-lg shadow-sm object-contain"
                     data-testid="yape-qr-preview"
                   />
                   {qrPreview && (
-                    <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <div className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
                       Sin guardar
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-center">
-                  <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 mb-1">Haz clic para subir el codigo QR</p>
-                  <p className="text-xs text-gray-400">PNG, JPG o WebP. Max 2MB</p>
+                <div className="text-center px-6">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Upload className="w-7 h-7 text-gray-400" />
+                  </div>
+                  <p className="text-base font-semibold text-gray-600 mb-1">Haz clic o arrastra una imagen</p>
+                  <p className="text-sm text-gray-400">JPG, PNG o WebP. Max 2MB</p>
                 </div>
               )}
               <input
