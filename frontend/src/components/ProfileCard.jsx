@@ -75,6 +75,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
 
   const [school, setSchool] = useState(null);
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [adminSubHidden, setAdminSubHidden] = useState(false);
 
   useEffect(() => {
     if (!showSub || !token) return;
@@ -88,7 +89,16 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
       .then(r => r.json())
       .then(d => { if (d.pending_request) setPendingRequest(d.pending_request); })
       .catch(() => {});
-  }, [token, showSub]);
+    // Check if admin should see subscription details
+    if (isAdmin && !isOwner) {
+      fetch(`${API}/school/subscription-visibility`, { headers: hdrs })
+        .then(r => r.json())
+        .then(d => {
+          if (d.admin_subscription_visible === false) setAdminSubHidden(true);
+        })
+        .catch(() => {});
+    }
+  }, [token, showSub, isAdmin, isOwner]);
 
   const subState = school ? getSubState(school.fecha_vencimiento || school.expiration_date) : null;
   const p = school?.pricing;
@@ -149,7 +159,15 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
       )}
 
       {/* Subscription info for owner/admin */}
-      {showSub && subState ? (
+      {showSub && isAdmin && adminSubHidden && subState ? (
+        <div className="mt-4 text-left" data-testid="subscription-card-minimal">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-bold text-slate-700">Suscripci&oacute;n</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${subState.badge}`}>{subState.label}</span>
+          </div>
+        </div>
+      ) : showSub && subState ? (
         <div className="mt-4 space-y-3 text-left" data-testid="subscription-card">
           {/* Status + Price */}
           <div className="flex items-center justify-between">

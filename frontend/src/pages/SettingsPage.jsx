@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -54,6 +55,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [healthAdminCanManage, setHealthAdminCanManage] = useState(true);
   const [healthTeacherCanManage, setHealthTeacherCanManage] = useState(false);
   const [savingHealthPerms, setSavingHealthPerms] = useState(false);
+  const [adminSubVisible, setAdminSubVisible] = useState(true);
+  const [savingSubVisibility, setSavingSubVisibility] = useState(false);
   
   // Login background state
   const [loginBgUrl, setLoginBgUrl] = useState(null);
@@ -109,6 +112,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           setHealthAdminCanManage(hpRes.data.admin_can_manage ?? true);
           setHealthTeacherCanManage(hpRes.data.teacher_can_manage ?? false);
         } catch (_) {}
+        // Load subscription visibility
+        setAdminSubVisible(res.data.admin_subscription_visible !== false);
         if (res.data.attendance_config) {
           setAttendanceConfig(prev => ({
             ...prev,
@@ -1192,6 +1197,65 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   </div>
                 </div>
               </section>
+
+              {/* Subscription Visibility */}
+              {user?.role === 'owner' && (
+              <section className="mt-8" data-testid="subscription-visibility-section">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-800">Visibilidad de Suscripci&oacute;n</h2>
+                      <p className="text-sm text-slate-500">Controla la informaci&oacute;n que el administrador puede ver sobre la suscripci&oacute;n.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
+                        <Shield className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Mostrar detalles de suscripci&oacute;n al Administrador</h3>
+                        <p className="text-sm text-slate-500">
+                          {adminSubVisible
+                            ? "El administrador ve: monto, días restantes, fechas y botón de Yape."
+                            : "El administrador solo ve: Suscripción Activo. Sin montos ni fechas."}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setSavingSubVisibility(true);
+                        const next = !adminSubVisible;
+                        try {
+                          await axios.put(`${API}/settings`, {
+                            admin_subscription_visible: next,
+                          }, { headers });
+                          setAdminSubVisible(next);
+                          toast.success(next ? "Detalles visibles para el administrador" : "Detalles ocultos para el administrador");
+                        } catch { toast.error("Error al guardar"); }
+                        finally { setSavingSubVisibility(false); }
+                      }}
+                      disabled={savingSubVisibility}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                        adminSubVisible ? 'bg-purple-500' : 'bg-slate-300'
+                      } ${savingSubVisibility ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-admin-sub-visibility"
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform transition-transform ${
+                        adminSubVisible ? 'translate-x-8' : 'translate-x-1'
+                      }`} />
+                      {savingSubVisibility && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </section>
+              )}
               </>
             )}
 

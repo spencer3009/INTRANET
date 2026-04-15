@@ -54,6 +54,7 @@ class TenantSettingsUpdate(BaseModel):
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
     accent_color: Optional[str] = None
+    admin_subscription_visible: Optional[bool] = None
 
 # TENANT SETTINGS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -72,6 +73,15 @@ async def get_school_info(current_user=Depends(get_current_user)):
     name = (settings or {}).get("system_name") or (school or {}).get("school_name", "")
 
     return {"logo_url": logo, "school_name": name}
+
+@router.get("/school/subscription-visibility")
+async def get_subscription_visibility(current_user=Depends(get_current_user)):
+    """Check if admin can see subscription details. Any authenticated user can read."""
+    school_id = current_user.get("school_id")
+    if not school_id:
+        return {"admin_subscription_visible": True}
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "admin_subscription_visible": 1})
+    return {"admin_subscription_visible": (settings or {}).get("admin_subscription_visible", True)}
 
 
 @router.get("/settings")
