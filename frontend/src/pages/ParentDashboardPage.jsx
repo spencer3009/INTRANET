@@ -865,7 +865,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                             className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 shadow-md"
                             data-testid="yape-dashboard-pay-btn"
                           >
-                            <QrCode className="w-4 h-4" />
+                            <img src="/yape_icon_btn.png" alt="Yape" className="h-5" />
                             Pagar con Yape
                           </button>
                         )}
