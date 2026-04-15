@@ -33,7 +33,8 @@ async def _verify_parent_child(parent: dict, student_id: str) -> dict:
     children_ids = parent.get("children_ids") or parent.get("hijos") or []
     student = await db.users.find_one(
         {"id": student_id, "school_id": parent["school_id"], "role": "student"},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1}
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1,
+         "parent_id": 1, "padre_id": 1, "madre_id": 1, "apoderado_id": 1, "linked_parent_ids": 1}
     )
     if not student:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
@@ -41,17 +42,11 @@ async def _verify_parent_child(parent: dict, student_id: str) -> dict:
     is_linked = (
         student_id in children_ids
         or student.get("parent_id") == parent["id"]
+        or student.get("padre_id") == parent["id"]
+        or student.get("madre_id") == parent["id"]
+        or student.get("apoderado_id") == parent["id"]
+        or parent["id"] in (student.get("linked_parent_ids") or [])
     )
-    if not is_linked:
-        linked = await db.users.find_one(
-            {"id": student_id, "school_id": parent["school_id"]},
-            {"_id": 0, "parent_id": 1, "linked_parent_ids": 1}
-        )
-        if linked:
-            is_linked = (
-                linked.get("parent_id") == parent["id"]
-                or parent["id"] in (linked.get("linked_parent_ids") or [])
-            )
     if not is_linked:
         raise HTTPException(status_code=403, detail="No tienes acceso a este estudiante")
     return student
