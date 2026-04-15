@@ -3379,7 +3379,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <Pencil className="w-3.5 h-3.5" />
                   Editar
                 </button>
-                {(student.student_status === "pending" || !student.student_status) && student.grado_id && student.seccion_id && (
+                {(student.student_status === "pending" || !student.student_status) && student.grado_id && student.seccion_id && !student.enrollment_status && (
                   <button
                     onClick={async () => {
                       setOpenMenuId(null);
