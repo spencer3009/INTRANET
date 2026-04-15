@@ -147,30 +147,31 @@ export default function YapeConfigPanel({ token }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Imagen del codigo QR de Yape</label>
             <div
-              className="relative border-[3px] border-dashed border-emerald-300 rounded-2xl flex flex-col items-center justify-center aspect-square max-w-[360px] hover:border-emerald-400 transition-colors cursor-pointer bg-gray-50/30"
+              className="relative border-[3px] border-dashed rounded-2xl flex flex-col items-center justify-center aspect-square max-w-[360px] transition-colors cursor-pointer border-gray-300 hover:border-gray-400 bg-white"
               onClick={() => fileInputRef.current?.click()}
               data-testid="yape-qr-upload-area"
             >
               {displayQr ? (
-                <div className="relative p-4">
+                <div className="relative p-6 w-full h-full flex items-center justify-center">
                   <img
                     src={displayQr}
                     alt="QR Yape"
-                    className="max-w-full max-h-full rounded-lg shadow-sm object-contain"
+                    className="max-w-full max-h-full rounded-lg object-contain"
                     data-testid="yape-qr-preview"
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                   {qrPreview && (
-                    <div className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
                       Sin guardar
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-center px-6">
-                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Upload className="w-7 h-7 text-gray-400" />
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <Upload className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-base font-semibold text-gray-600 mb-1">Haz clic o arrastra una imagen</p>
+                  <p className="text-lg font-bold text-gray-600 mb-1">Haz clic o arrastra una imagen</p>
                   <p className="text-sm text-gray-400">JPG, PNG o WebP. Max 2MB</p>
                 </div>
               )}
