@@ -1992,3 +1992,239 @@ async def seed_default_discount_types(school_id: str):
     await db.discount_types.insert_many(defaults)
     logger.info(f"[SEED] Created {len(defaults)} default discount types for school {school_id}")
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# YAPE CONFIG & PAYMENT VERIFICATION (Owner/Admin from Contabilidad)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/accounting/yape-config")
+async def get_yape_config(current_user=Depends(require_section_access("accounting"))):
+    """Get Yape QR configuration for the school."""
+    school_id = current_user["school_id"]
+    config = await db.yape_config.find_one({"school_id": school_id}, {"_id": 0})
+    if not config:
+        return {
+            "enabled": False,
+            "qr_image_base64": "",
+            "account_holder_name": "",
+            "instructions_text": "",
+        }
+    return config
+
+
+@router.put("/accounting/yape-config")
+async def update_yape_config(
+    current_user=Depends(require_section_access("accounting")),
+    enabled: Optional[bool] = Form(None),
+    account_holder_name: Optional[str] = Form(None),
+    instructions_text: Optional[str] = Form(None),
+    qr_image: Optional[UploadFile] = File(None),
+):
+    """Create or update Yape QR configuration. Owner/admin only."""
+    user = current_user
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Solo el propietario o admin puede configurar Yape")
+
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+
+    update_fields = {"updated_at": now}
+
+    if enabled is not None:
+        # If enabling, verify QR image exists
+        if enabled:
+            existing = await db.yape_config.find_one({"school_id": school_id}, {"_id": 0})
+            has_qr = (existing and existing.get("qr_image_base64")) or qr_image
+            if not has_qr:
+                raise HTTPException(status_code=400, detail="Debe subir una imagen del codigo QR antes de activar")
+        update_fields["enabled"] = enabled
+
+    if account_holder_name is not None:
+        update_fields["account_holder_name"] = account_holder_name.strip()
+
+    if instructions_text is not None:
+        update_fields["instructions_text"] = instructions_text.strip()
+
+    if qr_image:
+        # Validate file type
+        content_type = qr_image.content_type or ""
+        if content_type not in ("image/png", "image/jpeg", "image/jpg", "image/webp"):
+            raise HTTPException(status_code=400, detail="Solo se permiten imagenes PNG, JPG o WebP")
+
+        content = await qr_image.read()
+        # Validate size (max 2MB)
+        if len(content) > 2 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="La imagen no debe exceder 2MB")
+
+        import base64
+        b64 = base64.b64encode(content).decode("utf-8")
+        update_fields["qr_image_base64"] = f"data:{content_type};base64,{b64}"
+        update_fields["qr_image_filename"] = qr_image.filename
+        update_fields["qr_image_mimetype"] = content_type
+
+    result = await db.yape_config.update_one(
+        {"school_id": school_id},
+        {"$set": update_fields, "$setOnInsert": {"school_id": school_id, "created_at": now}},
+        upsert=True
+    )
+
+    logger.info(f"[YAPE-CONFIG] school={school_id} updated: enabled={update_fields.get('enabled')}")
+
+    return {"message": "Configuracion de Yape guardada", "ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# YAPE PAYMENT VERIFICATION - List & Verify/Reject
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/accounting/yape-payments")
+async def list_yape_payments(
+    status: Optional[str] = None,
+    student_name: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    current_user=Depends(require_section_access("accounting")),
+):
+    """List parent Yape payments for verification."""
+    school_id = current_user["school_id"]
+
+    query = {"school_id": school_id}
+    if status:
+        query["status"] = status
+    if student_name:
+        query["student_name"] = {"$regex": student_name, "$options": "i"}
+
+    total = await db.parent_payments.count_documents(query)
+    skip = (page - 1) * limit
+
+    payments = await db.parent_payments.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    return {
+        "payments": payments,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": max(1, -(-total // limit)),
+    }
+
+
+class VerifyYapePayment(BaseModel):
+    action: str  # "verificar" | "rechazar"
+    rejection_reason: Optional[str] = None
+
+
+@router.put("/accounting/yape-payments/{payment_id}/verify")
+async def verify_or_reject_yape_payment(
+    payment_id: str,
+    data: VerifyYapePayment,
+    current_user=Depends(require_section_access("accounting")),
+):
+    """Verify or reject a parent Yape payment."""
+    user = current_user
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Solo el propietario o admin puede verificar pagos")
+
+    school_id = user["school_id"]
+
+    payment = await db.parent_payments.find_one(
+        {"id": payment_id, "school_id": school_id},
+        {"_id": 0}
+    )
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    if payment["status"] not in ("pendiente_verificacion",):
+        raise HTTPException(status_code=400, detail=f"El pago ya fue procesado (estado: {payment['status']})")
+
+    now = datetime.now(timezone.utc).isoformat()
+    verifier_name = f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+
+    if data.action == "verificar":
+        # Update parent_payment status
+        await db.parent_payments.update_one(
+            {"id": payment_id},
+            {"$set": {
+                "status": "verificado",
+                "verified_by": user["id"],
+                "verified_by_name": verifier_name,
+                "verified_at": now,
+                "updated_at": now,
+            }}
+        )
+
+        # Register as income in the existing payments collection (same structure as accounting)
+        month_names = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+                       7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
+        month_label = month_names.get(payment.get("month"), "")
+
+        accounting_payment = {
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "student_id": payment["student_id"],
+            "concept": "mensualidad",
+            "description": payment.get("concept") or f"Pension {month_label} {payment.get('year', '')}",
+            "amount_base": payment["amount"],
+            "igv_applicable": False,
+            "igv_amount": 0,
+            "total_amount": payment["amount"],
+            "payment_method": "yape",
+            "payment_status": "paid",
+            "payment_date": now,
+            "pension_month": f"{payment.get('year', '')}-{str(payment.get('month', '')).zfill(2)}",
+            "receipt_number": payment.get("yape_operation_code", ""),
+            "notes": f"Pago Yape verificado. Cod: {payment.get('yape_operation_code', '')}. Reportado por: {payment.get('parent_name', '')}",
+            "registered_by": user["id"],
+            "registered_by_name": verifier_name,
+            "yape_parent_payment_id": payment_id,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # Get student grade/section for the accounting record
+        student = await db.users.find_one(
+            {"id": payment["student_id"], "school_id": school_id},
+            {"_id": 0, "grado_id": 1, "seccion_id": 1}
+        )
+        if student:
+            accounting_payment["grade_id"] = student.get("grado_id", "")
+            accounting_payment["section_id"] = student.get("seccion_id", "")
+
+        await db.payments.insert_one(accounting_payment)
+
+        logger.info(f"[YAPE-VERIFY] Pago verificado: id={payment_id}, amount={payment['amount']}, "
+                     f"student={payment['student_id']}, code={payment.get('yape_operation_code')}")
+
+        return {
+            "message": "Pago verificado y registrado en contabilidad",
+            "status": "verificado",
+            "accounting_payment_id": accounting_payment["id"],
+        }
+
+    elif data.action == "rechazar":
+        if not data.rejection_reason or not data.rejection_reason.strip():
+            raise HTTPException(status_code=400, detail="Debe indicar la razon del rechazo")
+
+        await db.parent_payments.update_one(
+            {"id": payment_id},
+            {"$set": {
+                "status": "rechazado",
+                "rejection_reason": data.rejection_reason.strip(),
+                "verified_by": user["id"],
+                "verified_by_name": verifier_name,
+                "verified_at": now,
+                "updated_at": now,
+            }}
+        )
+
+        logger.info(f"[YAPE-REJECT] Pago rechazado: id={payment_id}, reason={data.rejection_reason}")
+
+        return {
+            "message": "Pago rechazado. El padre sera notificado.",
+            "status": "rechazado",
+        }
+
+    else:
+        raise HTTPException(status_code=400, detail="Accion invalida. Use 'verificar' o 'rechazar'")

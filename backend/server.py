@@ -64,6 +64,7 @@ from routes.qr_templates import router as qr_templates_router
 from routes.role_assignment import router as role_assignment_router
 from routes.evaluation_criteria import router as evaluation_criteria_router
 from routes.enrollment import router as enrollment_router
+from routes.parent_payments import router as parent_payments_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -225,6 +226,7 @@ app.include_router(qr_templates_router)
 app.include_router(role_assignment_router)
 app.include_router(evaluation_criteria_router)
 app.include_router(enrollment_router)
+app.include_router(parent_payments_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
