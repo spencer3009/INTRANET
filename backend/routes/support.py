@@ -862,7 +862,36 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
 
     now = datetime.now(timezone.utc)
-    new_expiration = (now + timedelta(days=30)).isoformat()
+
+    # Calculate new expiration respecting billing cycle
+    # If pays BEFORE/ON expiration: extend from current expiration (respects cycle)
+    # If pays AFTER expiration: extend from today (no backwards debt)
+    current_exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
+    current_exp = None
+    if current_exp_str:
+        try:
+            current_exp = datetime.fromisoformat(str(current_exp_str).replace("Z", "+00:00"))
+            if current_exp.tzinfo is None:
+                current_exp = current_exp.replace(tzinfo=timezone.utc)
+        except Exception:
+            current_exp = None
+
+    if current_exp and current_exp >= now:
+        # Paying before or on expiration: extend from current expiration
+        base_date = current_exp
+    else:
+        # Paying after expiration (or no expiration set): extend from today
+        base_date = now
+
+    new_expiration_dt = base_date + timedelta(days=30)
+    new_expiration = new_expiration_dt.isoformat()
+
+    logger.info(
+        f"[RENEWAL] school={req.school_id}: "
+        f"vencia={current_exp_str}, pago={now.date()}, "
+        f"base={base_date.date()}, nuevo_vencimiento={new_expiration_dt.date()}"
+    )
+
     code = ""
     amount = 0
     payment_method = "yape"

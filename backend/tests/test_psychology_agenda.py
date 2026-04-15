@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://carnet-qr-export.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://renewal-fix-testing.preview.emergentagent.com')
 
 # Test credentials
 PSYCHOLOGIST_EMAIL = "ana.garcia@elroble.edu"

@@ -1,65 +1,66 @@
-<analysis><handoff summary>
-**original_problem_statement**: 
-**Actual / Ongoing:** Replicar el componente de Horario del Portal Propietario en todos los demás portales (Admin, Director, Coordinador, Docente, Alumno, Apoderado, Auxiliar PAE) reutilizando el componente fuente (ej. ), sin crear nuevos endpoints ni componentes duplicados, manejando accesos mediante props (, , ).
-
-**Histórico (Completado en esta sesión):**
-1. Fix de permisos FCM para Owner/Admin.
-2. Fix de instalabilidad PWA (conflictos de Service Worker).
-3. Asignación Masiva de docentes a asignaturas.
-4. Arreglos agresivos de responsividad mobile en  y  (overflows horizontales).
-5. Flujo de Duplicar Horario (por sección, día, año) con verificación de conflictos.
+<analysis>**original_problem_statement**: Replicar el componente de Horario del Portal Propietario en todos los demás portales reutilizando el componente fuente, sin crear nuevos endpoints ni componentes duplicados. Post-unificación, se implementaron extensas mejoras y nuevos módulos: Parent Auto-Enrollment (Matrículas por padres) con flujos de aprobación y configuración global, múltiples conceptos de pago en Contabilidad con detalle en PDF, edición inline de Criterios de Evaluación en Registro Auxiliar, fixes en DNI de profesores, métricas reales en el Dashboard Owner y un bug crítico de renovación de suscripción.
+**PRODUCT REQUIREMENTS**:
+- P1: Dashboard Owner con métricas reales.
+- P1: Módulo de Matrículas (Enrollments) completado.
+- P1: Psicología — Log de auditoría estricto.
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
 
 **what currently exists?**: 
-Aplicación full-stack (FastAPI + React + MongoDB). La app tiene PWA funcional con Firebase Cloud Messaging integrado en un solo Service Worker principal. Los módulos de Asignaturas y Horarios fueron ampliados con acciones masivas (asignación y duplicación respectivamente) probadas y funcionales. El agente actual se encuentra en el Paso 1 de un refactor mayor para unificar la vista de Horarios en todos los portales basándose en .
+Aplicación full-stack (FastAPI + React + MongoDB). Los horarios están unificados. Contabilidad permite registrar múltiples conceptos en un solo pago con desglose total en el PDF. Se integró un robusto sistema de Auto-Registro para Padres con validaciones, endpoints de aprobación/rechazo en el panel de Admin, y configuraciones globales (switches de habilitación). El Registro Auxiliar de evaluación es personalizable globalmente. El Dashboard muestra métricas de asistencia reales. 
 
 **Last working item**:
-    - Last item agent was working: Análisis comparativo de los archivos ,  y . El usuario solicitó **ÚNICAMENTE un reporte detallado** listando qué features exclusivas tiene cada uno antes de proceder a modificar código para unificarlos.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N/A
-    - Which testing method agent to use?: N/A (Actualmente en fase de reporte/análisis)
+    - Last item agent was working: Bug Crítico en la renovación de suscripciones. El sistema estaba sumando 30 días a la fecha actual () en lugar de añadir 1 mes a la fecha de vencimiento vigente (), haciendo que el colegio pierda días de suscripción si pagaba por adelantado.
+    - Status: IN PROGRESS (La lógica en  fue modificada y probada mediante un script local de Python, pero falta ejecutar la validación e2e desde el endpoint o frontend y reportar el fix).
+    - Agent Testing Done: Y (Python -c local test only)
+    - Which testing method agent to use?: Frontend testing agent/ curl to test  manually, + screenshot tool in superadmin panel.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  - Issue 1: Unificar componente de Horario en todos los portales (Paso 1: Análisis).
-     - Attempted fixes: Se leyeron los archivos implicados (, , , ) mediante comandos  y .
+  Issue 1: Cálculo incorrecto de nueva fecha de vencimiento al renovar suscripción.
+     - Attempted fixes: Se actualizó  (alrededor de la línea 865) usando  para que la nueva fecha sea . 
      - Next debug checklist: 
-       1. Redactar y enviar la respuesta al usuario con la comparación exacta de funcionalidades que solo existen en la vista de Alumno, solo en Apoderado, y solo en Owner/Admin (ej. resaltado de clase actual, formato de hora, links a material, etc.).
-       2. **ESPERAR APROBACIÓN** del usuario antes de tocar código.
-       3. Tras la aprobación, proceder con el Paso 2 y 3 del prompt del usuario (refactorizar props , ,  en el componente y montar en las rutas).
-     - Why fix this issue and what will be achieved with the fix?: Evitar la duplicación de código de UI de horarios entre 7 roles distintos, garantizando que una mejora visual beneficie a toda la plataforma al instante.
-     - Status: IN PROGRESS
+       - Verificar que el endpoint de renovación en el panel de soporte asigne correctamente la fecha (e.g. renovar un colegio que vence en 8 días, debe sumar 1 mes a su fecha de vencimiento, NO a hoy). 
+       - Enviar comprobación e2e al usuario y utilizar el .
+     - Why fix this issue and what will be achieved with the fix?: Respetar el ciclo de facturación y evitar que los clientes pierdan días pagados de suscripción por adelantar el pago.
+     - Status: TESTING PENDING
      - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: frontend (al implementar)
-     - Blocked on other issue: Ninguno.
+     - Should Test frontend/backend/both after fix?: Both (Test renewal from Support Admin UI to visually confirm the updated date).
+     - Blocked on other issue: None
 
 **In progress Task List**:
-  Las tareas en progreso están englobadas en el Issue 1.
+  None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Dashboard Owner con métricas reales.
-    - P1: Módulo de Matrículas (Enrollments).
     - P1: Psicología — Log de auditoría estricto (parametrizar ).
+    - P1: Guard global para bloquear servicios a alumnos en estado  o  (asistencia, notas, etc.).
+    - P1: Conectar datos reales en las demás cards del Dashboard Owner (Estudiantes Activos, Ingresos del Mes, etc. - Asistencia ya está listo).
     
     Future Tasks:
     - P2: Crear módulo de Encuestas.
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica:  (> 11,000 líneas).
+    - P2: Refactorización crítica:  (> 11,000 líneas) y .
+    - P2: Crear plantilla Adventista para carnets QR.
 
 **Completed work in this session**
-- Fix de bug FCM: Creado hook  e integrado en layout, arreglado bug de hoisting en useEffect. (DONE)
-- Fix PWA Installability: Fusionado  dentro de  usando  para resolver conflicto de scope . (DONE)
-- Asignación Masiva: Nuevo endpoint  y modal frontend. (DONE)
-- Fix Mobile Responsiveness: Removido overflow horizontal en  y . Tabs con flechas interactivas en mobile, Hero Cards rediseñadas para ser compactas. (DONE)
-- Duplicación de Horarios: Nuevo endpoint  con modos por sección, día y año; soporte de  y revisión del setting . (DONE)
+- Bug fix: El PDF exportado de QR para Profesores ahora muestra Docente en el badge correctamente (DONE).
+- Fix de referencias cruzadas y unificación de UI entre escáneres de Movilidad, PAE y Asistencia (DONE).
+- Se agregó el botón Cambiar Portal para usuarios multi-rol (DONE).
+- Contabilidad: Selección de Múltiples Conceptos de pago y despliegue del desglose ítem por ítem en el PDF de Boleta (DONE).
+- Centro de Ayuda: Switch para activar/desactivar el Avatar Flotante guardado en  (DONE).
+- Registro Auxiliar: Edición inline global de nombres de columnas y categorías de evaluación () (DONE).
+- Módulo completo de Auto-Registro por Padres (enrollment.py, ParentEnrollmentForm, Panel Admin - Pendientes, y Modal de Aprobación en Cascada) (DONE).
+- Configuración global (switches) para habilitar/deshabilitar Auto-Registro desde el panel Admin (DONE).
+- UI fix: DNI de profesores no se guardaba porque el request filtraba el payload. Resuelto DNI max 8 dígitos, tildes (UTF-8) y campos obligatorios (DONE).
+- Toggle de Visibilidad de Suscripción para el Administrador (owner setting para ocultar montos y botón yape al administrador) (DONE).
+- Dashboard Owner: Gráfico de dona conectado a datos reales de asistencia del mes en curso (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-  Ninguno.
+  None
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Ninguno relevante activo.
+  - Issue recurrence in previous fork: Ninguno.
   - Recurrence count: 0
   - Status: RESOLVED
 
@@ -67,88 +68,98 @@ Aplicación full-stack (FastAPI + React + MongoDB). La app tiene PWA funcional c
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── academic.py         # Endpoints bulk assignments
-│   │   ├── schedule.py         # Endpoint schedules duplicate & settings
-│   │   ├── notifications.py    # FCM
+│   │   ├── enrollment.py         # Endpoints para self-registration de padres
+│   │   ├── evaluation_criteria.py# Customización global de las columnas de notas
+│   │   ├── support.py            # Contiene la lógica de renovación de subscripción (BUG EN PROGRESO)
+│   │   ├── settings.py           # Tenant settings
+│   ├── services/
+│   │   ├── boleta_pdf_generator.py # Generador actualizado para iterar múltiples conceptos
 ├── frontend/
-│   ├── public/
-│   │   ├── service-worker.js          # SW PWA unificado (Firebase FCM fusionado)
-│   │   └── firebase-messaging-sw.js   # Script legacy (auto-unregister)
 │   ├── src/
-│   │   ├── components/schedule/
-│   │   │   ├── CalendarGrid.jsx       # Componente a reutilizar para vista unificada
-│   │   │   └── DuplicateScheduleModal.jsx
 │   │   ├── pages/
-│   │   │   ├── SchedulePage.jsx
-│   │   │   ├── StudentSchedulePage.jsx
-│   │   │   ├── ParentSchedulePage.jsx
-│   │   │   └── CourseDetailPage.jsx   # Hero headers ajustados, Tabs móviles.
-│   │   └── lib/firebase.js
+│   │   │   ├── ParentEnrollmentForm.jsx
+│   │   │   ├── UsersPage.jsx      # Heavy file (>5,800 líneas), includes user creation, roles, tabs.
+│   │   │   ├── SettingsPage.jsx   # Tenant settings toggles
+│   │   ├── components/
+│   │   │   ├── PendingEnrollmentsTab.jsx
+│   │   │   ├── EnrollmentConfigModal.jsx
+│   │   │   ├── GradeBookTab.jsx   # Inline editing for criteria
 
 **Key Technical Concepts**
-FastAPI, React, MongoDB Atlas, PWA (Service Workers, manifest), Firebase Cloud Messaging (HTTP v1, importScripts compat).
+FastAPI, React, MongoDB Atlas, ReportLab (PDF boletas), Multi-tenant settings, Parent Enrollment (Status: pending/active/rejected).
 
 **key DB schema**
-  - : Combinación de teacher, subject, level, grade, section.
-  - : Bloques de horarios.
-  - : { ,  }
+  - : , ,  (pending, active, rejected), .
+  - :  (boolean), , .
+  - : , array de  (con ,  y ).
 
 **changes in tech stack**
-  - Ninguno.
+  - None
 
 **All files of reference** 
-  -  (Modificado extensamente para FCM)
-  -  (Modificado - Bulk assignments)
-  -  (Modificado)
-  -  (Modificado responsividad)
-  -  (Modificado - Duplicate schedules)
-  -  (Referencia actual para el refactor pendiente)
-  -  (Analizado)
-  -  (Analizado)
-  -  (Analizado)
+  -  (EDITADO - Lógica de renewal).
+  - 
+  - 
+  - 
+  - 
+  - 
 
 **Areas that need refactoring**: 
-  -  (> 11,000 líneas). Requiere fragmentación modular imperativa a futuro.
+  -  (Alcanzó las 5,800 líneas, urge modularización en el futuro).
+  -  (> 11,000 líneas).
 
 **key api endpoints**
+  -  (Endpoint en revisión por bug de fechas).
   - 
   - 
   - 
 
 **Critical Info for New Agent** 
-- **⚠️ DETÉN CUALQUIER IMPLEMENTACIÓN DE CÓDIGO:** El usuario instruyó *explícitamente* que **antes** de tocar código para unificar los horarios, debes responder a su pregunta en formato de texto: *Comparando SchedulePage.jsx, StudentSchedulePage.jsx y ParentSchedulePage.jsx, ¿qué funcionalidades tienen Student/Parent que NO existen en SchedulePage?*
-- El agente anterior ya ejecutó los comandos  para leer el contenido de esos 3 archivos. Solo necesitas analizar esos últimos logs, preparar la lista de features exclusivas para cada vista, usar el tool normal de respuesta (o ask_human) y enviárselo al usuario.
-- **NO modifiques  ni el ruteo** hasta que el usuario te dé luz verde para pasar al Paso 2 y 3 del prompt.
+- **Subscriptions Bug**: La corrección utilizando  en  ya se escribió, sin embargo, la confirmación oficial en el sistema (e2e/frontend snapshot) NO fue declarada. Finaliza esto como tu primer paso.
+- **Enrollment**: El status  se utiliza para deshabilitar vistas y funciones para alumnos registrados por padres que aún no han sido aprobados por el administrador.
+- **Date Manipulations**: FastAPI/Pydantic dates suelen venir como strings ISO. Convertir correctamente a Wed Apr 15 04:27:35 UTC 2026/ usando  antes de operar cálculos de .
+- **UTF-8**: Evita la escritura de secuencias de escape unícodes (ej. ) al editar archivos de React; el último agente tuvo que limpiar todo el  usando . 
 
 **documents and test reports created in this job** 
-  -  al  (Testeados PWA, FCM, Asignación Masiva, Duplicar Horario)
-  -  (Actualizado con features)
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - [User] Reporta problemas de UI en módulo asignaturas y detalles del curso.
- - [Agent] Corrige headers, paddings y overflow de tabs.
- - [User] Muestra bugs visuales extra con las tabs en mobile.
- - [Agent] Corrige añadiendo overflow-hidden a las cards y flechas de navegación a los tabs.
- - [User] Pide optimizar el hero header en mobile para que sea compacto.
- - [Agent] Separa hero headers mobile y desktop; prueba visualmente OK.
- - [User] Solicita flujo de Duplicar Horarios en el módulo de Owner.
- - [Agent] Crea endpoint con control de conflictos y setting multi_horario, interfaz modal y prueba funcional completa con agente tester.
- - [User] (PENDING HUMAN MESSAGE) Pide replicar el horario en los 7 portales. Instruye enfáticamente NO TOCAR CÓDIGO AÚN y que el Paso 1 es **reportarle** las diferencias estructurales / de features entre ,  y .
+ - [User] Reporta que al registrar a un alumno que está pendiente, la opción Matricular no debe salir en el menú.
+ - [Agent] Oculta la opción en base a la condición .
+ - [User] Solicita renombrar Matrículas a Pendientes y reporta bug en los dropdowns de Nivel/Grado/Sección dentro del popup de aprobación.
+ - [Agent] Corrige nombre y arregla lógica en cascada en .
+ - [User] Pide que se active/desactive en Ajustes la vista del detalle de suscripción y monto a pagar para el rol Administrador. 
+ - [Agent] Agrega campo  y modifica .
+ - [User] Indica que los datos de la gráfica de dona del Dashboard deben ser reales, ya no hardcodeados.
+ - [Agent] Conecta gráfica a nuevo endpoint .
+ - [User] (PENDING HUMAN MESSAGE) Reporta 🐛 BUG CRÍTICO en la renovación de suscripción donde se usa  en vez de  (SaaS standard). Proveé casos exactos de prueba.
+ - [Agent] Modificó exitosamente el archivo backend y lo probó por consola con un script en Python, **pero olvidó realizar la prueba e2e final (vía interfaz UI o cURL) y utilizar la finish_tool**. 
 
 **Project Health Check:**
-El proyecto compila bien, los tests E2E y subagentes validaron la app sin regresiones y sin issues de lint (0 warnings).
+Healthy. Múltiples flujos nuevos implementados exitosamente.
 
 **3rd Party Integrations** 
- - Firebase Cloud Messaging (PWA Service Worker + Admin SDK backend).
+	 •	Cloudinary (Image Storage & Optimization) — requires User API Key
+	 •	Firebase Cloud Messaging (PWA Push Notifications) — requires User API Key
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iterations 129-132)
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Known regressions: Ninguna.
+  - Test files created: None
+  - Known regressions: None
 
 **Credentials to test flow:**
-  Revisar  (Usar credenciales owner, parent y student para las verificaciones posteriores del refactor de horarios).
+  Refer to . (Admin:  | Pass: , Owner:  | Pass: ).
 
 **What agent forgot to execute**
-El agente extrajo con  el código fuente de los horarios de Student, Parent y Owner, pero finalizó sesión justo antes de procesar el texto y escribir el reporte al usuario. **Tu primera acción debe ser enviar el reporte solicitado al usuario.**
-</handoff summary></analysis>
+El agente diagnosticó y corrigió el bug crítico de fechas de renovación en el backend (), validándolo en un entorno de python aislado, PERO olvidó realizar el test final consumiendo el endpoint a nivel servidor (cURL) o UI y enviar el reporte de culminación mediante la herramienta .
+
+**Debugging checklist for current issue**
+    Issue: Cálculo incorrecto de nueva fecha de vencimiento al renovar suscripción
+
+    Backend files to check: (with line number)
+    -  (Línea ~865).
+    - Verificar la correcta importación de .
+    - Probar localmente usando cURL contra  utilizando un test  específico o simulando en UI como SuperAdmin.
+
+    </analysis>
