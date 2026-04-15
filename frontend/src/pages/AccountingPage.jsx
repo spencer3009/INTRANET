@@ -11,6 +11,8 @@ import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import FinancialSettingsTab from "../components/FinancialSettingsTab";
 import ConfiguracionBoletaTab from "../components/ConfiguracionBoletaTab";
+import YapeConfigPanel from "../components/YapeConfigPanel";
+import YapePaymentVerification from "../components/YapePaymentVerification";
 import BoletaPreviewModal from "../components/BoletaPreviewModal";
 import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
 import AccountingSummaryCards from "../components/AccountingSummaryCards";
@@ -22,7 +24,8 @@ import {
   CircleDollarSign, FileText, Percent, Scale, Briefcase,
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
-  Eye, History, UserX, UserCheck, Settings, Tag, Zap, Download
+  Eye, History, UserX, UserCheck, Settings, Tag, Zap, Download,
+  QrCode
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -2584,6 +2587,18 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               <Settings className="w-4 h-4" />
               Configuracion
             </button>
+            <button
+              onClick={() => setActiveTab("yape")}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                activeTab === "yape"
+                  ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+              data-testid="tab-yape"
+            >
+              <QrCode className="w-4 h-4" />
+              Cobro Yape
+            </button>
           </div>
 
           {/* Tab content */}
@@ -2648,6 +2663,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
           )}
           {activeTab === "config" && (
             <ConfigTab token={token} user={user} />
+          )}
+          {activeTab === "yape" && (
+            <div data-testid="yape-tab-content">
+              <YapeConfigPanel token={token} />
+              <YapePaymentVerification token={token} />
+            </div>
           )}
         </main>
       </div>
