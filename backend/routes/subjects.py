@@ -277,12 +277,11 @@ async def get_teacher_subjects(
         "teacher_id": teacher_id
     }
     
-    # If multi-schedule is allowed, skip grade/section filter to show ALL teacher subjects
-    if not allow_multi:
-        if grade_id:
-            query["grade_id"] = grade_id
-        if section_id:
-            query["section_id"] = section_id
+    # Always filter by grade/section when provided
+    if grade_id:
+        query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
     
     # Get assignments for this teacher
     assignments = await db.academic_assignments.find(query, {"_id": 0}).to_list(100)
