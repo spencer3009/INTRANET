@@ -36,7 +36,7 @@ from routes.calendar import router as calendar_router
 from routes.surveys import router as surveys_router
 from routes.discipline import router as discipline_router
 from routes.news import router as news_router
-from routes.accounting import router as accounting_router
+from routes.accounting import router as accounting_router, daily_billing_generation_cron
 from routes.subjects import router as subjects_router
 from routes.health import router as health_router
 from routes.courses import router as courses_router
@@ -453,6 +453,8 @@ async def create_indexes():
         logging.info("Exam auto-close cron job started")
         asyncio.create_task(cleanup_expired_demo_accesses())
         logging.info("Demo cleanup cron job started")
+        asyncio.create_task(daily_billing_generation_cron())
+        logging.info("Daily billing generation cron job started")
 
         # Sync profile_photo_url -> photo_url for demo users (one-time migration)
         demo_users_to_sync = await db.users.find(

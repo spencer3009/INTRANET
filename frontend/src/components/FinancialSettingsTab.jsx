@@ -25,7 +25,8 @@ export default function FinancialSettingsTab({ token, user }) {
     interes_frecuencia: "mensual",
     interes_modalidad: "porcentaje",
     interes_tope_maximo: 0,
-    activacion_modo: "on_create"
+    activacion_modo: "on_create",
+    dia_vencimiento_mensualidad: 5
   });
 
   const isOwnerOrAdmin = user?.is_owner || user?.role === "owner" || user?.role === "director" || user?.role === "admin";
@@ -47,7 +48,8 @@ export default function FinancialSettingsTab({ token, user }) {
           interes_frecuencia: d.interes_frecuencia ?? "mensual",
           interes_modalidad: d.interes_modalidad ?? d.interes_tipo ?? "porcentaje",
           interes_tope_maximo: d.interes_tope_maximo ?? 0,
-          activacion_modo: d.activacion_modo ?? "on_create"
+          activacion_modo: d.activacion_modo ?? "on_create",
+          dia_vencimiento_mensualidad: d.dia_vencimiento_mensualidad ?? 5
         });
       })
       .catch(() => {})
@@ -116,7 +118,7 @@ export default function FinancialSettingsTab({ token, user }) {
           <DollarSign className="w-5 h-5 text-emerald-500" />
           <h3 className="text-sm font-bold text-slate-700">Configuracion de Pensiones y Matricula</h3>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-semibold text-slate-600 mb-2">Monto de Pension Mensual</label>
             <div className="relative">
@@ -150,6 +152,23 @@ export default function FinancialSettingsTab({ token, user }) {
               />
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">Monto unico de matricula anual por alumno</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-2">
+              <CalendarDays className="w-4 h-4 inline mr-1 text-slate-400" />
+              Dia de vencimiento mensual
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="28"
+              value={form.dia_vencimiento_mensualidad}
+              onChange={(e) => set("dia_vencimiento_mensualidad", Math.min(28, Math.max(1, parseInt(e.target.value) || 5)))}
+              disabled={!isOwnerOrAdmin}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+              data-testid="dia-vencimiento-input"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">Dia del mes en que vence la cuota (1-28). Usado por el generador automatico.</p>
           </div>
         </div>
       </div>

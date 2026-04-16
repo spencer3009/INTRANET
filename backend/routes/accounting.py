@@ -1059,6 +1059,7 @@ class FinancialSettingsUpdate(BaseModel):
     interes_modalidad: Optional[str] = None   # "monto_fijo" | "porcentaje"
     interes_tope_maximo: Optional[float] = None
     activacion_modo: Optional[str] = None
+    dia_vencimiento_mensualidad: Optional[int] = None  # 1-28
 
 @router.get("/accounting/financial-settings")
 async def get_financial_settings(current_user = Depends(require_section_access("accounting"))):
@@ -1090,6 +1091,8 @@ async def get_financial_settings(current_user = Depends(require_section_access("
     # Retrocompatibility: add pronto_pago_modalidad if missing
     if "pronto_pago_modalidad" not in settings:
         settings["pronto_pago_modalidad"] = "monto_fijo"
+    if "dia_vencimiento_mensualidad" not in settings:
+        settings["dia_vencimiento_mensualidad"] = 5
     return settings
 
 @router.put("/accounting/financial-settings")
@@ -1303,6 +1306,24 @@ async def enroll_student(student_id: str, data: EnrollStudentRequest, current_us
         update["student_status"] = "enrolled"
     
     await db.users.update_one({"id": student_id}, {"$set": update})
+    
+    # MECANISMO 2: Auto-generate pending payment for current month if financial config exists
+    try:
+        fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+        pension = fin_settings.get("pension_mensual", 0) if fin_settings else 0
+        if pension and pension > 0:
+            current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+            await generate_pending_payments_for_school(
+                school_id=school_id,
+                mes=current_month,
+                concepto="mensualidad",
+                monto=pension,
+                solo_sin_pago=True,
+                created_by=user["id"],
+            )
+    except Exception as e:
+        logger.warning(f"[ENROLL] Auto-generate payment failed for student {student_id}: {e}")
+    
     return {"message": "Alumno matriculado correctamente", "student_status": update.get("student_status", current_status)}
 
 @router.put("/students/{student_id}/status")
@@ -2228,3 +2249,229 @@ async def verify_or_reject_yape_payment(
 
     else:
         raise HTTPException(status_code=400, detail="Accion invalida. Use 'verificar' o 'rechazar'")
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BULK PAYMENT GENERATION (GENERACION AUTOMATICA DE COBRANZA)
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def generate_pending_payments_for_school(
+    school_id: str,
+    mes: str,
+    concepto: str,
+    monto: float,
+    solo_sin_pago: bool = True,
+    created_by: str = "system",
+) -> dict:
+    """
+    Shared function: generate pending payments for all active students.
+    Used by: bulk endpoint, enrollment hook, and cron job.
+    Returns: { generados: int, omitidos: int, errores: [] }
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    result = {"generados": 0, "omitidos": 0, "errores": []}
+
+    # Get financial settings for due date
+    fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    dia_venc = 5
+    if fin_settings:
+        dia_venc = fin_settings.get("dia_vencimiento_mensualidad", 5) or 5
+
+    # Calculate due date from mes (YYYY-MM) and dia_vencimiento
+    try:
+        year_num = int(mes.split("-")[0])
+        month_num = int(mes.split("-")[1])
+        dia_safe = min(dia_venc, 28)
+        from datetime import date
+        due_date = date(year_num, month_num, dia_safe).isoformat()
+    except Exception:
+        due_date = f"{mes}-{str(dia_venc).zfill(2)}"
+
+    # Get all active students
+    students = await db.users.find(
+        {"school_id": school_id, "role": "student", "student_status": {"$in": ["active", "enrolled"]}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1}
+    ).to_list(5000)
+
+    if not students:
+        return result
+
+    # Get existing payments for this school+month+concept to deduplicate
+    existing_payments = await db.payments.find(
+        {
+            "school_id": school_id,
+            "pension_month": mes,
+            "concept": concepto,
+            "payment_status": {"$ne": "canceled"},
+        },
+        {"_id": 0, "student_id": 1}
+    ).to_list(10000)
+    existing_student_ids = set(p["student_id"] for p in existing_payments)
+
+    docs_to_insert = []
+    for student in students:
+        sid = student["id"]
+
+        if solo_sin_pago and sid in existing_student_ids:
+            result["omitidos"] += 1
+            continue
+
+        docs_to_insert.append({
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "student_id": sid,
+            "grade_id": student.get("grado_id", ""),
+            "section_id": student.get("seccion_id", ""),
+            "concept": concepto,
+            "conceptos": [{"concepto": concepto, "monto": round(monto, 2)}],
+            "description": f"{concepto} - {mes}",
+            "amount_base": round(monto, 2),
+            "igv_applicable": False,
+            "igv_amount": 0,
+            "total_amount": round(monto, 2),
+            "igv_percentage": 0,
+            "payment_method": "",
+            "payment_status": "pending",
+            "payment_date": due_date,
+            "pension_month": mes,
+            "receipt_number": "",
+            "notes": "Generado automaticamente",
+            "created_by": created_by,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    if docs_to_insert:
+        await db.payments.insert_many(docs_to_insert)
+        result["generados"] = len(docs_to_insert)
+
+    return result
+
+
+class BulkGenerateRequest(BaseModel):
+    mes: str = Field(..., pattern=r"^\d{4}-\d{2}$")
+    concepto: str = "mensualidad"
+    monto: float = Field(..., gt=0)
+    solo_sin_pago: bool = True
+
+
+@router.post("/accounting/payments/generate-bulk")
+async def generate_bulk_payments(
+    data: BulkGenerateRequest,
+    current_user=Depends(require_section_access("accounting")),
+):
+    """Bulk generate pending payments for all active students for a given month."""
+    user = current_user
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Solo propietarios y administradores pueden generar cobranza")
+
+    school_id = user["school_id"]
+    result = await generate_pending_payments_for_school(
+        school_id=school_id,
+        mes=data.mes,
+        concepto=data.concepto,
+        monto=data.monto,
+        solo_sin_pago=data.solo_sin_pago,
+        created_by=user["id"],
+    )
+
+    logger.info(f"[BULK-GENERATE] school={school_id} mes={data.mes} concepto={data.concepto} "
+                f"generados={result['generados']} omitidos={result['omitidos']}")
+
+    return {
+        "message": f"Se generaron {result['generados']} cuotas pendientes" +
+                   (f" ({result['omitidos']} omitidos por ya tener pago)" if result["omitidos"] else ""),
+        **result,
+    }
+
+
+@router.get("/accounting/payments/generate-bulk/preview")
+async def preview_bulk_generation(
+    mes: str,
+    concepto: str = "mensualidad",
+    current_user=Depends(require_section_access("accounting")),
+):
+    """Preview: count how many students would get a payment generated."""
+    school_id = current_user["school_id"]
+
+    total_active = await db.users.count_documents(
+        {"school_id": school_id, "role": "student", "student_status": {"$in": ["active", "enrolled"]}}
+    )
+
+    existing = await db.payments.count_documents({
+        "school_id": school_id,
+        "pension_month": mes,
+        "concept": concepto,
+        "payment_status": {"$ne": "canceled"},
+    })
+
+    return {
+        "total_alumnos_activos": total_active,
+        "ya_tienen_pago": existing,
+        "se_generarian": max(0, total_active - existing),
+    }
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CRON: DAILY BILLING GENERATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def daily_billing_generation_cron():
+    """Background task: runs daily. For each school, if today is their
+    dia_vencimiento_mensualidad, generate pending payments for all active students."""
+    import asyncio
+    while True:
+        try:
+            from datetime import date as date_cls
+            today = date_cls.today()
+            current_month = today.strftime("%Y-%m")
+            day_of_month = today.day
+
+            schools = await db.schools.find(
+                {"plan_estado": {"$ne": "SUSPENDIDO"}},
+                {"_id": 0, "id": 1}
+            ).to_list(None)
+
+            for school in schools:
+                school_id = school["id"]
+                fin_settings = await db.school_financial_settings.find_one(
+                    {"school_id": school_id}, {"_id": 0}
+                )
+                if not fin_settings:
+                    continue
+
+                dia_venc = fin_settings.get("dia_vencimiento_mensualidad", 5) or 5
+                pension = fin_settings.get("pension_mensual", 0) or 0
+
+                if day_of_month != dia_venc or pension <= 0:
+                    continue
+
+                result = await generate_pending_payments_for_school(
+                    school_id=school_id,
+                    mes=current_month,
+                    concepto="mensualidad",
+                    monto=pension,
+                    solo_sin_pago=True,
+                    created_by="cron_system",
+                )
+
+                await db.cron_logs.insert_one({
+                    "school_id": school_id,
+                    "tipo": "generacion_mensualidad",
+                    "fecha_ejecucion": datetime.now(timezone.utc).isoformat(),
+                    "mes_generado": current_month,
+                    "cuotas_generadas": result["generados"],
+                    "cuotas_omitidas": result["omitidos"],
+                    "errores": result["errores"],
+                })
+
+                if result["generados"] > 0:
+                    logger.info(f"[BILLING-CRON] school={school_id} mes={current_month} "
+                                f"generados={result['generados']} omitidos={result['omitidos']}")
+
+        except Exception as e:
+            logger.error(f"[BILLING-CRON] Error: {e}")
+
+        await asyncio.sleep(86400)

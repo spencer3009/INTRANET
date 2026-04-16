@@ -3,38 +3,36 @@
 ## Original Problem Statement
 Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + MongoDB).
 
-## Latest Session (2026-04-15)
-### Feature: Sistema de Cobro a Padres via Yape (QR)
-Implementacion completa del sistema de pagos Yape para padres de familia:
+## Latest Session (2026-04-16)
+### Feature: Generacion Automatica de Cobranza (3 mecanismos)
 
-#### Fase 1 - Backend (DONE)
-- Coleccion `yape_config`: Config QR por colegio (imagen base64, titular, instrucciones, switch)
-- Coleccion `parent_payments`: Pagos reportados por padres (separada de `payments`)
-- 4 endpoints padre: GET yape-config, GET schedule/{student_id}, POST report, GET history
-- 4 endpoints owner: GET/PUT yape-config, GET yape-payments, PUT verify/reject
+#### Mecanismo 1 - Bulk Manual (DONE)
+- Boton "Generar cobranza del mes" en tab Morosos de AccountingPage.jsx
+- Modal con: selector mes, concepto, monto, checkbox anti-duplicado, preview
+- Endpoint `POST /api/accounting/payments/generate-bulk`
+- Endpoint `GET /api/accounting/payments/generate-bulk/preview`
+- Funcion compartida `generate_pending_payments_for_school()` con deduplicacion
 
-#### Fase 2 - Frontend Propietario (DONE)
-- Tab "Cobro Yape" en AccountingPage.jsx (6to tab, estilo purple)
-- `YapeConfigPanel.jsx`: Toggle grande (pill), upload QR cuadrado (borde dashed gris), titular, instrucciones
-- `YapePaymentVerification.jsx`: Tabla con filtros, modal verificar/rechazar
+#### Mecanismo 2 - Auto-matricula (DONE)
+- Hook en `enroll_student()` que genera cuota pendiente del mes actual
+- Solo si `pension_mensual > 0` en financial settings
+- Silencioso (no rompe matricula si falla)
 
-#### Fase 3 - Frontend Padre - Pagos (DONE)
-- Boton "Pagar con Yape" en cada cuota pendiente de ParentPaymentsPage.jsx
-- `YapePaymentModal.jsx`: Modal paso a paso (QR + codigo operacion)
-- Estados: Pendiente/En Verificacion/Pagado/Rechazado
+#### Mecanismo 3 - Cron Diario (DONE)
+- `daily_billing_generation_cron()` corre cada 24h
+- Por cada colegio activo, si `hoy.dia == dia_vencimiento_mensualidad`: genera cuotas
+- Logs en coleccion `cron_logs`
+- Configuracion: `dia_vencimiento_mensualidad` (1-28) en financial settings
 
-#### Card Yape en Dashboard Padre (DONE)
-- Card "Pagar con Yape" al lado de "Estado Financiero" en ParentDashboardPage.jsx
-- Solo visible si yape_config.enabled === true
-- Muestra: proxima cuota, barra de progreso purple, monto destacado, boton Yape
-- Se refresca al cambiar de hijo
-- Abre YapePaymentModal directamente desde el dashboard
+#### Config UI (DONE)
+- Campo "Dia de vencimiento mensual" en FinancialSettingsTab.jsx (junto a pension y matricula)
+- `GenerateBillingModal.jsx` nuevo componente
 
-### Previous Changes
-- Bug fix: Calculo de renovacion de suscripcion (relativedelta months=1)
+### Previous Features
+- Sistema de Cobro a Padres via Yape (QR) - 3 fases
+- Bug fix: Calculo de renovacion de suscripcion
 - Auto-Registro de Alumnos por Padres
-- Contabilidad: Multiples conceptos de pago
-- Dashboard Owner: Metricas reales de asistencia
+- Dashboard Owner: Metricas reales
 
 ## Prioritized Backlog
 ### P1 (Next)
@@ -49,19 +47,22 @@ Implementacion completa del sistema de pagos Yape para padres de familia:
 - Plantilla "Adventista" para carnets QR
 
 ## Key Files
+### Billing Generation
+- `/app/backend/routes/accounting.py` - generate_pending_payments_for_school(), bulk endpoint, cron
+- `/app/frontend/src/components/GenerateBillingModal.jsx`
+- `/app/frontend/src/components/FinancialSettingsTab.jsx` - dia_vencimiento_mensualidad
+
 ### Yape Payment System
 - `/app/backend/routes/parent_payments.py`
-- `/app/backend/routes/accounting.py` (lineas 1996+)
 - `/app/frontend/src/components/YapeConfigPanel.jsx`
 - `/app/frontend/src/components/YapePaymentVerification.jsx`
 - `/app/frontend/src/components/YapePaymentModal.jsx`
 - `/app/frontend/src/pages/ParentPaymentsPage.jsx`
-- `/app/frontend/src/pages/ParentDashboardPage.jsx` (card Yape)
-- `/app/frontend/src/pages/AccountingPage.jsx`
+- `/app/frontend/src/pages/ParentDashboardPage.jsx`
 
 ## Key DB Schema
-- `yape_config`: `school_id` (unique), `enabled`, `qr_image_base64`, `account_holder_name`, `instructions_text`
-- `parent_payments`: `school_id`, `student_id`, `parent_id`, `amount`, `month`, `year`, `yape_operation_code`, `status`
-- `payments`: Pagos confirmados del colegio (contabilidad)
-- `users`: `role`, `dni`, `enrollment_status`
-- `schools`: `expiration_date`, `fecha_vencimiento`
+- `payments`: Pagos/cuotas (collection principal de contabilidad)
+- `school_financial_settings`: pension_mensual, dia_vencimiento_mensualidad, pronto_pago, interes
+- `cron_logs`: Logs del cron de generacion automatica
+- `yape_config`: Config QR por colegio
+- `parent_payments`: Pagos reportados por padres via Yape
