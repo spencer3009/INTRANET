@@ -2286,11 +2286,11 @@ async def get_academic_assignments(
     # Enrich with related data
     if assignments:
         # Get all unique IDs
-        teacher_ids = list(set(a["teacher_id"] for a in assignments))
-        level_ids = list(set(a["level_id"] for a in assignments))
-        grade_ids = list(set(a["grade_id"] for a in assignments))
-        section_ids = list(set(a["section_id"] for a in assignments))
-        subject_ids = list(set(a["subject_id"] for a in assignments))
+        teacher_ids = list(set(a.get("teacher_id") for a in assignments if a.get("teacher_id")))
+        level_ids = list(set(a.get("level_id") for a in assignments if a.get("level_id")))
+        grade_ids = list(set(a.get("grade_id") for a in assignments if a.get("grade_id")))
+        section_ids = list(set(a.get("section_id") for a in assignments if a.get("section_id")))
+        subject_ids = list(set(a.get("subject_id") for a in assignments if a.get("subject_id")))
         
         # Fetch related data
         teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
@@ -2313,20 +2313,20 @@ async def get_academic_assignments(
         
         # Enrich assignments
         for a in assignments:
-            teacher = teachers_map.get(a["teacher_id"], {})
+            teacher = teachers_map.get(a.get("teacher_id", ""), {})
             a["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
             a["teacher_photo"] = teacher.get("photo_url")
             
-            level = levels_map.get(a["level_id"], {})
+            level = levels_map.get(a.get("level_id", ""), {})
             a["level_name"] = level.get("nombre", "")
             
-            grade = grades_map.get(a["grade_id"], {})
+            grade = grades_map.get(a.get("grade_id", ""), {})
             a["grade_name"] = grade.get("nombre", "")
             
-            section = sections_map.get(a["section_id"], {})
+            section = sections_map.get(a.get("section_id", ""), {})
             a["section_name"] = section.get("nombre", "")
             
-            subject = subjects_map.get(a["subject_id"], {})
+            subject = subjects_map.get(a.get("subject_id", ""), {})
             a["subject_name"] = subject.get("name", "")
             a["subject_code"] = subject.get("code", "")
             a["subject_color"] = subject.get("color", "#3B82F6")
