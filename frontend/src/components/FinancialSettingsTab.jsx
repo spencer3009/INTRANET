@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle, Loader2 } from "lucide-react";
+import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle, Loader2, Zap } from "lucide-react";
 import PaymentConceptsSection from "./PaymentConceptsSection";
 import DiscountTypesSection from "./DiscountTypesSection";
 import StudentDiscountsSection from "./StudentDiscountsSection";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function FinancialSettingsTab({ token, user }) {
+export default function FinancialSettingsTab({ token, user, onGenerateBilling }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -172,6 +172,31 @@ export default function FinancialSettingsTab({ token, user }) {
           </div>
         </div>
       </div>
+
+      {/* Generate billing button */}
+      {isOwnerOrAdmin && onGenerateBilling && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <Zap className="w-5 h-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-700">Generar cobranza del mes</p>
+                <p className="text-xs text-slate-400 mt-0.5">Genera manualmente las cuotas pendientes del mes para todos los alumnos activos. El sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
+              </div>
+            </div>
+            <button
+              onClick={onGenerateBilling}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all shadow-md flex-shrink-0"
+              data-testid="generate-billing-btn"
+            >
+              <Zap className="w-4 h-4" />
+              Generar cobranza
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Row 2: Pronto Pago + Intereses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1981,25 +1981,13 @@ function getInitials(name) {
   return (parts[0]?.[0] || "?").toUpperCase();
 }
 
-function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, onGenerateBilling }) {
+function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
   const [filter, setFilter] = useState("all");
   const filtered = filter === "all" ? debtors : debtors.filter(d => d.status === filter);
   const avgDebt = debtorsSummary?.morosos_count > 0 ? (debtorsSummary.total_debt / debtorsSummary.morosos_count) : 0;
 
   return (
     <div className="space-y-5">
-      {/* Header with Generate button */}
-      <div className="flex items-center justify-between">
-        <div />
-        <button
-          onClick={onGenerateBilling}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all shadow-md"
-          data-testid="generate-billing-btn"
-        >
-          <Zap className="w-4 h-4" />
-          Generar cobranza del mes
-        </button>
-      </div>
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div
@@ -2147,7 +2135,7 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, onGenerat
 }
 
 
-function ConfigTab({ token, user }) {
+function ConfigTab({ token, user, onGenerateBilling }) {
   const [subTab, setSubTab] = useState("financiero");
   return (
     <div data-testid="config-tab-wrapper">
@@ -2172,7 +2160,7 @@ function ConfigTab({ token, user }) {
           Datos para Boletas
         </button>
       </div>
-      {subTab === "financiero" && <FinancialSettingsTab token={token} user={user} />}
+      {subTab === "financiero" && <FinancialSettingsTab token={token} user={user} onGenerateBilling={onGenerateBilling} />}
       {subTab === "boletas" && <ConfiguracionBoletaTab token={token} user={user} />}
     </div>
   );
@@ -2676,11 +2664,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               debtors={debtors}
               debtorsSummary={debtorsSummary}
               onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
-              onGenerateBilling={() => setShowBillingModal(true)}
             />
           )}
           {activeTab === "config" && (
-            <ConfigTab token={token} user={user} />
+            <ConfigTab token={token} user={user} onGenerateBilling={() => setShowBillingModal(true)} />
           )}
           {activeTab === "yape" && (
             <div data-testid="yape-tab-content">
