@@ -292,11 +292,25 @@ async def get_teacher_subjects(
     if not subject_ids:
         return []
     
-    # Get subjects
-    subjects = await db.subjects.find({
+    # Get subjects - also filter by grade/section on the subject itself
+    subject_query = {
         "id": {"$in": subject_ids},
         "school_id": school_id
-    }, {"_id": 0}).to_list(100)
+    }
+    if grade_id:
+        subject_query["grade_id"] = grade_id
+    if section_id:
+        subject_query["section_id"] = section_id
+    
+    subjects = await db.subjects.find(subject_query, {"_id": 0}).to_list(100)
+    
+    # If no subjects found with strict filter, try without grade/section filter on subjects
+    # (for subjects that don't have grade_id/section_id stored)
+    if not subjects and subject_ids:
+        subjects = await db.subjects.find({
+            "id": {"$in": subject_ids},
+            "school_id": school_id
+        }, {"_id": 0}).to_list(100)
     
     # Add assignment info to each subject
     for subject in subjects:
