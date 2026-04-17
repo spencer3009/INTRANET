@@ -2458,6 +2458,38 @@ async def verify_or_reject_yape_payment(
 
         await db.payments.insert_one(accounting_payment)
 
+        # Auto-delete existing pending payments for the same student/concept/month
+        pension_month = accounting_payment.get("pension_month", "")
+        if pension_month:
+            delete_query = {
+                "school_id": school_id,
+                "student_id": payment["student_id"],
+                "payment_status": "pending",
+                "id": {"$ne": accounting_payment["id"]},
+                "pension_month": pension_month,
+                "$or": [
+                    {"concept": {"$regex": "mensualidad", "$options": "i"}},
+                    {"conceptos.concepto": {"$regex": "mensualidad", "$options": "i"}},
+                ]
+            }
+            pending_to_delete = await db.payments.find(delete_query, {"_id": 0}).to_list(50)
+            if pending_to_delete:
+                logs = [{
+                    "school_id": p.get("school_id"),
+                    "student_id": p.get("student_id"),
+                    "concepto": p.get("concept"),
+                    "mes": p.get("pension_month", ""),
+                    "monto": p.get("total_amount"),
+                    "payment_id_original": p.get("id"),
+                    "accion": "auto_eliminado",
+                    "razon": f"Reemplazado por pago Yape verificado {accounting_payment['id']}",
+                    "eliminado_at": now,
+                } for p in pending_to_delete]
+                await db.payments_log.insert_many(logs)
+                ids_del = [p["id"] for p in pending_to_delete]
+                del_result = await db.payments.delete_many({"id": {"$in": ids_del}})
+                logger.info(f"[YAPE-VERIFY] Auto-deleted {del_result.deleted_count} pending payments for student {payment['student_id']} month {pension_month}")
+
         logger.info(f"[YAPE-VERIFY] Pago verificado: id={payment_id}, amount={payment['amount']}, "
                      f"student={payment['student_id']}, code={payment.get('yape_operation_code')}")
 
