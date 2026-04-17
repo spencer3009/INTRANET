@@ -1,165 +1,139 @@
-<analysis>**original_problem_statement**: Replicar el componente de Horario del Portal Propietario en todos los demás portales reutilizando el componente fuente, sin crear nuevos endpoints ni componentes duplicados. Post-unificación, se implementaron extensas mejoras y nuevos módulos: Parent Auto-Enrollment (Matrículas por padres) con flujos de aprobación y configuración global, múltiples conceptos de pago en Contabilidad con detalle en PDF, edición inline de Criterios de Evaluación en Registro Auxiliar, fixes en DNI de profesores, métricas reales en el Dashboard Owner y un bug crítico de renovación de suscripción.
+<analysis>**original_problem_statement**: Replicar el componente de Horario unificado y expandir módulos del SaaS escolar. Implementar sección Procedencia Académica en el formulario de Auto-registro de alumnos. Implementar Sistema de Plantillas de Registro Auxiliar (Fases 1 a 4) para reemplazar la tabla de notas hardcodeada por una dinámica.
+
 **PRODUCT REQUIREMENTS**:
+- P0: Sistema de Plantillas de Registro Auxiliar (Fase 1: Backend, Fase 2: Gestor, Fase 3: Editor, Fase 4: Consumo dinámico).
+- P1: Formulario Auto-Registro - Sección Procedencia Académica y fixes de UTF-8.
+- P1: Módulo de Matrículas completado.
+- P1: Cobro Yape y Automatización de Cobranzas completado.
+- P1: Guard global para bloquear servicios a alumnos /.
 - P1: Dashboard Owner con métricas reales.
-- P1: Módulo de Matrículas (Enrollments) completado.
 - P1: Psicología — Log de auditoría estricto.
 
-**User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
+**User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish** to the user).
 
 **what currently exists?**: 
-Aplicación full-stack (FastAPI + React + MongoDB). Los horarios están unificados. Contabilidad permite registrar múltiples conceptos en un solo pago con desglose total en el PDF. Se integró un robusto sistema de Auto-Registro para Padres con validaciones, endpoints de aprobación/rechazo en el panel de Admin, y configuraciones globales (switches de habilitación). El Registro Auxiliar de evaluación es personalizable globalmente. El Dashboard muestra métricas de asistencia reales. 
+SaaS escolar (FastAPI + React + MongoDB). El módulo financiero está robusto, manejando cálculo preciso de mora, Yape con modal de validación, y auto-eliminación física de cuotas al confirmarse pagos. Se implementó exitosamente el formulario de Auto-registro para padres con la sección Procedencia Académica. El **Sistema de Plantillas de Registro Auxiliar** tiene completadas las Fases 1 (Backend), 2 (Pestaña Gestor de Plantillas en Ajustes) y 3 (Editor de Plantillas con Live Preview). Falta conectar estas plantillas en el componente real de notas.
 
 **Last working item**:
-    - Last item agent was working: Bug Crítico en la renovación de suscripciones. El sistema estaba sumando 30 días a la fecha actual () en lugar de añadir 1 mes a la fecha de vencimiento vigente (), haciendo que el colegio pierda días de suscripción si pagaba por adelantado.
-    - Status: IN PROGRESS (La lógica en  fue modificada y probada mediante un script local de Python, pero falta ejecutar la validación e2e desde el endpoint o frontend y reportar el fix).
-    - Agent Testing Done: Y (Python -c local test only)
-    - Which testing method agent to use?: Frontend testing agent/ curl to test  manually, + screenshot tool in superadmin panel.
+    - Last item agent was working: Fase 4 del Sistema de Plantillas: Refactorizar  para que consuma dinámicamente la configuración de la plantilla en lugar de usar constantes hardcodeadas. El agente recopiló contexto leyendo  y , pero aún no realizó modificaciones.
+    - Status: NOT STARTED
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Frontend testing agent + manual e2e via screenshot tool.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1: Cálculo incorrecto de nueva fecha de vencimiento al renovar suscripción.
-     - Attempted fixes: Se actualizó  (alrededor de la línea 865) usando  para que la nueva fecha sea . 
-     - Next debug checklist: 
-       - Verificar que el endpoint de renovación en el panel de soporte asigne correctamente la fecha (e.g. renovar un colegio que vence en 8 días, debe sumar 1 mes a su fecha de vencimiento, NO a hoy). 
-       - Enviar comprobación e2e al usuario y utilizar el .
-     - Why fix this issue and what will be achieved with the fix?: Respetar el ciclo de facturación y evitar que los clientes pierdan días pagados de suscripción por adelantar el pago.
-     - Status: TESTING PENDING
-     - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: Both (Test renewal from Support Admin UI to visually confirm the updated date).
-     - Blocked on other issue: None
+  Ningún issue en progreso o bloqueante reportado. Se solucionaron todos los bugs financieros reportados en la sesión.
 
 **In progress Task List**:
-  None
+  Task 1: Fase 4 — Consumo Dinámico en 
+     - Where to resume: Crear  moviendo las lógicas puras de cálculo de promedios. Modificar  para hacer fetch de la plantilla, renderizar dinámicamente los headers y celdas, y aplicar fallback si no hay plantilla configurada.
+     - What will be achieved with this?: Los profesores evaluarán usando los criterios dinámicos creados por el colegio (en la Fase 3) en lugar de un registro auxiliar fijo/hardcodeado. 
+     - Status: NOT STARTED (Context gathered)
+     - Should Test frontend/backend/both after fix?: Both (Principalmente Frontend, pero asegurar que el guardado de notas siga funcionando con el backend).
+     - Blocked on something: Nada.
 
-**Upcoming and Future Tasks**
+**Upcoming and Future Tasks**:
     Upcoming Tasks:
-    - P1: Psicología — Log de auditoría estricto (parametrizar ).
-    - P1: Guard global para bloquear servicios a alumnos en estado  o  (asistencia, notas, etc.).
-    - P1: Conectar datos reales en las demás cards del Dashboard Owner (Estudiantes Activos, Ingresos del Mes, etc. - Asistencia ya está listo).
+    - P1: Guard global para bloquear servicios (asistencia, notas, etc.) a alumnos en estado  o .
+    - P1: Conectar datos reales en las demás cards del Dashboard Owner.
+    - P1: Psicología — Log de auditoría estricto.
     
     Future Tasks:
     - P2: Crear módulo de Encuestas.
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica:  (> 11,000 líneas) y .
+    - P2: Refactorización crítica: ,  y .
     - P2: Crear plantilla Adventista para carnets QR.
 
-**Completed work in this session**
-- Bug fix: El PDF exportado de QR para Profesores ahora muestra Docente en el badge correctamente (DONE).
-- Fix de referencias cruzadas y unificación de UI entre escáneres de Movilidad, PAE y Asistencia (DONE).
-- Se agregó el botón Cambiar Portal para usuarios multi-rol (DONE).
-- Contabilidad: Selección de Múltiples Conceptos de pago y despliegue del desglose ítem por ítem en el PDF de Boleta (DONE).
-- Centro de Ayuda: Switch para activar/desactivar el Avatar Flotante guardado en  (DONE).
-- Registro Auxiliar: Edición inline global de nombres de columnas y categorías de evaluación () (DONE).
-- Módulo completo de Auto-Registro por Padres (enrollment.py, ParentEnrollmentForm, Panel Admin - Pendientes, y Modal de Aprobación en Cascada) (DONE).
-- Configuración global (switches) para habilitar/deshabilitar Auto-Registro desde el panel Admin (DONE).
-- UI fix: DNI de profesores no se guardaba porque el request filtraba el payload. Resuelto DNI max 8 dígitos, tildes (UTF-8) y campos obligatorios (DONE).
-- Toggle de Visibilidad de Suscripción para el Administrador (owner setting para ocultar montos y botón yape al administrador) (DONE).
-- Dashboard Owner: Gráfico de dona conectado a datos reales de asistencia del mes en curso (DONE).
+**Completed work in this session**:
+- Refactor: Separación de columnas de contabilidad en BASE, MORA, TOTAL para clarificar cobros (DONE).
+- Bug fix: Auto-eliminación física de cuotas pending al validar un pago Yape consolidado y limpieza de registros residuales (DONE).
+- Feature: Modal interactivo Validar Pago Yape directamente en el listado de Ingresos de Contabilidad (DONE).
+- Bug fix: Cálculo de mora unificado usando fechas UTC en todas las vistas (Modal, Tabla, Backend) (DONE).
+- Feature: Card de Yape en el Portal de Padres ahora muestra y aplica correctamente los intereses de mora (DONE).
+- Feature: Formulario Auto-registro Padre: Sección Procedencia Académica agregada y guardando datos en MongoDB (DONE).
+- Bug fix: Corrección profunda de codificación UTF-8 para todos los textos con tildes y caracteres en español (DONE).
+- Feature: Sistema Plantillas Registro Auxiliar (Fase 1) - 8 Endpoints backend en  (DONE).
+- Feature: Sistema Plantillas Registro Auxiliar (Fase 2) - Pestaña Gestor de Plantillas en Ajustes (DONE).
+- Feature: Sistema Plantillas Registro Auxiliar (Fase 3) -  con preview en vivo y validación de suma de porcentajes a 100% (DONE).
 
-**Earlier issues found/mentioned but not fixed**
-  None
+**Earlier issues found/mentioned but not fixed**:
+  None.
 
-**Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Ninguno.
-  - Recurrence count: 0
-  - Status: RESOLVED
+**Known issue recurrence from previous fork**:
+  - Issue recurrence in previous fork: Error Ya existe un pago registrado para este mes.
+  - Recurrence count: 1
+  - Status: RESOLVED (La validación en backend de pagos duplicados Yape se mejoró para permitir reintentos si el previo fue rechazado o si el pago verificado fue cancelado en contabilidad).
 
-**Code Architecture**
+**Code Architecture**:
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── enrollment.py         # Endpoints para self-registration de padres
-│   │   ├── evaluation_criteria.py# Customización global de las columnas de notas
-│   │   ├── support.py            # Contiene la lógica de renovación de subscripción (BUG EN PROGRESO)
-│   │   ├── settings.py           # Tenant settings
-│   ├── services/
-│   │   ├── boleta_pdf_generator.py # Generador actualizado para iterar múltiples conceptos
+│   │   ├── registro_auxiliar_plantillas.py # NUEVO: Endpoints CRUD de plantillas de evaluación
+│   │   ├── grades.py                     # A consultar para la Fase 4
+│   │   ├── enrollment.py                 # Actualizado con campos de Procedencia Académica
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── ParentEnrollmentForm.jsx
-│   │   │   ├── UsersPage.jsx      # Heavy file (>5,800 líneas), includes user creation, roles, tabs.
-│   │   │   ├── SettingsPage.jsx   # Tenant settings toggles
+│   │   │   ├── PlantillaEditorPage.jsx   # NUEVO: Editor de plantillas
+│   │   │   ├── SettingsPage.jsx          # Actualizado con tabs
+│   │   │   ├── ParentEnrollmentForm.jsx  # Actualizado con Procedencia Académica
+│   │   │   ├── AccountingPage.jsx        # Refactorizado con validación Yape y desglose Mora
 │   │   ├── components/
-│   │   │   ├── PendingEnrollmentsTab.jsx
-│   │   │   ├── EnrollmentConfigModal.jsx
-│   │   │   ├── GradeBookTab.jsx   # Inline editing for criteria
+│   │   │   ├── GradeBookTab.jsx          # OBJETIVO DE LA FASE 4
+│   │   │   ├── RegistroAuxiliarPlantillasTab.jsx # NUEVO: Gestor
 
-**Key Technical Concepts**
-FastAPI, React, MongoDB Atlas, ReportLab (PDF boletas), Multi-tenant settings, Parent Enrollment (Status: pending/active/rejected).
+**Key Technical Concepts**:
+Plantillas de Calificaciones Dinámicas (JSON en base de datos con reglas estrictas de suma = 100%). Cálculo dinámico de celdas de Input y Promedios Automáticos. Fallback render pattern para retrocompatibilidad. Validaciones cruzadas de pagos consolidados y deudas pendientes.
 
-**key DB schema**
-  - : , ,  (pending, active, rejected), .
-  - :  (boolean), , .
-  - : , array de  (con ,  y ).
+**key DB schema**:
+  - : 
+  - : Expandido internamente con 
 
-**changes in tech stack**
+**changes in tech stack**:
   - None
 
-**All files of reference** 
-  -  (EDITADO - Lógica de renewal).
+**All files of reference**:
   - 
   - 
   - 
-  - 
+  -  (Pendiente de editar en Fase 4)
+  -  (Pendiente de consultar en Fase 4)
   - 
 
 **Areas that need refactoring**: 
-  -  (Alcanzó las 5,800 líneas, urge modularización en el futuro).
-  -  (> 11,000 líneas).
+  -  (Tiene >640 líneas con constantes hardcodeadas de columnas evaluativas, la Fase 4 solucionará el render estático para hacerlo dinámico).
 
-**key api endpoints**
-  -  (Endpoint en revisión por bug de fechas).
+**key api endpoints**:
+  -  (Lista plantillas del sistema y colegio)
   - 
   - 
+
+**Critical Info for New Agent**: 
+- **Fase 4 (GradeBookTab)**: El modelo de datos de notas ( en ) y los endpoints de guardado de calificaciones **NO DEBEN SER ALTERADOS**. Las plantillas generan identificadores compatibles dinámicamente. Extraer los métodos de cálculo a  antes de refactorizar la vista. Usa el fallback  si hay un registro legacy sin plantilla vinculada.
+
+**documents and test reports created in this job**: 
   - 
 
-**Critical Info for New Agent** 
-- **Subscriptions Bug**: La corrección utilizando  en  ya se escribió, sin embargo, la confirmación oficial en el sistema (e2e/frontend snapshot) NO fue declarada. Finaliza esto como tu primer paso.
-- **Enrollment**: El status  se utiliza para deshabilitar vistas y funciones para alumnos registrados por padres que aún no han sido aprobados por el administrador.
-- **Date Manipulations**: FastAPI/Pydantic dates suelen venir como strings ISO. Convertir correctamente a Wed Apr 15 04:27:35 UTC 2026/ usando  antes de operar cálculos de .
-- **UTF-8**: Evita la escritura de secuencias de escape unícodes (ej. ) al editar archivos de React; el último agente tuvo que limpiar todo el  usando . 
+**Last 10 User Messages and any pending HUMAN messages**: 
+ - [User] Proporcionó el prompt detallado para ejecutar las Fases 3 y 4 del Registro Auxiliar Dinámico.
+ - [Agent] Completó la Fase 3: Creó y verificó , asegurando la conexión entre el gestor, el botón clonar, el modo de edición en dos columnas y guardados. 
+ - [Agent] Inició la revisión e investigación de  y  para la Fase 4 y guardó el estado de progreso.
+ - *Pending Human Message*: Ejecutar el desarrollo de la Fase 4 tal como se definió en el prompt, sin crear endpoints nuevos, tocando exclusivamente el renderizado dinámico de .
 
-**documents and test reports created in this job** 
-  - 
+**Project Health Check**:
+Healthy. E2E de contabilidad sin fallos conocidos.
 
-**Last 10 User Messages and any pending HUMAN messages** 
- - [User] Reporta que al registrar a un alumno que está pendiente, la opción Matricular no debe salir en el menú.
- - [Agent] Oculta la opción en base a la condición .
- - [User] Solicita renombrar Matrículas a Pendientes y reporta bug en los dropdowns de Nivel/Grado/Sección dentro del popup de aprobación.
- - [Agent] Corrige nombre y arregla lógica en cascada en .
- - [User] Pide que se active/desactive en Ajustes la vista del detalle de suscripción y monto a pagar para el rol Administrador. 
- - [Agent] Agrega campo  y modifica .
- - [User] Indica que los datos de la gráfica de dona del Dashboard deben ser reales, ya no hardcodeados.
- - [Agent] Conecta gráfica a nuevo endpoint .
- - [User] (PENDING HUMAN MESSAGE) Reporta 🐛 BUG CRÍTICO en la renovación de suscripción donde se usa  en vez de  (SaaS standard). Proveé casos exactos de prueba.
- - [Agent] Modificó exitosamente el archivo backend y lo probó por consola con un script en Python, **pero olvidó realizar la prueba e2e final (vía interfaz UI o cURL) y utilizar la finish_tool**. 
+**3rd Party Integrations**: 
+  - Ninguna tocada en esta iteración. (Las existentes usan User Keys).
 
-**Project Health Check:**
-Healthy. Múltiples flujos nuevos implementados exitosamente.
-
-**3rd Party Integrations** 
-	 •	Cloudinary (Image Storage & Optimization) — requires User API Key
-	 •	Firebase Cloud Messaging (PWA Push Notifications) — requires User API Key
-
-**Testing status**
-  - Testing agent used after significant changes: YES
+**Testing status**:
+  - Testing agent used after significant changes: NO (Testing extenso de Frontend hecho con curl y ).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
 
-**Credentials to test flow:**
-  Refer to . (Admin:  | Pass: , Owner:  | Pass: ).
+**Credentials to test flow**:
+  Refer to . (Admin: , Owner: , Parent test account:  / ).
 
-**What agent forgot to execute**
-El agente diagnosticó y corrigió el bug crítico de fechas de renovación en el backend (), validándolo en un entorno de python aislado, PERO olvidó realizar el test final consumiendo el endpoint a nivel servidor (cURL) o UI y enviar el reporte de culminación mediante la herramienta .
-
-**Debugging checklist for current issue**
-    Issue: Cálculo incorrecto de nueva fecha de vencimiento al renovar suscripción
-
-    Backend files to check: (with line number)
-    -  (Línea ~865).
-    - Verificar la correcta importación de .
-    - Probar localmente usando cURL contra  utilizando un test  específico o simulando en UI como SuperAdmin.
-
-    </analysis>
+**What agent forgot to execute**:
+El agente leyó  para planear la Fase 4, pero no hizo los cambios. El siguiente agente debe proceder directamente a ejecutar los pasos del Prompt sobre  descritos en el historial (Crear utilities, reemplazar constantes, modificar useEffect).</analysis>
