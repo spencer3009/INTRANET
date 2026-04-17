@@ -41,7 +41,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
         year: payment.year,
         amount: parseFloat(amount),
         yape_operation_code: operationCode.trim(),
-        concept: payment.concept || payment.description || payment.month_name,
+        concept: "mensualidad",
         is_pronto_pago: !!payment._isProntoPago,
       }, { headers });
 
