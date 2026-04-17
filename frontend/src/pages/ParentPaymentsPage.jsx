@@ -352,7 +352,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                                   student_name: `${selectedChild?.name || ''} ${selectedChild?.last_name || ''}`.trim(),
                                   month: m,
                                   year: y,
-                                  amount: month.total_amount,
+                                  amount: month.total_amount + (month.interest_charge || 0),
                                 });
                               }}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors shadow-sm"

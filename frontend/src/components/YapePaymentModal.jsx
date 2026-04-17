@@ -13,7 +13,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
 
   useEffect(() => {
     if (payment) {
-      setAmount(payment.total_amount || payment.amount || 0);
+      setAmount(payment.amount || payment.total_amount || 0);
       setOperationCode("");
       setStep(1);
     }
@@ -102,7 +102,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Monto a pagar:</span>
-              <span className="font-bold text-lg text-purple-700">S/ {(payment.total_amount || payment.amount || 0).toFixed(2)}</span>
+              <span className="font-bold text-lg text-purple-700">S/ {(payment.amount || payment.total_amount || 0).toFixed(2)}</span>
             </div>
           </div>
 
