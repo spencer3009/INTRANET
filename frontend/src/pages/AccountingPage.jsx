@@ -2393,12 +2393,15 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
       // Open boleta PDF if emitted
       if (data?.boleta_disponible && data?.numero_boleta) {
+        const { toast } = await import("sonner");
         toast.success(`Pago confirmado. Boleta ${data.numero_boleta} emitida`);
         setBoletaPreview({ open: true, ingresoId: selectedPayment.id, numeroBoleta: data.numero_boleta });
       } else {
+        const { toast } = await import("sonner");
         toast.success("Pago confirmado correctamente");
       }
     } catch (err) {
+      const { toast } = await import("sonner");
       toast.error(err.response?.data?.detail || "Error al confirmar pago");
     } finally {
       setProcessing(false);
