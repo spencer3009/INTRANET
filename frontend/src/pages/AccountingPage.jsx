@@ -417,7 +417,59 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
       {/* Summary cards */}
       <AccountingSummaryCards summary={periodSummary} loading={summaryLoading} />
 
-      {/* Header - Premium style */}
+      {/* Student search bar - prominent */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" ref={searchRef}>
+        <div className="flex items-center gap-3">
+          {selectedStudentName ? (
+            <div className="flex items-center gap-3 flex-1">
+              <Search className="w-5 h-5 text-blue-500" />
+              <span className="text-sm text-gray-500">Filtrando por:</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                <User className="w-4 h-4 text-blue-500" />
+                <span className="text-blue-700 font-semibold">{selectedStudentName}</span>
+                <button onClick={clearStudentFilter} className="text-blue-400 hover:text-blue-600 ml-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                onFocus={() => studentResults.length > 0 && setShowResults(true)}
+                placeholder="Buscar alumno por nombre o apellido..."
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 focus:bg-white outline-none transition-all placeholder:text-gray-400"
+                data-testid="student-search-input"
+              />
+              {searchLoading && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />}
+            </div>
+          )}
+        </div>
+        {showResults && studentResults.length > 0 && (
+          <div className="mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto" data-testid="student-search-results">
+            {studentResults.map(s => (
+              <button
+                key={s.id}
+                onClick={() => selectStudent(s)}
+                className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 border-b border-gray-50 last:border-0 transition-colors"
+              >
+                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">
+                  {(s.name || "?")[0]}{(s.last_name || "?")[0]}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{s.name} {s.last_name}</p>
+                  <p className="text-xs text-gray-400">{s.grade_name || ""} {s.section_name || ""}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Header - Status filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium text-gray-500">Estado:</span>
@@ -446,51 +498,6 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                 {val.label}
               </button>
             ))}
-          </div>
-          {/* Student search */}
-          <div className="relative" ref={searchRef}>
-            {selectedStudentName ? (
-              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                <User className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-blue-700 font-medium">{selectedStudentName}</span>
-                <button onClick={clearStudentFilter} className="text-blue-400 hover:text-blue-600 ml-1">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  onFocus={() => studentResults.length > 0 && setShowResults(true)}
-                  placeholder="Buscar alumno..."
-                  className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none w-52"
-                  data-testid="student-search-input"
-                />
-                {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-gray-400" />}
-              </>
-            )}
-            {showResults && studentResults.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto" data-testid="student-search-results">
-                {studentResults.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => selectStudent(s)}
-                    className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
-                  >
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">
-                      {(s.name || "?")[0]}{(s.last_name || "?")[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{s.name} {s.last_name}</p>
-                      <p className="text-xs text-gray-400">{s.grade_name || ""} {s.section_name || ""}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
         <button
