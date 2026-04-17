@@ -335,7 +335,7 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, onDelete, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, onDelete, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId, financialSettings }) {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -343,6 +343,42 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
   const [selectedStudentName, setSelectedStudentName] = useState("");
   const searchRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Calculate mora preview for pending payments in the table
+  const calcMoraForPayment = (payment) => {
+    if (payment.payment_status !== "pending" || !financialSettings) return null;
+    const fs = financialSettings;
+    if (!fs.interes_activo) return null;
+    const concept = (payment.concept || "").toLowerCase();
+    const conceptos = payment.conceptos || [];
+    let isMensualidad = concept.includes("mensualidad");
+    if (!isMensualidad) isMensualidad = conceptos.some(c => (c.concepto || "").toLowerCase().includes("mensualidad"));
+    if (!isMensualidad || !payment.pension_month) return null;
+    const diaVenc = parseInt(fs.pronto_pago_fecha_limite || fs.dia_vencimiento_mensualidad || 5);
+    const interesValor = parseFloat(fs.interes_valor) || 0;
+    if (interesValor <= 0) return null;
+    const pm = payment.pension_month;
+    try {
+      const [year, month] = pm.split("-").map(Number);
+      const deadline = new Date(year, month - 1, diaVenc);
+      const today = new Date();
+      const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
+      if (daysLate <= 0) return null;
+      let mensBase = 0;
+      for (const c of conceptos) {
+        if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+      }
+      if (mensBase === 0) mensBase = payment.amount_base || 0;
+      let mora = 0;
+      if ((fs.interes_tipo || "porcentaje") === "porcentaje") {
+        mora = Math.round(mensBase * (interesValor / 30 / 100) * daysLate * 100) / 100;
+      } else {
+        mora = Math.round((interesValor / 30) * daysLate * 100) / 100;
+      }
+      if (mora <= 0) return null;
+      return { mora, daysLate, totalConMora: Math.round((payment.total_amount + mora) * 100) / 100 };
+    } catch { return null; }
+  };
 
   useEffect(() => {
     if (!studentSearch.trim() || studentSearch.length < 2) {
@@ -542,6 +578,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
               ) : (
                 payments.map(payment => {
                   const statusInfo = PAYMENT_STATUSES[payment.payment_status] || PAYMENT_STATUSES.pending;
+                  const moraInfo = calcMoraForPayment(payment);
                   return (
                     <tr key={payment.id} className="hover:bg-gray-50/50 transition-colors" data-testid={`payment-row-${payment.id}`}>
                       <td className="px-5 py-4">
@@ -590,6 +627,13 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       </td>
                       <td className="px-5 py-4 text-right">
                         <span className="text-sm font-bold text-gray-800">S/ {formatNumber(payment.total_amount)}</span>
+                        {moraInfo && (
+                          <div className="mt-1">
+                            <span className="text-xs text-rose-500 font-semibold">+S/ {formatNumber(moraInfo.mora)} mora</span>
+                            <span className="text-xs text-gray-400 ml-1">({moraInfo.daysLate}d)</span>
+                            <div className="text-xs font-bold text-rose-600">Total: S/ {formatNumber(moraInfo.totalConMora)}</div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <span className="text-sm text-gray-600">{payment.method_label}</span>
@@ -2872,6 +2916,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               token={token}
               searchStudentId={searchStudentId}
               setSearchStudentId={(id) => { setSearchStudentId(id); setPaymentsPage(1); }}
+              financialSettings={financialSettings}
             />
           )}
           {activeTab === "expenses" && (
