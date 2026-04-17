@@ -249,7 +249,7 @@ export default function YapeConfigPanel({ token }) {
         </div>
 
         {/* Save button */}
-        <div className="flex justify-end mt-8 pt-6 border-t border-gray-100">
+        <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
           <button
             onClick={handleSave}
             disabled={saving}
