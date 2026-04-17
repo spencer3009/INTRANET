@@ -559,7 +559,7 @@ async def import_parents(
             username = await generate_username(name, last_name, dni, school_id)
 
         # ── Generate password ──
-        plain_password = password_raw if password_raw else generate_password()
+        plain_password = password_raw if password_raw else (dni if dni else generate_password())
 
         # ── Create parent ──
         parent_doc = {
