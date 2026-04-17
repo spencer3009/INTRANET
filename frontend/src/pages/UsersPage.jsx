@@ -5912,8 +5912,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               placeholder="Nombre" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                             <input value={editingParentPendingData.last_name || ""} onChange={e => setEditingParentPendingData(d => ({...d, last_name: e.target.value}))}
                               placeholder="Apellido" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                            <input value={editingParentPendingData.dni || ""} onChange={e => setEditingParentPendingData(d => ({...d, dni: e.target.value}))}
-                              placeholder="DNI (8 digitos)" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                            <div>
+                              <select value={editingParentPendingData.tipo_documento || "DNI"} onChange={e => setEditingParentPendingData(d => ({...d, tipo_documento: e.target.value, dni: ""}))}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                                <option value="DNI">DNI</option>
+                                <option value="CE">Carnet de Extranjeria</option>
+                              </select>
+                            </div>
+                            <div>
+                              <input value={editingParentPendingData.dni || ""}
+                                onChange={e => {
+                                  const v = editingParentPendingData.tipo_documento === "CE"
+                                    ? e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12)
+                                    : e.target.value.replace(/\D/g, "").slice(0, 8);
+                                  setEditingParentPendingData(d => ({...d, dni: v}));
+                                }}
+                                placeholder={editingParentPendingData.tipo_documento === "CE" ? "Ej: AB1234567 (9-12 car.)" : "DNI (8 digitos)"}
+                                maxLength={editingParentPendingData.tipo_documento === "CE" ? 12 : 8}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                              {editingParentPendingData.dni && editingParentPendingData.tipo_documento === "CE" && !/^[A-Za-z0-9]{9,12}$/.test(editingParentPendingData.dni) && (
+                                <p className="text-[10px] text-rose-500 mt-1">Entre 9 y 12 caracteres alfanumericos</p>
+                              )}
+                              {editingParentPendingData.dni && editingParentPendingData.tipo_documento !== "CE" && !/^\d{8}$/.test(editingParentPendingData.dni) && (
+                                <p className="text-[10px] text-rose-500 mt-1">Debe tener 8 digitos</p>
+                              )}
+                            </div>
                             <input value={editingParentPendingData.email || ""} onChange={e => setEditingParentPendingData(d => ({...d, email: e.target.value}))}
                               placeholder="Correo" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                             <input value={editingParentPendingData.phone || ""} onChange={e => setEditingParentPendingData(d => ({...d, phone: e.target.value}))}
@@ -5932,7 +5955,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               <p className="text-xs text-slate-400">DNI: {p.dni || "---"} &middot; Fila: {p.row_number}</p>
                             </div>
                             <div className="flex gap-1.5">
-                              <button onClick={() => { setEditingParentPendingId(p.id); setEditingParentPendingData({ name: p.name, last_name: p.last_name, dni: p.dni, email: p.email || "", phone: p.phone || "" }); }}
+                              <button onClick={() => { setEditingParentPendingId(p.id); setEditingParentPendingData({ name: p.name, last_name: p.last_name, dni: p.dni, tipo_documento: p.tipo_documento || "DNI", email: p.email || "", phone: p.phone || "" }); }}
                                 className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded-lg font-semibold hover:bg-blue-200" data-testid={`parent-pending-edit-${p.id}`}>
                                 Editar
                               </button>
