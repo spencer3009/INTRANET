@@ -718,9 +718,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     }`}>
                       <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
                       <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        {paymentData.matricula.paid ? `S/ ${(paymentData.matricula.amount || 0).toLocaleString('es-PE')}` : 'Pendiente'}
+                        S/ {(paymentData.matricula.amount || 0).toLocaleString('es-PE')}
                       </p>
-                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula {paymentData.matricula.paid ? '- Pagada' : ''}</p>
+                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matricula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
                     </div>
                   </div>
 
