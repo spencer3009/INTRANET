@@ -173,11 +173,11 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   <p className="text-xs text-slate-500 mt-1">Total Pagado</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
-                  <AlertTriangle className={`w-8 h-8 mx-auto mb-2 ${summary.debt_amount > 0 ? 'text-red-500' : 'text-slate-300'}`} />
-                  <p className={`text-2xl font-black ${summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {(summary.debt_amount || 0).toLocaleString('es-PE')}
+                  <AlertTriangle className={`w-8 h-8 mx-auto mb-2 ${summary.pending_amount > 0 ? 'text-red-500' : 'text-slate-300'}`} />
+                  <p className={`text-2xl font-black ${summary.pending_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    S/ {(summary.pending_amount || 0).toLocaleString('es-PE')}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">Deuda Pendiente</p>
+                  <p className="text-xs text-slate-500 mt-1">Deuda del Mes</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
