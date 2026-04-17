@@ -559,8 +559,8 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Concepto</th>
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mes</th>
                 <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Base</th>
-                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">IGV</th>
-                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-rose-400 uppercase tracking-wider hidden md:table-cell">Mora</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Método</th>
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
                 <th className="px-5 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -622,20 +622,18 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       <td className="px-5 py-4 text-right">
                         <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(payment.amount_base)}</span>
                       </td>
-                      <td className="px-5 py-4 text-right">
-                        <span className="text-sm text-gray-400">
-                          {payment.igv_applicable ? `S/ ${formatNumber(payment.igv_amount)}` : "-"}
-                        </span>
+                      <td className="px-5 py-4 text-right hidden md:table-cell">
+                        {moraInfo ? (
+                          <div>
+                            <span className="text-sm text-rose-500 font-semibold">+S/ {formatNumber(moraInfo.mora)}</span>
+                            <span className="text-xs text-gray-400 ml-1">({moraInfo.daysLate}d)</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-300">&mdash;</span>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <span className="text-sm font-bold text-gray-800">S/ {formatNumber(payment.total_amount)}</span>
-                        {moraInfo && (
-                          <div className="mt-1">
-                            <span className="text-xs text-rose-500 font-semibold">+S/ {formatNumber(moraInfo.mora)} mora</span>
-                            <span className="text-xs text-gray-400 ml-1">({moraInfo.daysLate}d)</span>
-                            <div className="text-xs font-bold text-rose-600">Total: S/ {formatNumber(moraInfo.totalConMora)}</div>
-                          </div>
-                        )}
+                        <span className="text-sm font-bold text-gray-800">S/ {formatNumber(moraInfo ? moraInfo.totalConMora : payment.total_amount)}</span>
                       </td>
                       <td className="px-5 py-4">
                         <span className="text-sm text-gray-600">{payment.method_label}</span>
