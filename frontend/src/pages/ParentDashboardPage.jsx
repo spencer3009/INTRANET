@@ -683,13 +683,28 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
                     </div>
                     <div className={`rounded-xl p-3 text-center border ${
-                      paymentData.summary.debt_amount > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
+                      (() => {
+                        const now = new Date();
+                        const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        const md = (paymentData.monthly_detail || []).filter(m => m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending');
+                        return md.reduce((s, m) => s + (m.total_amount || 0), 0);
+                      })() > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
                     }`}>
-                      <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`} />
-                      <p className={`text-lg font-bold ${paymentData.summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {(paymentData.summary.debt_amount || 0).toLocaleString('es-PE')}
-                      </p>
-                      <p className={`text-[10px] font-medium ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda Total</p>
+                      {(() => {
+                        const now = new Date();
+                        const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        const md = (paymentData.monthly_detail || []).filter(m => m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending');
+                        const monthDebt = md.reduce((s, m) => s + (m.total_amount || 0), 0);
+                        return (
+                          <>
+                            <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`} />
+                            <p className={`text-lg font-bold ${monthDebt > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                              S/ {monthDebt.toLocaleString('es-PE')}
+                            </p>
+                            <p className={`text-[10px] font-medium ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda del Mes</p>
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
                       <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
