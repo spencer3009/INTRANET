@@ -192,15 +192,31 @@ async def report_yape_payment(data: ReportYapePayment, current_user=Depends(get_
         raise HTTPException(status_code=400, detail="El codigo de operacion debe tener al menos 4 caracteres alfanumericos")
 
     # 3. Check duplicate: same student+month+year with active status
-    existing = await db.parent_payments.find_one({
+    # Block if there's one pending verification
+    existing_pending = await db.parent_payments.find_one({
         "school_id": school_id,
         "student_id": data.student_id,
         "month": data.month,
         "year": data.year,
-        "status": {"$in": ["pendiente_verificacion", "verificado"]}
+        "status": "pendiente_verificacion"
     })
-    if existing:
-        raise HTTPException(status_code=409, detail="Ya existe un pago registrado para este mes")
+    if existing_pending:
+        raise HTTPException(status_code=409, detail="Ya existe un pago pendiente de verificacion para este mes")
+    
+    # Block if the month is actually paid in accounting
+    pension_month_str = f"{data.year}-{str(data.month).zfill(2)}"
+    paid_in_accounting = await db.payments.find_one({
+        "school_id": school_id,
+        "student_id": data.student_id,
+        "pension_month": pension_month_str,
+        "payment_status": "paid",
+        "$or": [
+            {"concept": {"$regex": "mensualidad", "$options": "i"}},
+            {"conceptos.concepto": {"$regex": "mensualidad", "$options": "i"}},
+        ]
+    })
+    if paid_in_accounting:
+        raise HTTPException(status_code=409, detail="Este mes ya fue pagado")
 
     # 4. Check duplicate operation code in the same school
     code_exists = await db.parent_payments.find_one({
