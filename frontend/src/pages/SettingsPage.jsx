@@ -610,7 +610,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
           {/* Tab Content: Registro Auxiliar */}
           {activeSettingsTab === "registro_auxiliar" && (
-            <RegistroAuxiliarPlantillasTab user={user} token={token} schoolId={user?.school_id} />
+            <RegistroAuxiliarPlantillasTab user={user} token={token} schoolId={user?.school_id} subdomain={subdomain} />
           )}
 
           {/* Tab Content: General Settings */}

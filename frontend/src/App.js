@@ -53,6 +53,7 @@ import AdminAttendancePage from "@/pages/AdminAttendancePage";
 import AdminTasksPage from "@/pages/AdminTasksPage";
 import AdminExamsPage from "@/pages/AdminExamsPage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import PlantillaEditorPage from "@/pages/PlantillaEditorPage";
 import AdminBrandingPage from "@/pages/AdminBrandingPage";
 import AdminAnnouncementsPage from "@/pages/AdminAnnouncementsPage";
 import AdminLiveClassesPage from "@/pages/AdminLiveClassesPage";
@@ -2292,6 +2293,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <SettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Plantilla Editor */}
+          <Route
+            path="/:subdomain/settings/registro-auxiliar/editor/:plantillaId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PlantillaEditorPage user={user} token={token} subdomain={user?.subdomain} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/settings/registro-auxiliar/nueva"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PlantillaEditorPage user={user} token={token} subdomain={user?.subdomain} />
               </ProtectedRoute>
             }
           />

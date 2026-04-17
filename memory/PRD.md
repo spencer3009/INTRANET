@@ -3,65 +3,48 @@
 ## Original Problem Statement
 Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + MongoDB).
 
-## Latest Session (2026-04-17)
+## Sistema de Plantillas de Registro Auxiliar
 
-### Feature: Sistema de Plantillas de Registro Auxiliar
-#### Fase 1 — Backend (COMPLETO)
-- Coleccion `registro_auxiliar_plantillas` con 8 endpoints CRUD
-- Seed de plantilla del sistema (4 criterios, 2 columnas finales, suma=100%)
-- Validacion de porcentajes (100% para activas, libre para borradores)
-- Proteccion plantilla sistema (403 en edit/delete/estado)
-- Clonacion con nuevos IDs (evita colision de notas)
-- Multi-tenant estricto (school_id isolation)
+### Fase 1 — Backend (COMPLETO, 8 endpoints smoke-tested)
 - Archivo: `/app/backend/routes/registro_auxiliar_plantillas.py`
+- Seed: plantilla del sistema ejecuta en startup
+- Endpoints: GET list, GET by id, POST create, POST clone, PUT update, PATCH estado, PATCH predeterminada, DELETE
 
-#### Fase 2 — Frontend Gestor + Permisos (COMPLETO)
-- Pestaña "Registro Auxiliar" en Ajustes con tabs (General | Registro Auxiliar)
-- Card de Plantilla del Sistema (solo lectura, candado, pills de criterios)
-- Grid "Mis Plantillas" con cards (estado, predeterminada, menu contextual)
-- Card "+ Nueva plantilla"
-- Modal de Preview con tabla de ejemplo (3 alumnos ficticios)
-- Permisos: admin/director/owner acceden a Ajustes. Admin solo ve tab "Registro Auxiliar"
+### Fase 2 — Frontend Gestor (COMPLETO)
 - Archivo: `/app/frontend/src/components/RegistroAuxiliarPlantillasTab.jsx`
+- Tab "Registro Auxiliar" en Ajustes, cards de plantillas, preview modal
+- Permisos: admin/director/owner en `/app/frontend/src/lib/permissions.js`
 
-#### Fase 3 — Editor de Plantilla (PENDIENTE para siguiente fork)
-- Pantalla dedicada con criterios editables, subcolumnas, colores
-- Preview en tiempo real, autoguardado de borradores
+### Fase 3 — Editor de Plantilla (COMPLETO)
+- Archivo: `/app/frontend/src/pages/PlantillaEditorPage.jsx`
+- Rutas: `/:subdomain/settings/registro-auxiliar/editor/:plantillaId` y `/nueva`
+- Features: criterios editables, subcolumnas, reorden, color picker, preview tiempo real, desglose de ponderación, indicador de suma, autoguardado 30s, guardar borrador, activar
 
-#### Fase 4 — Consumo Dinámico (PENDIENTE para siguiente fork)
-- Seleccion de plantilla al crear registro auxiliar
-- Render dinamico de tabla desde plantilla
-- Calculo de promedio bimestral dinamico
-- Fallback para registros legacy
-
-### Rutas registradas:
-- GET    /api/schools/{id}/registro-auxiliar/plantillas
-- GET    /api/schools/{id}/registro-auxiliar/plantillas/{pid}
-- POST   /api/schools/{id}/registro-auxiliar/plantillas
-- POST   /api/schools/{id}/registro-auxiliar/plantillas/{pid}/clonar
-- PUT    /api/schools/{id}/registro-auxiliar/plantillas/{pid}
-- PATCH  /api/schools/{id}/registro-auxiliar/plantillas/{pid}/estado
-- PATCH  /api/schools/{id}/registro-auxiliar/plantillas/{pid}/predeterminada
-- DELETE /api/schools/{id}/registro-auxiliar/plantillas/{pid}
+### Fase 4 — Consumo Dinámico (PENDIENTE - siguiente fork)
+- Archivo a modificar: `/app/frontend/src/components/GradeBookTab.jsx` (647 líneas, hardcoded)
+- Tareas: fetch plantilla, render dinámico de tabla, cálculo promedio bimestral dinámico, fallback legacy, selector de plantilla al crear registro
 
 ## Key Files
-- `/app/backend/routes/registro_auxiliar_plantillas.py` - Backend plantillas
-- `/app/frontend/src/components/RegistroAuxiliarPlantillasTab.jsx` - Gestor UI
-- `/app/frontend/src/pages/SettingsPage.jsx` - Tabs General/RA
-- `/app/frontend/src/lib/permissions.js` - admin/director access to settings
+- `/app/backend/routes/registro_auxiliar_plantillas.py`
+- `/app/frontend/src/components/RegistroAuxiliarPlantillasTab.jsx`
+- `/app/frontend/src/pages/PlantillaEditorPage.jsx`
+- `/app/frontend/src/pages/SettingsPage.jsx` (tabs General/RA)
+- `/app/frontend/src/components/GradeBookTab.jsx` (Fase 4 target)
+
+## Contabilidad (sesión anterior)
+- Auto-eliminación cuotas pendientes al registrar ingreso
+- Cálculo de mora sobre pension_mensual base (350)
+- Pagos Yape en listado de Ingresos con modal validación
+- Portal padre con mora visible
 
 ## Prioritized Backlog
-### P0 (Continuacion plantillas)
-- Editor de Plantilla (Fase 3)
-- Consumo dinamico en Registro Auxiliar (Fase 4)
+### P0
+- Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar
 
 ### P1
 - Guard global alumnos pending/rejected
-- Dashboard Owner metricas reales
-- Psicologia — Log de auditoria
+- Dashboard Owner métricas reales
+- Psicología — Log de auditoría
 
 ### P2
-- Modulo Encuestas
-- Optimizacion rendimiento
-- Refactorizacion archivos masivos
-- Plantilla Adventista carnets QR
+- Módulo Encuestas, Optimización rendimiento, Refactorización, Plantilla Adventista

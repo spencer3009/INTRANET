@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -8,7 +9,8 @@ import {
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId }) {
+export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, subdomain }) {
+  const navigate = useNavigate();
   const [plantillas, setPlantillas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [previewPlantilla, setPreviewPlantilla] = useState(null);
@@ -30,29 +32,21 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId })
 
   const handleClone = async (plantillaId, nombre) => {
     try {
-      await axios.post(`${API}/api/schools/${schoolId}/registro-auxiliar/plantillas/${plantillaId}/clonar`,
+      const { data } = await axios.post(`${API}/api/schools/${schoolId}/registro-auxiliar/plantillas/${plantillaId}/clonar`,
         { nombre: `Copia de ${nombre}` }, { headers });
-      toast.success("Plantilla clonada correctamente");
-      loadPlantillas();
+      toast.success("Plantilla clonada — abriendo editor");
+      navigate(`/${subdomain}/settings/registro-auxiliar/editor/${data.id}`);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al clonar");
     }
   };
 
-  const handleCreate = async () => {
-    try {
-      await axios.post(`${API}/api/schools/${schoolId}/registro-auxiliar/plantillas`, {
-        nombre: "Nueva Plantilla",
-        estado: "borrador",
-        criterios: [{ nombre: "CRITERIO 1", porcentaje: 50, color: "#3498DB",
-          subcolumnas: [{ label: "C1", tipo: "input" }, { label: "PROMEDIO", tipo: "promedio_auto" }] }],
-        columnas_finales: [{ label: "EXAMEN", label_corto: "EX", porcentaje: 50 }],
-      }, { headers });
-      toast.success("Plantilla creada");
-      loadPlantillas();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al crear");
-    }
+  const handleCreate = () => {
+    navigate(`/${subdomain}/settings/registro-auxiliar/nueva`);
+  };
+
+  const handleEdit = (id) => {
+    navigate(`/${subdomain}/settings/registro-auxiliar/editor/${id}`);
   };
 
   const handleSetDefault = async (id) => {
@@ -179,7 +173,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId })
                   )}
                 </div>
               </div>
-              <h4 className="font-bold text-slate-800 text-sm mb-1 cursor-pointer hover:text-indigo-600" onClick={() => setPreviewPlantilla(p)}>{p.nombre}</h4>
+              <h4 className="font-bold text-slate-800 text-sm mb-1 cursor-pointer hover:text-indigo-600" onClick={() => handleEdit(p.id)}>{p.nombre}</h4>
               <p className="text-[11px] text-slate-400 mb-3">{(p.criterios || []).length} criterios · {(p.columnas_finales || []).length + (p.criterios || []).reduce((s, c) => s + (c.subcolumnas || []).length, 0)} columnas</p>
               <div className="flex flex-wrap gap-1">
                 {(p.criterios || []).slice(0, 4).map(c => (
