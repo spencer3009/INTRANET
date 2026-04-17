@@ -1185,9 +1185,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   // Multi-concept total calculation
   const multiConceptSubtotal = addedConcepts.reduce((sum, c) => sum + (c.monto || 0), 0);
   const amountBase = isEditMode ? (parseFloat(formData.amount_base) || 0) : multiConceptSubtotal;
-  const discountAmount = (applyDiscount && canApplyDiscount) ? prontoPagoDescuento : 0;
+  
+  // For multi-concept: only apply discount/interest to the Mensualidad portion
+  const mensualidadAmount = isEditMode
+    ? amountBase
+    : addedConcepts.filter(c => c.concepto.toLowerCase() === "mensualidad").reduce((s, c) => s + (c.monto || 0), 0);
+  const discountAmount = (applyDiscount && canApplyDiscount) ? Math.min(prontoPagoDescuento, mensualidadAmount) : 0;
   const amountAfterDiscount = Math.max(amountBase - discountAmount, 0);
-  const interestAmount = calcInterestAmount(amountAfterDiscount);
+  const interestBase = Math.max(mensualidadAmount - discountAmount, 0);
+  const interestAmount = calcInterestAmount(interestBase);
   const amountWithInterest = amountAfterDiscount + interestAmount;
   const igvAmount = formData.igv_applicable ? amountWithInterest * (formData.igv_percentage / 100) : 0;
   const totalAmount = amountWithInterest + igvAmount;
@@ -1592,6 +1598,18 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 <span className="text-gray-500 font-medium">Subtotal</span>
                 <span className="font-bold text-gray-700">S/ {formatNumber(amountBase)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Pronto Pago (sobre Mensualidad)</span>
+                  <span className="font-bold text-emerald-600">- S/ {formatNumber(discountAmount)}</span>
+                </div>
+              )}
+              {interestAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Mora ({daysLate} dia{daysLate !== 1 ? "s" : ""} - sobre Mensualidad)</span>
+                  <span className="font-bold text-rose-500">+ S/ {formatNumber(interestAmount)}</span>
+                </div>
+              )}
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-medium">IGV (18%)</span>

@@ -4,44 +4,41 @@
 Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + MongoDB).
 
 ## Latest Session (2026-04-17)
-### Feature: Cron Autonomo con Control de Ano Escolar
 
-- Campos `fecha_inicio_ano_escolar` y `fecha_fin_ano_escolar` en `school_financial_settings`
-- UI: Date pickers en seccion "Ano Escolar" arriba de Configuracion Financiera
-- Badge de estado: verde "Cobranza automatica activa" / rojo "Cobranza automatica pausada"
-- Cron `daily_billing_generation_cron()` verifica: 1) ano escolar configurado, 2) dentro del rango, 3) dia de vencimiento
-- Colegios sin fechas configuradas → omitidos con log
-- Reactivacion automatica al actualizar fechas para nuevo ano
+### Fix: Auto-eliminacion de cuotas pendientes al registrar ingreso consolidado
+- Cambio de `update_many(status=canceled)` a `find() + delete_many()` (eliminacion fisica)
+- Logs de trazabilidad en coleccion `payments_log` con `accion: "auto_eliminado"`
+- Anulacion manual (boton "Anular") NO fue afectada — sigue cambiando status a "canceled"
+- Toast actualizado: "X cuotas pendientes anteriores fueron eliminadas automaticamente"
+- Response field cambiado de `cancelled_pending` a `deleted_pending`
 
-### Feature: Generacion Automatica de Cobranza
-- Boton "Generar cobranza del mes" movido a tab Configuracion (desde Morosos)
-- 3 mecanismos: bulk manual, auto-matricula, cron diario
-- Funcion compartida `generate_pending_payments_for_school()` con deduplicacion
-- Coleccion `cron_logs` para tracking
+### Fix: Calculo de interes moratorio en multi-concepto
+- Antes: interes se aplicaba al monto TOTAL (Matricula + Mensualidad = 650)
+- Ahora: interes solo se aplica a la porcion de Mensualidad (350)
+- Descuento Pronto Pago tambien aplica solo sobre Mensualidad
+- Desglose visible: Subtotal, Pronto Pago, Mora (con dias), IGV, Total
 
-### Feature: Sistema de Cobro a Padres via Yape (QR)
-- Config QR owner, verificacion pagos, modal wizard 3 pasos
-- Card Yape en dashboard padre con pronto pago e intereses
-- 8 endpoints (4 padre + 4 owner)
-
-### Previous Changes
+### Previous Session Changes
+- Feature: Sistema completo de Pagos Yape (Config QR, modal wizard, verificacion)
+- Feature: Automatizacion de Cobranzas (Bulk, Cron, Auto-matricula)
+- Feature: Cron Autonomo con Control de Ano Escolar
 - Bug fix: Renovacion suscripcion (relativedelta)
-- Fix: Asignaciones sin level_id crasheaban GET /api/academic/assignments
-- Fix: Filtro teacher-subjects por grade_id/section_id del subject
-- Fix: Parentesco padre-hijo (padre_id, madre_id, apoderado_id)
+- Bug fix: Asignaciones sin level_id, filtro teacher-subjects
+- Bug fix: Parentesco padre-hijo (padre_id, madre_id, apoderado_id)
 
 ## Key Files
-- `/app/backend/routes/accounting.py` - Billing generation, cron, financial settings, yape verification
-- `/app/frontend/src/components/FinancialSettingsTab.jsx` - Ano escolar, dia vencimiento, generar cobranza
-- `/app/frontend/src/components/GenerateBillingModal.jsx`
+- `/app/backend/routes/accounting.py` - Billing, cron, payments, auto-delete logic
+- `/app/frontend/src/pages/AccountingPage.jsx` - Ingresos UI, payment modal, calculo
 - `/app/backend/routes/parent_payments.py` - Yape parent endpoints
-- `/app/frontend/src/components/YapePaymentModal.jsx`
 - `/app/frontend/src/pages/ParentDashboardPage.jsx` - Card Yape
+- `/app/frontend/src/components/YapePaymentModal.jsx`
+- `/app/backend/routes/parent_portal.py`
 
 ## Key DB Schema
-- `school_financial_settings`: pension_mensual, dia_vencimiento_mensualidad, fecha_inicio_ano_escolar, fecha_fin_ano_escolar, pronto_pago_*, interes_*
-- `payments`: Pagos/cuotas (contabilidad)
-- `cron_logs`: Logs del cron (school_id, tipo, fecha_ejecucion, cuotas_generadas, motivo_omision)
+- `payments`: Pagos/cuotas (contabilidad). Soporta multi-concepto en array `conceptos`
+- `payments_log`: Trazabilidad de eliminaciones automaticas (accion: "auto_eliminado")
+- `school_financial_settings`: pension_mensual, dia_vencimiento, pronto_pago, interes, ano_escolar
+- `cron_logs`: Logs del cron de facturacion
 - `yape_config`: Config QR por colegio
 - `parent_payments`: Pagos reportados via Yape
 
@@ -54,5 +51,5 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 ### P2
 - Modulo Encuestas
 - Optimizacion rendimiento (3000 estudiantes)
-- Refactorizacion CourseDetailPage.jsx y UsersPage.jsx
+- Refactorizacion CourseDetailPage.jsx (11K lineas), UsersPage.jsx (5.8K), AccountingPage.jsx (2.9K)
 - Plantilla Adventista carnets QR
