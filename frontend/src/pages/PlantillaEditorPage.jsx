@@ -95,6 +95,19 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
   };
 
   const [focusSubId, setFocusSubId] = useState(null);
+  const [focusColFinalId, setFocusColFinalId] = useState(null);
+
+  const generarLabelCorto = (labelLargo) => {
+    return labelLargo
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(palabra => palabra[0])
+      .join('')
+      .slice(0, 4);
+  };
 
   // ── Subcolumna operations ──
   const updateSub = (cIdx, sIdx, field, value) => {
@@ -156,7 +169,14 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
 
   // ── Columnas finales operations ──
   const updateColFinal = (idx, field, value) => {
-    setColumnasFinales(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: value }; return n; });
+    setColumnasFinales(prev => {
+      const n = [...prev];
+      n[idx] = { ...n[idx], [field]: value };
+      if (field === "label") {
+        n[idx].label_corto = generarLabelCorto(value);
+      }
+      return n;
+    });
     markChanged();
   };
   const moveColFinal = (idx, dir) => {
@@ -173,7 +193,9 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
     markChanged();
   };
   const addColFinal = () => {
-    setColumnasFinales(prev => [...prev, { id: `col_final_${ts()}`, label: "NUEVA COLUMNA", label_corto: "NC", porcentaje: 0, orden: prev.length }]);
+    const newId = `col_final_${ts()}`;
+    setColumnasFinales(prev => [...prev, { id: newId, label: "", label_corto: "", porcentaje: 0, orden: prev.length }]);
+    setFocusColFinalId(newId);
     markChanged();
   };
 
@@ -344,12 +366,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                 {columnasFinales.map((col, idx) => (
                   <div key={col.id} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
                     <input value={col.label} onChange={e => updateColFinal(idx, "label", e.target.value)}
-                      className="flex-1 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-indigo-300" placeholder="Nombre" />
-                    <div className="relative">
-                      <input value={col.label_corto} maxLength={4} onChange={e => updateColFinal(idx, "label_corto", e.target.value.toUpperCase())}
-                        className="w-16 text-sm text-center border border-slate-200 rounded-lg px-1 py-1.5 outline-none focus:border-indigo-300" placeholder="Corto" />
-                      <span className="absolute -bottom-3 right-0 text-[9px] text-slate-300">{(col.label_corto || "").length}/4</span>
-                    </div>
+                      ref={el => { if (el && focusColFinalId === col.id) { el.focus(); setFocusColFinalId(null); } }}
+                      className="flex-1 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-indigo-300" placeholder="Nombre de columna (ej: EXAMEN MENSUAL)" />
                     <div className="flex items-center gap-1">
                       <input type="number" value={col.porcentaje} onChange={e => updateColFinal(idx, "porcentaje", parseFloat(e.target.value) || 0)}
                         className="w-16 text-sm text-center font-bold border border-slate-200 rounded-lg py-1.5" />
