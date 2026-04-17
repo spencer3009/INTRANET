@@ -1060,6 +1060,8 @@ class FinancialSettingsUpdate(BaseModel):
     interes_tope_maximo: Optional[float] = None
     activacion_modo: Optional[str] = None
     dia_vencimiento_mensualidad: Optional[int] = None  # 1-28
+    fecha_inicio_ano_escolar: Optional[str] = None  # YYYY-MM-DD
+    fecha_fin_ano_escolar: Optional[str] = None  # YYYY-MM-DD
 
 @router.get("/accounting/financial-settings")
 async def get_financial_settings(current_user = Depends(require_section_access("accounting"))):
@@ -1093,6 +1095,10 @@ async def get_financial_settings(current_user = Depends(require_section_access("
         settings["pronto_pago_modalidad"] = "monto_fijo"
     if "dia_vencimiento_mensualidad" not in settings:
         settings["dia_vencimiento_mensualidad"] = 5
+    if "fecha_inicio_ano_escolar" not in settings:
+        settings["fecha_inicio_ano_escolar"] = ""
+    if "fecha_fin_ano_escolar" not in settings:
+        settings["fecha_fin_ano_escolar"] = ""
     return settings
 
 @router.put("/accounting/financial-settings")
@@ -2419,8 +2425,8 @@ async def preview_bulk_generation(
 # ══════════════════════════════════════════════════════════════════════════════
 
 async def daily_billing_generation_cron():
-    """Background task: runs daily. For each school, if today is their
-    dia_vencimiento_mensualidad, generate pending payments for all active students."""
+    """Background task: runs daily. For each school within its active school year
+    and on the configured due day, generate pending payments for all active students."""
     import asyncio
     while True:
         try:
@@ -2442,12 +2448,53 @@ async def daily_billing_generation_cron():
                 if not fin_settings:
                     continue
 
+                # CHECK 1: School year dates configured?
+                fecha_inicio_str = fin_settings.get("fecha_inicio_ano_escolar", "")
+                fecha_fin_str = fin_settings.get("fecha_fin_ano_escolar", "")
+
+                if not fecha_inicio_str or not fecha_fin_str:
+                    # No school year configured - skip with warning log
+                    await db.cron_logs.insert_one({
+                        "school_id": school_id,
+                        "tipo": "generacion_mensualidad",
+                        "fecha_ejecucion": datetime.now(timezone.utc).isoformat(),
+                        "mes_generado": current_month,
+                        "cuotas_generadas": 0,
+                        "cuotas_omitidas": 0,
+                        "motivo_omision": "Ano escolar no configurado",
+                        "errores": [],
+                    })
+                    continue
+
+                # CHECK 2: Are we within the school year?
+                try:
+                    fecha_inicio = date_cls.fromisoformat(fecha_inicio_str)
+                    fecha_fin = date_cls.fromisoformat(fecha_fin_str)
+                except (ValueError, TypeError):
+                    continue
+
+                if not (fecha_inicio <= today <= fecha_fin):
+                    # Outside school year - log and skip
+                    await db.cron_logs.insert_one({
+                        "school_id": school_id,
+                        "tipo": "generacion_mensualidad",
+                        "fecha_ejecucion": datetime.now(timezone.utc).isoformat(),
+                        "mes_generado": current_month,
+                        "cuotas_generadas": 0,
+                        "cuotas_omitidas": 0,
+                        "motivo_omision": f"Fuera de ano escolar ({fecha_inicio_str} a {fecha_fin_str})",
+                        "errores": [],
+                    })
+                    continue
+
+                # CHECK 3: Is today the due day?
                 dia_venc = fin_settings.get("dia_vencimiento_mensualidad", 5) or 5
                 pension = fin_settings.get("pension_mensual", 0) or 0
 
                 if day_of_month != dia_venc or pension <= 0:
                     continue
 
+                # Generate payments
                 result = await generate_pending_payments_for_school(
                     school_id=school_id,
                     mes=current_month,
@@ -2464,6 +2511,7 @@ async def daily_billing_generation_cron():
                     "mes_generado": current_month,
                     "cuotas_generadas": result["generados"],
                     "cuotas_omitidas": result["omitidos"],
+                    "motivo_omision": None,
                     "errores": result["errores"],
                 })
 

@@ -26,7 +26,9 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
     interes_modalidad: "porcentaje",
     interes_tope_maximo: 0,
     activacion_modo: "on_create",
-    dia_vencimiento_mensualidad: 5
+    dia_vencimiento_mensualidad: 5,
+    fecha_inicio_ano_escolar: "",
+    fecha_fin_ano_escolar: ""
   });
 
   const isOwnerOrAdmin = user?.is_owner || user?.role === "owner" || user?.role === "director" || user?.role === "admin";
@@ -49,7 +51,9 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
           interes_modalidad: d.interes_modalidad ?? d.interes_tipo ?? "porcentaje",
           interes_tope_maximo: d.interes_tope_maximo ?? 0,
           activacion_modo: d.activacion_modo ?? "on_create",
-          dia_vencimiento_mensualidad: d.dia_vencimiento_mensualidad ?? 5
+          dia_vencimiento_mensualidad: d.dia_vencimiento_mensualidad ?? 5,
+          fecha_inicio_ano_escolar: d.fecha_inicio_ano_escolar ?? "",
+          fecha_fin_ano_escolar: d.fecha_fin_ano_escolar ?? ""
         });
       })
       .catch(() => {})
@@ -110,6 +114,64 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
             Guardar
           </button>
         )}
+      </div>
+
+      {/* Año Escolar */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-2.5">
+          <CalendarDays className="w-5 h-5 text-blue-500" />
+          <h3 className="text-sm font-bold text-slate-700">Ano Escolar</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-600 mb-2">Inicio del ano escolar</label>
+              <input
+                type="date"
+                value={form.fecha_inicio_ano_escolar}
+                onChange={(e) => set("fecha_inicio_ano_escolar", e.target.value)}
+                disabled={!isOwnerOrAdmin}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                data-testid="fecha-inicio-ano-input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-600 mb-2">Fin del ano escolar</label>
+              <input
+                type="date"
+                value={form.fecha_fin_ano_escolar}
+                onChange={(e) => set("fecha_fin_ano_escolar", e.target.value)}
+                disabled={!isOwnerOrAdmin}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                data-testid="fecha-fin-ano-input"
+              />
+            </div>
+          </div>
+          {/* Status badge */}
+          {(() => {
+            const today = new Date().toISOString().split("T")[0];
+            const inicio = form.fecha_inicio_ano_escolar;
+            const fin = form.fecha_fin_ano_escolar;
+            if (!inicio || !fin) {
+              return (
+                <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                  <span>Configure las fechas del ano escolar para activar la cobranza automatica</span>
+                </div>
+              );
+            }
+            const isActive = today >= inicio && today <= fin;
+            return (
+              <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${
+                isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"
+              }`} data-testid="billing-status-badge">
+                <div className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-500"}`} />
+                <span className="font-medium">{isActive ? "Cobranza automatica activa" : "Cobranza automatica pausada"}</span>
+                <span className="text-xs opacity-70 ml-1">({inicio} a {fin})</span>
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Row 1: Pensiones y Matrícula */}
