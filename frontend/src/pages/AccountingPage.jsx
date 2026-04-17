@@ -360,10 +360,10 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
     const pm = payment.pension_month;
     try {
       const [year, month] = pm.split("-").map(Number);
-      const deadline = new Date(year, month - 1, diaVenc);
-      deadline.setHours(12, 0, 0, 0);
-      const today = new Date();
-      today.setHours(12, 0, 0, 0);
+      const deadline = new Date(year, month - 1, diaVenc, 12, 0, 0);
+      // Use UTC date string (same as payment_date in the modal) to avoid timezone mismatch
+      const todayStr = new Date().toISOString().split("T")[0];
+      const today = new Date(todayStr + "T12:00:00");
       const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
       if (daysLate <= 0) return null;
       let mensBase = 0;
@@ -2592,10 +2592,9 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     if (interesValor <= 0) return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
     const pm = selectedPayment.pension_month;
     const [year, month] = pm.split("-").map(Number);
-    const deadline = new Date(year, month - 1, diaVenc);
-    deadline.setHours(12, 0, 0, 0);
-    const today = new Date();
-    today.setHours(12, 0, 0, 0);
+    const deadline = new Date(year, month - 1, diaVenc, 12, 0, 0);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const today = new Date(todayStr + "T12:00:00");
     const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
     if (daysLate <= 0) return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
     let mensBase = 0;
