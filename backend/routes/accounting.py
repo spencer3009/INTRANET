@@ -88,6 +88,8 @@ class PaymentCreate(BaseModel):
     pension_month: Optional[str] = None  # YYYY-MM format
     receipt_number: Optional[str] = None
     notes: Optional[str] = None
+    interest_amount: Optional[float] = 0
+    discount_amount: Optional[float] = 0
 
 class PaymentUpdate(BaseModel):
     concept: Optional[str] = None
@@ -293,8 +295,13 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
         total_base = round(data.amount_base, 2)
         concept_key = data.concept
     
-    # Calculate IGV on total base
-    amounts = calculate_igv(total_base, data.igv_applicable, data.igv_percentage)
+    # Apply interest and discount to the base amount
+    interest_amt = round(data.interest_amount or 0, 2)
+    discount_amt = round(data.discount_amount or 0, 2)
+    adjusted_base = round(total_base - discount_amt + interest_amt, 2)
+    
+    # Calculate IGV on adjusted base
+    amounts = calculate_igv(adjusted_base, data.igv_applicable, data.igv_percentage)
     
     now = datetime.now(timezone.utc).isoformat()
     
@@ -312,6 +319,9 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
         "total_amount": amounts["total_amount"],
         "igv_applicable": data.igv_applicable,
         "igv_percentage": data.igv_percentage if data.igv_applicable else 0,
+        "interest_amount": interest_amt,
+        "discount_amount": discount_amt,
+        "subtotal_conceptos": total_base,
         "payment_method": data.payment_method,
         "payment_status": data.payment_status,
         "payment_date": data.payment_date or now[:10],
@@ -467,8 +477,8 @@ async def update_payment(payment_id: str, data: PaymentUpdate, current_user = De
 
 @router.put("/accounting/payments/{payment_id}/confirm")
 async def confirm_payment(payment_id: str, current_user = Depends(require_section_access("accounting"))):
-    """Confirm a pending payment. RBAC protected."""
-    user = current_user  # Already validated by require_section_access
+    """Confirm a pending payment. Auto-calculates interest (mora) if applicable. RBAC protected."""
+    user = current_user
     school_id = user["school_id"]
     
     payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
@@ -480,19 +490,77 @@ async def confirm_payment(payment_id: str, current_user = Depends(require_sectio
     if payment.get("payment_status") == "canceled":
         raise HTTPException(status_code=400, detail="No se puede confirmar un pago anulado")
     
-    await db.payments.update_one(
-        {"id": payment_id},
-        {"$set": {
-            "payment_status": "paid",
-            "payment_date": datetime.now(timezone.utc).isoformat()[:10],
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
+    today_str = datetime.now(timezone.utc).isoformat()[:10]
+    update_fields = {
+        "payment_status": "paid",
+        "payment_date": today_str,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Auto-calculate interest (mora) for mensualidad payments
+    interest_amount = 0
+    concept = (payment.get("concept") or "").lower()
+    is_mensualidad = "mensualidad" in concept
+    # Also check conceptos array
+    conceptos = payment.get("conceptos") or []
+    if not is_mensualidad:
+        for c in conceptos:
+            if "mensualidad" in (c.get("concepto") or "").lower():
+                is_mensualidad = True
+                break
+    
+    if is_mensualidad and payment.get("pension_month"):
+        fs = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+        if fs and fs.get("interes_activo"):
+            dia_vencimiento = int(fs.get("pronto_pago_fecha_limite") or fs.get("dia_vencimiento_mensualidad") or 5)
+            interes_tipo = fs.get("interes_tipo", "porcentaje")
+            interes_valor = float(fs.get("interes_valor") or 0)
+            
+            if interes_valor > 0:
+                pm = payment["pension_month"]
+                try:
+                    year, month = int(pm[:4]), int(pm[5:7])
+                    deadline = datetime(year, month, dia_vencimiento, tzinfo=timezone.utc)
+                    today = datetime.now(timezone.utc)
+                    days_late = max((today - deadline).days, 0)
+                    
+                    if days_late > 0:
+                        # Calculate interest only on mensualidad portion
+                        mensualidad_base = 0
+                        for c in conceptos:
+                            if "mensualidad" in (c.get("concepto") or "").lower():
+                                mensualidad_base += c.get("monto", 0)
+                        if mensualidad_base == 0:
+                            mensualidad_base = payment.get("amount_base", 0)
+                        
+                        if interes_tipo == "porcentaje":
+                            daily_rate = interes_valor / 30 / 100
+                            interest_amount = round(mensualidad_base * daily_rate * days_late, 2)
+                        else:
+                            daily_fixed = interes_valor / 30
+                            interest_amount = round(daily_fixed * days_late, 2)
+                        
+                        if interest_amount > 0:
+                            new_base = round(payment.get("amount_base", 0) + interest_amount, 2)
+                            igv_applicable = payment.get("igv_applicable", False)
+                            igv_pct = payment.get("igv_percentage", 0)
+                            new_amounts = calculate_igv(new_base, igv_applicable, igv_pct)
+                            
+                            update_fields["amount_base"] = new_amounts["amount_base"]
+                            update_fields["igv_amount"] = new_amounts["igv_amount"]
+                            update_fields["total_amount"] = new_amounts["total_amount"]
+                            update_fields["interest_amount"] = interest_amount
+                            update_fields["interest_days_late"] = days_late
+                            
+                            logger.info(f"[INTEREST] Payment {payment_id}: +S/{interest_amount} mora ({days_late} days late)")
+                except Exception as e:
+                    logger.warning(f"Error calculating interest for payment {payment_id}: {e}")
+    
+    await db.payments.update_one({"id": payment_id}, {"$set": update_fields})
     
     logger.info(f"Payment confirmed: {payment_id} by {user['id']}")
     
-    # Emit boleta (same logic as payment creation)
-    # Re-fetch the updated payment for boleta generation
+    # Emit boleta
     updated_payment = await db.payments.find_one({"id": payment_id, "school_id": school_id}, {"_id": 0})
     boleta_info = None
     try:
@@ -501,7 +569,7 @@ async def confirm_payment(payment_id: str, current_user = Depends(require_sectio
     except Exception as e:
         logger.warning(f"Error emitting boleta on confirm for payment {payment_id}: {e}")
     
-    result = {"message": "Pago confirmado correctamente"}
+    result = {"message": "Pago confirmado correctamente", "interest_applied": interest_amount}
     if boleta_info:
         result["boleta_disponible"] = True
         result["boleta_id"] = boleta_info["boleta_id"]

@@ -1355,6 +1355,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         pension_month: hasMensualidadConcept ? formData.pension_month : undefined,
         notes: formData.notes,
         description: formData.description,
+        interest_amount: interestAmount > 0 ? Math.round(interestAmount * 100) / 100 : 0,
+        discount_amount: discountAmount > 0 ? Math.round(discountAmount * 100) / 100 : 0,
       };
       await onSave(saveData);
       onClose();
@@ -2523,6 +2525,44 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     setSelectedPayment(payment);
     setShowConfirmPaymentModal(true);
   };
+
+  // Calculate mora preview for confirm modal
+  const calcConfirmMoraPreview = () => {
+    if (!selectedPayment) return { mora: 0, newTotal: selectedPayment?.total_amount || 0, daysLate: 0 };
+    const fs = financialSettings || {};
+    const concept = (selectedPayment.concept || "").toLowerCase();
+    const conceptos = selectedPayment.conceptos || [];
+    let isMensualidad = concept.includes("mensualidad");
+    if (!isMensualidad) {
+      isMensualidad = conceptos.some(c => (c.concepto || "").toLowerCase().includes("mensualidad"));
+    }
+    if (!isMensualidad || !selectedPayment.pension_month || !fs.interes_activo) {
+      return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
+    }
+    const diaVenc = parseInt(fs.pronto_pago_fecha_limite || fs.dia_vencimiento_mensualidad || 5);
+    const interesTipo = fs.interes_tipo || "porcentaje";
+    const interesValor = parseFloat(fs.interes_valor) || 0;
+    if (interesValor <= 0) return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
+    const pm = selectedPayment.pension_month;
+    const [year, month] = pm.split("-").map(Number);
+    const deadline = new Date(year, month - 1, diaVenc);
+    const today = new Date();
+    const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
+    if (daysLate <= 0) return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
+    let mensBase = 0;
+    for (const c of conceptos) {
+      if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+    }
+    if (mensBase === 0) mensBase = selectedPayment.amount_base || 0;
+    let mora = 0;
+    if (interesTipo === "porcentaje") {
+      mora = Math.round(mensBase * (interesValor / 30 / 100) * daysLate * 100) / 100;
+    } else {
+      mora = Math.round((interesValor / 30) * daysLate * 100) / 100;
+    }
+    return { mora, newTotal: Math.round(((selectedPayment.total_amount || 0) + mora) * 100) / 100, daysLate };
+  };
+  const confirmMoraPreview = calcConfirmMoraPreview();
   
   const handleConfirmPayment = async () => {
     if (!selectedPayment) return;
@@ -2536,14 +2576,19 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       setShowConfirmPaymentModal(false);
       setSelectedPayment(null);
 
+      const interestApplied = data?.interest_applied || 0;
       // Open boleta PDF if emitted
       if (data?.boleta_disponible && data?.numero_boleta) {
         const { toast } = await import("sonner");
-        toast.success(`Pago confirmado. Boleta ${data.numero_boleta} emitida`);
+        let msg = `Pago confirmado. Boleta ${data.numero_boleta} emitida`;
+        if (interestApplied > 0) msg += `. Mora aplicada: +S/ ${interestApplied.toFixed(2)}`;
+        toast.success(msg);
         setBoletaPreview({ open: true, ingresoId: selectedPayment.id, numeroBoleta: data.numero_boleta });
       } else {
         const { toast } = await import("sonner");
-        toast.success("Pago confirmado correctamente");
+        let msg = "Pago confirmado correctamente";
+        if (interestApplied > 0) msg += `. Mora aplicada: +S/ ${interestApplied.toFixed(2)}`;
+        toast.success(msg);
       }
     } catch (err) {
       const { toast } = await import("sonner");
@@ -2901,7 +2946,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         onConfirm={handleConfirmPayment}
         loading={processing}
         title="Confirmar Pago"
-        message={`¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}? Esta acción registrará el ingreso como confirmado.`}
+        message={confirmMoraPreview.mora > 0
+          ? `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}?\n\nSe aplicara mora de S/ ${formatNumber(confirmMoraPreview.mora)} (${confirmMoraPreview.daysLate} dias de atraso).\nTotal final: S/ ${formatNumber(confirmMoraPreview.newTotal)}`
+          : `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}? Esta accion registrara el ingreso como confirmado.`
+        }
         confirmText="Confirmar Pago"
         variant="success"
         icon="payment"
