@@ -349,16 +349,16 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
   const calcMoraForPayment = (payment) => {
     if (!["pending", "yape_pendiente"].includes(payment.payment_status) || !financialSettings) return null;
     const fs = financialSettings;
-    const isYape = payment.is_yape;
     const pensionBase = parseFloat(fs.pension_mensual) || 0;
+    const isYape = payment.is_yape;
 
-    // For Yape: the parent already paid an amount that includes mora. Just decompose it.
+    // For Yape rows from parent_payments: amount already includes mora, just decompose
     if (isYape && pensionBase > 0) {
       const yapeMora = Math.round((payment.total_amount - pensionBase) * 100) / 100;
       if (yapeMora > 0) {
         return { mora: yapeMora, daysLate: "", totalConMora: payment.total_amount, baseWithoutMora: pensionBase };
       }
-      return { mora: 0, daysLate: "", totalConMora: payment.total_amount, baseWithoutMora: pensionBase };
+      return null;
     }
 
     if (!fs.interes_activo) return null;
@@ -378,9 +378,12 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
       const today = new Date(todayStr + "T12:00:00");
       const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
       if (daysLate <= 0) return null;
-      let mensBase = 0;
-      for (const c of conceptos) {
-        if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+      // ALWAYS use pension_mensual as base for mensualidad mora (avoids double-counting if amount already includes mora)
+      let mensBase = pensionBase;
+      if (mensBase === 0) {
+        for (const c of conceptos) {
+          if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+        }
       }
       if (mensBase === 0) mensBase = payment.amount_base || 0;
       if (mensBase === 0) return null;
@@ -391,7 +394,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
         mora = Math.round((interesValor / 30) * daysLate * 100) / 100;
       }
       if (mora <= 0) return null;
-      return { mora, daysLate: `${daysLate}d`, totalConMora: Math.round((payment.total_amount + mora) * 100) / 100 };
+      return { mora, daysLate: `${daysLate}d`, totalConMora: Math.round((mensBase + mora) * 100) / 100, baseWithoutMora: mensBase };
     } catch { return null; }
   };
 
