@@ -55,7 +55,8 @@ const METHODS = {
 const PAYMENT_STATUSES = {
   pending: { label: "Pendiente", bgClass: "bg-amber-50", textClass: "text-amber-700", borderClass: "border-amber-200", dotClass: "bg-amber-500" },
   paid: { label: "Pagado", bgClass: "bg-emerald-50", textClass: "text-emerald-700", borderClass: "border-emerald-200", dotClass: "bg-emerald-500" },
-  canceled: { label: "Anulado", bgClass: "bg-rose-50", textClass: "text-rose-700", borderClass: "border-rose-200", dotClass: "bg-rose-500" }
+  canceled: { label: "Anulado", bgClass: "bg-rose-50", textClass: "text-rose-700", borderClass: "border-rose-200", dotClass: "bg-rose-500" },
+  yape_pendiente: { label: "Yape - Verificar", bgClass: "bg-purple-50", textClass: "text-purple-700", borderClass: "border-purple-200", dotClass: "bg-purple-500" }
 };
 
 // Expense categories
@@ -643,6 +644,20 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-col items-center gap-1.5">
+                          {payment.is_yape ? (
+                            /* Yape payment - show verify link */
+                            <a
+                              href="#yape-verification"
+                              onClick={(e) => { e.preventDefault(); window.location.hash = ''; setTimeout(() => { const el = document.querySelector('[data-testid="yape-verification-tab"]'); if (el) el.click(); }, 100); }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 transition-colors cursor-pointer"
+                              title="Ir a verificar pago Yape"
+                              data-testid={`verify-yape-${payment.id}`}
+                            >
+                              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                              Verificar Yape
+                            </a>
+                          ) : (
+                          <>
                           <div className="flex items-center justify-center gap-1">
                           {payment.payment_status !== "canceled" && (
                             <>
@@ -713,6 +728,8 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                               <div className="w-2 h-2 rounded-full bg-amber-500" />
                               Reactivar
                             </button>
+                          )}
+                          </>
                           )}
                         </div>
                       </td>

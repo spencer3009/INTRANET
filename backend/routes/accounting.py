@@ -259,12 +259,64 @@ async def get_payments(
             payment["numero_boleta"] = None
             payment["boleta_anulada"] = False
     
+    # Prepend Yape payments (pendiente_verificacion) on first page when no specific status filter
+    yape_payments = []
+    if page == 1 and not status:
+        yape_query = {"school_id": school_id, "status": "pendiente_verificacion"}
+        if student_id:
+            yape_query["student_id"] = student_id
+        yape_docs = await db.parent_payments.find(yape_query, {"_id": 0}).sort("created_at", -1).to_list(50)
+        for yp in yape_docs:
+            month_labels = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"}
+            pm_str = f"{yp.get('year','')}-{str(yp.get('month','')).zfill(2)}" if yp.get('month') else ""
+            pm_label = ""
+            if pm_str and len(pm_str) >= 7:
+                pm_label = f"{month_labels.get(pm_str[5:7], '')} {pm_str[:4]}"
+            yape_payments.append({
+                "id": yp["id"],
+                "school_id": school_id,
+                "student_id": yp.get("student_id", ""),
+                "student_name": yp.get("student_name", ""),
+                "student_photo": "",
+                "grade_id": "",
+                "section_id": "",
+                "grade_name": "",
+                "section_name": "",
+                "concept": yp.get("concept", "Pago Yape"),
+                "concept_label": yp.get("concept", "Pago Yape"),
+                "concept_label_full": yp.get("concept", "Pago Yape"),
+                "conceptos": [],
+                "amount_base": yp.get("amount", 0),
+                "igv_amount": 0,
+                "total_amount": yp.get("amount", 0),
+                "igv_applicable": False,
+                "payment_method": "yape",
+                "method_label": "Yape",
+                "payment_status": "yape_pendiente",
+                "status_label": "Yape - Verificar",
+                "status_color": "#7C3AED",
+                "payment_date": (yp.get("payment_date") or yp.get("created_at", ""))[:10],
+                "pension_month": pm_str,
+                "pension_month_label": pm_label,
+                "notes": f"Op. Yape: {yp.get('yape_operation_code', '')} | Padre: {yp.get('parent_name', '')}",
+                "created_at": yp.get("created_at", ""),
+                "boleta_disponible": False,
+                "numero_boleta": None,
+                "boleta_anulada": False,
+                "is_yape": True,
+                "yape_operation_code": yp.get("yape_operation_code", ""),
+                "parent_name": yp.get("parent_name", ""),
+            })
+    
+    all_payments = yape_payments + payments
+    
     return {
-        "payments": payments,
-        "total": total,
+        "payments": all_payments,
+        "total": total + len(yape_payments),
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit
+        "total_pages": (total + limit - 1) // limit,
+        "yape_pending_count": len(yape_payments)
     }
 
 @router.post("/accounting/payments")
