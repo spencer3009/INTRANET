@@ -501,18 +501,8 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                         <span className="text-sm text-gray-500">{payment.payment_date}</span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center justify-center gap-1">
-                          {payment.payment_status === "pending" && (
-                            <button
-                              onClick={() => onConfirm(payment)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
-                              title="Confirmar pago"
-                              data-testid={`confirm-payment-${payment.id}`}
-                            >
-                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                              Confirmar pago
-                            </button>
-                          )}
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1">
                           {payment.payment_status !== "canceled" && (
                             <>
                               <button
@@ -551,6 +541,18 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                             >
                               <FileText className="w-4 h-4" />
                             </span>
+                          )}
+                        </div>
+                          {payment.payment_status === "pending" && (
+                            <button
+                              onClick={() => onConfirm(payment)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                              title="Confirmar pago"
+                              data-testid={`confirm-payment-${payment.id}`}
+                            >
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                              Confirmar pago
+                            </button>
                           )}
                         </div>
                       </td>
