@@ -2482,15 +2482,15 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       if (payment?.boleta_disponible && payment?.numero_boleta) {
         const { toast } = await import("sonner");
         let msg = `Boleta ${payment.numero_boleta} emitida`;
-        if (cancelledCount > 0) msg += `. ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} cancelada${cancelledCount > 1 ? 's' : ''} automaticamente`;
+        if (cancelledCount > 0) msg += `. ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} fueron cancelada${cancelledCount > 1 ? 's' : ''} automaticamente`;
         toast.success(msg);
         setShowPaymentModal(false);
         setEditingPayment(null);
         setBoletaPreview({ open: true, ingresoId: payment.id, numeroBoleta: payment.numero_boleta });
       } else if (payment && !payment.boleta_disponible) {
         const { toast } = await import("sonner");
-        let msg = "Ingreso registrado.";
-        if (cancelledCount > 0) msg += ` ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} cancelada${cancelledCount > 1 ? 's' : ''} automaticamente.`;
+        let msg = "Pago registrado.";
+        if (cancelledCount > 0) msg += ` ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} fueron cancelada${cancelledCount > 1 ? 's' : ''} automaticamente.`;
         else msg += " Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.";
         toast.info(msg, { duration: 6000 });
       }

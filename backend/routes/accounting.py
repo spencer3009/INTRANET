@@ -166,6 +166,9 @@ async def get_payments(
     query = {"school_id": school_id}
     if status:
         query["payment_status"] = status
+    else:
+        # By default, exclude canceled payments from the list
+        query["payment_status"] = {"$ne": "canceled"}
     if concept:
         query["concept"] = concept
     if grade_id:
