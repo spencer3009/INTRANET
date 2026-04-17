@@ -16,26 +16,30 @@ const API = process.env.REACT_APP_BACKEND_URL;
    STYLES — matching the Excel exactly
    ═══════════════════════════════════════════════════════════════ */
 const S = {
-  table: { borderCollapse: "collapse", fontSize: "12px", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", width: "max-content", minWidth: "100%" },
-  thTop: { background: "#4472C4", color: "#fff", fontWeight: 700, textAlign: "center", border: "1px solid #2F5496", padding: "6px 4px", fontSize: "12px", letterSpacing: "0.5px" },
+  table: { borderCollapse: "collapse", fontSize: "12px", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
+  thTop: { background: "#4472C4", color: "#fff", fontWeight: 700, textAlign: "center", border: "1px solid #2F5496", padding: "6px 4px", fontSize: "12px", letterSpacing: "0.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   thWeight: { background: "#FFD700", color: "#000", fontWeight: 800, textAlign: "center", border: "1px solid #C9A800", padding: "4px 2px", fontSize: "12px" },
-  thGroup: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px" },
-  thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "4px 2px", fontSize: "10px", minWidth: "36px", writingMode: "horizontal-tb" },
-  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap", minWidth: "30px" },
-  thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap", minWidth: "36px" },
-  thColFinal: { background: "#F59E0B", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #D97706", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap", minWidth: "36px" },
-  tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600, width: "32px", minWidth: "32px" },
-  tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, minWidth: "200px", maxWidth: "240px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", width: "36px", minWidth: "36px" },
-  tdAvg: { background: "#E2EFDA", border: "1px solid #A9D18E", textAlign: "center", padding: "2px", fontWeight: 700, fontSize: "11px", color: "#375623", minWidth: "36px" },
-  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", width: "36px", minWidth: "36px" },
-  tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864", minWidth: "40px" },
+  thGroup: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "4px 2px", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
+  thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
+  thColFinal: { background: "#F59E0B", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #D97706", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
+  tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600 },
+  tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
+  tdAvg: { background: "#E2EFDA", border: "1px solid #A9D18E", textAlign: "center", padding: "2px", fontWeight: 700, fontSize: "11px", color: "#375623" },
+  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
+  tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864" },
   input: { width: "100%", border: "none", outline: "none", textAlign: "center", fontSize: "12px", padding: "4px 0", background: "transparent", fontFamily: "inherit" },
   stickyNum: { position: "sticky", left: 0, zIndex: 2 },
-  stickyName: { position: "sticky", left: "32px", zIndex: 2 },
+  stickyName: { position: "sticky", zIndex: 2 },
   stickyNumHeader: { position: "sticky", left: 0, zIndex: 4 },
-  stickyNameHeader: { position: "sticky", left: "32px", zIndex: 4 },
+  stickyNameHeader: { position: "sticky", zIndex: 4 },
 };
+
+const ANCHO_NUM = 40;
+const ANCHO_NOMBRE_DEFAULT = 220;
+const ANCHO_COL_MIN = 40;
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -52,6 +56,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   const [saveStatus, setSaveStatus] = useState(null);
   const [dirty, setDirty] = useState(false);
   const autoSaveTimer = useRef(null);
+  const tablaRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
 
   // Plantilla dinámica
@@ -59,14 +64,69 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   const [plantillaLoading, setPlantillaLoading] = useState(true);
   const [plantillaNombre, setPlantillaNombre] = useState("Por defecto");
 
+  // Responsive column sizing
+  const [anchoNombre, setAnchoNombre] = useState(() => {
+    const saved = localStorage.getItem("ra_ancho_nombre");
+    return saved ? parseInt(saved, 10) : ANCHO_NOMBRE_DEFAULT;
+  });
+  const [containerWidth, setContainerWidth] = useState(0);
+
   const schoolId = user?.school_id;
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
+
+  // Persist column width
+  useEffect(() => {
+    localStorage.setItem("ra_ancho_nombre", String(anchoNombre));
+  }, [anchoNombre]);
+
+  // Observe container resize
+  useEffect(() => {
+    const el = tablaRef.current?.parentElement;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [plantilla]);
 
   /* ── Derived columns from plantilla ── */
   const totalSubCols = useMemo(() => {
     if (!plantilla) return 0;
     return plantilla.criterios.reduce((sum, c) => sum + c.subcolumnas.length, 0);
   }, [plantilla]);
+
+  const totalNotaCols = useMemo(() => {
+    if (!plantilla) return 0;
+    return totalSubCols + plantilla.columnas_finales.length + 1;
+  }, [plantilla, totalSubCols]);
+
+  const anchoColNota = useMemo(() => {
+    if (totalNotaCols === 0 || containerWidth === 0) return 50;
+    const available = containerWidth - ANCHO_NUM - anchoNombre;
+    const w = Math.floor(available / totalNotaCols);
+    return Math.max(ANCHO_COL_MIN, w);
+  }, [containerWidth, anchoNombre, totalNotaCols]);
+
+  const useFixedLayout = anchoColNota > ANCHO_COL_MIN;
+  const tableMinWidth = ANCHO_NUM + anchoNombre + totalNotaCols * ANCHO_COL_MIN;
+
+  /* ── Drag handle for name column ── */
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = anchoNombre;
+    const onMove = (ev) => {
+      const newW = Math.max(120, Math.min(500, startW + ev.clientX - startX));
+      setAnchoNombre(newW);
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [anchoNombre]);
 
   /* ── Load plantilla ── */
   useEffect(() => {
@@ -294,12 +354,34 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       {/* ── EXCEL TABLE (dynamic from plantilla) ── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={S.table} data-testid="grade-table">
+          <table ref={tablaRef} style={{ ...S.table, tableLayout: "fixed", width: useFixedLayout ? "100%" : tableMinWidth, minWidth: tableMinWidth }} data-testid="grade-table">
+            <colgroup>
+              <col style={{ width: ANCHO_NUM }} />
+              <col style={{ width: anchoNombre }} />
+              {criterios.flatMap(c =>
+                c.subcolumnas.map(sub => (
+                  <col key={`col_${sub.id}`} style={{ width: anchoColNota }} />
+                ))
+              )}
+              {columnas_finales.map(col => (
+                <col key={`col_f_${col.id}`} style={{ width: anchoColNota }} />
+              ))}
+              <col style={{ width: anchoColNota + 10 }} />
+            </colgroup>
             <thead>
               {/* ROW 1: Top header */}
               <tr>
-                <th rowSpan={4} style={{ ...S.thTop, ...S.stickyNumHeader, width: 32, minWidth: 32 }}>N°</th>
-                <th rowSpan={4} style={{ ...S.thTop, ...S.stickyNameHeader, minWidth: 200 }}>APELLIDOS Y NOMBRES</th>
+                <th rowSpan={4} style={{ ...S.thTop, ...S.stickyNumHeader }}>N°</th>
+                <th rowSpan={4} style={{ ...S.thTop, ...S.stickyNameHeader, left: ANCHO_NUM, position: "sticky", zIndex: 4 }}>
+                  APELLIDOS Y NOMBRES
+                  <div
+                    onMouseDown={handleResizeStart}
+                    style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 5, cursor: "col-resize", background: "transparent" }}
+                    onMouseOver={e => { e.currentTarget.style.background = "rgba(255,255,255,0.4)"; }}
+                    onMouseOut={e => { e.currentTarget.style.background = "transparent"; }}
+                    data-testid="name-col-resize-handle"
+                  />
+                </th>
                 <th colSpan={totalSubCols} style={S.thTop}>CRITERIOS DE EVALUACION</th>
                 {colFinalesCount > 0 && (
                   <th colSpan={colFinalesCount} rowSpan={2} style={{ ...S.thTop, background: "#F59E0B", border: "1px solid #D97706" }}>COL. FINALES</th>
@@ -348,7 +430,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                 return (
                   <tr key={student.student_id} style={{ background: rowBg }}>
                     <td style={{ ...S.tdNum, ...S.stickyNum, background: rowBg }}>{student.number}</td>
-                    <td style={{ ...S.tdName, ...S.stickyName, background: idx % 2 === 0 ? "#FFFFDD" : "#FFFFC8" }} title={student.student_name}>
+                    <td style={{ ...S.tdName, ...S.stickyName, left: ANCHO_NUM, background: idx % 2 === 0 ? "#FFFFDD" : "#FFFFC8" }} title={student.student_name}>
                       {student.student_name}
                     </td>
                     {/* Criterio columns */}
@@ -407,7 +489,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                   return (
                     <tr key={`ph-${i}`} style={{ background: rowBg }} data-testid={`placeholder-row-${i + 1}`}>
                       <td style={{ ...S.tdNum, ...S.stickyNum, background: rowBg, color: "#ccc" }}>{i + 1}</td>
-                      <td style={{ ...S.tdName, ...S.stickyName, background: rowBg, color: "#ddd" }}>&mdash;</td>
+                      <td style={{ ...S.tdName, ...S.stickyName, left: ANCHO_NUM, background: rowBg, color: "#ddd" }}>&mdash;</td>
                       {criterios.map(c => (
                         <React.Fragment key={`ph-${i}-${c.id}`}>
                           {c.subcolumnas.map(sub => (
