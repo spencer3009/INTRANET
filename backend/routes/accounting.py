@@ -2417,6 +2417,58 @@ async def generate_pending_payments_for_school(
         await db.payments.insert_many(docs_to_insert)
         result["generados"] = len(docs_to_insert)
 
+    # Also generate matrícula pending for students who don't have one yet
+    if concepto.lower() == "mensualidad" and fin_settings:
+        matricula_amount = fin_settings.get("matricula", 0) or 0
+        if matricula_amount > 0:
+            existing_matriculas = await db.payments.find(
+                {
+                    "school_id": school_id,
+                    "$or": [
+                        {"concept": {"$regex": "matricula", "$options": "i"}},
+                        {"conceptos.concepto": {"$regex": "matricula", "$options": "i"}},
+                    ],
+                    "payment_status": {"$ne": "canceled"},
+                },
+                {"_id": 0, "student_id": 1}
+            ).to_list(10000)
+            existing_mat_ids = set(p["student_id"] for p in existing_matriculas)
+
+            mat_docs = []
+            for student in students:
+                sid = student["id"]
+                if sid in existing_mat_ids:
+                    continue
+                mat_docs.append({
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id,
+                    "student_id": sid,
+                    "grade_id": student.get("grado_id", ""),
+                    "section_id": student.get("seccion_id", ""),
+                    "concept": "matricula",
+                    "conceptos": [{"concepto": "Matricula", "monto": round(matricula_amount, 2)}],
+                    "description": f"Matricula {mes[:4]}",
+                    "amount_base": round(matricula_amount, 2),
+                    "igv_applicable": False,
+                    "igv_amount": 0,
+                    "total_amount": round(matricula_amount, 2),
+                    "igv_percentage": 0,
+                    "payment_method": "",
+                    "payment_status": "pending",
+                    "payment_date": due_date,
+                    "pension_month": "",
+                    "receipt_number": "",
+                    "notes": "Matricula generada automaticamente",
+                    "created_by": created_by,
+                    "created_at": now,
+                    "updated_at": now,
+                })
+
+            if mat_docs:
+                await db.payments.insert_many(mat_docs)
+                result["generados"] += len(mat_docs)
+                result["matriculas_generadas"] = len(mat_docs)
+
     return result
 
 
