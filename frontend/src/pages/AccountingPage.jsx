@@ -361,7 +361,9 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
     try {
       const [year, month] = pm.split("-").map(Number);
       const deadline = new Date(year, month - 1, diaVenc);
+      deadline.setHours(12, 0, 0, 0);
       const today = new Date();
+      today.setHours(12, 0, 0, 0);
       const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
       if (daysLate <= 0) return null;
       let mensBase = 0;
@@ -1193,6 +1195,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     if (!formData.pension_month || !formData.payment_date) return 0;
     const [year, month] = formData.pension_month.split("-").map(Number);
     const deadline = new Date(year, month - 1, prontoPagoFechaLimite);
+    deadline.setHours(12, 0, 0, 0);
     const payDate = new Date(formData.payment_date + "T12:00:00");
     const diff = Math.floor((payDate - deadline) / (1000 * 60 * 60 * 24));
     return Math.max(diff, 0);
@@ -2590,7 +2593,9 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     const pm = selectedPayment.pension_month;
     const [year, month] = pm.split("-").map(Number);
     const deadline = new Date(year, month - 1, diaVenc);
+    deadline.setHours(12, 0, 0, 0);
     const today = new Date();
+    today.setHours(12, 0, 0, 0);
     const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
     if (daysLate <= 0) return { mora: 0, newTotal: selectedPayment.total_amount || 0, daysLate: 0 };
     let mensBase = 0;

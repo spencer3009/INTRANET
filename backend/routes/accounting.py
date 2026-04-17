@@ -520,8 +520,8 @@ async def confirm_payment(payment_id: str, current_user = Depends(require_sectio
                 pm = payment["pension_month"]
                 try:
                     year, month = int(pm[:4]), int(pm[5:7])
-                    deadline = datetime(year, month, dia_vencimiento, tzinfo=timezone.utc)
-                    today = datetime.now(timezone.utc)
+                    deadline = datetime(year, month, dia_vencimiento, 12, 0, 0, tzinfo=timezone.utc)
+                    today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
                     days_late = max((today - deadline).days, 0)
                     
                     if days_late > 0:
