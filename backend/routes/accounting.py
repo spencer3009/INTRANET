@@ -523,6 +523,23 @@ async def reactivate_payment(payment_id: str, current_user=Depends(require_secti
 
 
 
+@router.delete("/accounting/payments/{payment_id}")
+async def delete_payment(payment_id: str, current_user=Depends(require_section_access("accounting"))):
+    """Permanently delete a payment record."""
+    user = current_user
+    school_id = user["school_id"]
+
+    payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    await db.payments.delete_one({"id": payment_id, "school_id": school_id})
+    logger.info(f"Payment deleted: {payment_id} by {user['id']}")
+    return {"message": "Pago eliminado correctamente"}
+
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DEBTORS (MOROSOS) & STUDENT PAYMENT HISTORY
 # ─────────────────────────────────────────────────────────────────────────────

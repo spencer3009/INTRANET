@@ -335,7 +335,7 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, onDelete, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -617,6 +617,14 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                                 data-testid={`cancel-payment-${payment.id}`}
                               >
                                 <XCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => onDelete(payment)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar pago"
+                                data-testid={`delete-payment-${payment.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </>
                           )}
@@ -2557,6 +2565,21 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   };
 
 
+  const handleDeletePayment = async (payment) => {
+    const { toast } = await import("sonner");
+    if (!window.confirm(`¿Está seguro de ELIMINAR permanentemente este pago de ${payment.student_name || "alumno"}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await axios.delete(`${API}/accounting/payments/${payment.id}`, { headers });
+      toast.success("Pago eliminado correctamente");
+      loadPayments();
+      loadSummary();
+      loadDebtors();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al eliminar pago");
+    }
+  };
+
+
   const handleSaveExpense = async (data) => {
     if (editingExpense?.id) {
       await axios.put(`${API}/accounting/expenses/${editingExpense.id}`, data, { headers });
@@ -2768,6 +2791,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onConfirm={handleConfirmPaymentClick}
               onCancel={handleCancelPaymentClick}
               onReactivate={handleReactivatePayment}
+              onDelete={handleDeletePayment}
               filterStatus={filterPaymentStatus}
               setFilterStatus={setFilterPaymentStatus}
               dateFrom={dateFrom}
