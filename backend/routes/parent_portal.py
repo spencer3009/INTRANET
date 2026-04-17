@@ -252,8 +252,8 @@ async def get_parent_payments(
                 pronto_pago_count += 1
                 total_pronto_pago_savings += pension_mensual - pronto_pago_monto
     
-    # Base Total Anual (without interest or discounts)
-    total_annual_base = (pension_mensual * school_year_months) + matricula_amount_config if pension_mensual > 0 else sum(p.get("total_amount", 0) for p in payments)
+    # Base Total Anual (only mensualidades, matrícula shown separately)
+    total_annual_base = (pension_mensual * school_year_months) if pension_mensual > 0 else sum(p.get("_mensualidad_amount", 0) for p in payments)
     
     # Adjusted amounts considering interest and pending overdue
     debt_mensualidades = 0

@@ -680,7 +680,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
                       <CircleDollarSign className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
                       <p className="text-lg font-bold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {((paymentData.summary.paid_amount || 0) + (paymentData.matricula?.paid ? (paymentData.matricula?.amount || 0) : 0)).toLocaleString('es-PE')}
+                        S/ {(paymentData.summary.paid_amount || 0).toLocaleString('es-PE')}
                       </p>
                       <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
                     </div>

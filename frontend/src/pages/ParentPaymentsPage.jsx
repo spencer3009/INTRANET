@@ -178,7 +178,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <CircleDollarSign className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                   <p className="text-2xl font-black text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {((summary.paid_amount || 0) + (paymentData.matricula?.paid ? (paymentData.matricula?.amount || 0) : 0)).toLocaleString('es-PE')}
+                    S/ {(summary.paid_amount || 0).toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Total Pagado</p>
                 </div>
