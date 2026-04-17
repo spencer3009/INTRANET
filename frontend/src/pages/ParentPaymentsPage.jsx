@@ -164,6 +164,16 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
           ) : (
             <>
               {/* Summary Cards */}
+              {(() => {
+                const summary = paymentData.summary || {};
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const currentMonthPayments = (paymentData.monthly_detail || []).filter(m =>
+                  m.payment_date && m.payment_date.startsWith(currentMonthKey) && m.payment_status === 'pending'
+                );
+                const monthDebt = currentMonthPayments.reduce((sum, m) => sum + (m.total_amount || 0), 0);
+
+                return (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <CircleDollarSign className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
@@ -173,9 +183,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   <p className="text-xs text-slate-500 mt-1">Total Pagado</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
-                  <AlertTriangle className={`w-8 h-8 mx-auto mb-2 ${summary.pending_amount > 0 ? 'text-red-500' : 'text-slate-300'}`} />
-                  <p className={`text-2xl font-black ${summary.pending_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {(summary.pending_amount || 0).toLocaleString('es-PE')}
+                  <AlertTriangle className={`w-8 h-8 mx-auto mb-2 ${monthDebt > 0 ? 'text-red-500' : 'text-slate-300'}`} />
+                  <p className={`text-2xl font-black ${monthDebt > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    S/ {monthDebt.toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Deuda del Mes</p>
                 </div>
@@ -194,6 +204,8 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   <p className="text-xs text-slate-500 mt-1">Matrícula {paymentData.matricula?.paid ? '- Pagada' : ''}</p>
                 </div>
               </div>
+                );
+              })()}
 
               {/* Progress Bar Summary */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6" data-testid="payments-progress">
