@@ -20,7 +20,12 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Rutas: `/:subdomain/settings/registro-auxiliar/editor/:plantillaId` y `/nueva`
 - Features: criterios editables, subcolumnas, reorden, color picker, preview tiempo real, desglose de ponderación, indicador de suma, autoguardado 30s, guardar borrador, activar
 
-### Fase 4 — Consumo Dinámico (PENDIENTE - siguiente fork)
+### Fase 3.5 — Botón Clonar Subcolumna en Editor (COMPLETO)
+- Archivo: `/app/frontend/src/pages/PlantillaEditorPage.jsx`
+- Botón clonar (icono Copy) en cada fila de subcolumna, entre tipo y eliminar
+- Inserción posicional (debajo de la original), normalización de orden, auto-focus en label
+
+### Fase 4 — Consumo Dinámico (PENDIENTE)
 - Archivo a modificar: `/app/frontend/src/components/GradeBookTab.jsx` (647 líneas, hardcoded)
 - Tareas: fetch plantilla, render dinámico de tabla, cálculo promedio bimestral dinámico, fallback legacy, selector de plantilla al crear registro
 

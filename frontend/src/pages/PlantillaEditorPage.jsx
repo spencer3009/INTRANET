@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import {
   ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown,
-  GripVertical, CheckCircle2, AlertTriangle, X, ClipboardList
+  GripVertical, CheckCircle2, AlertTriangle, X, ClipboardList, Copy
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -94,6 +94,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
     markChanged();
   };
 
+  const [focusSubId, setFocusSubId] = useState(null);
+
   // ── Subcolumna operations ──
   const updateSub = (cIdx, sIdx, field, value) => {
     setCriterios(prev => {
@@ -134,6 +136,21 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
       n[cIdx] = { ...c, subcolumnas: [...c.subcolumnas, { id: newId, label: "Nueva", tipo: "input", orden: c.subcolumnas.length }] };
       return n;
     });
+    markChanged();
+  };
+  const cloneSub = (cIdx, sIdx) => {
+    const newId = `${criterios[cIdx].id}_sub_${Date.now()}`;
+    setCriterios(prev => {
+      const n = [...prev];
+      const c = n[cIdx];
+      const original = c.subcolumnas[sIdx];
+      const cloned = { ...original, id: newId, orden: 0 };
+      const newSubs = [...c.subcolumnas];
+      newSubs.splice(sIdx + 1, 0, cloned);
+      n[cIdx] = { ...c, subcolumnas: newSubs.map((s, i) => ({ ...s, orden: i })) };
+      return n;
+    });
+    setFocusSubId(newId);
     markChanged();
   };
 
@@ -267,7 +284,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                           <th className="text-left py-1 w-8"></th>
                           <th className="text-left py-1">Label</th>
                           <th className="text-left py-1 w-40">Tipo</th>
-                          <th className="w-8"></th>
+                          <th className="w-16"></th>
                         </tr></thead>
                         <tbody>
                           {c.subcolumnas.map((s, sIdx) => (
@@ -279,7 +296,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                                 </div>
                               </td>
                               <td><input value={s.label} onChange={e => updateSub(cIdx, sIdx, "label", e.target.value)}
-                                className="w-full text-sm border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none" /></td>
+                                ref={el => { if (el && focusSubId === s.id) { el.focus(); el.select(); setFocusSubId(null); } }}
+                                className="w-full text-sm border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none" data-testid={`sub-label-${cIdx}-${sIdx}`} /></td>
                               <td>
                                 <select value={s.tipo} onChange={e => updateSub(cIdx, sIdx, "tipo", e.target.value)}
                                   className="text-xs border border-slate-200 rounded px-1 py-1 w-full">
@@ -288,11 +306,19 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                                 </select>
                               </td>
                               <td>
-                                <button onClick={() => removeSub(cIdx, sIdx)} disabled={c.subcolumnas.length <= 1}
-                                  title={c.subcolumnas.length <= 1 ? "Debe haber al menos una subcolumna" : "Eliminar"}
-                                  className="p-1 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed">
-                                  <X className="w-3 h-3" />
-                                </button>
+                                <div className="flex items-center gap-0.5">
+                                  <button onClick={() => cloneSub(cIdx, sIdx)}
+                                    title="Clonar subcolumna"
+                                    className="p-1 rounded hover:bg-blue-50 text-slate-300 hover:text-blue-500"
+                                    data-testid={`clone-sub-${cIdx}-${sIdx}`}>
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                  <button onClick={() => removeSub(cIdx, sIdx)} disabled={c.subcolumnas.length <= 1}
+                                    title={c.subcolumnas.length <= 1 ? "Debe haber al menos una subcolumna" : "Eliminar"}
+                                    className="p-1 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
