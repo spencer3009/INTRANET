@@ -198,21 +198,39 @@ async def get_parent_payments(
     pronto_pago_monto = fin_settings.get("pronto_pago_monto", 0)
     pronto_pago_fecha_limite = fin_settings.get("pronto_pago_fecha_limite", 5)
     
-    # Get all mensualidad payments for this student (case-insensitive)
+    # Get all mensualidad payments for this student
+    # Include: concept="mensualidad" OR conceptos array contains "Mensualidad"
     payments = await db.payments.find({
         "school_id": school_id,
         "student_id": student_id,
-        "concept": {"$regex": "^mensualidad$", "$options": "i"}
+        "$or": [
+            {"concept": {"$regex": "mensualidad", "$options": "i"}},
+            {"conceptos.concepto": {"$regex": "mensualidad", "$options": "i"}},
+        ]
     }, {"_id": 0}).sort("payment_date", 1).to_list(100)
+    
+    # For combined payments, extract only the mensualidad portion amount
+    for p in payments:
+        conceptos = p.get("conceptos", [])
+        if len(conceptos) > 1:
+            # Combined payment - find the mensualidad amount
+            for c in conceptos:
+                if "mensualidad" in (c.get("concepto", "")).lower():
+                    p["_mensualidad_amount"] = c.get("monto", p.get("total_amount", 0))
+                    break
+            else:
+                p["_mensualidad_amount"] = p.get("total_amount", 0)
+        else:
+            p["_mensualidad_amount"] = p.get("total_amount", 0)
     
     paid_count = sum(1 for p in payments if p.get("payment_status") == "paid")
     pending_count = sum(1 for p in payments if p.get("payment_status") == "pending")
     overdue_count = sum(1 for p in payments if p.get("payment_status") == "overdue")
     registered_months = len(payments)
     
-    paid_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "paid")
-    pending_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "pending")
-    overdue_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "overdue")
+    paid_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "paid")
+    pending_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "pending")
+    overdue_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "overdue")
     
     # Calculate interest on overdue payments
     total_interest = 0
@@ -254,14 +272,28 @@ async def get_parent_payments(
     debt_mensualidades += pension_mensual * unregistered_months
     
     # Add unpaid matrícula
+    # Check if matrícula is paid - search exact concept OR inside conceptos array
     matricula = await db.payments.find_one({
         "school_id": school_id,
         "student_id": student_id,
-        "concept": {"$regex": "^matricula$|^matrícula$", "$options": "i"},
+        "$or": [
+            {"concept": {"$regex": "^matricula$|^matrícula$", "$options": "i"}},
+            {"conceptos.concepto": {"$regex": "^matricula$|^matrícula$", "$options": "i"}},
+        ],
         "payment_status": "paid"
-    }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1})
+    }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1, "conceptos": 1})
     
-    matricula_paid_amount = matricula.get("total_amount", 0) if matricula else 0
+    # Extract matricula amount from conceptos if combined payment
+    if matricula:
+        conceptos = matricula.get("conceptos", [])
+        mat_amount = matricula.get("total_amount", 0)
+        for c in conceptos:
+            if "matricula" in (c.get("concepto", "")).lower() or "matrícula" in (c.get("concepto", "")).lower():
+                mat_amount = c.get("monto", mat_amount)
+                break
+        matricula_paid_amount = mat_amount
+    else:
+        matricula_paid_amount = 0
     debt_matricula = matricula_amount_config - matricula_paid_amount if not matricula else 0
     
     total_debt = debt_mensualidades + debt_matricula
@@ -309,7 +341,7 @@ async def get_parent_payments(
             "id": p.get("id"),
             "month_name": label,
             "payment_date": p.get("payment_date"),
-            "total_amount": p.get("total_amount", 0),
+            "total_amount": p.get("_mensualidad_amount", p.get("total_amount", 0)),
             "payment_status": p.get("payment_status"),
             "payment_method": p.get("payment_method"),
             "receipt_number": p.get("receipt_number"),
