@@ -306,17 +306,17 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                                 </select>
                               </td>
                               <td>
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-1">
                                   <button onClick={() => cloneSub(cIdx, sIdx)}
                                     title="Clonar subcolumna"
-                                    className="p-1 rounded hover:bg-blue-50 text-slate-300 hover:text-blue-500"
+                                    className="p-1 rounded border border-blue-200 bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
                                     data-testid={`clone-sub-${cIdx}-${sIdx}`}>
-                                    <Copy className="w-3 h-3" />
+                                    <Copy className="w-3.5 h-3.5" />
                                   </button>
                                   <button onClick={() => removeSub(cIdx, sIdx)} disabled={c.subcolumnas.length <= 1}
                                     title={c.subcolumnas.length <= 1 ? "Debe haber al menos una subcolumna" : "Eliminar"}
-                                    className="p-1 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed">
-                                    <X className="w-3 h-3" />
+                                    className="p-1 rounded hover:bg-rose-50 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed">
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </td>
