@@ -26,7 +26,7 @@ import {
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
   Eye, History, UserX, UserCheck, Settings, Tag, Zap, Download,
-  QrCode
+  QrCode, Search
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -335,7 +335,52 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentResults, setStudentResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
+  const searchRef = useRef(null);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (!studentSearch.trim() || studentSearch.length < 2) {
+      setStudentResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await axios.get(`${API}/users/students/search?q=${encodeURIComponent(studentSearch)}`, { headers });
+        setStudentResults(Array.isArray(res.data) ? res.data.slice(0, 8) : []);
+        setShowResults(true);
+      } catch { setStudentResults([]); }
+      finally { setSearchLoading(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [studentSearch]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowResults(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const selectStudent = (student) => {
+    setSearchStudentId(student.id);
+    setSelectedStudentName(`${student.name || ""} ${student.last_name || ""}`.trim());
+    setStudentSearch("");
+    setShowResults(false);
+  };
+
+  const clearStudentFilter = () => {
+    setSearchStudentId("");
+    setSelectedStudentName("");
+    setStudentSearch("");
+  };
   const handleDownloadBoleta = async (paymentId, numeroBoleta) => {
     try {
       const response = await fetch(`${API}/contabilidad/boletas/${paymentId}/pdf`, {
@@ -374,7 +419,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
 
       {/* Header - Premium style */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium text-gray-500">Estado:</span>
           <div className="flex gap-2">
             <button
@@ -401,6 +446,51 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                 {val.label}
               </button>
             ))}
+          </div>
+          {/* Student search */}
+          <div className="relative" ref={searchRef}>
+            {selectedStudentName ? (
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                <User className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-blue-700 font-medium">{selectedStudentName}</span>
+                <button onClick={clearStudentFilter} className="text-blue-400 hover:text-blue-600 ml-1">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  onFocus={() => studentResults.length > 0 && setShowResults(true)}
+                  placeholder="Buscar alumno..."
+                  className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none w-52"
+                  data-testid="student-search-input"
+                />
+                {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-gray-400" />}
+              </>
+            )}
+            {showResults && studentResults.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto" data-testid="student-search-results">
+                {studentResults.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => selectStudent(s)}
+                    className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
+                  >
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">
+                      {(s.name || "?")[0]}{(s.last_name || "?")[0]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{s.name} {s.last_name}</p>
+                      <p className="text-xs text-gray-400">{s.grade_name || ""} {s.section_name || ""}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <button
@@ -2208,6 +2298,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [searchStudentId, setSearchStudentId] = useState("");
   
   // Confirmation modal states
   const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
@@ -2234,7 +2325,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
   useEffect(() => {
     if (!loading) loadPayments();
-  }, [filterPaymentStatus, paymentsPage, dateFrom, dateTo]);
+  }, [filterPaymentStatus, paymentsPage, dateFrom, dateTo, searchStudentId]);
 
   useEffect(() => {
     if (!loading) loadExpenses();
@@ -2286,6 +2377,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       if (filterPaymentStatus) params.status = filterPaymentStatus;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
+      if (searchStudentId) params.student_id = searchStudentId;
       const res = await axios.get(`${API}/accounting/payments`, { headers, params });
       setPayments(res.data.payments || []);
       setPaymentsTotal(res.data.total || 0);
@@ -2651,6 +2743,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               periodSummary={periodSummary}
               summaryLoading={summaryLoading}
               token={token}
+              searchStudentId={searchStudentId}
+              setSearchStudentId={(id) => { setSearchStudentId(id); setPaymentsPage(1); }}
             />
           )}
           {activeTab === "expenses" && (

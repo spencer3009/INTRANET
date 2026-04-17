@@ -154,6 +154,40 @@ async def check_username(username: str, current_user = Depends(get_current_user)
         "username": username
     }
 
+@router.get("/users/students/search")
+async def search_students(q: str = "", current_user = Depends(get_current_user)):
+    """Search students by name for autocomplete."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not q or len(q) < 2:
+        return []
+    
+    import re
+    regex = re.compile(re.escape(q), re.IGNORECASE)
+    students = await db.users.find(
+        {
+            "school_id": user["school_id"],
+            "role": "student",
+            "$or": [
+                {"name": {"$regex": regex}},
+                {"last_name": {"$regex": regex}},
+            ]
+        },
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1}
+    ).limit(10).to_list(10)
+    
+    # Enrich with grade/section names
+    for s in students:
+        grade = await db.grades.find_one({"id": s.get("grado_id")}, {"_id": 0, "nombre": 1})
+        section = await db.sections.find_one({"id": s.get("seccion_id")}, {"_id": 0, "nombre": 1})
+        s["grade_name"] = grade.get("nombre", "") if grade else ""
+        s["section_name"] = section.get("nombre", "") if section else ""
+    
+    return students
+
+
 @router.post("/users")
 async def create_user(data: CreateUserRequest, current_user = Depends(get_current_user)):
     """

@@ -152,6 +152,7 @@ async def get_payments(
     status: Optional[str] = None,
     concept: Optional[str] = None,
     grade_id: Optional[str] = None,
+    student_id: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     page: int = 1,
@@ -169,6 +170,8 @@ async def get_payments(
         query["concept"] = concept
     if grade_id:
         query["grade_id"] = grade_id
+    if student_id:
+        query["student_id"] = student_id
     if date_from:
         query["payment_date"] = {"$gte": date_from}
     if date_to:
