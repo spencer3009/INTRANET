@@ -438,7 +438,25 @@ async def confirm_payment(payment_id: str, current_user = Depends(require_sectio
     
     logger.info(f"Payment confirmed: {payment_id} by {user['id']}")
     
-    return {"message": "Pago confirmado correctamente"}
+    # Emit boleta (same logic as payment creation)
+    # Re-fetch the updated payment for boleta generation
+    updated_payment = await db.payments.find_one({"id": payment_id, "school_id": school_id}, {"_id": 0})
+    boleta_info = None
+    try:
+        from routes.boletas import emitir_boleta_para_ingreso
+        boleta_info = await emitir_boleta_para_ingreso(updated_payment, school_id, user)
+    except Exception as e:
+        logger.warning(f"Error emitting boleta on confirm for payment {payment_id}: {e}")
+    
+    result = {"message": "Pago confirmado correctamente"}
+    if boleta_info:
+        result["boleta_disponible"] = True
+        result["boleta_id"] = boleta_info["boleta_id"]
+        result["numero_boleta"] = boleta_info["numero_boleta"]
+    else:
+        result["boleta_disponible"] = False
+    
+    return result
 
 @router.put("/accounting/payments/{payment_id}/cancel")
 async def cancel_payment(payment_id: str, current_user = Depends(require_section_access("accounting"))):

@@ -2383,13 +2383,23 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     if (!selectedPayment) return;
     setProcessing(true);
     try {
-      await axios.put(`${API}/accounting/payments/${selectedPayment.id}/confirm`, {}, { headers });
+      const res = await axios.put(`${API}/accounting/payments/${selectedPayment.id}/confirm`, {}, { headers });
+      const data = res.data;
       loadPayments();
       loadSummary();
+      loadDebtors();
       setShowConfirmPaymentModal(false);
       setSelectedPayment(null);
+
+      // Open boleta PDF if emitted
+      if (data?.boleta_disponible && data?.numero_boleta) {
+        toast.success(`Pago confirmado. Boleta ${data.numero_boleta} emitida`);
+        setBoletaPreview({ open: true, ingresoId: selectedPayment.id, numeroBoleta: data.numero_boleta });
+      } else {
+        toast.success("Pago confirmado correctamente");
+      }
     } catch (err) {
-      alert(err.response?.data?.detail || "Error al confirmar pago");
+      toast.error(err.response?.data?.detail || "Error al confirmar pago");
     } finally {
       setProcessing(false);
     }
