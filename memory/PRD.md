@@ -25,9 +25,20 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Botón clonar (icono Copy) en cada fila de subcolumna, entre tipo y eliminar
 - Inserción posicional (debajo de la original), normalización de orden, auto-focus en label
 
-### Fase 4 — Consumo Dinámico (PENDIENTE)
-- Archivo a modificar: `/app/frontend/src/components/GradeBookTab.jsx` (647 líneas, hardcoded)
-- Tareas: fetch plantilla, render dinámico de tabla, cálculo promedio bimestral dinámico, fallback legacy, selector de plantilla al crear registro
+### Fase 3.6 — Simplificación Columnas Finales + Modal Preview (COMPLETO)
+- Eliminado campo label_corto editable del editor (auto-generado desde label)
+- Modal de vista previa expandida (90vw x 85vh) con tabla completa + footer con suma
+
+### Fase 4 — Consumo Dinámico (COMPLETO)
+- Archivo creado: `/app/frontend/src/utils/registroAuxiliarUtils.js`
+  - PLANTILLA_SISTEMA_FALLBACK, assignFieldKeys, calcularPromedioBimestral, calcularPromedioCriterio
+- Archivo refactorizado: `/app/frontend/src/components/GradeBookTab.jsx`
+  - Fetch de plantilla activa/predeterminada del colegio al montar
+  - Render dinámico de criterios, subcolumnas, columnas finales desde plantilla
+  - Cálculo de promedios usando pesos de la plantilla
+  - Fallback a PLANTILLA_SISTEMA_FALLBACK si no hay plantilla activa
+  - Indicador "Plantilla: {nombre}" en el header
+  - Guardado de notas compatible con GRADE_SUB_FIELDS del backend (positional mapping)
 
 ## Key Files
 - `/app/backend/routes/registro_auxiliar_plantillas.py`
@@ -44,7 +55,7 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 
 ## Prioritized Backlog
 ### P0
-- Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar
+- (COMPLETADO) Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar
 
 ### P1
 - Guard global alumnos pending/rejected
