@@ -886,7 +886,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       </div>
                       {nextCuota && (
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                          isVerifying ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          isVerifying ? 'bg-amber-50 text-amber-700 border-amber-300' :
                           isOverdue ? 'bg-red-50 text-red-700 border-red-200' :
                           'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
@@ -974,8 +974,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         </div>
 
                         {isVerifying ? (
-                          <div className="w-full py-3 rounded-xl bg-blue-50 border border-blue-200 text-center">
-                            <span className="text-sm font-semibold text-blue-700 flex items-center justify-center gap-2">
+                          <div className="w-full py-3 rounded-xl bg-amber-50 border border-amber-300 text-center">
+                            <span className="text-sm font-semibold text-amber-700 flex items-center justify-center gap-2">
                               <Clock className="w-4 h-4" /> Pago en verificacion
                             </span>
                           </div>
