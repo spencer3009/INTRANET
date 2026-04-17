@@ -229,8 +229,8 @@ async def get_parent_payments(
     registered_months = len(payments)
     
     paid_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "paid")
-    pending_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "pending")
-    overdue_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "overdue")
+    pending_amount = sum(pension_mensual for p in payments if p.get("payment_status") == "pending")
+    overdue_amount = sum(pension_mensual for p in payments if p.get("payment_status") == "overdue")
     
     # Calculate daily interest (mora) on pending payments that are past the deadline
     total_mora_pending = 0
@@ -245,7 +245,8 @@ async def get_parent_payments(
                     deadline = datetime(year, month, int(pronto_pago_fecha_limite), 12, 0, 0, tzinfo=timezone.utc)
                     days_late = max((today - deadline).days, 0)
                     if days_late > 0:
-                        mens_base = p.get("_mensualidad_amount", p.get("total_amount", 0))
+                        # ALWAYS use pension_mensual as base (avoids double-counting if amount already includes mora)
+                        mens_base = pension_mensual
                         if interes_tipo == "porcentaje":
                             daily_rate = float(interes_valor) / 30 / 100
                             mora = round(mens_base * daily_rate * days_late, 2)
@@ -352,11 +353,14 @@ async def get_parent_payments(
             else:
                 label = "Mensualidad"
         
+        # For pending mensualidad: use pension_mensual as base (stored amount may already include mora)
+        display_amount = pension_mensual if p.get("payment_status") in ("pending", "overdue") else p.get("_mensualidad_amount", p.get("total_amount", 0))
+        
         monthly_detail.append({
             "id": p.get("id"),
             "month_name": label,
             "payment_date": p.get("payment_date"),
-            "total_amount": p.get("_mensualidad_amount", p.get("total_amount", 0)),
+            "total_amount": display_amount,
             "payment_status": p.get("payment_status"),
             "payment_method": p.get("payment_method"),
             "receipt_number": p.get("receipt_number"),

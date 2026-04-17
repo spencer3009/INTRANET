@@ -756,8 +756,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 const monthNames = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};
                 const pendingItems = yapeSchedule.filter(s =>
                   (s.status === 'pending' || s.status === 'overdue') && s.yape_status !== 'pendiente_verificacion'
+                  && (s.concept || '').toLowerCase() !== 'matricula'
                 );
-                const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion');
+                const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion'
+                  && (s.concept || '').toLowerCase() !== 'matricula'
+                );
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
                 // Enrich nextCuota with mora data from paymentData.monthly_detail
