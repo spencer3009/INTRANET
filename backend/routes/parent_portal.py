@@ -232,16 +232,31 @@ async def get_parent_payments(
     pending_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "pending")
     overdue_amount = sum(p.get("_mensualidad_amount", 0) for p in payments if p.get("payment_status") == "overdue")
     
-    # Calculate interest on overdue payments
-    total_interest = 0
-    if interes_activo and overdue_count > 0:
+    # Calculate daily interest (mora) on pending payments that are past the deadline
+    total_mora_pending = 0
+    mora_per_payment = {}  # payment_id -> {mora, days_late}
+    if interes_activo and float(interes_valor) > 0:
+        today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
         for p in payments:
-            if p.get("payment_status") == "overdue":
-                base = p.get("total_amount", pension_mensual)
-                if interes_tipo == "porcentaje":
-                    total_interest += base * (interes_valor / 100)
-                else:
-                    total_interest += interes_valor
+            if p.get("payment_status") in ("pending", "overdue") and p.get("pension_month"):
+                pm = p.get("pension_month", "")
+                try:
+                    year, month = int(pm[:4]), int(pm[5:7])
+                    deadline = datetime(year, month, int(pronto_pago_fecha_limite), 12, 0, 0, tzinfo=timezone.utc)
+                    days_late = max((today - deadline).days, 0)
+                    if days_late > 0:
+                        mens_base = p.get("_mensualidad_amount", p.get("total_amount", 0))
+                        if interes_tipo == "porcentaje":
+                            daily_rate = float(interes_valor) / 30 / 100
+                            mora = round(mens_base * daily_rate * days_late, 2)
+                        else:
+                            daily_fixed = float(interes_valor) / 30
+                            mora = round(daily_fixed * days_late, 2)
+                        if mora > 0:
+                            mora_per_payment[p.get("id")] = {"mora": mora, "days_late": days_late, "total_con_mora": round(mens_base + mora, 2)}
+                            total_mora_pending += mora
+                except Exception:
+                    pass
     
     # Calculate pronto pago savings (for paid payments that qualified)
     total_pronto_pago_savings = 0
@@ -311,10 +326,10 @@ async def get_parent_payments(
     month_names_es = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
                       7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
     for p in payments:
-        interest_charge = 0
-        if interes_activo and p.get("payment_status") == "overdue":
-            base = p.get("total_amount", pension_mensual)
-            interest_charge = base * (interes_valor / 100) if interes_tipo == "porcentaje" else interes_valor
+        pid = p.get("id")
+        mora_info = mora_per_payment.get(pid, {})
+        interest_charge = mora_info.get("mora", 0)
+        days_late = mora_info.get("days_late", 0)
         
         is_pronto_pago = (pronto_pago_activo and p.get("payment_status") == "paid" 
                           and p.get("total_amount", 0) <= pronto_pago_monto and pronto_pago_monto > 0)
@@ -346,6 +361,7 @@ async def get_parent_payments(
             "payment_method": p.get("payment_method"),
             "receipt_number": p.get("receipt_number"),
             "interest_charge": round(interest_charge, 2),
+            "days_late": days_late,
             "is_pronto_pago": is_pronto_pago,
         })
     
@@ -363,7 +379,8 @@ async def get_parent_payments(
             "pending_amount": round(pending_amount, 2),
             "overdue_amount": round(overdue_amount, 2),
             "debt_amount": round(total_debt, 2),
-            "total_interest": round(total_interest, 2),
+            "total_interest": round(total_mora_pending, 2),
+            "total_mora_pending": round(total_mora_pending, 2),
             "total_pronto_pago_savings": round(total_pronto_pago_savings, 2),
             "pronto_pago_count": pronto_pago_count,
             "overall_status": overall_status,

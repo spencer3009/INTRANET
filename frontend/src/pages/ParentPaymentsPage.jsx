@@ -171,7 +171,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                 const currentMonthPayments = (paymentData.monthly_detail || []).filter(m =>
                   m.payment_date && m.payment_date.startsWith(currentMonthKey) && m.payment_status === 'pending'
                 );
-                const monthDebt = currentMonthPayments.reduce((sum, m) => sum + (m.total_amount || 0), 0);
+                const monthDebtBase = currentMonthPayments.reduce((sum, m) => sum + (m.total_amount || 0), 0);
+                const monthMora = currentMonthPayments.reduce((sum, m) => sum + (m.interest_charge || 0), 0);
+                const monthDebt = monthDebtBase + monthMora;
 
                 return (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -187,6 +189,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   <p className={`text-2xl font-black ${monthDebt > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                     S/ {monthDebt.toLocaleString('es-PE')}
                   </p>
+                  {monthMora > 0 && (
+                    <p className="text-[10px] text-rose-500 font-medium">incluye S/ {monthMora.toFixed(2)} mora</p>
+                  )}
                   <p className="text-xs text-slate-500 mt-1">Deuda del Mes</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
@@ -318,7 +323,12 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-bold text-slate-800">S/ {month.total_amount.toFixed(2)}</span>
+                          <div className="text-right">
+                            <span className="text-base font-bold text-slate-800">S/ {(month.total_amount + (month.interest_charge || 0)).toFixed(2)}</span>
+                            {month.interest_charge > 0 && (
+                              <p className="text-[10px] text-rose-500 font-medium">+S/ {month.interest_charge.toFixed(2)} mora ({month.days_late || 0}d)</p>
+                            )}
+                          </div>
                           <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${
                             isPaid
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
