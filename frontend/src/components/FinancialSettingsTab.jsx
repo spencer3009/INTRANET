@@ -120,9 +120,9 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
       {/* Cobros: Automáticos / Manuales tabs */}
       <div className="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-md">
         {/* Tab header with icon and title */}
-        <div className="bg-gradient-to-r from-slate-500 to-slate-600 px-6 py-4 flex items-center gap-3">
-          <Zap className="w-5 h-5 text-white" />
-          <h3 className="text-sm font-bold text-white tracking-wide">Generacion de Cobranza</h3>
+        <div className="bg-gradient-to-r from-slate-200 to-slate-300 px-6 py-4 flex items-center gap-3">
+          <Zap className="w-5 h-5 text-slate-600" />
+          <h3 className="text-sm font-bold text-slate-700 tracking-wide">Generacion de Cobranza</h3>
         </div>
         {/* Tab buttons */}
         <div className="bg-white px-5 py-3 flex items-center gap-3 border-b border-slate-200">
