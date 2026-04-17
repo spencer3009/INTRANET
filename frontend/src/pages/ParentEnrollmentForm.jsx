@@ -24,7 +24,7 @@ export default function ParentEnrollmentForm({ user, token }) {
   const [academicEditable, setAcademicEditable] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [ageWarning, setAgeWarning] = useState("");
-  const [showProcedencia, setShowProcedencia] = useState(false);
+  const [showProcedencia, setShowProcedencia] = useState(true);
 
   const [form, setForm] = useState({
     name: "", last_name: "", dni: "", birthday: "", gender: "",
