@@ -349,10 +349,21 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
   const calcMoraForPayment = (payment) => {
     if (!["pending", "yape_pendiente"].includes(payment.payment_status) || !financialSettings) return null;
     const fs = financialSettings;
+    const isYape = payment.is_yape;
+    const pensionBase = parseFloat(fs.pension_mensual) || 0;
+
+    // For Yape: the parent already paid an amount that includes mora. Just decompose it.
+    if (isYape && pensionBase > 0) {
+      const yapeMora = Math.round((payment.total_amount - pensionBase) * 100) / 100;
+      if (yapeMora > 0) {
+        return { mora: yapeMora, daysLate: "", totalConMora: payment.total_amount, baseWithoutMora: pensionBase };
+      }
+      return { mora: 0, daysLate: "", totalConMora: payment.total_amount, baseWithoutMora: pensionBase };
+    }
+
     if (!fs.interes_activo) return null;
     const concept = (payment.concept || "").toLowerCase();
     const conceptos = payment.conceptos || [];
-    const isYape = payment.is_yape;
     let isMensualidad = concept.includes("mensualidad") || concept.includes("pension");
     if (!isMensualidad) isMensualidad = conceptos.some(c => (c.concepto || "").toLowerCase().includes("mensualidad"));
     if (!isMensualidad || !payment.pension_month) return null;
@@ -367,14 +378,11 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
       const today = new Date(todayStr + "T12:00:00");
       const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
       if (daysLate <= 0) return null;
-      // For Yape payments, use pension_mensual as base (amount already includes mora)
-      let mensBase = isYape ? (parseFloat(fs.pension_mensual) || 0) : 0;
-      if (!isYape) {
-        for (const c of conceptos) {
-          if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
-        }
-        if (mensBase === 0) mensBase = payment.amount_base || 0;
+      let mensBase = 0;
+      for (const c of conceptos) {
+        if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
       }
+      if (mensBase === 0) mensBase = payment.amount_base || 0;
       if (mensBase === 0) return null;
       let mora = 0;
       if ((fs.interes_tipo || "porcentaje") === "porcentaje") {
@@ -383,11 +391,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
         mora = Math.round((interesValor / 30) * daysLate * 100) / 100;
       }
       if (mora <= 0) return null;
-      // For Yape, the total is already the amount paid (includes mora), so base = amount - mora
-      if (isYape) {
-        return { mora, daysLate, totalConMora: payment.total_amount, baseWithoutMora: mensBase };
-      }
-      return { mora, daysLate, totalConMora: Math.round((payment.total_amount + mora) * 100) / 100 };
+      return { mora, daysLate: `${daysLate}d`, totalConMora: Math.round((payment.total_amount + mora) * 100) / 100 };
     } catch { return null; }
   };
 
@@ -632,10 +636,10 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                         <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(moraInfo?.baseWithoutMora || payment.amount_base)}</span>
                       </td>
                       <td className="px-5 py-4 text-right hidden md:table-cell">
-                        {moraInfo ? (
+                        {moraInfo && moraInfo.mora > 0 ? (
                           <div>
                             <span className="text-sm text-rose-500 font-semibold">+S/ {formatNumber(moraInfo.mora)}</span>
-                            <span className="text-xs text-gray-400 ml-1">({moraInfo.daysLate}d)</span>
+                            {moraInfo.daysLate && <span className="text-xs text-gray-400 ml-1">({moraInfo.daysLate})</span>}
                           </div>
                         ) : (
                           <span className="text-sm text-gray-300">&mdash;</span>
