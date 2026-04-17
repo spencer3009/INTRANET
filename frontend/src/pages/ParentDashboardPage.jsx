@@ -337,10 +337,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             <p className="text-sm text-emerald-700">
               Estás viendo la información de <span className="font-semibold">{studentInfo.name} {studentInfo.last_name}</span>
             </p>
+            <div className="ml-auto flex items-center gap-2">
             {enrollmentEnabled && (
             <button
               onClick={() => navigateTo("/parent/registrar-alumno")}
-              className="ml-auto text-xs px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5"
+              className="text-xs px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5"
               data-testid="register-another-child-btn"
             >
               <GraduationCap className="w-3.5 h-3.5" />
@@ -348,7 +349,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             </button>
             )}
             {children.length > 1 && (
-              <div className="ml-auto relative group">
+              <div className="relative group">
                 <button className="flex items-center gap-2 bg-white/80 hover:bg-white rounded-lg px-3 py-1.5 border border-emerald-200 transition-colors cursor-pointer" data-testid="child-switcher-btn">
                   <UserCheck className="w-4 h-4 text-emerald-600" />
                   <span className="text-xs text-emerald-700 font-medium">Cambiar hijo</span>
@@ -384,6 +385,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Enrollment status banner */}
