@@ -1669,6 +1669,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Photo upload modal
   const [photoModalUser, setPhotoModalUser] = useState(null);
 
+  // Asignar DNI como clave
+  const [showDniClaveModal, setShowDniClaveModal] = useState(false);
+  const [dniClaveSobrescribir, setDniClaveSobrescribir] = useState(false);
+  const [dniClaveLoading, setDniClaveLoading] = useState(false);
+  const [dniClaveResult, setDniClaveResult] = useState(null);
+
   // ═══════════════ PARENT IMPORT STATES ═══════════════
   const [showParentImportModal, setShowParentImportModal] = useState(false);
   const [parentImportStep, setParentImportStep] = useState("menu"); // menu|upload|confirm|importing|result
@@ -2080,6 +2086,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
   
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Assign DNI as password for parents
+  const handleAsignarDniClave = async (sobrescribir) => {
+    setDniClaveLoading(true);
+    setDniClaveResult(null);
+    try {
+      const res = await axios.post(`${API}/admin/padres/asignar-clave-dni`, { sobrescribir }, { headers });
+      setDniClaveResult(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al asignar claves");
+      setShowDniClaveModal(false);
+    } finally {
+      setDniClaveLoading(false);
+    }
+  };
 
   // Fetch users and settings
   useEffect(() => {
@@ -2668,6 +2689,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <QrCode className="w-5 h-5 text-white" />
                       </div>
                       <span className="hidden sm:inline">Descargar QR</span>
+                    </button>
+                  )}
+                  {selectedRole === 'parent' && (
+                    <button
+                      onClick={() => { setDniClaveSobrescribir(false); setDniClaveResult(null); setShowDniClaveModal(true); }}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid="asignar-dni-clave-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                        <Key className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">Asignar DNI como clave</span>
                     </button>
                   )}
                   {selectedRole === 'student' && pendingEnrollmentCount > 0 && (
@@ -4127,6 +4160,80 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         type={infoModalContent.type}
         showCancel={false}
       />
+
+      {/* Modal Asignar DNI como clave */}
+      {showDniClaveModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !dniClaveLoading && setShowDniClaveModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" data-testid="dni-clave-modal">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <Key className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">Asignar DNI como clave</h2>
+                </div>
+                <button onClick={() => !dniClaveLoading && setShowDniClaveModal(false)} className="p-2 text-white/70 hover:text-white rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6">
+              {!dniClaveResult ? (
+                <>
+                  <p className="text-sm text-slate-600 mb-4">Se asignara el DNI de cada padre como su contraseña de acceso al portal.</p>
+                  <div className="space-y-3 mb-6">
+                    <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${!dniClaveSobrescribir ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-slate-300"}`}
+                      onClick={() => setDniClaveSobrescribir(false)}>
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${!dniClaveSobrescribir ? "border-indigo-500" : "border-slate-300"}`}>
+                        {!dniClaveSobrescribir && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Solo padres sin clave</p>
+                        <p className="text-xs text-slate-500">Asigna el DNI solo a padres que aun no tienen contraseña.</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${dniClaveSobrescribir ? "border-rose-500 bg-rose-50" : "border-slate-200 hover:border-slate-300"}`}
+                      onClick={() => setDniClaveSobrescribir(true)}>
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${dniClaveSobrescribir ? "border-rose-500" : "border-slate-300"}`}>
+                        {dniClaveSobrescribir && <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Todos los padres</p>
+                        <p className="text-xs text-rose-500">Sobrescribe las contraseñas existentes. No se puede deshacer.</p>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowDniClaveModal(false)} disabled={dniClaveLoading}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors">Cancelar</button>
+                    <button onClick={() => handleAsignarDniClave(dniClaveSobrescribir)} disabled={dniClaveLoading}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      data-testid="dni-clave-confirm-btn">
+                      {dniClaveLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                      {dniClaveLoading ? "Procesando..." : "Confirmar"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-7 h-7 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Claves asignadas correctamente</h3>
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-left mb-6">
+                    <div className="flex justify-between text-sm"><span className="text-slate-500">Actualizados</span><span className="font-bold text-emerald-600">{dniClaveResult.actualizados}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-slate-500">Sin DNI (omitidos)</span><span className="font-bold text-slate-800">{dniClaveResult.sin_dni}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-slate-500">Ya tenian clave (omitidos)</span><span className="font-bold text-slate-800">{dniClaveResult.omitidos_con_clave}</span></div>
+                    <div className="flex justify-between text-sm pt-2 border-t border-slate-200"><span className="text-slate-500">Total procesados</span><span className="font-bold text-slate-800">{dniClaveResult.total_procesados}</span></div>
+                  </div>
+                  <button onClick={() => { setShowDniClaveModal(false); setDniClaveResult(null); }}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors" data-testid="dni-clave-done-btn">Entendido</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit User Modal */}
       {showEditModal && editingUser && (

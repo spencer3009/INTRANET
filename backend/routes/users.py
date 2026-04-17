@@ -2095,3 +2095,54 @@ async def teacher_qr_bulk_download(current_user=Depends(get_current_user)):
     except Exception as e:
         logger.exception(f"[QR Bulk] CRITICAL: Error generating teacher QR PDF for school {school_id}: {e}")
         return JSONResponse(status_code=500, content={"detail": f"Error generando PDF de QR: {str(e)}"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ASSIGN DNI AS PASSWORD FOR PARENTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AsignarClaveDniRequest(BaseModel):
+    sobrescribir: bool = False
+
+@router.post("/admin/padres/asignar-clave-dni")
+async def asignar_clave_dni_padres(data: AsignarClaveDniRequest, user=Depends(require_admin())):
+    """Assign DNI as password to parents. Only for admin/owner."""
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="No se encontro el colegio")
+
+    query = {"school_id": school_id, "role": "parent"}
+    parents = await db.users.find(query, {"_id": 0, "id": 1, "dni": 1, "password": 1, "name": 1, "last_name": 1}).to_list(5000)
+
+    actualizados = 0
+    sin_dni = 0
+    omitidos_con_clave = 0
+
+    for p in parents:
+        dni = (p.get("dni") or "").strip()
+        if not dni:
+            sin_dni += 1
+            continue
+
+        has_password = bool(p.get("password"))
+        if has_password and not data.sobrescribir:
+            omitidos_con_clave += 1
+            continue
+
+        hashed = hash_password(dni)
+        await db.users.update_one(
+            {"id": p["id"]},
+            {"$set": {"password": hashed, "password_display": dni, "updated_at": now_iso()}}
+        )
+        actualizados += 1
+
+    logger.info(f"[ASIGNAR-DNI] school={school_id} actualizados={actualizados} sin_dni={sin_dni} omitidos={omitidos_con_clave} sobrescribir={data.sobrescribir}")
+
+    return {
+        "actualizados": actualizados,
+        "sin_dni": sin_dni,
+        "omitidos_con_clave": omitidos_con_clave,
+        "total_procesados": len(parents),
+    }
