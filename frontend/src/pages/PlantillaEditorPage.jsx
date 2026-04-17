@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import {
   ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown,
-  GripVertical, CheckCircle2, AlertTriangle, X, ClipboardList, Copy
+  GripVertical, CheckCircle2, AlertTriangle, X, ClipboardList, Copy, Maximize2
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -96,6 +96,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
 
   const [focusSubId, setFocusSubId] = useState(null);
   const [focusColFinalId, setFocusColFinalId] = useState(null);
+  const [modalPreviewAbierto, setModalPreviewAbierto] = useState(false);
+  const [previewSnapshot, setPreviewSnapshot] = useState(null);
 
   const generarLabelCorto = (labelLargo) => {
     return labelLargo
@@ -238,6 +240,18 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
   const handleBack = () => {
     if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Salir de todas formas?")) return;
     navigate(`/${subdomain}/settings`);
+  };
+
+  const abrirModalPreview = () => {
+    setPreviewSnapshot({
+      criterios: JSON.parse(JSON.stringify(criterios)),
+      columnasFinales: JSON.parse(JSON.stringify(columnasFinales)),
+      labelPromedioFinal,
+      nombre,
+      pctSum: Math.round(pctSum),
+      pctOk,
+    });
+    setModalPreviewAbierto(true);
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>;
@@ -444,6 +458,12 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                   {!pctOk && <span className="text-rose-500 text-[10px]">Faltan {Math.round(100 - pctSum)}%</span>}
                 </div>
               </div>
+              {/* Full preview button */}
+              <button onClick={abrirModalPreview}
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                data-testid="open-preview-modal">
+                <Maximize2 className="w-4 h-4" /> Vista previa completa
+              </button>
               {/* Autosave indicator */}
               {estado === "borrador" && effectiveId && (
                 <p className="text-[10px] text-slate-400 mt-2 text-center">
@@ -454,19 +474,52 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
           </div>
         </div>
       </div>
+
+      {/* ── Modal Preview Expandida ── */}
+      {modalPreviewAbierto && previewSnapshot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModalPreviewAbierto(false)}>
+          <div className="bg-white rounded-xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
+              <h2 className="text-sm font-bold text-slate-800">Vista previa — {previewSnapshot.nombre}</h2>
+              <button onClick={() => setModalPreviewAbierto(false)} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600" data-testid="close-preview-modal">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <div className="overflow-x-auto">
+                <PreviewTable criterios={previewSnapshot.criterios} columnasFinales={previewSnapshot.columnasFinales} labelPromedio={previewSnapshot.labelPromedioFinal} expanded />
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
+              <span className={`text-sm font-bold ${previewSnapshot.pctOk ? "text-emerald-600" : "text-rose-600"}`}>
+                Suma total: {previewSnapshot.pctSum}% / 100% {previewSnapshot.pctOk ? " — Completo" : ` — Faltan ${100 - previewSnapshot.pctSum}%`}
+              </span>
+              <button onClick={() => setModalPreviewAbierto(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold border border-slate-200 hover:bg-slate-100 text-slate-600"
+                data-testid="close-preview-modal-footer">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function PreviewTable({ criterios, columnasFinales, labelPromedio }) {
+function PreviewTable({ criterios, columnasFinales, labelPromedio, expanded }) {
   const students = ["García López, Ana", "Mendoza Torres, Carlos", "Quispe Huamani, Lucía"];
   if (!criterios.length && !columnasFinales.length) return <p className="text-xs text-slate-400 text-center py-8">Agrega criterios para ver la vista previa</p>;
 
+  const sz = expanded ? "text-xs" : "text-[10px]";
+  const minW = expanded ? "min-w-[180px]" : "min-w-[120px]";
+  const cellMinW = expanded ? "min-w-[44px]" : "min-w-[28px]";
+
   return (
-    <table className="w-full text-[10px] border-collapse">
+    <table className={`w-full ${sz} border-collapse`} style={{ minWidth: expanded ? "max-content" : undefined }}>
       <thead>
         <tr>
-          <th rowSpan={2} className="bg-slate-100 text-slate-600 font-bold px-2 py-1.5 border border-slate-200 text-left min-w-[120px]">ALUMNO</th>
+          <th rowSpan={2} className={`bg-slate-100 text-slate-600 font-bold px-2 py-1.5 border border-slate-200 text-left ${minW}`}>ALUMNO</th>
           {criterios.map(c => (
             <th key={c.id} colSpan={(c.subcolumnas || []).length} className="text-white font-bold px-1 py-1.5 border border-white/20 text-center" style={{ backgroundColor: c.color || "#94a3b8" }}>
               {c.nombre} {c.porcentaje}%
@@ -481,14 +534,14 @@ function PreviewTable({ criterios, columnasFinales, labelPromedio }) {
         </tr>
         <tr>
           {criterios.flatMap(c => (c.subcolumnas || []).map(s => (
-            <th key={s.id} className="bg-slate-50 text-slate-500 font-semibold px-1 py-1 border border-slate-200 text-center min-w-[28px]">{s.label}</th>
+            <th key={s.id} className={`bg-slate-50 text-slate-500 font-semibold px-1 py-1 border border-slate-200 text-center ${cellMinW}`}>{s.label}</th>
           )))}
         </tr>
       </thead>
       <tbody>
         {students.map((name, i) => (
           <tr key={i}>
-            <td className="px-2 py-1 border border-slate-200 text-slate-600 font-medium">{name}</td>
+            <td className="px-2 py-1 border border-slate-200 text-slate-600 font-medium whitespace-nowrap">{name}</td>
             {criterios.flatMap(c => (c.subcolumnas || []).map(s => (
               <td key={s.id} className={`border border-slate-200 text-center ${s.tipo === "promedio_auto" ? "bg-emerald-50 text-emerald-600 font-bold" : "text-slate-300"}`}>
                 {s.tipo === "promedio_auto" ? "—" : ""}
