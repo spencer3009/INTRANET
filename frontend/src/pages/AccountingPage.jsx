@@ -654,16 +654,15 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                         <div className="flex flex-col items-center gap-1.5">
                           {payment.is_yape ? (
                             /* Yape payment - show verify link */
-                            <a
-                              href="#yape-verification"
-                              onClick={(e) => { e.preventDefault(); window.location.hash = ''; setTimeout(() => { const el = document.querySelector('[data-testid="yape-verification-tab"]'); if (el) el.click(); }, 100); }}
+                            <button
+                              onClick={() => onConfirm(payment)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 transition-colors cursor-pointer"
-                              title="Ir a verificar pago Yape"
+                              title="Verificar pago Yape"
                               data-testid={`verify-yape-${payment.id}`}
                             >
                               <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                               Verificar Yape
-                            </a>
+                            </button>
                           ) : (
                           <>
                           <div className="flex items-center justify-center gap-1">
@@ -2420,6 +2419,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
   const [showCancelPaymentModal, setShowCancelPaymentModal] = useState(false);
   const [showDeleteExpenseModal, setShowDeleteExpenseModal] = useState(false);
+  const [showYapeVerifyModal, setShowYapeVerifyModal] = useState(false);
+  const [yapeRejectReason, setYapeRejectReason] = useState("");
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -2593,7 +2594,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
   const handleConfirmPaymentClick = (payment) => {
     setSelectedPayment(payment);
-    setShowConfirmPaymentModal(true);
+    if (payment.is_yape) {
+      setYapeRejectReason("");
+      setShowYapeVerifyModal(true);
+    } else {
+      setShowConfirmPaymentModal(true);
+    }
   };
 
   // Calculate mora preview for confirm modal
@@ -2672,6 +2678,51 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const handleCancelPaymentClick = (payment) => {
     setSelectedPayment(payment);
     setShowCancelPaymentModal(true);
+  };
+
+  // Yape verification handlers
+  const handleYapeVerify = async () => {
+    if (!selectedPayment) return;
+    setProcessing(true);
+    try {
+      await axios.put(`${API}/accounting/yape-payments/${selectedPayment.id}/verify`, { action: "verificar" }, { headers });
+      const { toast } = await import("sonner");
+      toast.success("Pago Yape verificado y registrado en contabilidad");
+      setShowYapeVerifyModal(false);
+      setSelectedPayment(null);
+      loadPayments();
+      loadSummary();
+      loadDebtors();
+    } catch (err) {
+      const { toast } = await import("sonner");
+      toast.error(err.response?.data?.detail || "Error al verificar pago Yape");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleYapeReject = async () => {
+    if (!selectedPayment) return;
+    if (!yapeRejectReason.trim()) {
+      const { toast } = await import("sonner");
+      toast.error("Debe indicar la razon del rechazo");
+      return;
+    }
+    setProcessing(true);
+    try {
+      await axios.put(`${API}/accounting/yape-payments/${selectedPayment.id}/verify`, { action: "rechazar", rejection_reason: yapeRejectReason.trim() }, { headers });
+      const { toast } = await import("sonner");
+      toast.success("Pago Yape rechazado. El padre sera notificado.");
+      setShowYapeVerifyModal(false);
+      setSelectedPayment(null);
+      setYapeRejectReason("");
+      loadPayments();
+    } catch (err) {
+      const { toast } = await import("sonner");
+      toast.error(err.response?.data?.detail || "Error al rechazar pago");
+    } finally {
+      setProcessing(false);
+    }
   };
   
   const handleCancelPayment = async () => {
@@ -3053,6 +3104,101 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         icon="delete"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+
+      {/* Yape Verification Modal */}
+      {showYapeVerifyModal && selectedPayment && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => { setShowYapeVerifyModal(false); setSelectedPayment(null); }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" data-testid="yape-verify-modal">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <QrCode className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Validar Pago Yape</h2>
+                  <p className="text-xs text-purple-200">Verificacion de codigo de operacion</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowYapeVerifyModal(false); setSelectedPayment(null); }} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              {/* Student & Payment Info */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Alumno:</span>
+                  <span className="font-bold text-gray-800">{selectedPayment.student_name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Concepto:</span>
+                  <span className="font-semibold text-gray-700">{selectedPayment.concept_label || selectedPayment.concept}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Monto:</span>
+                  <span className="font-bold text-purple-700 text-lg">S/ {formatNumber(selectedPayment.total_amount)}</span>
+                </div>
+                {selectedPayment.parent_name && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Reportado por:</span>
+                    <span className="font-medium text-gray-600">{selectedPayment.parent_name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Operation Code Display */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Codigo de operacion ingresado por el padre</label>
+                <div className="bg-purple-50 border-2 border-purple-200 rounded-xl px-5 py-4 text-center">
+                  <span className="text-3xl font-black text-purple-800 tracking-widest" data-testid="yape-op-code-display">
+                    {selectedPayment.yape_operation_code || "—"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 text-center">Verifique este codigo en su aplicacion Yape antes de confirmar</p>
+              </div>
+
+              {/* Reject reason (collapsible) */}
+              {yapeRejectReason !== null && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Razon de rechazo (solo si rechaza)</label>
+                  <textarea
+                    value={yapeRejectReason}
+                    onChange={(e) => setYapeRejectReason(e.target.value)}
+                    placeholder="Ej: Codigo no coincide, monto incorrecto..."
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows={2}
+                    data-testid="yape-reject-reason"
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleYapeReject}
+                  disabled={processing}
+                  className="flex-1 py-3 rounded-xl border-2 border-rose-200 text-rose-600 font-semibold text-sm hover:bg-rose-50 transition-colors disabled:opacity-50"
+                  data-testid="yape-reject-btn"
+                >
+                  Rechazar
+                </button>
+                <button
+                  onClick={handleYapeVerify}
+                  disabled={processing}
+                  className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  data-testid="yape-confirm-btn"
+                >
+                  {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Confirmar Pago
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <FloatingHelpAvatar subdomain={subdomain} />
 
       <BoletaPreviewModal
