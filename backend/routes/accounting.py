@@ -309,6 +309,17 @@ async def get_payments(
                 "parent_name": yp.get("parent_name", ""),
             })
     
+    # Filter out regular pending payments that have a matching Yape payment pending verification
+    if yape_payments and not is_yape_filter:
+        yape_keys = set()
+        for yp in yape_payments:
+            key = f"{yp['student_id']}|{yp['pension_month']}"
+            yape_keys.add(key)
+        payments = [p for p in payments if not (
+            p.get("payment_status") == "pending"
+            and f"{p.get('student_id')}|{p.get('pension_month')}" in yape_keys
+        )]
+    
     all_payments = yape_payments + ([] if is_yape_filter else payments)
     yape_total = len(yape_payments)
     
