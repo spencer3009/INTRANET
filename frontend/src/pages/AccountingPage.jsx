@@ -347,12 +347,13 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
 
   // Calculate mora preview for pending payments in the table
   const calcMoraForPayment = (payment) => {
-    if (payment.payment_status !== "pending" || !financialSettings) return null;
+    if (!["pending", "yape_pendiente"].includes(payment.payment_status) || !financialSettings) return null;
     const fs = financialSettings;
     if (!fs.interes_activo) return null;
     const concept = (payment.concept || "").toLowerCase();
     const conceptos = payment.conceptos || [];
-    let isMensualidad = concept.includes("mensualidad");
+    const isYape = payment.is_yape;
+    let isMensualidad = concept.includes("mensualidad") || concept.includes("pension");
     if (!isMensualidad) isMensualidad = conceptos.some(c => (c.concepto || "").toLowerCase().includes("mensualidad"));
     if (!isMensualidad || !payment.pension_month) return null;
     const diaVenc = parseInt(fs.pronto_pago_fecha_limite || fs.dia_vencimiento_mensualidad || 5);
@@ -362,16 +363,19 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
     try {
       const [year, month] = pm.split("-").map(Number);
       const deadline = new Date(year, month - 1, diaVenc, 12, 0, 0);
-      // Use UTC date string (same as payment_date in the modal) to avoid timezone mismatch
       const todayStr = new Date().toISOString().split("T")[0];
       const today = new Date(todayStr + "T12:00:00");
       const daysLate = Math.max(Math.floor((today - deadline) / (1000 * 60 * 60 * 24)), 0);
       if (daysLate <= 0) return null;
-      let mensBase = 0;
-      for (const c of conceptos) {
-        if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+      // For Yape payments, use pension_mensual as base (amount already includes mora)
+      let mensBase = isYape ? (parseFloat(fs.pension_mensual) || 0) : 0;
+      if (!isYape) {
+        for (const c of conceptos) {
+          if ((c.concepto || "").toLowerCase().includes("mensualidad")) mensBase += c.monto || 0;
+        }
+        if (mensBase === 0) mensBase = payment.amount_base || 0;
       }
-      if (mensBase === 0) mensBase = payment.amount_base || 0;
+      if (mensBase === 0) return null;
       let mora = 0;
       if ((fs.interes_tipo || "porcentaje") === "porcentaje") {
         mora = Math.round(mensBase * (interesValor / 30 / 100) * daysLate * 100) / 100;
@@ -379,6 +383,10 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
         mora = Math.round((interesValor / 30) * daysLate * 100) / 100;
       }
       if (mora <= 0) return null;
+      // For Yape, the total is already the amount paid (includes mora), so base = amount - mora
+      if (isYape) {
+        return { mora, daysLate, totalConMora: payment.total_amount, baseWithoutMora: mensBase };
+      }
       return { mora, daysLate, totalConMora: Math.round((payment.total_amount + mora) * 100) / 100 };
     } catch { return null; }
   };
@@ -621,7 +629,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                         <span className="text-sm text-gray-500">{payment.pension_month_label || "-"}</span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(payment.amount_base)}</span>
+                        <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(moraInfo?.baseWithoutMora || payment.amount_base)}</span>
                       </td>
                       <td className="px-5 py-4 text-right hidden md:table-cell">
                         {moraInfo ? (
