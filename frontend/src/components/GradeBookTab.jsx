@@ -20,10 +20,10 @@ const S = {
   thTop: { background: "#4472C4", color: "#fff", fontWeight: 700, textAlign: "center", border: "1px solid #2F5496", padding: "6px 4px", fontSize: "12px", letterSpacing: "0.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   thWeight: { background: "#FFD700", color: "#000", fontWeight: 800, textAlign: "center", border: "1px solid #C9A800", padding: "4px 2px", fontSize: "12px" },
   thGroup: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "4px 2px", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
-  thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
-  thColFinal: { background: "#F59E0B", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #D97706", padding: "4px 2px", fontSize: "10px", writingMode: "vertical-rl", textOrientation: "mixed", height: "80px", whiteSpace: "nowrap" },
+  thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "bottom" },
+  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "bottom" },
+  thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "bottom" },
+  thColFinal: { background: "#F59E0B", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #D97706", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "bottom" },
   tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600 },
   tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
@@ -382,17 +382,19 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     data-testid="name-col-resize-handle"
                   />
                 </th>
-                <th colSpan={totalSubCols} style={S.thTop}>CRITERIOS DE EVALUACION</th>
-                {colFinalesCount > 0 && (
-                  <th colSpan={colFinalesCount} rowSpan={2} style={{ ...S.thTop, background: "#F59E0B", border: "1px solid #D97706" }}>COL. FINALES</th>
-                )}
-                <th rowSpan={2} style={{ ...S.thFinal, background: "#FFD700", color: "#000", writingMode: "horizontal-tb", height: "auto", fontSize: 12, fontWeight: 800 }}>100%</th>
+                <th colSpan={totalSubCols + colFinalesCount} style={S.thTop}>CRITERIOS DE EVALUACION</th>
+                <th rowSpan={2} style={{ ...S.thFinal, background: "#FFD700", color: "#000", writingMode: "horizontal-tb", transform: "none", height: "auto", fontSize: 12, fontWeight: 800 }}>100%</th>
               </tr>
               {/* ROW 2: Percentage weights */}
               <tr>
                 {criterios.map(c => (
                   <th key={c.id} colSpan={c.subcolumnas.length} style={{ ...S.thWeight, background: c.color || "#FFD700" }}>
                     {c.porcentaje}%
+                  </th>
+                ))}
+                {columnas_finales.map(col => (
+                  <th key={col.id} style={{ ...S.thWeight, background: "#F59E0B", border: "1px solid #D97706", color: "#fff" }}>
+                    {col.porcentaje}%
                   </th>
                 ))}
               </tr>
@@ -410,8 +412,8 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                 ))}
                 <th rowSpan={2} style={S.thFinal}>{plantilla.label_promedio_final || "PROM. BIMESTRAL"}</th>
               </tr>
-              {/* ROW 4: Sub-column headers */}
-              <tr>
+              {/* ROW 4: Sub-column headers (all vertical text) */}
+              <tr style={{ height: 80 }}>
                 {criterios.map(c => (
                   <React.Fragment key={c.id}>
                     {c.subcolumnas.map(sub => (
