@@ -5906,47 +5906,95 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {parentPending.map(p => (
                     <div key={p.id} className="bg-slate-50 rounded-xl border border-slate-200 p-4" data-testid={`parent-pending-${p.id}`}>
                       {editingParentPendingId === p.id ? (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <input value={editingParentPendingData.name || ""} onChange={e => setEditingParentPendingData(d => ({...d, name: e.target.value}))}
-                              placeholder="Nombre" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                            <input value={editingParentPendingData.last_name || ""} onChange={e => setEditingParentPendingData(d => ({...d, last_name: e.target.value}))}
-                              placeholder="Apellido" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                            <div>
-                              <select value={editingParentPendingData.tipo_documento || "DNI"} onChange={e => setEditingParentPendingData(d => ({...d, tipo_documento: e.target.value, dni: ""}))}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
-                                <option value="DNI">DNI</option>
-                                <option value="CE">Carnet de Extranjeria</option>
-                              </select>
-                            </div>
-                            <div>
-                              <input value={editingParentPendingData.dni || ""}
-                                onChange={e => {
-                                  const v = editingParentPendingData.tipo_documento === "CE"
-                                    ? e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12)
-                                    : e.target.value.replace(/\D/g, "").slice(0, 8);
-                                  setEditingParentPendingData(d => ({...d, dni: v}));
-                                }}
-                                placeholder={editingParentPendingData.tipo_documento === "CE" ? "Ej: AB1234567 (9-12 car.)" : "DNI (8 digitos)"}
-                                maxLength={editingParentPendingData.tipo_documento === "CE" ? 12 : 8}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                              {editingParentPendingData.dni && editingParentPendingData.tipo_documento === "CE" && !/^[A-Za-z0-9]{9,12}$/.test(editingParentPendingData.dni) && (
-                                <p className="text-[10px] text-rose-500 mt-1">Entre 9 y 12 caracteres alfanumericos</p>
+                        (() => {
+                          const d = editingParentPendingData;
+                          const errs = p.errors || [];
+                          const errStr = errs.join(" ").toLowerCase();
+                          const hasDniErr = errStr.includes("dni");
+                          const hasEmailErr = errStr.includes("email") || errStr.includes("correo");
+                          const hasGenderErr = errStr.includes("genero");
+                          const hasEmptyErr = errStr.includes("empty");
+                          const isDniValid = d.tipo_documento === "CE" ? /^[A-Za-z0-9]{9,12}$/.test(d.dni || "") : /^\d{8}$/.test(d.dni || "");
+                          const isEmailValid = !d.email || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email);
+                          const fieldErr = (field) => {
+                            if (field === "dni" && (hasDniErr || (hasEmptyErr && !d.dni))) return !isDniValid;
+                            if (field === "email" && (hasEmailErr || (hasEmptyErr && !d.email))) return !isEmailValid;
+                            if (field === "gender" && hasGenderErr) return !d.gender;
+                            if (field === "name" && hasEmptyErr) return !d.name || d.name.length < 2;
+                            if (field === "last_name" && hasEmptyErr) return !d.last_name || d.last_name.length < 2;
+                            return false;
+                          };
+                          const inputCls = (field) => `w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors ${fieldErr(field) ? "border-2 border-rose-400 bg-rose-50/50 focus:border-rose-500" : "border border-slate-200 bg-slate-50 focus:border-blue-400"}`;
+                          return (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nombres</label>
+                                  <input value={d.name || ""} onChange={e => setEditingParentPendingData(x => ({...x, name: e.target.value}))} className={inputCls("name")} placeholder="Nombres del padre" />
+                                  {fieldErr("name") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Nombre vacio o muy corto</p>}
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Apellidos</label>
+                                  <input value={d.last_name || ""} onChange={e => setEditingParentPendingData(x => ({...x, last_name: e.target.value}))} className={inputCls("last_name")} placeholder="Apellidos del padre" />
+                                  {fieldErr("last_name") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Apellido vacio o muy corto</p>}
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipo de documento</label>
+                                  <select value={d.tipo_documento || "DNI"} onChange={e => setEditingParentPendingData(x => ({...x, tipo_documento: e.target.value}))}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-blue-400">
+                                    <option value="DNI">DNI</option>
+                                    <option value="CE">Carnet de Extranjeria</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Numero de documento</label>
+                                  <input value={d.dni || ""}
+                                    onChange={e => {
+                                      const v = d.tipo_documento === "CE" ? e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12) : e.target.value.replace(/\D/g, "").slice(0, 8);
+                                      setEditingParentPendingData(x => ({...x, dni: v}));
+                                    }}
+                                    maxLength={d.tipo_documento === "CE" ? 12 : 8}
+                                    placeholder={d.tipo_documento === "CE" ? "Ej: AB1234567 (9-12 caract.)" : "8 digitos numericos"}
+                                    className={inputCls("dni")} />
+                                  {fieldErr("dni") && <p className="text-[10px] text-rose-500 mt-1 font-medium">{d.tipo_documento === "CE" ? "Debe tener entre 9 y 12 caracteres alfanumericos" : "El DNI debe tener 8 digitos numericos"}</p>}
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Correo electronico</label>
+                                  <input type="email" value={d.email || ""} onChange={e => setEditingParentPendingData(x => ({...x, email: e.target.value}))}
+                                    className={inputCls("email")} placeholder="ejemplo@correo.com" />
+                                  {fieldErr("email") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Formato de correo invalido</p>}
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Telefono</label>
+                                  <input value={d.phone || ""} onChange={e => setEditingParentPendingData(x => ({...x, phone: e.target.value.replace(/\D/g, "").slice(0, 9)}))}
+                                    className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="9 digitos" maxLength={9} />
+                                </div>
+                                <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Genero</label>
+                                  <select value={d.gender || ""} onChange={e => setEditingParentPendingData(x => ({...x, gender: e.target.value}))}
+                                    className={`w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors bg-white ${fieldErr("gender") ? "border-2 border-rose-400 focus:border-rose-500" : "border border-slate-200 focus:border-blue-400"}`}>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Femenino">Femenino</option>
+                                    <option value="Otro">Otro</option>
+                                  </select>
+                                  {fieldErr("gender") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Seleccione un genero valido</p>}
+                                </div>
+                              </div>
+                              {errs.filter(e => !["dni","email","correo","genero","empty"].some(k => e.toLowerCase().includes(k))).length > 0 && (
+                                <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg">
+                                  {errs.filter(e => !["dni","email","correo","genero","empty"].some(k => e.toLowerCase().includes(k))).map((e,i) => (
+                                    <p key={i} className="text-[10px] text-rose-600 font-medium">{e}</p>
+                                  ))}
+                                </div>
                               )}
-                              {editingParentPendingData.dni && editingParentPendingData.tipo_documento !== "CE" && !/^\d{8}$/.test(editingParentPendingData.dni) && (
-                                <p className="text-[10px] text-rose-500 mt-1">Debe tener 8 digitos</p>
-                              )}
+                              <div className="flex gap-2 pt-1">
+                                <button onClick={() => handleEditParentPending(p.id)} className="px-5 py-2 bg-blue-600 text-white text-xs rounded-lg font-bold hover:bg-blue-700 transition-colors">Guardar</button>
+                                <button onClick={() => setEditingParentPendingId(null)} className="px-5 py-2 bg-slate-100 text-slate-600 text-xs rounded-lg font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                              </div>
                             </div>
-                            <input value={editingParentPendingData.email || ""} onChange={e => setEditingParentPendingData(d => ({...d, email: e.target.value}))}
-                              placeholder="Correo" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                            <input value={editingParentPendingData.phone || ""} onChange={e => setEditingParentPendingData(d => ({...d, phone: e.target.value}))}
-                              placeholder="Celular" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleEditParentPending(p.id)} className="px-4 py-2 bg-blue-600 text-white text-xs rounded-lg font-semibold hover:bg-blue-700">Guardar</button>
-                            <button onClick={() => setEditingParentPendingId(null)} className="px-4 py-2 bg-slate-200 text-slate-600 text-xs rounded-lg font-semibold hover:bg-slate-300">Cancelar</button>
-                          </div>
-                        </div>
+                          );
+                        })()
                       ) : (
                         <div>
                           <div className="flex items-start justify-between">
@@ -5955,7 +6003,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               <p className="text-xs text-slate-400">DNI: {p.dni || "---"} &middot; Fila: {p.row_number}</p>
                             </div>
                             <div className="flex gap-1.5">
-                              <button onClick={() => { setEditingParentPendingId(p.id); setEditingParentPendingData({ name: p.name, last_name: p.last_name, dni: p.dni, tipo_documento: p.tipo_documento || "DNI", email: p.email || "", phone: p.phone || "" }); }}
+                              <button onClick={() => { setEditingParentPendingId(p.id); setEditingParentPendingData({ name: p.name, last_name: p.last_name, dni: p.dni, tipo_documento: p.tipo_documento || "DNI", email: p.email || "", phone: p.phone || "", gender: p.gender || "" }); }}
                                 className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded-lg font-semibold hover:bg-blue-200" data-testid={`parent-pending-edit-${p.id}`}>
                                 Editar
                               </button>
