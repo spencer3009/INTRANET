@@ -760,6 +760,26 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion');
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
+                // Enrich nextCuota with mora data from paymentData.monthly_detail
+                if (nextCuota && paymentData?.monthly_detail) {
+                  const matchDetail = paymentData.monthly_detail.find(m => {
+                    if (nextCuota.id && m.id === nextCuota.id) return true;
+                    if (nextCuota.pension_month && m.payment_date?.startsWith(nextCuota.pension_month)) return true;
+                    if (nextCuota.month && nextCuota.year) {
+                      const pm = `${nextCuota.year}-${String(nextCuota.month).padStart(2, '0')}`;
+                      return m.payment_date?.startsWith(pm);
+                    }
+                    return false;
+                  });
+                  if (matchDetail && matchDetail.interest_charge > 0) {
+                    nextCuota = { ...nextCuota };
+                    nextCuota._interesAmount = matchDetail.interest_charge;
+                    nextCuota._daysLate = matchDetail.days_late || 0;
+                    nextCuota._pensionNormal = matchDetail.total_amount || nextCuota.amount;
+                    nextCuota.amount = (matchDetail.total_amount || nextCuota.amount) + matchDetail.interest_charge;
+                  }
+                }
+
                 // If no schedule items but student has debt, derive next cuota from financial config
                 // Find the next month that doesn't have a payment (pending_verificacion or verificado)
                 if (!nextCuota && paymentData?.financial_config?.pension_mensual > 0) {
@@ -799,13 +819,25 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       // - Current month AND within first X days of the month
                       const isProntoPago = prontoPagoActivo && prontoPagoMonto > 0 && !isMonthOverdue && (isFutureMonth || (isCurrentMonth && now.getDate() <= prontoPagoFechaLimite));
 
-                      // Calculate interest if overdue
+                      // Calculate interest if overdue or current month past deadline
                       const interesActivo = fc.interes_activo;
                       const interesTipo = fc.interes_tipo || 'porcentaje';
                       const interesValor = fc.interes_valor || 0;
                       let interesAmount = 0;
-                      if (isMonthOverdue && interesActivo && interesValor > 0) {
-                        interesAmount = interesTipo === 'porcentaje' ? pension * (interesValor / 100) : interesValor;
+                      let daysLate = 0;
+                      if (interesActivo && interesValor > 0) {
+                        const deadline = new Date(y, m - 1, prontoPagoFechaLimite, 12, 0, 0);
+                        const todayStr = new Date().toISOString().split("T")[0];
+                        const todayDate = new Date(todayStr + "T12:00:00");
+                        daysLate = Math.max(Math.floor((todayDate - deadline) / (1000 * 60 * 60 * 24)), 0);
+                        if (daysLate > 0) {
+                          if (interesTipo === 'porcentaje') {
+                            const dailyRate = interesValor / 30 / 100;
+                            interesAmount = Math.round(pension * dailyRate * daysLate * 100) / 100;
+                          } else {
+                            interesAmount = Math.round((interesValor / 30) * daysLate * 100) / 100;
+                          }
+                        }
                       }
 
                       const finalAmount = isProntoPago ? prontoPagoMonto : (pension + interesAmount);
@@ -931,7 +963,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                             </div>
                           ) : nextCuota._interesAmount > 0 ? (
                             <div>
-                              <p className="text-xs text-slate-500 mt-0.5">Pension S/ {(nextCuota._pensionNormal || 0).toFixed(2)} + Interes S/ {nextCuota._interesAmount.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">Pension S/ {(nextCuota._pensionNormal || 0).toFixed(2)} + Mora S/ {nextCuota._interesAmount.toFixed(2)} ({nextCuota._daysLate || ''}d)</p>
                             </div>
                           ) : (
                             <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
