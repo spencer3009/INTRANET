@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://renewal-fix-testing.preview.emergentagent.com/elroble/login
+- Login URL: https://portal-padres.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu

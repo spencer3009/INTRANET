@@ -2477,16 +2477,22 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     } else {
       const res = await axios.post(`${API}/accounting/payments`, data, { headers });
       const payment = res.data?.payment;
+      const cancelledCount = res.data?.cancelled_pending || 0;
+      
       if (payment?.boleta_disponible && payment?.numero_boleta) {
         const { toast } = await import("sonner");
-        toast.success(`Boleta ${payment.numero_boleta} emitida`);
-        // Open preview modal instead of auto-download
+        let msg = `Boleta ${payment.numero_boleta} emitida`;
+        if (cancelledCount > 0) msg += `. ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} cancelada${cancelledCount > 1 ? 's' : ''} automaticamente`;
+        toast.success(msg);
         setShowPaymentModal(false);
         setEditingPayment(null);
         setBoletaPreview({ open: true, ingresoId: payment.id, numeroBoleta: payment.numero_boleta });
       } else if (payment && !payment.boleta_disponible) {
         const { toast } = await import("sonner");
-        toast.info("Ingreso registrado. Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.", { duration: 6000 });
+        let msg = "Ingreso registrado.";
+        if (cancelledCount > 0) msg += ` ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} cancelada${cancelledCount > 1 ? 's' : ''} automaticamente.`;
+        else msg += " Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.";
+        toast.info(msg, { duration: 6000 });
       }
     }
     loadPayments();

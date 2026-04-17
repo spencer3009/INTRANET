@@ -18,7 +18,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://renewal-fix-testing.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://portal-padres.preview.emergentagent.com')
 
 # Test credentials
 SUPPORT_EMAIL = "spencer3009@gmail.com"

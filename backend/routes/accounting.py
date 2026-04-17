@@ -326,6 +326,48 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     await db.payments.insert_one(payment)
     payment.pop("_id", None)
     
+    # Cancel existing pending payments for the same student/concept/month
+    cancelled_count = 0
+    for c_item in conceptos_list:
+        c_name = c_item["concepto"].lower()
+        is_matricula = "matricula" in c_name or "matrícula" in c_name
+        
+        cancel_query = {
+            "school_id": school_id,
+            "student_id": data.student_id,
+            "payment_status": "pending",
+            "id": {"$ne": payment["id"]},  # Don't cancel the one we just created
+        }
+        
+        if is_matricula:
+            # Matrícula: match by concept only (no month filter)
+            cancel_query["$or"] = [
+                {"concept": {"$regex": "matricula", "$options": "i"}},
+                {"conceptos.concepto": {"$regex": "matricula", "$options": "i"}},
+            ]
+        else:
+            # Mensualidad/other: match by concept + same month
+            cancel_query["$or"] = [
+                {"concept": {"$regex": c_name, "$options": "i"}},
+                {"conceptos.concepto": {"$regex": c_name, "$options": "i"}},
+            ]
+            if data.pension_month:
+                cancel_query["pension_month"] = data.pension_month
+        
+        result = await db.payments.update_many(
+            cancel_query,
+            {"$set": {
+                "payment_status": "canceled",
+                "cancelled_reason": f"Reemplazado por pago consolidado {payment['id']}",
+                "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        cancelled_count += result.modified_count
+    
+    if cancelled_count > 0:
+        logger.info(f"[AUTO-CANCEL] {cancelled_count} pending payments cancelled for student {data.student_id} (replaced by {payment['id']})")
+    
     # Auto-update student status based on payment concept
     if data.payment_status == "paid":
         for c_item in conceptos_list:
@@ -355,7 +397,7 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     else:
         payment["boleta_disponible"] = False
     
-    return {"message": "Pago registrado correctamente", "payment": payment}
+    return {"message": "Pago registrado correctamente", "payment": payment, "cancelled_pending": cancelled_count}
 
 @router.put("/accounting/payments/{payment_id}")
 async def update_payment(payment_id: str, data: PaymentUpdate, current_user = Depends(require_section_access("accounting"))):
