@@ -2477,12 +2477,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     } else {
       const res = await axios.post(`${API}/accounting/payments`, data, { headers });
       const payment = res.data?.payment;
-      const cancelledCount = res.data?.cancelled_pending || 0;
+      const deletedCount = res.data?.deleted_pending || 0;
       
       if (payment?.boleta_disponible && payment?.numero_boleta) {
         const { toast } = await import("sonner");
         let msg = `Boleta ${payment.numero_boleta} emitida`;
-        if (cancelledCount > 0) msg += `. ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} fueron cancelada${cancelledCount > 1 ? 's' : ''} automaticamente`;
+        if (deletedCount > 0) msg += `. ${deletedCount} cuota${deletedCount > 1 ? 's' : ''} pendiente${deletedCount > 1 ? 's' : ''} anterior${deletedCount > 1 ? 'es' : ''} fueron eliminada${deletedCount > 1 ? 's' : ''} automaticamente`;
         toast.success(msg);
         setShowPaymentModal(false);
         setEditingPayment(null);
@@ -2490,7 +2490,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       } else if (payment && !payment.boleta_disponible) {
         const { toast } = await import("sonner");
         let msg = "Pago registrado.";
-        if (cancelledCount > 0) msg += ` ${cancelledCount} cuota${cancelledCount > 1 ? 's' : ''} pendiente${cancelledCount > 1 ? 's' : ''} anterior${cancelledCount > 1 ? 'es' : ''} fueron cancelada${cancelledCount > 1 ? 's' : ''} automaticamente.`;
+        if (deletedCount > 0) msg += ` ${deletedCount} cuota${deletedCount > 1 ? 's' : ''} pendiente${deletedCount > 1 ? 's' : ''} anterior${deletedCount > 1 ? 'es' : ''} fueron eliminada${deletedCount > 1 ? 's' : ''} automaticamente.`;
         else msg += " Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.";
         toast.info(msg, { duration: 6000 });
       }

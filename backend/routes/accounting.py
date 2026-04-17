@@ -166,9 +166,6 @@ async def get_payments(
     query = {"school_id": school_id}
     if status:
         query["payment_status"] = status
-    else:
-        # By default, exclude canceled payments from the list
-        query["payment_status"] = {"$ne": "canceled"}
     if concept:
         query["concept"] = concept
     if grade_id:
@@ -329,8 +326,9 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     await db.payments.insert_one(payment)
     payment.pop("_id", None)
     
-    # Cancel existing pending payments for the same student/concept/month
-    cancelled_count = 0
+    # Auto-delete existing pending payments for the same student/concept/month
+    # (physically remove + log to payments_log for traceability)
+    deleted_count = 0
     for c_item in conceptos_list:
         c_name = c_item["concepto"].lower()
         is_matricula = "matricula" in c_name or "matrícula" in c_name
@@ -339,17 +337,15 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
             "school_id": school_id,
             "student_id": data.student_id,
             "payment_status": "pending",
-            "id": {"$ne": payment["id"]},  # Don't cancel the one we just created
+            "id": {"$ne": payment["id"]},
         }
         
         if is_matricula:
-            # Matrícula: match by concept only (no month filter)
             cancel_query["$or"] = [
                 {"concept": {"$regex": "matricula", "$options": "i"}},
                 {"conceptos.concepto": {"$regex": "matricula", "$options": "i"}},
             ]
         else:
-            # Mensualidad/other: match by concept + same month
             cancel_query["$or"] = [
                 {"concept": {"$regex": c_name, "$options": "i"}},
                 {"conceptos.concepto": {"$regex": c_name, "$options": "i"}},
@@ -357,19 +353,28 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
             if data.pension_month:
                 cancel_query["pension_month"] = data.pension_month
         
-        result = await db.payments.update_many(
-            cancel_query,
-            {"$set": {
-                "payment_status": "canceled",
-                "cancelled_reason": f"Reemplazado por pago consolidado {payment['id']}",
-                "cancelled_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }}
-        )
-        cancelled_count += result.modified_count
+        # Find pending payments to delete, log them, then delete
+        pending_to_delete = await db.payments.find(cancel_query, {"_id": 0}).to_list(100)
+        if pending_to_delete:
+            logs = [{
+                "school_id": p.get("school_id"),
+                "student_id": p.get("student_id"),
+                "concepto": p.get("concept"),
+                "mes": p.get("pension_month", ""),
+                "monto": p.get("total_amount"),
+                "payment_id_original": p.get("id"),
+                "accion": "auto_eliminado",
+                "razon": f"Reemplazado por pago consolidado {payment['id']}",
+                "eliminado_at": datetime.now(timezone.utc).isoformat(),
+            } for p in pending_to_delete]
+            await db.payments_log.insert_many(logs)
+            
+            ids_to_delete = [p["id"] for p in pending_to_delete]
+            result = await db.payments.delete_many({"id": {"$in": ids_to_delete}})
+            deleted_count += result.deleted_count
     
-    if cancelled_count > 0:
-        logger.info(f"[AUTO-CANCEL] {cancelled_count} pending payments cancelled for student {data.student_id} (replaced by {payment['id']})")
+    if deleted_count > 0:
+        logger.info(f"[AUTO-DELETE] {deleted_count} pending payments deleted for student {data.student_id} (replaced by {payment['id']})")
     
     # Auto-update student status based on payment concept
     if data.payment_status == "paid":
@@ -400,7 +405,7 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     else:
         payment["boleta_disponible"] = False
     
-    return {"message": "Pago registrado correctamente", "payment": payment, "cancelled_pending": cancelled_count}
+    return {"message": "Pago registrado correctamente", "payment": payment, "deleted_pending": deleted_count}
 
 @router.put("/accounting/payments/{payment_id}")
 async def update_payment(payment_id: str, data: PaymentUpdate, current_user = Depends(require_section_access("accounting"))):
