@@ -12,6 +12,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
   const headers = { Authorization: `Bearer ${token}` };
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [billingTab, setBillingTab] = useState("auto");
   const [form, setForm] = useState({
     pension_mensual: 0,
     matricula: 0,
@@ -116,62 +117,146 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
         )}
       </div>
 
-      {/* Año Escolar */}
+      {/* Cobros: Automáticos / Manuales tabs */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-2.5">
-          <CalendarDays className="w-5 h-5 text-blue-500" />
-          <h3 className="text-sm font-bold text-slate-700">Ano Escolar</h3>
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-1">
+          <button
+            onClick={() => setBillingTab("auto")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              billingTab === "auto" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+            data-testid="billing-subtab-auto"
+          >
+            Cobros Automaticos
+          </button>
+          <button
+            onClick={() => setBillingTab("manual")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              billingTab === "manual" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+            data-testid="billing-subtab-manual"
+          >
+            Cobros Manuales
+          </button>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+
+        {billingTab === "auto" && (
+          <div className="p-6 space-y-5">
+            {/* Año Escolar */}
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-2">Inicio del ano escolar</label>
-              <input
-                type="date"
-                value={form.fecha_inicio_ano_escolar}
-                onChange={(e) => set("fecha_inicio_ano_escolar", e.target.value)}
-                disabled={!isOwnerOrAdmin}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
-                data-testid="fecha-inicio-ano-input"
-              />
+              <h4 className="text-sm font-bold text-slate-700 mb-3">Periodo del ano escolar</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Inicio del ano escolar</label>
+                  <input
+                    type="date"
+                    value={form.fecha_inicio_ano_escolar}
+                    onChange={(e) => set("fecha_inicio_ano_escolar", e.target.value)}
+                    disabled={!isOwnerOrAdmin}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                    data-testid="fecha-inicio-ano-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Fin del ano escolar</label>
+                  <input
+                    type="date"
+                    value={form.fecha_fin_ano_escolar}
+                    onChange={(e) => set("fecha_fin_ano_escolar", e.target.value)}
+                    disabled={!isOwnerOrAdmin}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                    data-testid="fecha-fin-ano-input"
+                  />
+                </div>
+              </div>
+              {(() => {
+                const today = new Date().toISOString().split("T")[0];
+                const inicio = form.fecha_inicio_ano_escolar;
+                const fin = form.fecha_fin_ano_escolar;
+                if (!inicio || !fin) {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">
+                      <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                      <span>Configure las fechas del ano escolar para activar la cobranza automatica</span>
+                    </div>
+                  );
+                }
+                const isActive = today >= inicio && today <= fin;
+                return (
+                  <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${
+                    isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"
+                  }`} data-testid="billing-status-badge">
+                    <div className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-500"}`} />
+                    <span className="font-medium">{isActive ? "Cobranza automatica activa" : "Cobranza automatica pausada"}</span>
+                    <span className="text-xs opacity-70 ml-1">({inicio} a {fin})</span>
+                  </div>
+                );
+              })()}
             </div>
+
+            <hr className="border-slate-100" />
+
+            {/* Día de vencimiento */}
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-2">Fin del ano escolar</label>
-              <input
-                type="date"
-                value={form.fecha_fin_ano_escolar}
-                onChange={(e) => set("fecha_fin_ano_escolar", e.target.value)}
-                disabled={!isOwnerOrAdmin}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
-                data-testid="fecha-fin-ano-input"
-              />
+              <h4 className="text-sm font-bold text-slate-700 mb-3">Dia de generacion</h4>
+              <div className="max-w-xs">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+                  <CalendarDays className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
+                  Dia de vencimiento mensual
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="28"
+                  value={form.dia_vencimiento_mensualidad}
+                  onChange={(e) => set("dia_vencimiento_mensualidad", Math.min(28, Math.max(1, parseInt(e.target.value) || 5)))}
+                  disabled={!isOwnerOrAdmin}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                  data-testid="dia-vencimiento-input"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-2">El sistema generara automaticamente las cuotas de todos los alumnos activos cada mes en el dia de vencimiento configurado, durante el periodo del ano escolar.</p>
             </div>
           </div>
-          {/* Status badge */}
-          {(() => {
-            const today = new Date().toISOString().split("T")[0];
-            const inicio = form.fecha_inicio_ano_escolar;
-            const fin = form.fecha_fin_ano_escolar;
-            if (!inicio || !fin) {
-              return (
-                <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-                  <span>Configure las fechas del ano escolar para activar la cobranza automatica</span>
-                </div>
-              );
-            }
-            const isActive = today >= inicio && today <= fin;
-            return (
-              <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 border ${
-                isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"
-              }`} data-testid="billing-status-badge">
-                <div className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-500"}`} />
-                <span className="font-medium">{isActive ? "Cobranza automatica activa" : "Cobranza automatica pausada"}</span>
-                <span className="text-xs opacity-70 ml-1">({inicio} a {fin})</span>
+        )}
+
+        {billingTab === "manual" && (
+          <div className="p-6 space-y-5">
+            {/* Warning banner */}
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">El sistema ya genera cobros automaticamente</p>
+                <p className="text-xs text-amber-600 mt-0.5">Esta accion es solo para casos excepcionales donde necesite forzar la generacion de cuotas manualmente.</p>
               </div>
-            );
-          })()}
-        </div>
+            </div>
+
+            {/* Generate button */}
+            {isOwnerOrAdmin && onGenerateBilling && (
+              <div className="flex items-center justify-between bg-slate-50 rounded-xl px-5 py-4 border border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-200">
+                    <Zap className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">Generar cobranza del mes</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Genera manualmente las cuotas pendientes del mes para todos los alumnos activos.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onGenerateBilling}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all shadow-md flex-shrink-0"
+                  data-testid="generate-billing-btn"
+                >
+                  <Zap className="w-4 h-4" />
+                  Generar cobranza
+                </button>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-400">Use esta opcion solo si necesita forzar la generacion de cuotas manualmente. En condiciones normales el sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
+          </div>
+        )}
       </div>
 
       {/* Row 1: Pensiones y Matrícula */}
@@ -180,7 +265,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
           <DollarSign className="w-5 h-5 text-emerald-500" />
           <h3 className="text-sm font-bold text-slate-700">Configuracion de Pensiones y Matricula</h3>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-semibold text-slate-600 mb-2">Monto de Pension Mensual</label>
             <div className="relative">
@@ -215,50 +300,8 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">Monto unico de matricula anual por alumno</p>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">
-              <CalendarDays className="w-4 h-4 inline mr-1 text-slate-400" />
-              Dia de vencimiento mensual
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="28"
-              value={form.dia_vencimiento_mensualidad}
-              onChange={(e) => set("dia_vencimiento_mensualidad", Math.min(28, Math.max(1, parseInt(e.target.value) || 5)))}
-              disabled={!isOwnerOrAdmin}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
-              data-testid="dia-vencimiento-input"
-            />
-            <p className="text-[11px] text-slate-400 mt-1.5">Dia del mes en que vence la cuota (1-28). Usado por el generador automatico.</p>
-          </div>
         </div>
       </div>
-
-      {/* Generate billing button */}
-      {isOwnerOrAdmin && onGenerateBilling && (
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-700">Generar cobranza del mes</p>
-                <p className="text-xs text-slate-400 mt-0.5">Genera manualmente las cuotas pendientes del mes para todos los alumnos activos. El sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
-              </div>
-            </div>
-            <button
-              onClick={onGenerateBilling}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all shadow-md flex-shrink-0"
-              data-testid="generate-billing-btn"
-            >
-              <Zap className="w-4 h-4" />
-              Generar cobranza
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Row 2: Pronto Pago + Intereses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
