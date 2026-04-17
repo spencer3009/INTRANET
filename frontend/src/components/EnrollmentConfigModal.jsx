@@ -37,7 +37,7 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
         enabled,
         academic_info_editable: academicEditable,
       }, { headers });
-      toast.success("Configuracion guardada correctamente");
+      toast.success("Configuración guardada correctamente");
       setOriginal({ enabled, academicEditable });
       onClose();
     } catch (err) {
@@ -67,7 +67,7 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Settings className="w-5 h-5 text-amber-400" />
-            <h3 className="text-white font-bold text-base">Configuracion de Matriculas</h3>
+            <h3 className="text-white font-bold text-base">Configuración de Matrículas</h3>
           </div>
           <button onClick={handleClose} className="text-white/60 hover:text-white transition-colors">
             <X className="w-5 h-5" />
@@ -116,14 +116,14 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <GraduationCap className="w-4 h-4 text-slate-500" />
-                  <p className="font-semibold text-slate-800 text-sm">Permitir seleccion de nivel, grado y seccion por el padre</p>
+                  <p className="font-semibold text-slate-800 text-sm">Permitir selección de nivel, grado y sección por el padre</p>
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   El padre puede indicar el Nivel, Grado, Seccion y Turno de su preferencia. El colegio puede modificarlo al aprobar.
                 </p>
                 {!academicEditable && enabled && (
                   <p className="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-1.5 inline-block">
-                    El colegio asignara el nivel, grado y seccion al momento de aprobar la matricula.
+                    El colegio asignará el nivel, grado y sección al momento de aprobar la matrícula.
                   </p>
                 )}
               </div>

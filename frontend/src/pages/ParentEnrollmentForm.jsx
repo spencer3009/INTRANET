@@ -283,7 +283,7 @@ export default function ParentEnrollmentForm({ user, token }) {
         </div>
         )}
 
-        {/* Procedencia Academica — Collapsible */}
+        {/* Procedencia Académica — Collapsible */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <button
             type="button"
@@ -292,7 +292,7 @@ export default function ParentEnrollmentForm({ user, token }) {
             data-testid="enrollment-procedencia-toggle"
           >
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-indigo-500" /> Procedencia Academica
+              <Building2 className="w-4 h-4 text-indigo-500" /> Procedencia Académica
               <span className="text-xs font-normal text-slate-400">(Opcional)</span>
             </h3>
             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showProcedencia ? "rotate-180" : ""}`} />
@@ -305,21 +305,21 @@ export default function ParentEnrollmentForm({ user, token }) {
                   className={inputCls} placeholder="Nombre del colegio de procedencia" data-testid="enrollment-colegio-anterior" />
               </div>
               <div>
-                <label className={labelCls}>Codigo modular</label>
+                <label className={labelCls}>Código modular</label>
                 <input type="text" value={form.codigo_modular}
                   onChange={e => { const v = e.target.value.replace(/\D/g, "").slice(0, 7); updateField("codigo_modular", v); }}
-                  className={inputCls} placeholder="7 digitos" maxLength={7} inputMode="numeric" data-testid="enrollment-codigo-modular" />
+                  className={inputCls} placeholder="7 dígitos" maxLength={7} inputMode="numeric" data-testid="enrollment-codigo-modular" />
                 {form.codigo_modular && form.codigo_modular.length > 0 && form.codigo_modular.length < 7 && (
-                  <p className="text-xs text-amber-600 mt-1">El codigo modular tiene 7 digitos ({form.codigo_modular.length}/7)</p>
+                  <p className="text-xs text-amber-600 mt-1">El código modular tiene 7 dígitos ({form.codigo_modular.length}/7)</p>
                 )}
               </div>
               <div>
-                <label className={labelCls}>Ultimo grado cursado</label>
+                <label className={labelCls}>Último grado cursado</label>
                 <input type="text" value={form.ultimo_grado_cursado} onChange={e => updateField("ultimo_grado_cursado", e.target.value)}
                   className={inputCls} placeholder="Ej: 3ro Primaria" data-testid="enrollment-ultimo-grado" />
               </div>
               <div>
-                <label className={labelCls}>Ano lectivo anterior</label>
+                <label className={labelCls}>Año lectivo anterior</label>
                 <input type="text" value={form.ano_lectivo_anterior}
                   onChange={e => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); updateField("ano_lectivo_anterior", v); }}
                   className={inputCls} placeholder="Ej: 2025" maxLength={4} inputMode="numeric" data-testid="enrollment-ano-lectivo" />

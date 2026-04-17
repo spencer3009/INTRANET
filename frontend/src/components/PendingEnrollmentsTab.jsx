@@ -76,7 +76,7 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
     setApproving(true);
     try {
       await axios.post(`${API}/api/enrollment/${approveTarget.id}/approve`, approveForm, { headers });
-      toast.success(`Matricula de ${approveTarget.name} aprobada`);
+      toast.success(`Matrícula de ${approveTarget.name} aprobada`);
       setApproveTarget(null);
       setApproveForm({ nivel_id: "", grade_id: "", section_id: "", turno_id: "" });
       loadPending();
@@ -128,7 +128,7 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
           <div>
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-amber-500" />
-              Matriculas Pendientes
+              Matrículas Pendientes
             </h2>
             <p className="text-xs text-slate-500">{pending.length} solicitud{pending.length !== 1 ? "es" : ""} por revisar</p>
           </div>
@@ -147,7 +147,7 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
             <Check className="w-8 h-8 text-emerald-500" />
           </div>
           <h3 className="font-semibold text-slate-700 mb-1">Sin solicitudes pendientes</h3>
-          <p className="text-sm text-slate-500">Todas las matriculas han sido procesadas</p>
+          <p className="text-sm text-slate-500">Todas las matrículas han sido procesadas</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -215,9 +215,9 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
       {approveTarget && (
         <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={() => setApproveTarget(null)}>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()} data-testid="approve-modal">
-            <h3 className="text-lg font-bold text-slate-800 mb-1">Aprobar matricula</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Aprobar matrícula</h3>
             <p className="text-sm text-slate-500 mb-5">
-              Asigna el grado y seccion oficial para <span className="font-semibold text-slate-700">{approveTarget.name} {approveTarget.last_name || ""}</span>
+              Asigna el grado y sección oficial para <span className="font-semibold text-slate-700">{approveTarget.name} {approveTarget.last_name || ""}</span>
             </p>
 
             <div className="space-y-3 mb-6">
@@ -265,7 +265,7 @@ export default function PendingEnrollmentsTab({ token, onClose, levels: external
               <button onClick={handleApprove} disabled={approving} data-testid="confirm-approve-btn"
                 className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
                 {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Aprobar matricula
+                Aprobar matrícula
               </button>
             </div>
           </div>

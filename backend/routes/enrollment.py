@@ -112,7 +112,7 @@ async def self_register_student(data: SelfRegisterRequest, current_user=Depends(
         ts = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "parent_self_enrollment": 1})
         ts_cfg = (ts or {}).get("parent_self_enrollment", {})
         if not ts_cfg.get("enabled", False):
-            raise HTTPException(status_code=403, detail="El auto-registro no esta habilitado en este colegio")
+            raise HTTPException(status_code=403, detail="El auto-registro no está habilitado en este colegio")
         enrollment_cfg = ts_cfg
 
     parent_id = user["id"]
@@ -215,15 +215,15 @@ async def self_register_student(data: SelfRegisterRequest, current_user=Depends(
         await create_internal_notification(
             user_id=admin["id"],
             school_id=school_id,
-            title="Nueva solicitud de matricula",
-            body=f"Nuevo alumno pendiente de aprobacion: {full_name} (DNI: {dni})",
+            title="Nueva solicitud de matrícula",
+            body=f"Nuevo alumno pendiente de aprobación: {full_name} (DNI: {dni})",
             metadata={"type": "enrollment_pending", "student_id": new_student["id"]},
         )
 
     logger.info(f"[ENROLLMENT] Parent {parent_id} submitted enrollment for {full_name} (DNI: {dni}), student_id={new_student['id']}")
 
     return {
-        "message": "Solicitud de matricula enviada correctamente",
+        "message": "Solicitud de matrícula enviada correctamente",
         "student": {
             "id": new_student["id"],
             "name": new_student["name"],
@@ -335,7 +335,7 @@ async def approve_student(student_id: str, data: ApproveRequest, current_user=De
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     if student.get("enrollment_status") != "pending":
-        raise HTTPException(status_code=400, detail="Este alumno no esta en estado pendiente")
+        raise HTTPException(status_code=400, detail="Este alumno no está en estado pendiente")
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -367,13 +367,13 @@ async def approve_student(student_id: str, data: ApproveRequest, current_user=De
         await create_internal_notification(
             user_id=parent_id,
             school_id=school_id,
-            title="Matricula aprobada",
-            body=f"La matricula de {full_name} ha sido aprobada. Ya puede acceder a todos los servicios del colegio.",
+            title="Matrícula aprobada",
+            body=f"La matrícula de {full_name} ha sido aprobada. Ya puede acceder a todos los servicios del colegio.",
             metadata={"type": "enrollment_approved", "student_id": student_id},
         )
 
     logger.info(f"[ENROLLMENT] Student {student_id} approved by {reviewer_id}")
-    return {"message": f"Matricula de {full_name} aprobada correctamente"}
+    return {"message": f"Matrícula de {full_name} aprobada correctamente"}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -389,7 +389,7 @@ async def reject_student(student_id: str, data: RejectRequest, current_user=Depe
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     if student.get("enrollment_status") != "pending":
-        raise HTTPException(status_code=400, detail="Este alumno no esta en estado pendiente")
+        raise HTTPException(status_code=400, detail="Este alumno no está en estado pendiente")
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -410,13 +410,13 @@ async def reject_student(student_id: str, data: RejectRequest, current_user=Depe
         await create_internal_notification(
             user_id=parent_id,
             school_id=school_id,
-            title="Matricula no aprobada",
-            body=f"La matricula de {full_name} no fue aprobada. Motivo: {data.reason.strip()}",
+            title="Matrícula no aprobada",
+            body=f"La matrícula de {full_name} no fue aprobada. Motivo: {data.reason.strip()}",
             metadata={"type": "enrollment_rejected", "student_id": student_id},
         )
 
     logger.info(f"[ENROLLMENT] Student {student_id} rejected by {reviewer_id}: {data.reason}")
-    return {"message": f"Matricula de {full_name} rechazada"}
+    return {"message": f"Matrícula de {full_name} rechazada"}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -500,5 +500,5 @@ async def update_enrollment_config(
     return {
         "parent_self_enrollment_enabled": data.enabled,
         "academic_info_editable": data.academic_info_editable,
-        "message": "Configuracion guardada correctamente",
+        "message": "Configuración guardada correctamente",
     }
