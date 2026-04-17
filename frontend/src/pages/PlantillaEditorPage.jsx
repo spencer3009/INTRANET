@@ -284,7 +284,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                           <th className="text-left py-1 w-8"></th>
                           <th className="text-left py-1">Label</th>
                           <th className="text-left py-1 w-40">Tipo</th>
-                          <th className="w-16"></th>
+                          <th className="text-right py-1 w-20">Acciones</th>
                         </tr></thead>
                         <tbody>
                           {c.subcolumnas.map((s, sIdx) => (
@@ -306,16 +306,16 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                                 </select>
                               </td>
                               <td>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center justify-end gap-1">
                                   <button onClick={() => cloneSub(cIdx, sIdx)}
                                     title="Clonar subcolumna"
-                                    className="p-1 rounded border border-blue-200 bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+                                    className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-200"
                                     data-testid={`clone-sub-${cIdx}-${sIdx}`}>
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
                                   <button onClick={() => removeSub(cIdx, sIdx)} disabled={c.subcolumnas.length <= 1}
                                     title={c.subcolumnas.length <= 1 ? "Debe haber al menos una subcolumna" : "Eliminar"}
-                                    className="p-1 rounded hover:bg-rose-50 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed">
+                                    className="p-1.5 rounded bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 disabled:opacity-30 disabled:cursor-not-allowed">
                                     <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
