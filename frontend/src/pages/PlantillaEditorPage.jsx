@@ -100,15 +100,12 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
   const [previewSnapshot, setPreviewSnapshot] = useState(null);
 
   const generarLabelCorto = (labelLargo) => {
-    return labelLargo
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, '')
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(palabra => palabra[0])
-      .join('')
-      .slice(0, 4);
+    const texto = labelLargo.trim().toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+    const palabras = texto.split(/\s+/).filter(Boolean);
+    if (palabras.length === 0) return '';
+    if (palabras.length === 1) return palabras[0].slice(0, 4);
+    if (palabras.length === 2) return (palabras[0].slice(0, 2) + palabras[1].slice(0, 2));
+    return palabras.map(p => p[0]).join('').slice(0, 4);
   };
 
   // ── Subcolumna operations ──
