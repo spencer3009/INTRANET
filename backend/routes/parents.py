@@ -706,27 +706,52 @@ async def get_pending_parents(current_user=Depends(get_current_user)):
 
 
 @router.put("/parents/pending/{pending_id}")
-async def edit_pending_parent(pending_id: str, request: Request, current_user=Depends(get_current_user)):
+async def edit_pending_parent_base(pending_id: str, request: Request, current_user=Depends(get_current_user)):
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores")
 
+    school_id = user["school_id"]
     body = await request.json()
-    allowed = {"name", "last_name", "dni", "email", "phone", "address", "birthday", "gender", "username", "observations"}
+    allowed = {"name", "last_name", "dni", "email", "phone", "address", "birthday", "gender", "username", "observations", "tipo_documento"}
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
         raise HTTPException(status_code=400, detail="Sin campos para actualizar")
 
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Re-validate DNI based on tipo_documento
+    new_errors = []
+    tipo_doc = updates.get("tipo_documento", body.get("tipo_documento", "DNI"))
+    dni_val = updates.get("dni", "")
+    if dni_val:
+        if tipo_doc == "CE":
+            if not re.match(r"^[A-Za-z0-9]{9,12}$", dni_val):
+                new_errors.append("ERR_INVALID_DNI: Carnet de Extranjeria debe tener entre 9 y 12 caracteres alfanumericos")
+        else:
+            if not re.match(r"^\d{8}$", dni_val):
+                new_errors.append("ERR_INVALID_DNI: DNI debe tener 8 digitos numericos")
+
+    if new_errors:
+        updates["errors"] = new_errors
+    else:
+        updates["errors"] = []
+
     result = await db.import_pending.update_one(
-        {"id": pending_id, "school_id": user["school_id"], "type": "parent"},
+        {"id": pending_id, "school_id": school_id, "type": "parent"},
         {"$set": updates}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Pendiente no encontrado")
-    return {"message": "Pendiente actualizado"}
+    return {"message": "Pendiente actualizado", "errors": new_errors}
+
+
+@router.put("/parents/pending/{pending_id}/edit")
+async def edit_pending_parent_and_validate(pending_id: str, request: Request, current_user=Depends(get_current_user)):
+    """Alias — same logic, different path for frontend compatibility"""
+    return await edit_pending_parent_base(pending_id, request, current_user)
 
 
 @router.post("/parents/pending/{pending_id}/activate")
@@ -750,9 +775,17 @@ async def activate_pending_parent(pending_id: str, current_user=Depends(get_curr
     name = sanitize_field(pending.get("name", ""))
     last_name = sanitize_field(pending.get("last_name", ""))
     dni = sanitize_dni(pending.get("dni", ""))
+    tipo_documento = pending.get("tipo_documento", "DNI")
 
-    if not name or not last_name or not dni or not re.match(r"^\d{8}$", dni):
+    if not name or not last_name or not dni:
         raise HTTPException(status_code=400, detail="Datos incompletos. Edite los campos obligatorios primero.")
+
+    if tipo_documento == "CE":
+        if not re.match(r"^[A-Za-z0-9]{9,12}$", dni):
+            raise HTTPException(status_code=400, detail="El Carnet de Extranjeria debe tener entre 9 y 12 caracteres alfanumericos")
+    else:
+        if not re.match(r"^\d{8}$", dni):
+            raise HTTPException(status_code=400, detail="El DNI debe tener 8 digitos numericos")
 
     existing = await db.users.find_one({"dni": dni, "school_id": school_id, "role": "parent"}, {"_id": 0, "id": 1})
     if existing:
@@ -766,6 +799,7 @@ async def activate_pending_parent(pending_id: str, current_user=Depends(get_curr
         "name": name,
         "last_name": last_name,
         "dni": dni,
+        "tipo_documento": tipo_documento,
         "email": pending.get("email") or None,
         "phone": pending.get("phone") or None,
         "address": pending.get("address") or None,

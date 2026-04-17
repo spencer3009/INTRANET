@@ -5261,6 +5261,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                   name: student.name || '',
                                   last_name: student.last_name || '',
                                   dni: student.dni || '',
+                                  tipo_documento: student.tipo_documento || 'DNI',
                                   email: student.email || '',
                                   phone: student.phone || '',
                                   birthday: student.birthday || '',
@@ -5305,8 +5306,37 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               <input value={editingPendingData.last_name} onChange={e => setEditingPendingData(p => ({...p, last_name: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">DNI</label>
-                              <input value={editingPendingData.dni} onChange={e => setEditingPendingData(p => ({...p, dni: e.target.value.replace(/\D/g,'').slice(0,8)}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" maxLength={8} />
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Tipo de Documento</label>
+                              <select value={editingPendingData.tipo_documento || 'DNI'} onChange={e => {
+                                const tipo = e.target.value;
+                                setEditingPendingData(p => ({...p, tipo_documento: tipo, dni: ''}));
+                              }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                                <option value="DNI">DNI</option>
+                                <option value="CE">Carnet de Extranjeria</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                {editingPendingData.tipo_documento === 'CE' ? 'N° Carnet de Extranjeria' : 'DNI'}
+                              </label>
+                              <input
+                                value={editingPendingData.dni}
+                                onChange={e => {
+                                  const v = editingPendingData.tipo_documento === 'CE'
+                                    ? e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 12)
+                                    : e.target.value.replace(/\D/g, '').slice(0, 8);
+                                  setEditingPendingData(p => ({...p, dni: v}));
+                                }}
+                                maxLength={editingPendingData.tipo_documento === 'CE' ? 12 : 8}
+                                placeholder={editingPendingData.tipo_documento === 'CE' ? 'Ej: AB1234567' : 'Ej: 45678912'}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                              {editingPendingData.dni && editingPendingData.tipo_documento === 'CE' && !/^[A-Za-z0-9]{9,12}$/.test(editingPendingData.dni) && (
+                                <p className="text-xs text-rose-500 mt-1">Debe tener entre 9 y 12 caracteres alfanumericos</p>
+                              )}
+                              {editingPendingData.dni && editingPendingData.tipo_documento !== 'CE' && !/^\d{8}$/.test(editingPendingData.dni) && (
+                                <p className="text-xs text-rose-500 mt-1">El DNI debe tener 8 digitos numericos</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-xs font-semibold text-slate-600 mb-1">Correo</label>
@@ -5338,11 +5368,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             <button
                               onClick={async () => {
                                 try {
-                                  const res = await axios.put(`${API}/students/pending/${student.id}/edit`, editingPendingData, { headers });
+                                  const editUrl = selectedRole === 'parent'
+                                    ? `${API}/parents/pending/${student.id}/edit`
+                                    : `${API}/students/pending/${student.id}/edit`;
+                                  const res = await axios.put(editUrl, editingPendingData, { headers });
                                   if (res.data.errors && res.data.errors.length > 0) {
                                     toast.error(`Aun tiene errores: ${res.data.errors.join(', ')}`);
                                   } else {
-                                    toast.success("Estudiante corregido y activado");
+                                    toast.success(selectedRole === 'parent' ? "Padre corregido" : "Estudiante corregido y activado");
                                   }
                                   setEditingPendingId(null);
                                   loadPendingImports();
