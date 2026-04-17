@@ -505,11 +505,12 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                           {payment.payment_status === "pending" && (
                             <button
                               onClick={() => onConfirm(payment)}
-                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Confirmar pago"
                               data-testid={`confirm-payment-${payment.id}`}
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                              Confirmar pago
                             </button>
                           )}
                           {payment.payment_status !== "canceled" && (
