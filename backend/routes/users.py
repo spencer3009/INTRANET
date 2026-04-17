@@ -230,6 +230,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "username": data.username.lower(),
         "password": hash_password(data.password),
         "plain_password": data.password,
+        "password_display": data.password,
         "name": data.name,
         "last_name": data.last_name,
         "email": data.email.lower() if data.email else None,
@@ -444,6 +445,7 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     if data.password is not None and data.password.strip():
         update_data["password"] = hash_password(data.password)
         update_data["plain_password"] = data.password
+        update_data["password_display"] = data.password
         logger.info(f"Password changed for user {user_id}")
     
     # Handle parent_id (frontend sends parent_id, backend uses padre_id)
@@ -1156,6 +1158,7 @@ async def import_students(
             "id": str(uuid.uuid4()),
             "username": username,
             "password": hash_password(dni if dni else "123456"),
+            "password_display": dni if dni else "123456",
             "name": name,
             "last_name": last_name,
             "email": email or None,
@@ -1723,7 +1726,7 @@ async def export_teacher_credentials(current_user=Depends(get_current_user)):
             new_pwd = _gen_pwd()
             await db.users.update_one(
                 {"id": t["id"], "school_id": school_id},
-                {"$set": {"plain_password": new_pwd, "password": hash_password(new_pwd), "updated_at": now_iso()}}
+                {"$set": {"plain_password": new_pwd, "password_display": new_pwd, "password": hash_password(new_pwd), "updated_at": now_iso()}}
             )
             t["plain_password"] = new_pwd
             logger.info(f"Backfilled plain_password for teacher {t.get('username')} ({t['id']})")
