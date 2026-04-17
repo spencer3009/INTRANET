@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   ArrowLeft, GraduationCap, User, FileText, Heart,
-  Check, Loader2, AlertTriangle, Info
+  Check, Loader2, AlertTriangle, Info, ChevronDown, Building2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,11 +24,13 @@ export default function ParentEnrollmentForm({ user, token }) {
   const [academicEditable, setAcademicEditable] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [ageWarning, setAgeWarning] = useState("");
+  const [showProcedencia, setShowProcedencia] = useState(false);
 
   const [form, setForm] = useState({
     name: "", last_name: "", dni: "", birthday: "", gender: "",
     phone: "", address: "", photo_url: "",
     nivel_id: "", grado_id: "", seccion_id: "", turno_id: "",
+    colegio_anterior: "", codigo_modular: "", ultimo_grado_cursado: "", ano_lectivo_anterior: "",
     condiciones_medicas: "", alergias: "",
     doctor_nombre: "", doctor_telefono: "",
     persona_autorizada: "", persona_autorizada_telefono: "",
@@ -281,7 +283,52 @@ export default function ParentEnrollmentForm({ user, token }) {
         </div>
         )}
 
-        {/* Información Complementaria */}
+        {/* Procedencia Academica — Collapsible */}
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowProcedencia(!showProcedencia)}
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+            data-testid="enrollment-procedencia-toggle"
+          >
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-indigo-500" /> Procedencia Academica
+              <span className="text-xs font-normal text-slate-400">(Opcional)</span>
+            </h3>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showProcedencia ? "rotate-180" : ""}`} />
+          </button>
+          {showProcedencia && (
+            <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Colegio anterior</label>
+                <input type="text" value={form.colegio_anterior} onChange={e => updateField("colegio_anterior", e.target.value)}
+                  className={inputCls} placeholder="Nombre del colegio de procedencia" data-testid="enrollment-colegio-anterior" />
+              </div>
+              <div>
+                <label className={labelCls}>Codigo modular</label>
+                <input type="text" value={form.codigo_modular}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, "").slice(0, 7); updateField("codigo_modular", v); }}
+                  className={inputCls} placeholder="7 digitos" maxLength={7} inputMode="numeric" data-testid="enrollment-codigo-modular" />
+                {form.codigo_modular && form.codigo_modular.length > 0 && form.codigo_modular.length < 7 && (
+                  <p className="text-xs text-amber-600 mt-1">El codigo modular tiene 7 digitos ({form.codigo_modular.length}/7)</p>
+                )}
+              </div>
+              <div>
+                <label className={labelCls}>Ultimo grado cursado</label>
+                <input type="text" value={form.ultimo_grado_cursado} onChange={e => updateField("ultimo_grado_cursado", e.target.value)}
+                  className={inputCls} placeholder="Ej: 3ro Primaria" data-testid="enrollment-ultimo-grado" />
+              </div>
+              <div>
+                <label className={labelCls}>Ano lectivo anterior</label>
+                <input type="text" value={form.ano_lectivo_anterior}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); updateField("ano_lectivo_anterior", v); }}
+                  className={inputCls} placeholder="Ej: 2025" maxLength={4} inputMode="numeric" data-testid="enrollment-ano-lectivo" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Informacion Complementaria */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Heart className="w-4 h-4 text-rose-500" /> Información Complementaria

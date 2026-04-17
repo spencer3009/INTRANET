@@ -5,43 +5,43 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 
 ## Latest Session (2026-04-17)
 
-### Fix: Interes moratorio visible en Portal del Padre
-- Backend parent_portal.py: calcula mora por dias de atraso para pagos pending (no solo overdue)
-- Devuelve `interest_charge`, `days_late`, `total_mora_pending` en la respuesta
-- Dashboard padre: card "Deuda del Mes" ahora muestra S/ 357 con "+S/ 7.00 mora"
-- Pagina "Estado de Pagos": detalle mensual muestra S/ 357.00 con "+S/ 7.00 mora (12d)"
+### Feature: Seccion "Procedencia Academica" en formulario de registro
+- Backend: 4 campos nuevos en SelfRegisterRequest (colegio_anterior, codigo_modular, ultimo_grado_cursado, ano_lectivo_anterior)
+- Frontend: Seccion collapsible entre Info Academica e Info Complementaria
+- Validaciones: codigo modular (7 digitos numerico), ano lectivo (4 digitos)
 
-### Fix: Auto-eliminacion de cuotas pendientes al registrar ingreso consolidado
-- Eliminacion fisica de cuotas pending + log en `payments_log` con `accion: "auto_eliminado"`
-- Anulacion manual (boton "Anular") no afectada
-
-### Fix: Calculo de interes moratorio corregido
-- Interes solo se aplica sobre porcion de Mensualidad (no sobre Matricula)
-- Desglose visible: Subtotal, Mora, Total en modal de nuevo ingreso
-- "Confirmar pago" auto-calcula mora en backend
+### Fixes de Contabilidad (misma sesion):
+- Auto-eliminacion fisica de cuotas pendientes al registrar ingreso consolidado
+- Calculo de interes moratorio corregido (siempre sobre pension_mensual base 350)
 - Columnas separadas BASE | MORA | TOTAL en tabla de Ingresos
-- Calculo unificado usando fecha UTC en todos los puntos
+- Pagos Yape visibles en listado de Ingresos con modal de validacion
+- Portal padre: mora visible en cards y detalle mensual
+- Total Anual descuenta pension_base por mes pagado
 
 ## Key Files
-- `/app/backend/routes/accounting.py` - Billing, payments, auto-delete, interest
-- `/app/backend/routes/parent_portal.py` - Parent financial data with mora calculation
-- `/app/frontend/src/pages/AccountingPage.jsx` - Ingresos UI, payment modal
-- `/app/frontend/src/pages/ParentDashboardPage.jsx` - Parent dashboard with mora
-- `/app/frontend/src/pages/ParentPaymentsPage.jsx` - Parent payments detail with mora
+- `/app/backend/routes/enrollment.py` - Auto-registro, approve/reject, config
+- `/app/frontend/src/pages/ParentEnrollmentForm.jsx` - Formulario completo
+- `/app/frontend/src/components/EnrollmentConfigModal.jsx` - Config switches
+- `/app/frontend/src/components/PendingEnrollmentsTab.jsx` - Admin approval tab
+- `/app/backend/routes/accounting.py` - Billing, payments, auto-delete
+- `/app/frontend/src/pages/AccountingPage.jsx` - Ingresos UI
 
-## Key DB Schema
-- `payments`: Pagos/cuotas. Campos adicionales: interest_amount, interest_days_late, subtotal_conceptos
-- `payments_log`: Trazabilidad de eliminaciones automaticas
-- `school_financial_settings`: pension_mensual, interes_activo, interes_valor, interes_tipo, pronto_pago_*
+## System: Auto-registro Completo
+- Parent self-register form → enrollment_status: pending
+- Admin PendingEnrollmentsTab → approve/reject with notifications
+- EnrollmentConfigModal → switches ON/OFF
+- Badge counter in sidebar
+- Global guard for pending/rejected students
+- Procedencia Academica section (collapsible, optional)
 
 ## Prioritized Backlog
 ### P1
-- Guard global alumnos pending/rejected
-- Dashboard Owner metricas reales (cards restantes)
+- Guard global alumnos pending/rejected (servicios)
+- Dashboard Owner metricas reales
 - Psicologia — Log de auditoria
 
 ### P2
 - Modulo Encuestas
-- Optimizacion rendimiento (3000 estudiantes)
-- Refactorizacion CourseDetailPage.jsx (11K lineas), UsersPage.jsx (5.8K), AccountingPage.jsx (3K)
+- Optimizacion rendimiento
+- Refactorizacion archivos masivos
 - Plantilla Adventista carnets QR

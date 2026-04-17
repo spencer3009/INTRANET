@@ -43,6 +43,11 @@ class SelfRegisterRequest(BaseModel):
     grado_id: Optional[str] = None
     seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
+    # Procedencia Academica
+    colegio_anterior: Optional[str] = None
+    codigo_modular: Optional[str] = None
+    ultimo_grado_cursado: Optional[str] = None
+    ano_lectivo_anterior: Optional[str] = None
     # Complementary info
     condiciones_medicas: Optional[str] = None
     alergias: Optional[str] = None
@@ -178,6 +183,11 @@ async def self_register_student(data: SelfRegisterRequest, current_user=Depends(
         "enrollment_rejection_reason": None,
         # Student status
         "student_status": "pending",
+        # Procedencia Academica
+        "colegio_anterior": data.colegio_anterior,
+        "codigo_modular": data.codigo_modular,
+        "ultimo_grado_cursado": data.ultimo_grado_cursado,
+        "ano_lectivo_anterior": data.ano_lectivo_anterior,
         # Complementary
         "condiciones_medicas": data.condiciones_medicas,
         "alergias": data.alergias,
