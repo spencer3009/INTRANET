@@ -166,7 +166,8 @@ async def get_payments(
     school_id = user["school_id"]
     
     query = {"school_id": school_id}
-    if status:
+    is_yape_filter = status == "yape_pendiente"
+    if status and not is_yape_filter:
         query["payment_status"] = status
     if concept:
         query["concept"] = concept
@@ -259,9 +260,9 @@ async def get_payments(
             payment["numero_boleta"] = None
             payment["boleta_anulada"] = False
     
-    # Prepend Yape payments (pendiente_verificacion) on first page when no specific status filter
+    # Include Yape payments (pendiente_verificacion): on first page with no status filter, or when yape_pendiente filter
     yape_payments = []
-    if page == 1 and not status:
+    if (page == 1 and not status) or is_yape_filter:
         yape_query = {"school_id": school_id, "status": "pendiente_verificacion"}
         if student_id:
             yape_query["student_id"] = student_id
@@ -308,15 +309,16 @@ async def get_payments(
                 "parent_name": yp.get("parent_name", ""),
             })
     
-    all_payments = yape_payments + payments
+    all_payments = yape_payments + ([] if is_yape_filter else payments)
+    yape_total = len(yape_payments)
     
     return {
         "payments": all_payments,
-        "total": total + len(yape_payments),
+        "total": yape_total if is_yape_filter else total + yape_total,
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit,
-        "yape_pending_count": len(yape_payments)
+        "total_pages": (((yape_total if is_yape_filter else total + yape_total) + limit - 1) // limit) or 1,
+        "yape_pending_count": yape_total
     }
 
 @router.post("/accounting/payments")
