@@ -496,6 +496,33 @@ async def cancel_payment(payment_id: str, current_user = Depends(require_section
     return {"message": "Pago anulado correctamente"}
 
 
+
+@router.put("/accounting/payments/{payment_id}/reactivate")
+async def reactivate_payment(payment_id: str, current_user=Depends(require_section_access("accounting"))):
+    """Reactivate a canceled payment back to pending."""
+    user = current_user
+    school_id = user["school_id"]
+
+    payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    if payment.get("payment_status") != "canceled":
+        raise HTTPException(status_code=400, detail="Solo se pueden reactivar pagos anulados")
+
+    await db.payments.update_one(
+        {"id": payment_id},
+        {"$set": {
+            "payment_status": "pending",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    logger.info(f"Payment reactivated: {payment_id} by {user['id']}")
+    return {"message": "Pago reactivado como pendiente"}
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DEBTORS (MOROSOS) & STUDENT PAYMENT HISTORY
 # ─────────────────────────────────────────────────────────────────────────────

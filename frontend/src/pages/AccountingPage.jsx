@@ -335,7 +335,7 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId }) {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -649,6 +649,17 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                             >
                               <div className="w-2 h-2 rounded-full bg-emerald-500" />
                               Confirmar pago
+                            </button>
+                          )}
+                          {payment.payment_status === "canceled" && (
+                            <button
+                              onClick={() => onReactivate(payment)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
+                              title="Reactivar como pendiente"
+                              data-testid={`reactivate-payment-${payment.id}`}
+                            >
+                              <div className="w-2 h-2 rounded-full bg-amber-500" />
+                              Reactivar
                             </button>
                           )}
                         </div>
@@ -2531,6 +2542,21 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  const handleReactivatePayment = async (payment) => {
+    try {
+      await axios.put(`${API}/accounting/payments/${payment.id}/reactivate`, {}, { headers });
+      const { toast } = await import("sonner");
+      toast.success("Pago reactivado como pendiente");
+      loadPayments();
+      loadSummary();
+      loadDebtors();
+    } catch (err) {
+      const { toast } = await import("sonner");
+      toast.error(err.response?.data?.detail || "Error al reactivar pago");
+    }
+  };
+
+
   const handleSaveExpense = async (data) => {
     if (editingExpense?.id) {
       await axios.put(`${API}/accounting/expenses/${editingExpense.id}`, data, { headers });
@@ -2741,6 +2767,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onEdit={(p) => { setEditingPayment(p); setShowPaymentModal(true); }}
               onConfirm={handleConfirmPaymentClick}
               onCancel={handleCancelPaymentClick}
+              onReactivate={handleReactivatePayment}
               filterStatus={filterPaymentStatus}
               setFilterStatus={setFilterPaymentStatus}
               dateFrom={dateFrom}
