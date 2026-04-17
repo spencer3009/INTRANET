@@ -4402,20 +4402,41 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
 
                 {/* Contraseña actual — visible para todos los roles excepto estudiantes (que la ven en su propia sección) */}
-                {editingUser.role !== 'student' && (editingUser.plain_password || editingUser.password_display) && (
+                {editingUser.role !== 'student' && (
                   <div className="md:col-span-2 mt-2">
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between" data-testid="current-password-display-general">
-                      <div className="flex items-center gap-2">
-                        <Key className="w-4 h-4 text-amber-600" />
-                        <span className="text-sm font-semibold text-slate-700">Contrasena actual:</span>
-                        <span className="text-sm font-mono text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-amber-200">{editingUser.password_display || editingUser.plain_password}</span>
+                    {(editingUser.password_display || editingUser.plain_password) ? (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between" data-testid="current-password-display-general">
+                        <div className="flex items-center gap-2">
+                          <Key className="w-4 h-4 text-amber-600" />
+                          <span className="text-sm font-semibold text-slate-700">Contrasena actual:</span>
+                          <span className="text-sm font-mono text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-amber-200">{editingUser.password_display || editingUser.plain_password}</span>
+                        </div>
+                        <button type="button" onClick={async () => {
+                          try { await navigator.clipboard.writeText(editingUser.password_display || editingUser.plain_password); toast.success("Contrasena copiada"); } catch {}
+                        }} className="px-2.5 py-1 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-semibold transition-colors">
+                          Copiar
+                        </button>
                       </div>
-                      <button type="button" onClick={async () => {
-                        try { await navigator.clipboard.writeText(editingUser.password_display || editingUser.plain_password); toast.success("Contrasena copiada"); } catch {}
-                      }} className="px-2.5 py-1 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-semibold transition-colors">
-                        Copiar
-                      </button>
-                    </div>
+                    ) : editingUser.dni ? (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between" data-testid="password-not-available">
+                        <div className="flex items-center gap-2">
+                          <Key className="w-4 h-4 text-slate-400" />
+                          <span className="text-sm text-slate-500">Clave no registrada.</span>
+                          <span className="text-sm text-slate-500">Si fue importado, la clave probable es su DNI:</span>
+                          <span className="text-sm font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-slate-300">{editingUser.dni}</span>
+                        </div>
+                        <button type="button" onClick={async () => {
+                          try { await navigator.clipboard.writeText(editingUser.dni); toast.success("DNI copiado"); } catch {}
+                        }} className="px-2.5 py-1 text-xs bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 font-semibold transition-colors shrink-0">
+                          Copiar DNI
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2" data-testid="password-unknown">
+                        <Key className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-500">Clave no registrada. Use "Asignar DNI como clave" para asignarla.</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
