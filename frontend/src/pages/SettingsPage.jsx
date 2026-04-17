@@ -14,9 +14,10 @@ import {
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
   Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse,
-  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog
+  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog, ClipboardList
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
+import RegistroAuxiliarPlantillasTab from "@/components/RegistroAuxiliarPlantillasTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -25,6 +26,16 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Tab system: admin only sees "registro_auxiliar"
+  const userRole = user?.role;
+  const availableTabs = userRole === "admin"
+    ? [{ id: "registro_auxiliar", label: "Registro Auxiliar", icon: ClipboardList }]
+    : [
+        { id: "general", label: "General", icon: Settings },
+        { id: "registro_auxiliar", label: "Registro Auxiliar", icon: ClipboardList },
+      ];
+  const [activeSettingsTab, setActiveSettingsTab] = useState(availableTabs[0].id);
   
   // RBAC: Check if user can access settings
   const hasAccess = canAccessSection(user, 'settings');
@@ -573,6 +584,37 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
             </div>
           </div>
 
+          {/* Tab Navigation */}
+          {availableTabs.length > 1 && (
+            <div className="flex gap-1 mb-6 bg-slate-100 rounded-xl p-1" data-testid="settings-tabs">
+              {availableTabs.map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSettingsTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                      activeSettingsTab === tab.id
+                        ? "bg-white text-indigo-600 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    data-testid={`settings-tab-${tab.id}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Tab Content: Registro Auxiliar */}
+          {activeSettingsTab === "registro_auxiliar" && (
+            <RegistroAuxiliarPlantillasTab user={user} token={token} schoolId={user?.school_id} />
+          )}
+
+          {/* Tab Content: General Settings */}
+          {activeSettingsTab === "general" && (<>
           {/* Alerts */}
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 shadow-sm" data-testid="settings-error">
@@ -1770,6 +1812,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
             </section>
 
           </form>
+          </>)}
         </main>
       </div>
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />

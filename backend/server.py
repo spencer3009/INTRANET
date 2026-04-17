@@ -65,6 +65,7 @@ from routes.role_assignment import router as role_assignment_router
 from routes.evaluation_criteria import router as evaluation_criteria_router
 from routes.enrollment import router as enrollment_router
 from routes.parent_payments import router as parent_payments_router
+from routes.registro_auxiliar_plantillas import router as plantillas_ra_router, seed_system_template
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -227,6 +228,7 @@ app.include_router(role_assignment_router)
 app.include_router(evaluation_criteria_router)
 app.include_router(enrollment_router)
 app.include_router(parent_payments_router)
+app.include_router(plantillas_ra_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -342,6 +344,7 @@ async def create_indexes():
         )
         await ensure_global_support_user()
         await seed_academia_categories()
+        await seed_system_template()
         await ensure_pae_indexes()
         await ensure_movilidad_indexes()
         await ensure_coordinacion_indexes()

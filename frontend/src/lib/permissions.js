@@ -26,7 +26,7 @@ export function canAccessSection(user, section) {
   // Fallback: Define base permissions
   const sectionPermissions = {
     dashboard: ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'],
-    settings: ['owner'],
+    settings: ['owner', 'admin', 'director'],
     accounting: ['owner'], // Admin access is conditional via feature flag
     users: ['owner', 'admin', 'director'],
     grades: ['owner', 'admin', 'director', 'coordinator'],
