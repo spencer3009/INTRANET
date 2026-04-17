@@ -595,7 +595,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       <td className="px-5 py-4">
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${statusInfo.bgClass} ${statusInfo.textClass}`}>
                           <div className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
-                          {statusInfo.label}
+                          {payment.is_yape ? `Yape OP ${payment.yape_operation_code || ''}` : statusInfo.label}
                         </div>
                       </td>
                       <td className="px-5 py-4">
