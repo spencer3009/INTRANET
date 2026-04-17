@@ -4057,3 +4057,85 @@ async def close_expired_tasks_cron():
             logger.error(f"[TASK-CRON] Error: {e}")
 
         await asyncio.sleep(60)  # Check every 60 seconds
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLONE EXAM TO OTHER SECTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CloneExamRequest(BaseModel):
+    destinos: List[dict] = []
+    clonar_en_misma_seccion: bool = False
+
+@router.post("/exams/{exam_id}/clonar")
+async def clone_exam(exam_id: str, data: CloneExamRequest, current_user=Depends(get_current_user)):
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if user.get("role") not in ["owner", "admin", "teacher", "director", "coordinator"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+
+    school_id = user["school_id"]
+    original = await db.online_exams.find_one({"id": exam_id, "school_id": school_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    questions = await db.exam_questions.find({"exam_id": exam_id}, {"_id": 0}).to_list(500)
+    now = datetime.now(timezone.utc).isoformat()
+    clonados = 0
+    errores = []
+
+    async def create_clone(subject_id):
+        nonlocal clonados
+        new_id = str(uuid.uuid4())
+        clone = {
+            "id": new_id,
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "title": f"{original['title']} (copia)",
+            "description": original.get("description", ""),
+            "start_datetime": original.get("start_datetime"),
+            "end_datetime": original.get("end_datetime"),
+            "duration_minutes": original.get("duration_minutes", 60),
+            "min_score_percentage": original.get("min_score_percentage", 60.0),
+            "status": "draft",
+            "created_by": user["id"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.online_exams.insert_one(clone)
+        clone.pop("_id", None)
+        if questions:
+            new_qs = [{**q, "id": str(uuid.uuid4()), "exam_id": new_id} for q in questions]
+            await db.exam_questions.insert_many(new_qs)
+            for nq in new_qs:
+                nq.pop("_id", None)
+        clonados += 1
+
+    if data.clonar_en_misma_seccion:
+        try:
+            await create_clone(original["subject_id"])
+        except Exception as e:
+            errores.append(f"Misma seccion: {str(e)}")
+
+    for dest in data.destinos:
+        section_id = dest.get("seccion_id")
+        if not section_id:
+            continue
+        orig_subject = await db.subjects.find_one({"id": original["subject_id"]}, {"_id": 0, "name": 1})
+        if not orig_subject:
+            errores.append("Asignatura original no encontrada")
+            continue
+        dest_subject = await db.subjects.find_one(
+            {"name": orig_subject["name"], "section_id": section_id, "school_id": school_id},
+            {"_id": 0, "id": 1}
+        )
+        if not dest_subject:
+            errores.append(f"No existe '{orig_subject['name']}' en la seccion destino")
+            continue
+        try:
+            await create_clone(dest_subject["id"])
+        except Exception as e:
+            errores.append(str(e))
+
+    return {"clonados": clonados, "errores": errores}

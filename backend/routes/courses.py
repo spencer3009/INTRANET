@@ -2219,3 +2219,89 @@ async def _get_user_subject_ids(user):
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLONE ACTIVITY (post: task/forum/material) TO OTHER SECTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CloneRequest(BaseModel):
+    destinos: List[dict] = []
+    clonar_en_misma_seccion: bool = False
+
+@router.post("/course/posts/{post_id}/clonar")
+async def clone_post(post_id: str, data: CloneRequest, current_user=Depends(get_current_user)):
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if user.get("role") not in ["owner", "admin", "teacher", "director", "coordinator"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+
+    school_id = user["school_id"]
+    original = await db.course_posts.find_one({"id": post_id, "school_id": school_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    clonados = 0
+    errores = []
+
+    # Clone in same section
+    if data.clonar_en_misma_seccion:
+        clone = {**original}
+        clone["id"] = str(uuid.uuid4())
+        clone["title"] = f"{original.get('title', '')} (copia)"
+        clone["status"] = "draft"
+        clone["created_at"] = now
+        clone["updated_at"] = now
+        clone["created_by"] = user["id"]
+        clone["author_id"] = user["id"]
+        clone.pop("submissions", None)
+        clone.pop("closed_at", None)
+        try:
+            await db.course_posts.insert_one(clone)
+            clone.pop("_id", None)
+            clonados += 1
+        except Exception as e:
+            errores.append(f"Misma seccion: {str(e)}")
+
+    # Clone to other sections
+    for dest in data.destinos:
+        section_id = dest.get("seccion_id")
+        if not section_id:
+            errores.append("Destino sin seccion_id")
+            continue
+
+        # Find the equivalent subject in the destination section
+        orig_subject = await db.subjects.find_one({"id": original["subject_id"]}, {"_id": 0, "name": 1})
+        if not orig_subject:
+            errores.append(f"Asignatura original no encontrada")
+            continue
+
+        dest_subject = await db.subjects.find_one(
+            {"name": orig_subject["name"], "section_id": section_id, "school_id": school_id},
+            {"_id": 0, "id": 1}
+        )
+        if not dest_subject:
+            errores.append(f"No existe la asignatura '{orig_subject['name']}' en la seccion destino")
+            continue
+
+        clone = {**original}
+        clone["id"] = str(uuid.uuid4())
+        clone["subject_id"] = dest_subject["id"]
+        clone["title"] = f"{original.get('title', '')} (copia)"
+        clone["status"] = "draft"
+        clone["created_at"] = now
+        clone["updated_at"] = now
+        clone["created_by"] = user["id"]
+        clone["author_id"] = user["id"]
+        clone.pop("submissions", None)
+        clone.pop("closed_at", None)
+        try:
+            await db.course_posts.insert_one(clone)
+            clone.pop("_id", None)
+            clonados += 1
+        except Exception as e:
+            errores.append(f"Seccion {section_id[:8]}: {str(e)}")
+
+    return {"clonados": clonados, "errores": errores}
+

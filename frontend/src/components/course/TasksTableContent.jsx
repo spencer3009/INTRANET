@@ -3,9 +3,10 @@ import axios from "axios";
 import {
   ArrowLeft, Loader2, Trash2, Eye, Plus, PenTool,
   Users, User, FileText, Download, Clock, Calendar,
-  MoreVertical, CheckCircle
+  MoreVertical, CheckCircle, Copy
 } from "lucide-react";
 import PremiumTaskModal from "./PremiumTaskModal";
+import CloneActivityModal from "./CloneActivityModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -19,6 +20,7 @@ export default function TasksTableContent({ subjectId, token, user, students, su
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [cloneTask, setCloneTask] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const menuRef = useRef(null);
@@ -312,6 +314,13 @@ export default function TasksTableContent({ subjectId, token, user, students, su
                           Ver entregas
                         </button>
                         <button
+                          onClick={() => { setCloneTask(selectedTask); setShowMenu(false); }}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-indigo-50 text-indigo-600 flex items-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Clonar
+                        </button>
+                        <button
                           onClick={() => handleDeleteClick(selectedTask)}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                         >
@@ -513,6 +522,13 @@ export default function TasksTableContent({ subjectId, token, user, students, su
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => setCloneTask(task)}
+                    className="w-9 h-9 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Clonar"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteClick(task)}
                     className="w-9 h-9 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg flex items-center justify-center transition-colors"
                     title="Eliminar"
@@ -570,6 +586,17 @@ export default function TasksTableContent({ subjectId, token, user, students, su
           </div>
         </div>
       )}
+
+      <CloneActivityModal
+        isOpen={!!cloneTask}
+        onClose={() => setCloneTask(null)}
+        activity={cloneTask}
+        activityType="post"
+        token={token}
+        user={user}
+        subjectId={subjectId}
+        onSuccess={loadTasks}
+      />
     </div>
   );
 }

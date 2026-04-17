@@ -3,8 +3,9 @@ import axios from "axios";
 import {
   Upload, Loader2, X, Trash2, Download, FileText,
   FolderOpen, AlertCircle, Check, Paperclip,
-  FileVideo, Image as ImageIcon, File as FileIcon, Youtube, Link2, Play
+  FileVideo, Image as ImageIcon, File as FileIcon, Youtube, Link2, Play, Copy
 } from "lucide-react";
+import CloneActivityModal from "./CloneActivityModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,6 +24,7 @@ export default function MaterialTableContent({ subjectId, token, user }) {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [cloneMaterial, setCloneMaterial] = useState(null);
   const [materialToDelete, setMaterialToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   
@@ -291,6 +293,13 @@ export default function MaterialTableContent({ subjectId, token, user }) {
                       </div>
                     </div>
                     <button
+                      onClick={() => setCloneMaterial(material)}
+                      className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors shrink-0 ml-1"
+                      title="Clonar"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleDeleteClick(material)}
                       className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors shrink-0 ml-2"
                       title="Eliminar"
@@ -337,6 +346,13 @@ export default function MaterialTableContent({ subjectId, token, user }) {
                       title="Descargar"
                     >
                       <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCloneMaterial(material)}
+                      className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                      title="Clonar"
+                    >
+                      <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(material)}
@@ -592,6 +608,8 @@ export default function MaterialTableContent({ subjectId, token, user }) {
           </div>
         </div>
       )}
+      {/* Clone Modal */}
+      <CloneActivityModal isOpen={!!cloneMaterial} onClose={() => setCloneMaterial(null)} activity={cloneMaterial} activityType="post" token={token} user={user} subjectId={subjectId} onSuccess={loadMaterials} />
     </div>
   );
 }

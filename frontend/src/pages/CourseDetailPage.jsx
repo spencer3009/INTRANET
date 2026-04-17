@@ -35,6 +35,7 @@ import {
   Grid3X3, Monitor, Key
 } from "lucide-react";
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
+import CloneActivityModal from "../components/course/CloneActivityModal";
 import { OMRScanFlow, OMRResultsCard } from "../components/course/OMRScanComponents";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
@@ -8207,6 +8208,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [cloneActivity, setCloneActivity] = useState(null);
   const [viewMode, setViewMode] = useState('detail'); // 'detail' or 'submissions'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -9196,6 +9198,14 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     <Edit2 className="w-5 h-5" />
                   </button>
                   <button
+                    onClick={() => setCloneActivity(task)}
+                    className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-xl flex items-center justify-center transition-colors"
+                    title="Clonar"
+                    data-testid={`clone-task-${task.id}`}
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteClick(task)}
                     className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-500 rounded-xl flex items-center justify-center transition-colors"
                     title="Eliminar"
@@ -9414,6 +9424,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           </div>
         </div>
       )}
+      <CloneActivityModal isOpen={!!cloneActivity} onClose={() => setCloneActivity(null)} activity={cloneActivity} activityType="post" token={token} user={user} subjectId={subjectId} onSuccess={fetchTasks} />
     </div>
   );
 }
@@ -9428,8 +9439,7 @@ function MaterialTableContent({ subjectId, token, user }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  
-  // Google Drive state
+  const [cloneMat, setCloneMat] = useState(null);
   const [driveStatus, setDriveStatus] = useState({ connected: false, server_configured: false });
   const [driveChecked, setDriveChecked] = useState(false);
   
@@ -9898,6 +9908,13 @@ function MaterialTableContent({ subjectId, token, user }) {
                         <Play className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => setCloneMat(material)}
+                        className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                        title="Clonar"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleDeleteClick(material)}
                         className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
                         title="Eliminar"
@@ -9948,6 +9965,13 @@ function MaterialTableContent({ subjectId, token, user }) {
                       ) : (
                         <Download className="w-4 h-4" />
                       )}
+                    </button>
+                    <button
+                      onClick={() => setCloneMat(material)}
+                      className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                      title="Clonar"
+                    >
+                      <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(material)}
@@ -10246,6 +10270,7 @@ function MaterialTableContent({ subjectId, token, user }) {
           </div>
         </div>
       )}
+      <CloneActivityModal isOpen={!!cloneMat} onClose={() => setCloneMat(null)} activity={cloneMat} activityType="post" token={token} user={user} subjectId={subjectId} onSuccess={refreshMaterials} />
     </div>
   );
 }

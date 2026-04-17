@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   ArrowLeft, Loader2, Trash2, Eye, Plus, Edit2,
-  MessageCircle, Users, Send
+  MessageCircle, Users, Send, Copy
 } from "lucide-react";
 import PremiumForumModal from "./PremiumForumModal";
+import CloneActivityModal from "./CloneActivityModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -16,6 +17,7 @@ export default function ForumContent({ subjectId, token, user, students }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [topicToDelete, setTopicToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [cloneForum, setCloneForum] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -364,6 +366,13 @@ export default function ForumContent({ subjectId, token, user, students }) {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => setCloneForum(topic)}
+                    className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Clonar"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteClick(topic)}
                     className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
                     title="Eliminar"
@@ -422,6 +431,7 @@ export default function ForumContent({ subjectId, token, user, students }) {
           </div>
         </div>
       )}
+      <CloneActivityModal isOpen={!!cloneForum} onClose={() => setCloneForum(null)} activity={cloneForum} activityType="post" token={token} user={user} subjectId={subjectId} onSuccess={loadTopics} />
     </div>
   );
 }

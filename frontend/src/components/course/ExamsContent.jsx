@@ -3,10 +3,11 @@ import axios from "axios";
 import {
   Plus, Edit3, Trash2, Loader2, X, FileText,
   ChevronUp, ChevronDown, CheckCircle, FlaskConical,
-  ClipboardCheck, Clock, Monitor, Grid3X3, Key
+  ClipboardCheck, Clock, Monitor, Grid3X3, Key, Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import AnswerKeyEditor from './AnswerKeyEditor';
+import CloneActivityModal from "./CloneActivityModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -452,6 +453,7 @@ export default function ExamsContent({ subjectId, token, userRole }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedExam, setExpandedExam] = useState(null);
   const [selectedExamId, setSelectedExamId] = useState(null);
+  const [cloneExam, setCloneExam] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
@@ -691,6 +693,13 @@ export default function ExamsContent({ subjectId, token, userRole }) {
                               ELIMINAR
                             </button>
                           )}
+                          <button
+                            onClick={() => setCloneExam(exam)}
+                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-colors flex items-center gap-1.5"
+                          >
+                            <Copy className="w-4 h-4" />
+                            CLONAR
+                          </button>
                         </div>
                       )}
                     </div>
@@ -779,6 +788,7 @@ export default function ExamsContent({ subjectId, token, userRole }) {
         confirmText="Eliminar"
         confirmColor="red"
       />
+      <CloneActivityModal isOpen={!!cloneExam} onClose={() => setCloneExam(null)} activity={cloneExam} activityType="exam" token={token} user={{ role: userRole }} subjectId={subjectId} onSuccess={loadExams} />
     </div>
   );
 }
