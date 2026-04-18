@@ -22,7 +22,7 @@
   },
   "test_credentials": {
     "school_owner": "admin@elroble.edu / 1234abc8 (subdomain: elroble)",
-    "app_url": "https://notas-escuela.preview.emergentagent.com"
+    "app_url": "https://auditoria-psicologia.preview.emergentagent.com"
   },
   "seed_data_creation": "Created test OMR exam 'Test OMR Exam - Automated Test' with 20 questions, 5 options (A-E), 1 point per question",
   "retest_needed": false,

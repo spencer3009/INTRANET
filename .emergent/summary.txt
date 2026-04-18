@@ -1,10 +1,9 @@
-<analysis>**original_problem_statement**: Replicar el componente de Horario unificado y expandir módulos del SaaS escolar. Implementar sección Procedencia Académica en el formulario de Auto-registro de alumnos. Implementar Sistema de Plantillas de Registro Auxiliar (Fases 1 a 4) para reemplazar la tabla de notas hardcodeada por una dinámica.
+<analysis>**original_problem_statement**: Replicar el componente de Horario unificado y expandir módulos del SaaS escolar. Implementar sección Procedencia Académica en el auto-registro. Implementar Sistema de Plantillas de Registro Auxiliar (Fases 1 a 4) para reemplazar notas hardcodeadas. Mejorar la UI de plantillas, solucionar la gestión de contraseñas para padres (DNI vs Aleatorias, soporte para Carnet de Extranjería), y agregar una funcionalidad global para CLONAR actividades (Tareas, Foros, Exámenes, Materiales) hacia otros grados y secciones.
 
 **PRODUCT REQUIREMENTS**:
-- P0: Sistema de Plantillas de Registro Auxiliar (Fase 1: Backend, Fase 2: Gestor, Fase 3: Editor, Fase 4: Consumo dinámico).
-- P1: Formulario Auto-Registro - Sección Procedencia Académica y fixes de UTF-8.
-- P1: Módulo de Matrículas completado.
-- P1: Cobro Yape y Automatización de Cobranzas completado.
+- P0: Sistema de Plantillas de Registro Auxiliar (Fase 4: Consumo dinámico y responsive).
+- P0: Clonación de Actividades (Tareas, Foros, Exámenes, Materiales) hacia otros niveles/grados/secciones.
+- P1: Módulo de Gestión de Padres: Asignación masiva de DNI como clave, visibilidad de claves, soporte para Carnet de Extranjería (CE).
 - P1: Guard global para bloquear servicios a alumnos /.
 - P1: Dashboard Owner con métricas reales.
 - P1: Psicología — Log de auditoría estricto.
@@ -12,25 +11,20 @@
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish** to the user).
 
 **what currently exists?**: 
-SaaS escolar (FastAPI + React + MongoDB). El módulo financiero está robusto, manejando cálculo preciso de mora, Yape con modal de validación, y auto-eliminación física de cuotas al confirmarse pagos. Se implementó exitosamente el formulario de Auto-registro para padres con la sección Procedencia Académica. El **Sistema de Plantillas de Registro Auxiliar** tiene completadas las Fases 1 (Backend), 2 (Pestaña Gestor de Plantillas en Ajustes) y 3 (Editor de Plantillas con Live Preview). Falta conectar estas plantillas en el componente real de notas.
+SaaS escolar (FastAPI + React + MongoDB) con un módulo financiero y de matrículas robusto. El **Sistema de Plantillas de Registro Auxiliar** está 100% completado (Fases 1 a 4), con renderizado dinámico, tabla responsive (), textos de cabecera verticales y UI premium. La gestión de padres permite asignar masivamente el DNI como contraseña, importar desde Excel (usando DNI por defecto) y soportar Carnet de Extranjería en las correcciones de pendientes. Se implementó un robusto sistema de clonación de actividades (Tareas, Foros, Exámenes, Materiales) con un modal en forma de árbol (Nivel → Grado → Sección → Asignatura).
 
 **Last working item**:
-    - Last item agent was working: Fase 4 del Sistema de Plantillas: Refactorizar  para que consuma dinámicamente la configuración de la plantilla en lugar de usar constantes hardcodeadas. El agente recopiló contexto leyendo  y , pero aún no realizó modificaciones.
-    - Status: NOT STARTED
-    - Agent Testing Done: N
-    - Which testing method agent to use?: Frontend testing agent + manual e2e via screenshot tool.
+    - Last item agent was working: Integración final del  en las pestañas de Materiales, Foros y Exámenes dentro de , solucionando bugs de scope de React y asegurando que las actividades clonadas hereden el estado  en lugar de .
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use?: Frontend testing via  / Backend via /.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Ningún issue en progreso o bloqueante reportado. Se solucionaron todos los bugs financieros reportados en la sesión.
+  Ningún issue en progreso o bloqueante. Se solucionaron todos los bugs reportados en la sesión.
 
 **In progress Task List**:
-  Task 1: Fase 4 — Consumo Dinámico en 
-     - Where to resume: Crear  moviendo las lógicas puras de cálculo de promedios. Modificar  para hacer fetch de la plantilla, renderizar dinámicamente los headers y celdas, y aplicar fallback si no hay plantilla configurada.
-     - What will be achieved with this?: Los profesores evaluarán usando los criterios dinámicos creados por el colegio (en la Fase 3) en lugar de un registro auxiliar fijo/hardcodeado. 
-     - Status: NOT STARTED (Context gathered)
-     - Should Test frontend/backend/both after fix?: Both (Principalmente Frontend, pero asegurar que el guardado de notas siga funcionando con el backend).
-     - Blocked on something: Nada.
+  Ninguna tarea en progreso.
 
 **Upcoming and Future Tasks**:
     Upcoming Tasks:
@@ -41,99 +35,118 @@ SaaS escolar (FastAPI + React + MongoDB). El módulo financiero está robusto, m
     Future Tasks:
     - P2: Crear módulo de Encuestas.
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica: ,  y .
+    - P2: Refactorización crítica:  (>11,000 líneas), .
     - P2: Crear plantilla Adventista para carnets QR.
+    - P2: Fase 5 del Registro Auxiliar: almacenamiento dinámico de campos en backend (eliminar restricción de  fijos).
 
 **Completed work in this session**:
-- Refactor: Separación de columnas de contabilidad en BASE, MORA, TOTAL para clarificar cobros (DONE).
-- Bug fix: Auto-eliminación física de cuotas pending al validar un pago Yape consolidado y limpieza de registros residuales (DONE).
-- Feature: Modal interactivo Validar Pago Yape directamente en el listado de Ingresos de Contabilidad (DONE).
-- Bug fix: Cálculo de mora unificado usando fechas UTC en todas las vistas (Modal, Tabla, Backend) (DONE).
-- Feature: Card de Yape en el Portal de Padres ahora muestra y aplica correctamente los intereses de mora (DONE).
-- Feature: Formulario Auto-registro Padre: Sección Procedencia Académica agregada y guardando datos en MongoDB (DONE).
-- Bug fix: Corrección profunda de codificación UTF-8 para todos los textos con tildes y caracteres en español (DONE).
-- Feature: Sistema Plantillas Registro Auxiliar (Fase 1) - 8 Endpoints backend en  (DONE).
-- Feature: Sistema Plantillas Registro Auxiliar (Fase 2) - Pestaña Gestor de Plantillas en Ajustes (DONE).
-- Feature: Sistema Plantillas Registro Auxiliar (Fase 3) -  con preview en vivo y validación de suma de porcentajes a 100% (DONE).
+- Feature: Consumo Dinámico en  (Fase 4 de Plantillas de Registro Auxiliar) (DONE).
+- Enhancement: Tabla de Registro Auxiliar responsive con ,  y drag handle (DONE).
+- Enhancement: Texto Vertical en Sub-Headers de Registro Auxiliar y limpieza de Header COL. FINALES (DONE).
+- Bug fix: Generación automática de  inteligente para columnas de plantillas (DONE).
+- Rediseño: Interfaz premium para Ajustes / Registro Auxiliar y Editor de Plantillas con cards, gradientes y modales de vista previa expandida (DONE).
+- Feature: Backend/Frontend para asignar masivamente DNI como clave a Padres (DONE).
+- Bug fix: Mostrar contraseñas () o DNI sugerido en el modal de edición de Padres (DONE).
+- Bug fix: Corrección de importación masiva de Excel de Padres para que asigne DNI como clave por defecto en vez de claves aleatorias (DONE).
+- Feature: Dropdown Tipo de Documento (DNI / Carnet de Extranjería) en el modal de edición de Padres Pendientes (DONE).
+- Feature: Backend endpoints (, ) para clonar actividades (DONE).
+- Feature:  con selector de árbol (Nivel → Grado → Sección → Asignatura) integrado en Tareas, Foros, Materiales y Exámenes (DONE).
+- Bug fix: Actividades clonadas ahora heredan el estado original (/) para que no se oculten como  (DONE).
 
 **Earlier issues found/mentioned but not fixed**:
   None.
 
 **Known issue recurrence from previous fork**:
-  - Issue recurrence in previous fork: Error Ya existe un pago registrado para este mes.
-  - Recurrence count: 1
-  - Status: RESOLVED (La validación en backend de pagos duplicados Yape se mejoró para permitir reintentos si el previo fue rechazado o si el pago verificado fue cancelado en contabilidad).
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0
+  - Status: RESOLVED
 
 **Code Architecture**:
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── registro_auxiliar_plantillas.py # NUEVO: Endpoints CRUD de plantillas de evaluación
-│   │   ├── grades.py                     # A consultar para la Fase 4
-│   │   ├── enrollment.py                 # Actualizado con campos de Procedencia Académica
+│   │   ├── courses.py                    # Maneja endpoints de Tareas, Foros, Materiales (clonación)
+│   │   ├── exams.py                      # Maneja endpoints de Exámenes (clonación)
+│   │   ├── parents.py                    # Endpoint importación masiva y asignar DNI como clave
+│   │   ├── users.py                      # Modal y utilidades de contraseñas ()
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── PlantillaEditorPage.jsx   # NUEVO: Editor de plantillas
-│   │   │   ├── SettingsPage.jsx          # Actualizado con tabs
-│   │   │   ├── ParentEnrollmentForm.jsx  # Actualizado con Procedencia Académica
-│   │   │   ├── AccountingPage.jsx        # Refactorizado con validación Yape y desglose Mora
 │   │   ├── components/
-│   │   │   ├── GradeBookTab.jsx          # OBJETIVO DE LA FASE 4
-│   │   │   ├── RegistroAuxiliarPlantillasTab.jsx # NUEVO: Gestor
+│   │   │   ├── GradeBookTab.jsx          # Tabla refactorizada (Responsive, Dinámica, Texto Vertical)
+│   │   │   ├── RegistroAuxiliarPlantillasTab.jsx # UI Premium
+│   │   │   ├── course/
+│   │   │   │   ├── CloneActivityModal.jsx # NUEVO: Modal de clonación tipo árbol
+│   │   ├── pages/
+│   │   │   ├── PlantillaEditorPage.jsx   # UI Premium, Fix de labels
+│   │   │   ├── UsersPage.jsx             # Funcionalidad y modales de Padres / Pendientes
+│   │   │   ├── CourseDetailPage.jsx      # Integra el CloneActivityModal en todas sus pestañas
 
 **Key Technical Concepts**:
-Plantillas de Calificaciones Dinámicas (JSON en base de datos con reglas estrictas de suma = 100%). Cálculo dinámico de celdas de Input y Promedios Automáticos. Fallback render pattern para retrocompatibilidad. Validaciones cruzadas de pagos consolidados y deudas pendientes.
+Consumo dinámico de configuraciones (JSON) para renderizar tablas complejas.  de React para tablas HTML responsivas. Manejo seguro de passwords con hashes usando variables duales ( para Auth,  explícito para visualización admin controlada). Clonación de datos pesados entre colecciones relacionales de MongoDB manipulando llaves foráneas (, ).
 
 **key DB schema**:
+  - :  (Contiene Tareas, Materiales, Foros)
   - : 
-  - : Expandido internamente con 
+  - : 
 
 **changes in tech stack**:
   - None
 
 **All files of reference**:
-  - 
-  - 
-  - 
-  -  (Pendiente de editar en Fase 4)
-  -  (Pendiente de consultar en Fase 4)
-  - 
+  -  (Consumo dinámico, Responsive, Texto vertical)
+  -  (Utilidades creadas de promedios)
+  -  (Rediseño, fix label_corto)
+  -  (Gestión contraseñas de padres, DNI/CE pendientes)
+  -  (NUEVO)
+  -  (Integración de clonación)
+  -  (Endpoint clonación de posts)
+  -  (Endpoint clonación de exámenes)
+  -  (Endpoints de importación y asignar clave)
+  -  (Informe creado solicitado por el usuario)
 
 **Areas that need refactoring**: 
-  -  (Tiene >640 líneas con constantes hardcodeadas de columnas evaluativas, la Fase 4 solucionará el render estático para hacerlo dinámico).
+  -  es extremadamente grande (más de 11,000 líneas). Componentes internos como , ,  y  están definidos directamente dentro del mismo archivo. Deben separarse en archivos individuales bajo .
 
 **key api endpoints**:
-  -  (Lista plantillas del sistema y colegio)
+  - 
+  - 
   - 
   - 
 
 **Critical Info for New Agent**: 
-- **Fase 4 (GradeBookTab)**: El modelo de datos de notas ( en ) y los endpoints de guardado de calificaciones **NO DEBEN SER ALTERADOS**. Las plantillas generan identificadores compatibles dinámicamente. Extraer los métodos de cálculo a  antes de refactorizar la vista. Usa el fallback  si hay un registro legacy sin plantilla vinculada.
+- **Gestión de contraseñas de Padres**: Para permitir que el admin vea la contraseña generada, los flujos de backend ahora guardan el valor explícito en  y/o . El modal de frontend de UsersPage lee ambos. En los imports masivos, si el padre no trae contraseña, se usa el **DNI** por defecto.
+- **Clonación de Actividades**: El modal  se renderiza internamente en los diferentes sub-componentes de . La estructura del modal utiliza un árbol (Nivel → Grado → Sección → Asignatura) haciendo fetch a .
+- **GradeBookTab Responsive**: Se utiliza un modelo de  que requiere que el cálculo de anchos se realice mediante JS iterando un . No modificar esta lógica a menos que sea estrictamente necesario, ya que maneja los resizes en tiempo real y soluciona el overflow horizontal.
 
 **documents and test reports created in this job**: 
-  - 
+  -  (Actualizado)
+  -  (NUEVO: Reporte solicitado por usuario)
 
 **Last 10 User Messages and any pending HUMAN messages**: 
- - [User] Proporcionó el prompt detallado para ejecutar las Fases 3 y 4 del Registro Auxiliar Dinámico.
- - [Agent] Completó la Fase 3: Creó y verificó , asegurando la conexión entre el gestor, el botón clonar, el modo de edición en dos columnas y guardados. 
- - [Agent] Inició la revisión e investigación de  y  para la Fase 4 y guardó el estado de progreso.
- - *Pending Human Message*: Ejecutar el desarrollo de la Fase 4 tal como se definió en el prompt, sin crear endpoints nuevos, tocando exclusivamente el renderizado dinámico de .
+ - [User] Reportó que al usar la herramienta de clonación hacia 3 años A, Educación Cívica, no aparecían las tareas en la UI.
+ - [Agent] Investigó la base de datos y descubrió que los clones se estaban guardando con estado .
+ - [Agent] Modificó el backend para que el clon herede el estado de la actividad original ( o ) y actualizó los registros existentes en BD mediante bash.
+ - [User] Solicitó crear un informe completo (documento .md) de todo el trabajo de clonación realizado.
+ - [Agent] Creó el documento 
+ - [User] Reportó que el modal de clonación no mostraba los niveles/grados en la pestaña Materiales, indicando que fallaban también en Foros y Exámenes.
+ - [Agent] Descubrió que el componente  y sus correspondientes states y handlers no habían sido integrados en los sub-componentes internos de Foros, Exámenes y Materiales dentro de . Los agregó a todos, pasando los props necesarios.
+ - [Agent] Verificó el funcionamiento en las pestañas restantes mediante .
+ - *Pending Human Message*: (Ninguno, todo quedó funcionando y validado en el último screenshot del Agente).
 
 **Project Health Check**:
-Healthy. E2E de contabilidad sin fallos conocidos.
+Healthy. E2E extensivo realizado en backend/frontend para flujos complejos de clonación y layouts dinámicos.
 
 **3rd Party Integrations**: 
-  - Ninguna tocada en esta iteración. (Las existentes usan User Keys).
+  - Ninguna modificada en esta iteración. (Las existentes usan User Keys).
 
 **Testing status**:
-  - Testing agent used after significant changes: NO (Testing extenso de Frontend hecho con curl y ).
+  - Testing agent used after significant changes: NO (Pruebas robustas manuales usando scripting en Python y ).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
 
 **Credentials to test flow**:
-  Refer to . (Admin: , Owner: , Parent test account:  / ).
+  Consultar . (Admin: , Owner: ).
 
 **What agent forgot to execute**:
-El agente leyó  para planear la Fase 4, pero no hizo los cambios. El siguiente agente debe proceder directamente a ejecutar los pasos del Prompt sobre  descritos en el historial (Crear utilities, reemplazar constantes, modificar useEffect).</analysis>
+El agente implementó exitosamente todos los requerimientos solicitados (Fase 4, rediseños, contraseñas de padres y modulo completo de clonación). No hay omisiones documentadas.</analysis>

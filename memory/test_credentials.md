@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://notas-escuela.preview.emergentagent.com/elroble/login
+- Login URL: https://auditoria-psicologia.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu

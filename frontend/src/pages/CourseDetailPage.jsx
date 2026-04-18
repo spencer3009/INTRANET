@@ -7178,6 +7178,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
   const [selectedExamId, setSelectedExamId] = useState(null); // For detail view
   const [answerKeyModal, setAnswerKeyModal] = useState(null); // exam obj for clave modal
   const [scanModal, setScanModal] = useState(null); // exam obj for scan modal
+  const [cloneExam, setCloneExam] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
@@ -7499,6 +7500,13 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                     )}
                     
                     <button
+                      onClick={(e) => { e.stopPropagation(); setCloneExam(exam); }}
+                      className="px-2.5 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-medium hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                      title="Clonar examen"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'delete', exam }); }}
                       className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 ml-auto"
                       title="Eliminar examen"
@@ -7608,6 +7616,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
           )}
         </DialogContent>
       </Dialog>
+      <CloneActivityModal isOpen={!!cloneExam} onClose={() => setCloneExam(null)} activity={cloneExam} activityType="exam" token={token} user={{ role: userRole }} subjectId={subjectId} onSuccess={() => { setCloneExam(null); loadExams(); }} />
     </div>
   );
 }
@@ -7757,6 +7766,7 @@ function ForumContent({ subjectId, token, user, students }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [topicToDelete, setTopicToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [cloneForum, setCloneForum] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -8138,6 +8148,13 @@ function ForumContent({ subjectId, token, user, students }) {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => setCloneForum(topic)}
+                    className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Clonar"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteClick(topic)}
                     className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
                     title="Eliminar"
@@ -8197,6 +8214,7 @@ function ForumContent({ subjectId, token, user, students }) {
           </div>
         </div>
       )}
+      <CloneActivityModal isOpen={!!cloneForum} onClose={() => setCloneForum(null)} activity={cloneForum} activityType="post" token={token} user={user} subjectId={subjectId} onSuccess={() => { setCloneForum(null); window.location.reload(); }} />
     </div>
   );
 }
