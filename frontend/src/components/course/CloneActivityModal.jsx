@@ -22,14 +22,14 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
     (async () => {
       setLoading(true);
       try {
-        const [secRes, gradeRes, subRes] = await Promise.all([
-          axios.get(`${API}/academic/sections`, { headers }),
+        const [gradeRes, secRes, subRes] = await Promise.all([
           axios.get(`${API}/academic/grades`, { headers }),
-          axios.get(`${API}/subjects`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/academic/sections`, { headers }),
+          axios.get(`${API}/academic/subjects`, { headers }).catch(() => ({ data: [] })),
         ]);
 
-        const allSections = secRes.data || [];
         const allGrades = gradeRes.data || [];
+        const allSections = secRes.data || [];
         const allSubjects = subRes.data || [];
 
         const currentSubject = allSubjects.find(s => s.id === subjectId);
@@ -47,15 +47,14 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
           .filter(sec => {
             if (sec.id === currentSectionId) return false;
             if (teacherSectionIds && !teacherSectionIds.has(sec.id)) return false;
-            const hasSubject = allSubjects.some(s => s.section_id === sec.id && s.name === subjectName);
-            return hasSubject;
+            return true;
           })
           .map(sec => ({
             seccion_id: sec.id,
             seccion_nombre: sec.nombre || sec.name,
             grado_id: sec.grado_id,
             grado_nombre: gradeMap[sec.grado_id] || "Sin grado",
-            label: `${gradeMap[sec.grado_id] || "?"} - Seccion ${sec.nombre || sec.name}`,
+            hasSubject: allSubjects.some(s => s.section_id === sec.id && s.name === subjectName),
           }));
 
         setSections(items);
@@ -187,6 +186,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                               onChange={() => toggleSection(sec.seccion_id)}
                               className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
                             <span className="text-sm text-slate-700">Seccion {sec.seccion_nombre}</span>
+                            {!sec.hasSubject && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 font-medium">Sin asignatura</span>}
                           </label>
                         ))}
                       </div>
