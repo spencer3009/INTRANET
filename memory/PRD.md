@@ -53,9 +53,25 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Pagos Yape en listado de Ingresos con modal validación
 - Portal padre con mora visible
 
+## Clonación de Actividades (COMPLETO - Feb 2026, validado por testing agent)
+- Backend: `POST /api/course/posts/{post_id}/clonar` (Foros, Materiales, Tareas) en `/app/backend/routes/courses.py`
+- Backend: `POST /api/exams/{exam_id}/clonar` en `/app/backend/routes/exams.py`
+- Frontend: `/app/frontend/src/components/course/CloneActivityModal.jsx` (modal árbol Nivel→Grado→Sección→Asignatura)
+- Integrado en `/app/frontend/src/pages/CourseDetailPage.jsx` (pestañas Tareas, Foros, Materiales, Exámenes)
+- Respuesta: `{clonados: int, errores: []}`. Clones heredan status original (active/published, NO draft).
+- Testing: 13/13 backend tests PASSED, frontend OK en todas las pestañas (iteración 134)
+- Test file: `/app/backend/tests/test_clone_activities.py`
+
+## Gestión de Contraseñas de Padres (COMPLETO)
+- Asignación masiva DNI como clave (`/api/admin/padres/asignar-clave-dni`)
+- Import Excel usa DNI por defecto si no hay contraseña
+- Soporte Carnet de Extranjería (CE) en pendientes
+- `password_display` / `plain_password` para visualización admin
+
 ## Prioritized Backlog
 ### P0
 - (COMPLETADO) Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar
+- (COMPLETADO) Clonación de Actividades (Tareas, Foros, Materiales, Exámenes)
 
 ### P1
 - Guard global alumnos pending/rejected
@@ -63,4 +79,4 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Psicología — Log de auditoría
 
 ### P2
-- Módulo Encuestas, Optimización rendimiento, Refactorización, Plantilla Adventista
+- Módulo Encuestas, Optimización rendimiento, Refactorización CourseDetailPage.jsx (>11000 líneas), Plantilla Adventista, Fase 5 Registro Auxiliar (almacenamiento dinámico backend)
