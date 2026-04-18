@@ -2343,13 +2343,16 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   const [taskAttachType, setTaskAttachType] = useState("archivo");
   const [taskYoutubeUrl, setTaskYoutubeUrl] = useState("");
   
-  // Register linkage state for tasks (P1/P2/P3 only)
+  // Register linkage state for tasks — dinámico desde plantilla activa
   const [taskActivePeriod, setTaskActivePeriod] = useState(null);
   const [taskActivePeriodLoading, setTaskActivePeriodLoading] = useState(false);
   const [taskRegisterColumn, setTaskRegisterColumn] = useState(null);
   const [taskAvailability, setTaskAvailability] = useState(null);
   const [taskRegisterStatus, setTaskRegisterStatus] = useState("open");
   const [taskLoadingAvailability, setTaskLoadingAvailability] = useState(false);
+  // Subcolumnas vinculables (tipo input) extraídas de la plantilla activa agrupadas por criterio
+  const [taskSubcolumnasVinculables, setTaskSubcolumnasVinculables] = useState([]);
+  const [taskPlantillaLoading, setTaskPlantillaLoading] = useState(false);
   
   // Google Drive state
   const [driveStatus, setDriveStatus] = useState({ connected: false });
@@ -2407,6 +2410,49 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
     };
     loadAvail();
   }, [taskActivePeriod, subjectId, isOpen]);
+
+  // Load plantilla activa → extraer subcolumnas input agrupadas por criterio
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadPlantilla = async () => {
+      setTaskPlantillaLoading(true);
+      const extractSubcols = (plantilla) => (plantilla?.criterios || []).flatMap(cri =>
+        (cri.subcolumnas || [])
+          .filter(sub => sub.tipo === "input")
+          .map(sub => ({
+            id: sub.id,
+            label: sub.label,
+            field_key: sub.field_key || sub.id,
+            criterio_id: cri.id,
+            criterio_nombre: cri.nombre,
+            orden_criterio: cri.orden ?? 0,
+            orden_sub: sub.orden ?? 0,
+          }))
+      );
+      try {
+        const schoolId = user?.school_id;
+        if (!schoolId) {
+          setTaskSubcolumnasVinculables(extractSubcols(PLANTILLA_SISTEMA_FALLBACK));
+          return;
+        }
+        const res = await axios.get(
+          `${API}/schools/${schoolId}/registro-auxiliar/plantillas?estado=activa`,
+          { headers }
+        );
+        const plantillas = res.data?.plantillas || [];
+        const predeterminada = plantillas.find(p => p.es_predeterminada && !p.es_sistema);
+        const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
+        const plantilla = activa || PLANTILLA_SISTEMA_FALLBACK;
+        setTaskSubcolumnasVinculables(extractSubcols(plantilla));
+      } catch (err) {
+        console.error("[EduNet] Error cargando plantilla para modal tarea:", err);
+        setTaskSubcolumnasVinculables(extractSubcols(PLANTILLA_SISTEMA_FALLBACK));
+      } finally {
+        setTaskPlantillaLoading(false);
+      }
+    };
+    loadPlantilla();
+  }, [isOpen, user?.school_id]);
   
   useEffect(() => {
     if (!isOpen) {
@@ -2690,23 +2736,60 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-2">Registrar nota como participacion:</label>
                       {(() => {
-                        const allTaken = taskAvailability && !_taskSlotAvailable("P1", taskAvailability) && !_taskSlotAvailable("P2", taskAvailability) && !_taskSlotAvailable("P3", taskAvailability);
-                        return allTaken ? (
-                          <p className="text-xs text-gray-500 italic">Todas las columnas de participacion ya fueron asignadas.</p>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {[{ key: "P1", label: "Participacion P1" }, { key: "P2", label: "Participacion P2" }, { key: "P3", label: "Participacion P3" }].map(({ key, label }) => {
-                              const avail = _taskSlotAvailable(key, taskAvailability);
-                              const tip = _taskSlotTooltip(key, taskAvailability);
-                              const isSel = taskRegisterColumn === key;
-                              return (
-                                <label key={key} data-testid={`task-register-col-${key.toLowerCase()}`} title={!avail ? tip : ""} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${!avail ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60" : isSel ? "bg-amber-100 border-amber-400 text-amber-800" : "bg-white border-gray-200 hover:border-amber-300"}`}>
-                                  <input type="radio" name="task_register_column" checked={isSel} disabled={!avail} onChange={() => setTaskRegisterColumn(isSel ? null : key)} onClick={() => { if (isSel) setTaskRegisterColumn(null); }} className="accent-amber-600" />
-                                  <span className="flex-1">{label}</span>
-                                  {!avail ? (<span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{taskAvailability?.[key]?.reason === "manual" ? "Notas manuales" : "Ya asignado"}</span>) : (<span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>)}
-                                </label>
-                              );
-                            })}
+                        if (taskPlantillaLoading) {
+                          return (
+                            <div className="flex items-center gap-2 text-xs text-amber-600">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando columnas de la plantilla...
+                            </div>
+                          );
+                        }
+                        if (taskSubcolumnasVinculables.length === 0) {
+                          return <p className="text-xs text-gray-500 italic">La plantilla activa no tiene subcolumnas de tipo input configuradas.</p>;
+                        }
+                        const allTaken = taskAvailability && taskSubcolumnasVinculables.every(s => !_taskSlotAvailable(s.field_key, taskAvailability) && !_taskSlotAvailable(s.id, taskAvailability));
+                        if (allTaken) {
+                          return <p className="text-xs text-gray-500 italic">Todas las columnas de participacion ya fueron asignadas.</p>;
+                        }
+                        // Agrupar por criterio manteniendo orden
+                        const grouped = [];
+                        const seen = new Map();
+                        taskSubcolumnasVinculables
+                          .slice()
+                          .sort((a, b) => (a.orden_criterio - b.orden_criterio) || (a.orden_sub - b.orden_sub))
+                          .forEach(sub => {
+                            if (!seen.has(sub.criterio_id)) {
+                              seen.set(sub.criterio_id, { criterio_id: sub.criterio_id, criterio_nombre: sub.criterio_nombre, subs: [] });
+                              grouped.push(seen.get(sub.criterio_id));
+                            }
+                            seen.get(sub.criterio_id).subs.push(sub);
+                          });
+                        return (
+                          <div className="space-y-3">
+                            {grouped.map(group => (
+                              <div key={group.criterio_id} className="space-y-1.5">
+                                <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">{group.criterio_nombre}</p>
+                                <div className="space-y-1.5">
+                                  {group.subs.map(sub => {
+                                    const slotKey = sub.field_key || sub.id;
+                                    const avail = _taskSlotAvailable(slotKey, taskAvailability);
+                                    const tip = _taskSlotTooltip(slotKey, taskAvailability);
+                                    const isSel = taskRegisterColumn === slotKey;
+                                    return (
+                                      <label
+                                        key={sub.id}
+                                        data-testid={`task-register-col-${String(slotKey).toLowerCase()}`}
+                                        title={!avail ? tip : ""}
+                                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${!avail ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60" : isSel ? "bg-amber-100 border-amber-400 text-amber-800" : "bg-white border-gray-200 hover:border-amber-300"}`}
+                                      >
+                                        <input type="radio" name="task_register_column" checked={isSel} disabled={!avail} onChange={() => setTaskRegisterColumn(isSel ? null : slotKey)} onClick={() => { if (isSel) setTaskRegisterColumn(null); }} className="accent-amber-600" />
+                                        <span className="flex-1">{sub.label}</span>
+                                        {!avail ? (<span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{taskAvailability?.[slotKey]?.reason === "manual" ? "Notas manuales" : "Ya asignado"}</span>) : (<span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>)}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                             <label data-testid="task-register-col-none" className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${!taskRegisterColumn ? "bg-gray-100 border-gray-300 text-gray-700" : "bg-white border-gray-200 hover:border-gray-300"}`}>
                               <input type="radio" name="task_register_column" checked={!taskRegisterColumn} onChange={() => setTaskRegisterColumn(null)} className="accent-gray-500" />
                               <span className="flex-1 text-gray-500">Sin vinculacion</span>
@@ -2717,8 +2800,11 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
                     </div>
                     {(() => {
                       const pName = taskActivePeriod?.nombre || "Periodo activo";
-                      const labels = { "P1": "Participacion P1", "P2": "Participacion P2", "P3": "Participacion P3" };
-                      const conf = taskRegisterColumn ? { linked: true, text: `${pName} → ${labels[taskRegisterColumn]}`, detail: `Las notas se guardaran automaticamente en la columna ${taskRegisterColumn}.` } : { linked: false, text: "Esta tarea NO se vinculara al Registro Auxiliar." };
+                      const sub = taskSubcolumnasVinculables.find(s => (s.field_key || s.id) === taskRegisterColumn);
+                      const label = sub ? `${sub.criterio_nombre} → ${sub.label}` : taskRegisterColumn;
+                      const conf = taskRegisterColumn
+                        ? { linked: true, text: `${pName} → ${label}`, detail: `Las notas se guardaran automaticamente en la columna ${sub?.label || taskRegisterColumn}.` }
+                        : { linked: false, text: "Esta tarea NO se vinculara al Registro Auxiliar." };
                       return (
                         <div data-testid="task-register-confirmation" className={`p-2.5 rounded-lg text-xs border ${conf.linked ? "bg-green-50 border-green-200 text-green-800" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
                           <p className="font-semibold mb-0.5">{conf.linked ? "Esta tarea se registrara en el Registro Auxiliar:" : "Sin vinculacion"}</p>
