@@ -5205,7 +5205,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           return;
         }
         const res = await axios.get(
-          `${API}/api/schools/${schoolId}/registro-auxiliar/plantillas?estado=activa`,
+          `${API}/schools/${schoolId}/registro-auxiliar/plantillas?estado=activa`,
           { headers }
         );
         const plantillas = res.data?.plantillas || [];
