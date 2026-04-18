@@ -37,6 +37,7 @@ import {
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import CloneActivityModal from "../components/course/CloneActivityModal";
 import { OMRScanFlow, OMRResultsCard } from "../components/course/OMRScanComponents";
+import { PLANTILLA_SISTEMA_FALLBACK } from "../utils/registroAuxiliarUtils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { toast } from "sonner";
@@ -5164,7 +5165,7 @@ function TimePicker({ value, onChange, label }) {
 }
 
 // Exam Modal for Create/Edit
-function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token }) {
+function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token, schoolId }) {
   const [examType, setExamType] = useState("digital");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -5182,12 +5183,45 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
   // Register linkage state — single column (mutually exclusive)
   const [activePeriod, setActivePeriod] = useState(null); // {id, nombre, ...} or null
   const [activePeriodLoading, setActivePeriodLoading] = useState(false);
-  const [registerColumn, setRegisterColumn] = useState(null); // "EM"|"EB"|"P1"|"P2"|"P3"|null
+  const [registerColumn, setRegisterColumn] = useState(null); // label_corto of plantilla columna_final (e.g. "EM", "EB") or null
   const [availability, setAvailability] = useState(null);
   const [registerStatus, setRegisterStatus] = useState("open");
   const [loadingAvailability, setLoadingAvailability] = useState(false);
 
+  // Plantilla de Registro Auxiliar — columnas_finales dinámicas
+  const [columnasVinculables, setColumnasVinculables] = useState([]);
+  const [plantillaLoading, setPlantillaLoading] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Load plantilla activa del colegio → columnas_finales
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadPlantilla = async () => {
+      setPlantillaLoading(true);
+      try {
+        if (!schoolId) {
+          setColumnasVinculables(PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+          return;
+        }
+        const res = await axios.get(
+          `${API}/api/schools/${schoolId}/registro-auxiliar/plantillas?estado=activa`,
+          { headers }
+        );
+        const plantillas = res.data?.plantillas || [];
+        const predeterminada = plantillas.find(p => p.es_predeterminada && !p.es_sistema);
+        const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
+        const plantilla = activa || PLANTILLA_SISTEMA_FALLBACK;
+        setColumnasVinculables(plantilla.columnas_finales || PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+      } catch (err) {
+        console.error("[EduNet] Error cargando plantilla para vincular examen:", err);
+        setColumnasVinculables(PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+      } finally {
+        setPlantillaLoading(false);
+      }
+    };
+    loadPlantilla();
+  }, [isOpen, schoolId]);
 
   // Load active academic period
   useEffect(() => {
@@ -5365,24 +5399,20 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el modulo de examenes." };
     }
     const periodName = activePeriod?.nombre || "Periodo activo";
-    const labels = {
-      "EM": "Examen Mensual (EM)",
-      "EB": "Examen Bimestral (EB)",
-      "P1": "Participacion P1",
-      "P2": "Participacion P2",
-      "P3": "Participacion P3",
-    };
+    const col = columnasVinculables.find(c => (c.label_corto || c.id) === registerColumn);
+    const label = col ? `${col.label} (${col.label_corto || col.id})` : registerColumn;
     return {
       linked: true,
-      text: `${periodName} → ${labels[registerColumn] || registerColumn}`,
-      detail: `Las notas de los alumnos se guardaran automaticamente en la columna ${registerColumn}.`
+      text: `${periodName} → ${label}`,
+      detail: `Las notas de los alumnos se guardaran automaticamente en la columna ${col?.label_corto || registerColumn}.`
     };
   };
 
   const confirmation = buildConfirmationText();
 
-  // All slots taken?
-  const allSlotsTaken = availability && !isSlotAvailable("EM") && !isSlotAvailable("EB") && !isSlotAvailable("P1") && !isSlotAvailable("P2") && !isSlotAvailable("P3");
+  // All slots taken? (solo si todas las columnas vinculables están ocupadas)
+  const allSlotsTaken = availability && columnasVinculables.length > 0 &&
+    columnasVinculables.every(c => !isSlotAvailable(c.label_corto || c.id));
 
   if (!isOpen) return null;
 
@@ -5493,27 +5523,28 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                       </div>
                     )}
 
-                    {/* Single column selection — mutually exclusive */}
+                    {/* Single column selection — mutually exclusive (dinámico desde plantilla activa) */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-2">Vincular al Registro Auxiliar como:</label>
-                      {allSlotsTaken ? (
+                      {plantillaLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-amber-600">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Cargando columnas de la plantilla...
+                        </div>
+                      ) : columnasVinculables.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">La plantilla activa no tiene columnas finales configuradas.</p>
+                      ) : allSlotsTaken ? (
                         <p className="text-xs text-gray-500 italic">Todas las columnas ya fueron asignadas para este bimestre.</p>
                       ) : (
                         <div className="space-y-1.5">
-                          {[
-                            { key: "EM", label: "Examen Mensual (EM)", weight: "15%" },
-                            { key: "EB", label: "Examen Bimestral (EB)", weight: "20%" },
-                            { key: "P1", label: "Participacion P1", weight: null },
-                            { key: "P2", label: "Participacion P2", weight: null },
-                            { key: "P3", label: "Participacion P3", weight: null },
-                          ].map(({ key, label, weight }) => {
+                          {columnasVinculables.map((col) => {
+                            const key = col.label_corto || col.id;
                             const available = isSlotAvailable(key);
                             const tooltip = getSlotTooltip(key);
                             const isSelected = registerColumn === key;
                             return (
                               <label
-                                key={key}
-                                data-testid={`register-col-${key.toLowerCase()}`}
+                                key={col.id || key}
+                                data-testid={`register-col-${String(key).toLowerCase()}`}
                                 title={!available ? tooltip : ""}
                                 className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
                                   !available
@@ -5533,7 +5564,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                                   className="accent-amber-600"
                                 />
                                 <span className="flex-1">
-                                  {label}{weight ? ` - ${weight}` : ""}
+                                  {col.label} ({col.label_corto || col.id}){col.porcentaje != null ? ` — ${col.porcentaje}%` : ""}
                                 </span>
                                 {!available ? (
                                   <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
@@ -7168,7 +7199,7 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
 }
 
 // Main Exams Content Component
-function ExamsContent({ subjectId, token, userRole, subject }) {
+function ExamsContent({ subjectId, token, userRole, user, subject }) {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -7530,6 +7561,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
         subjectId={subjectId}
         sectionId={subject?.section_id}
         token={token}
+        schoolId={user?.school_id}
       />
       
       {/* Confirm Modals */}
@@ -10909,7 +10941,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "material":
         return <MaterialTableContent subjectId={subjectId} token={token} user={user} />;
       case "examenes":
-        return <ExamsContent subjectId={subjectId} token={token} userRole={user?.role} subject={subject} />;
+        return <ExamsContent subjectId={subjectId} token={token} userRole={user?.role} user={user} subject={subject} />;
       case "foro":
         return <ForumContent subjectId={subjectId} token={token} user={user} students={students} />;
       case "mensajes":
