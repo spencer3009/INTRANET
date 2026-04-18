@@ -120,9 +120,9 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
   const totalToClone = (cloneHere ? 1 : 0) + selected.size;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden" data-testid="clone-activity-modal">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()} data-testid="clone-activity-modal">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -140,15 +140,16 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Section A - Clone here */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-            <label className="flex items-center gap-3 cursor-pointer" data-testid="clone-here-toggle">
-              <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${cloneHere ? "bg-indigo-500" : "bg-slate-300"}`}>
+            <div className="flex items-center gap-3 cursor-pointer" data-testid="clone-here-toggle"
+              onClick={(e) => { e.stopPropagation(); setCloneHere(!cloneHere); }}>
+              <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${cloneHere ? "bg-indigo-500" : "bg-slate-300"}`}>
                 <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${cloneHere ? "translate-x-4" : "translate-x-0"}`} />
               </div>
               <div>
                 <p className="text-sm font-bold text-slate-800">Crear una copia aqui mismo</p>
                 <p className="text-xs text-slate-500">Se creara una copia en la misma seccion actual</p>
               </div>
-            </label>
+            </div>
           </div>
 
           {/* Section B - Other sections */}
