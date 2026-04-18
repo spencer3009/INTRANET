@@ -2264,30 +2264,21 @@ async def clone_post(post_id: str, data: CloneRequest, current_user=Depends(get_
         except Exception as e:
             errores.append(f"Misma seccion: {str(e)}")
 
-    # Clone to other sections
+    # Clone to other subjects
     for dest in data.destinos:
-        section_id = dest.get("seccion_id")
-        if not section_id:
-            errores.append("Destino sin seccion_id")
+        dest_subject_id = dest.get("subject_id")
+        if not dest_subject_id:
+            errores.append("Destino sin subject_id")
             continue
 
-        # Find the equivalent subject in the destination section
-        orig_subject = await db.subjects.find_one({"id": original["subject_id"]}, {"_id": 0, "name": 1})
-        if not orig_subject:
-            errores.append(f"Asignatura original no encontrada")
-            continue
-
-        dest_subject = await db.subjects.find_one(
-            {"name": orig_subject["name"], "section_id": section_id, "school_id": school_id},
-            {"_id": 0, "id": 1}
-        )
+        dest_subject = await db.subjects.find_one({"id": dest_subject_id, "school_id": school_id}, {"_id": 0, "id": 1})
         if not dest_subject:
-            errores.append(f"No existe la asignatura '{orig_subject['name']}' en la seccion destino")
+            errores.append(f"Asignatura destino no encontrada")
             continue
 
         clone = {**original}
         clone["id"] = str(uuid.uuid4())
-        clone["subject_id"] = dest_subject["id"]
+        clone["subject_id"] = dest_subject_id
         clone["title"] = f"{original.get('title', '')} (copia)"
         clone["status"] = "draft"
         clone["created_at"] = now
@@ -2301,7 +2292,7 @@ async def clone_post(post_id: str, data: CloneRequest, current_user=Depends(get_
             clone.pop("_id", None)
             clonados += 1
         except Exception as e:
-            errores.append(f"Seccion {section_id[:8]}: {str(e)}")
+            errores.append(str(e))
 
     return {"clonados": clonados, "errores": errores}
 

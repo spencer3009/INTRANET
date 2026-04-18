@@ -4119,22 +4119,15 @@ async def clone_exam(exam_id: str, data: CloneExamRequest, current_user=Depends(
             errores.append(f"Misma seccion: {str(e)}")
 
     for dest in data.destinos:
-        section_id = dest.get("seccion_id")
-        if not section_id:
+        dest_subject_id = dest.get("subject_id")
+        if not dest_subject_id:
             continue
-        orig_subject = await db.subjects.find_one({"id": original["subject_id"]}, {"_id": 0, "name": 1})
-        if not orig_subject:
-            errores.append("Asignatura original no encontrada")
-            continue
-        dest_subject = await db.subjects.find_one(
-            {"name": orig_subject["name"], "section_id": section_id, "school_id": school_id},
-            {"_id": 0, "id": 1}
-        )
+        dest_subject = await db.subjects.find_one({"id": dest_subject_id, "school_id": school_id}, {"_id": 0, "id": 1})
         if not dest_subject:
-            errores.append(f"No existe '{orig_subject['name']}' en la seccion destino")
+            errores.append("Asignatura destino no encontrada")
             continue
         try:
-            await create_clone(dest_subject["id"])
+            await create_clone(dest_subject_id)
         except Exception as e:
             errores.append(str(e))
 

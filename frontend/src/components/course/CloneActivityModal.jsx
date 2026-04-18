@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { X, Copy, Loader2, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { X, Copy, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function CloneActivityModal({ isOpen, onClose, activity, activityType, token, user, subjectId, onSuccess }) {
-  const [sections, setSections] = useState([]);
+  const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cloning, setCloning] = useState(false);
   const [cloneHere, setCloneHere] = useState(false);
   const [selected, setSelected] = useState(new Set());
-  const [expandedGrades, setExpandedGrades] = useState(new Set());
+  const [expanded, setExpanded] = useState(new Set());
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -19,6 +19,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
     if (!isOpen) return;
     setCloneHere(false);
     setSelected(new Set());
+    setExpanded(new Set());
     (async () => {
       setLoading(true);
       try {
@@ -28,71 +29,96 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
           axios.get(`${API}/academic/subjects`, { headers }).catch(() => ({ data: [] })),
         ]);
 
-        const allGrades = gradeRes.data || [];
-        const allSections = secRes.data || [];
-        const allSubjects = subRes.data || [];
+        const grades = gradeRes.data || [];
+        const sections = secRes.data || [];
+        const subjects = (Array.isArray(subRes.data) ? subRes.data : subRes.data?.subjects || []);
 
-        const currentSubject = allSubjects.find(s => s.id === subjectId);
+        const currentSubject = subjects.find(s => s.id === subjectId);
         const currentSectionId = currentSubject?.section_id;
-        const subjectName = currentSubject?.name;
 
-        const gradeMap = {};
-        allGrades.forEach(g => { gradeMap[g.id] = g.nombre || g.name; });
-
-        const teacherSectionIds = user?.role === "teacher"
-          ? new Set(allSubjects.filter(s => s.teacher_id === user.id).map(s => s.section_id))
+        const teacherSubjectIds = user?.role === "teacher"
+          ? new Set(subjects.filter(s => s.teacher_id === user.id).map(s => s.id))
           : null;
 
-        const items = allSections
-          .filter(sec => {
-            if (sec.id === currentSectionId) return false;
-            if (teacherSectionIds && !teacherSectionIds.has(sec.id)) return false;
-            return true;
-          })
-          .map(sec => ({
-            seccion_id: sec.id,
-            seccion_nombre: sec.nombre || sec.name,
-            grado_id: sec.grado_id,
-            grado_nombre: gradeMap[sec.grado_id] || "Sin grado",
-            hasSubject: allSubjects.some(s => s.section_id === sec.id && s.name === subjectName),
-          }));
+        // Build tree: group by nivel > grado > seccion > asignaturas
+        const nivelMap = {};
+        grades.forEach(g => {
+          const nivel = g.nivel || g.level || "General";
+          if (!nivelMap[nivel]) nivelMap[nivel] = [];
+          nivelMap[nivel].push(g);
+        });
 
-        setSections(items);
-        setExpandedGrades(new Set(items.map(i => i.grado_id)));
+        const treeData = Object.entries(nivelMap).map(([nivel, gradosInNivel]) => ({
+          key: `nivel_${nivel}`,
+          label: nivel,
+          type: "nivel",
+          children: gradosInNivel.map(grado => {
+            const gradoSections = sections.filter(s => s.grado_id === grado.id);
+            return {
+              key: `grado_${grado.id}`,
+              label: grado.nombre || grado.name,
+              type: "grado",
+              children: gradoSections.map(sec => {
+                const secSubjects = subjects
+                  .filter(sub => {
+                    if (sub.section_id !== sec.id) return false;
+                    if (sub.id === subjectId) return false;
+                    if (teacherSubjectIds && !teacherSubjectIds.has(sub.id)) return false;
+                    return true;
+                  })
+                  .map(sub => ({
+                    key: `sub_${sub.id}`,
+                    label: sub.name,
+                    type: "subject",
+                    subjectId: sub.id,
+                    isSameSection: sec.id === currentSectionId,
+                  }));
+                return {
+                  key: `sec_${sec.id}`,
+                  label: `Seccion ${sec.nombre || sec.name}`,
+                  type: "seccion",
+                  children: secSubjects,
+                };
+              }).filter(sec => sec.children.length > 0),
+            };
+          }).filter(g => g.children.length > 0),
+        })).filter(n => n.children.length > 0);
+
+        setTree(treeData);
       } catch (err) {
-        console.error("Error loading sections:", err);
+        console.error("Error loading tree:", err);
       } finally {
         setLoading(false);
       }
     })();
   }, [isOpen]);
 
-  const toggleSection = (secId) => {
-    setSelected(prev => {
+  const toggleExpand = (key) => {
+    setExpanded(prev => {
       const next = new Set(prev);
-      next.has(secId) ? next.delete(secId) : next.add(secId);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   };
 
-  const selectAll = () => setSelected(new Set(sections.map(s => s.seccion_id)));
-  const deselectAll = () => setSelected(new Set());
+  const toggleSelect = (subjectId) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(subjectId) ? next.delete(subjectId) : next.add(subjectId);
+      return next;
+    });
+  };
 
-  const grouped = sections.reduce((acc, s) => {
-    if (!acc[s.grado_id]) acc[s.grado_id] = { nombre: s.grado_nombre, items: [] };
-    acc[s.grado_id].items.push(s);
-    return acc;
-  }, {});
+  const allSubjectIds = [];
+  tree.forEach(n => n.children.forEach(g => g.children.forEach(s => s.children.forEach(sub => allSubjectIds.push(sub.subjectId)))));
+  const selectAll = () => setSelected(new Set(allSubjectIds));
+  const deselectAll = () => setSelected(new Set());
 
   const handleClone = async () => {
     if (!cloneHere && selected.size === 0) return;
     setCloning(true);
     try {
-      const destinos = Array.from(selected).map(secId => {
-        const sec = sections.find(s => s.seccion_id === secId);
-        return { seccion_id: secId, grado_id: sec?.grado_id };
-      });
-
+      const destinos = Array.from(selected).map(sid => ({ subject_id: sid }));
       const url = activityType === "exam"
         ? `${API}/exams/${activity.id}/clonar`
         : `${API}/course/posts/${activity.id}/clonar`;
@@ -101,9 +127,9 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
       const { clonados, errores } = res.data;
 
       if (errores?.length > 0) {
-        toast.warning(`Clonado en ${clonados} seccion(es). Errores: ${errores.join(", ")}`);
+        toast.warning(`Clonado en ${clonados} asignatura(s). Errores: ${errores.slice(0, 3).join(", ")}`);
       } else {
-        toast.success(`Actividad clonada en ${clonados} seccion(es) exitosamente`);
+        toast.success(`Actividad clonada en ${clonados} asignatura(s) exitosamente`);
       }
       onSuccess?.();
       onClose();
@@ -115,7 +141,6 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
   };
 
   if (!isOpen) return null;
-
   const totalToClone = (cloneHere ? 1 : 0) + selected.size;
 
   return (
@@ -137,60 +162,75 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Section A - Clone here */}
+          {/* Section A */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-3 cursor-pointer" data-testid="clone-here-toggle"
-              onClick={(e) => { e.stopPropagation(); setCloneHere(!cloneHere); }}>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCloneHere(!cloneHere)} data-testid="clone-here-toggle">
               <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0 ${cloneHere ? "bg-indigo-500" : "bg-slate-300"}`}>
                 <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${cloneHere ? "translate-x-4" : "translate-x-0"}`} />
               </div>
               <div>
                 <p className="text-sm font-bold text-slate-800">Crear una copia aqui mismo</p>
-                <p className="text-xs text-slate-500">Se creara una copia en la misma seccion actual</p>
+                <p className="text-xs text-slate-500">Se creara una copia en la misma asignatura</p>
               </div>
             </div>
           </div>
 
-          {/* Section B - Other sections */}
+          {/* Section B - Tree */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-700">Clonar en otros grados/secciones</h3>
+              <h3 className="text-sm font-bold text-slate-700">Clonar en otra asignatura</h3>
               <div className="flex gap-2">
-                <button onClick={selectAll} className="text-[10px] px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold hover:bg-indigo-100 transition-colors">Seleccionar todos</button>
-                <button onClick={deselectAll} className="text-[10px] px-2 py-1 rounded-lg bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 transition-colors">Deseleccionar</button>
+                <button onClick={selectAll} className="text-[10px] px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold hover:bg-indigo-100 transition-colors">Todo</button>
+                <button onClick={deselectAll} className="text-[10px] px-2 py-1 rounded-lg bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 transition-colors">Ninguno</button>
               </div>
             </div>
 
             {loading ? (
               <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-indigo-500" /></div>
-            ) : sections.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6">No hay otras secciones disponibles con esta asignatura</p>
+            ) : tree.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">No hay otras asignaturas disponibles</p>
             ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                {Object.entries(grouped).map(([gradeId, group]) => (
-                  <div key={gradeId} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button onClick={() => setExpandedGrades(prev => {
-                      const next = new Set(prev);
-                      next.has(gradeId) ? next.delete(gradeId) : next.add(gradeId);
-                      return next;
-                    })} className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition-colors">
-                      {expandedGrades.has(gradeId) ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
-                      <span className="text-xs font-bold text-slate-700">{group.nombre}</span>
-                      <span className="text-[10px] text-slate-400">({group.items.length} seccion{group.items.length > 1 ? "es" : ""})</span>
+              <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
+                {tree.map(nivel => (
+                  <div key={nivel.key} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    {/* Nivel */}
+                    <button onClick={() => toggleExpand(nivel.key)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition-colors bg-gradient-to-r from-indigo-50 to-white">
+                      {expanded.has(nivel.key) ? <ChevronDown className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />}
+                      <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-wider">{nivel.label}</span>
                     </button>
-                    {expandedGrades.has(gradeId) && (
-                      <div className="border-t border-slate-100">
-                        {group.items.map(sec => (
-                          <label key={sec.seccion_id} className="flex items-center gap-3 px-4 py-2 hover:bg-indigo-50/50 cursor-pointer transition-colors" data-testid={`clone-dest-${sec.seccion_id}`}>
-                            <input type="checkbox" checked={selected.has(sec.seccion_id)}
-                              onChange={() => toggleSection(sec.seccion_id)}
-                              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                            <span className="text-sm text-slate-700">Seccion {sec.seccion_nombre}</span>
-                            {!sec.hasSubject && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 font-medium">Sin asignatura</span>}
-                          </label>
+                    {expanded.has(nivel.key) && nivel.children.map(grado => (
+                      <div key={grado.key} className="border-t border-slate-100">
+                        {/* Grado */}
+                        <button onClick={() => toggleExpand(grado.key)}
+                          className="w-full flex items-center gap-2 pl-6 pr-3 py-2 hover:bg-slate-50 transition-colors">
+                          {expanded.has(grado.key) ? <ChevronDown className="w-3 h-3 text-slate-400" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                          <span className="text-xs font-bold text-slate-700">{grado.label}</span>
+                          <span className="text-[10px] text-slate-400">({grado.children.length} secc.)</span>
+                        </button>
+                        {expanded.has(grado.key) && grado.children.map(seccion => (
+                          <div key={seccion.key} className="border-t border-slate-50">
+                            {/* Seccion */}
+                            <button onClick={() => toggleExpand(seccion.key)}
+                              className="w-full flex items-center gap-2 pl-10 pr-3 py-1.5 hover:bg-slate-50 transition-colors">
+                              {expanded.has(seccion.key) ? <ChevronDown className="w-3 h-3 text-slate-300" /> : <ChevronRight className="w-3 h-3 text-slate-300" />}
+                              <span className="text-xs font-semibold text-slate-600">{seccion.label}</span>
+                              <span className="text-[10px] text-slate-400">({seccion.children.length} asig.)</span>
+                            </button>
+                            {expanded.has(seccion.key) && seccion.children.map(sub => (
+                              <label key={sub.key}
+                                className="flex items-center gap-3 pl-14 pr-3 py-1.5 hover:bg-indigo-50/50 cursor-pointer transition-colors"
+                                data-testid={`clone-dest-${sub.subjectId}`}>
+                                <input type="checkbox" checked={selected.has(sub.subjectId)}
+                                  onChange={() => toggleSelect(sub.subjectId)}
+                                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-xs text-slate-700">{sub.label}</span>
+                              </label>
+                            ))}
+                          </div>
                         ))}
                       </div>
-                    )}
+                    ))}
                   </div>
                 ))}
               </div>
@@ -205,7 +245,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
             className="px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all"
             data-testid="clone-confirm-btn">
             {cloning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-            {cloning ? "Clonando..." : totalToClone === 0 ? "Selecciona destino" : `Clonar en ${totalToClone} seccion(es)`}
+            {cloning ? "Clonando..." : totalToClone === 0 ? "Selecciona destino" : `Clonar en ${totalToClone} asignatura(s)`}
           </button>
         </div>
       </div>
