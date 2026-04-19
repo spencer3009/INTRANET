@@ -32,101 +32,82 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 
 # ──────────────────────────────────────────────────────────────────────────────
-# DB name detection — CACHED to avoid blocking startup (was taking >180s).
+# DB name detection — SYNCHRONOUS on every startup (no cache).
 #
-# First boot: run the sync pymongo probe once, then persist the resolved name
-# to `backend/.db_name_cache`. All subsequent boots read the cache in <1ms and
-# skip the probe entirely. If the cached name ever fails to connect we wipe
-# the cache and re-detect on the next boot.
+# A previous iteration persisted the resolved db_name to a file cache, but
+# that caused production outages when the cache stored a stale/incorrect
+# name ("database") and the backend could never reconnect after a redeploy.
+# Detecting on every boot is slower (~1-2s on a cold connection) but SAFE —
+# preferred over an unreliable cache.
 # ──────────────────────────────────────────────────────────────────────────────
 import pymongo as _pymongo
 
 _raw_db_name = os.environ.get('DB_NAME', 'database')
-_DB_CACHE_FILE = ROOT_DIR / '.db_name_cache'
+db_name = _raw_db_name
 
-def _probe_sync_db_name(raw_name: str) -> str:
-    """Synchronous probe (first boot only). Returns the best matching db name."""
-    resolved = raw_name
+try:
+    _sync_client = _pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
+    # Test if configured DB works
+    _test_ok = False
     try:
-        sc = _pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
-        try:
-            sc[raw_name].command("ping")
-            sc[raw_name].users.count_documents({})
-            resolved = raw_name
-        except Exception:
-            try:
-                available = sc.list_database_names()
-                candidates = [d for d in available if d not in ('admin', 'local', 'config')]
-
-                original_suffix = raw_name
-                for prefix in ['school-portal-152-', 'school-portal-152_']:
-                    if raw_name.startswith(prefix):
-                        original_suffix = raw_name[len(prefix):]
-                        break
-
-                picked = None
-                for cand in candidates:
-                    if cand.endswith(original_suffix):
-                        try:
-                            if 'users' in sc[cand].list_collection_names():
-                                picked = cand
-                                break
-                        except Exception:
-                            continue
-                if not picked:
-                    best_count = 0
-                    for cand in candidates:
-                        try:
-                            if 'users' in sc[cand].list_collection_names():
-                                n = sc[cand].users.count_documents({})
-                                if n > best_count:
-                                    best_count = n
-                                    picked = cand
-                        except Exception:
-                            continue
-                if picked:
-                    resolved = picked
-            except Exception:
-                pass
-        sc.close()
+        _sync_client[db_name].command("ping")
+        _sync_client[db_name].users.count_documents({})
+        _test_ok = True
     except Exception:
         pass
-    return resolved
 
-def _resolve_db_name(raw_name: str) -> str:
-    """Read cached db name if present; otherwise probe once and cache result."""
-    try:
-        if _DB_CACHE_FILE.exists():
-            cached = _DB_CACHE_FILE.read_text(encoding='utf-8').strip()
-            if cached:
-                logger.info(f"[DB_NAME] Loaded from cache: {cached}")
-                return cached
-    except Exception as e:
-        logger.warning(f"[DB_NAME] Cache read failed, will re-probe: {e}")
+    if not _test_ok:
+        # List available databases and find the correct one.
+        # Prefer DB matching the original DB_NAME suffix (e.g., "test_database")
+        try:
+            _available = _sync_client.list_database_names()
+            _candidates = [d for d in _available if d not in ('admin', 'local', 'config')]
 
-    logger.info(f"[DB_NAME] No cache — running one-time sync probe (raw={raw_name})")
-    resolved = _probe_sync_db_name(raw_name)
-    try:
-        _DB_CACHE_FILE.write_text(resolved, encoding='utf-8')
-        logger.info(f"[DB_NAME] Cached resolved name: {resolved}")
-    except Exception as e:
-        logger.warning(f"[DB_NAME] Cache write failed: {e}")
-    return resolved
+            # Extract original suffix from DB_NAME
+            _original_suffix = _raw_db_name
+            for _prefix in ['school-portal-152-', 'school-portal-152_']:
+                if _raw_db_name.startswith(_prefix):
+                    _original_suffix = _raw_db_name[len(_prefix):]
+                    break
 
-db_name = _resolve_db_name(_raw_db_name)
+            # Priority 1: DB whose name ends with the original suffix
+            _picked = None
+            for _candidate in _candidates:
+                if _candidate.endswith(_original_suffix):
+                    try:
+                        _cols = _sync_client[_candidate].list_collection_names()
+                        if 'users' in _cols:
+                            _picked = _candidate
+                            break
+                    except Exception:
+                        continue
+            if not _picked:
+                # Priority 2: DB with most users
+                _best_db = None
+                _best_count = 0
+                for _candidate in _candidates:
+                    try:
+                        _cols = _sync_client[_candidate].list_collection_names()
+                        if 'users' in _cols:
+                            _count = _sync_client[_candidate].users.count_documents({})
+                            if _count > _best_count:
+                                _best_count = _count
+                                _best_db = _candidate
+                    except Exception:
+                        continue
+                if _best_db:
+                    _picked = _best_db
+            if _picked:
+                db_name = _picked
+        except Exception:
+            pass
+
+    _sync_client.close()
+except Exception:
+    pass
 
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
-
-
-def invalidate_db_name_cache() -> None:
-    """Call this if the cached db_name ever fails to connect at runtime."""
-    try:
-        if _DB_CACHE_FILE.exists():
-            _DB_CACHE_FILE.unlink()
-            logger.warning("[DB_NAME] Cache invalidated — will re-probe on next boot")
-    except Exception as e:
-        logger.error(f"[DB_NAME] Failed to invalidate cache: {e}")
 
 
 async def safe_create_index(collection, keys, **kwargs):
