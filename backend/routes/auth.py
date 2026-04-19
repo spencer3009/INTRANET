@@ -186,29 +186,47 @@ async def login(creds: UserLogin):
       - If system_admin_global: return is_support_global flag for redirect to /support
     Accepts email OR username for login.
     """
+    import time as _time
+    from pymongo.errors import (
+        ServerSelectionTimeoutError, NetworkTimeout, ExecutionTimeout,
+        ConnectionFailure, AutoReconnect,
+    )
+    _t0 = _time.perf_counter()
+
+    def _classify_db_err(err):
+        """Classify DB exceptions into connection/timeout/other for logs."""
+        if isinstance(err, (NetworkTimeout, ExecutionTimeout, ServerSelectionTimeoutError)):
+            return "timeout"
+        if isinstance(err, (ConnectionFailure, AutoReconnect)):
+            return "connection"
+        return "other"
+
+    identifier = creds.email.lower().strip() if creds and creds.email else ""
+    logger.info(f"[LOGIN] START identifier={identifier}")
+
     try:
-        identifier = creds.email.lower().strip()
-        logger.info(f"[LOGIN] Attempt for: {identifier}")
-        
         # First, check for global support user (priority over school-specific users)
         try:
+            logger.info(f"[LOGIN] DB QUERY global_support identifier={identifier}")
             global_support = await db.users.find_one({
                 "email": identifier,
                 "role": "system_admin_global"
             })
         except Exception as db_err:
-            logger.error(f"[LOGIN] Database error on global support lookup: {db_err}")
+            kind = _classify_db_err(db_err)
+            logger.error(f"[LOGIN] ERROR db_{kind} stage=global_support identifier={identifier}: {type(db_err).__name__}: {db_err}")
             raise HTTPException(status_code=503, detail="Error de conexion a la base de datos. Intente mas tarde.")
         
         if global_support:
             try:
                 pwd_ok = verify_password(creds.password, global_support.get("password", ""))
             except Exception as pwd_err:
-                logger.error(f"[LOGIN] Password verification error for support user: {pwd_err}")
+                logger.error(f"[LOGIN] ERROR password_hash_failed stage=global_support identifier={identifier}: {type(pwd_err).__name__}: {pwd_err}")
                 pwd_ok = False
             
             if pwd_ok:
-                logger.info(f"[LOGIN] Global support login OK: {identifier}")
+                took_ms = round((_time.perf_counter() - _t0) * 1000, 1)
+                logger.info(f"[LOGIN] SUCCESS stage=global_support identifier={identifier} took_ms={took_ms}")
                 token = create_token(
                     global_support["id"], global_support["email"], global_support["name"],
                     global_support["role"], None, None, True
@@ -247,6 +265,7 @@ async def login(creds: UserLogin):
         
         # Standard user login (exclude global support user from results)
         try:
+            logger.info(f"[LOGIN] DB QUERY users identifier={identifier}")
             user = await db.users.find_one({
                 "$or": [
                     {"email": identifier},
@@ -255,21 +274,22 @@ async def login(creds: UserLogin):
                 "role": {"$ne": "system_admin_global"}
             })
         except Exception as db_err:
-            logger.error(f"[LOGIN] Database error on user lookup: {db_err}")
+            kind = _classify_db_err(db_err)
+            logger.error(f"[LOGIN] ERROR db_{kind} stage=user_lookup identifier={identifier}: {type(db_err).__name__}: {db_err}")
             raise HTTPException(status_code=503, detail="Error de conexion a la base de datos. Intente mas tarde.")
         
         if not user:
-            logger.info(f"[LOGIN] User not found: {identifier}")
+            logger.info(f"[LOGIN] ERROR invalid_credentials reason=user_not_found identifier={identifier}")
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
         
         try:
             pwd_valid = verify_password(creds.password, user.get("password", ""))
         except Exception as pwd_err:
-            logger.error(f"[LOGIN] Password verification error for {identifier}: {pwd_err}")
+            logger.error(f"[LOGIN] ERROR password_hash_failed identifier={identifier}: {type(pwd_err).__name__}: {pwd_err}")
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
         
         if not pwd_valid:
-            logger.info(f"[LOGIN] Invalid password for: {identifier}")
+            logger.info(f"[LOGIN] ERROR invalid_credentials reason=wrong_password identifier={identifier}")
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
         
         # Check if demo user is expired
@@ -381,7 +401,8 @@ async def login(creds: UserLogin):
             logger.error(f"[LOGIN] Permissions error: {perm_err}")
             permissions = {"role": user.get("role"), "is_owner": user.get("is_owner", False), "is_admin": False, "sections": {}}
 
-        logger.info(f"[LOGIN] Success for: {identifier}, subdomain: {subdomain}")
+        took_ms = round((_time.perf_counter() - _t0) * 1000, 1)
+        logger.info(f"[LOGIN] SUCCESS identifier={identifier} role={user.get('role')} subdomain={subdomain} took_ms={took_ms}")
         
         return {
             "token": token,
@@ -410,7 +431,9 @@ async def login(creds: UserLogin):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[LOGIN] Unexpected error for {creds.email}: {type(e).__name__}: {e}")
+        took_ms = round((_time.perf_counter() - _t0) * 1000, 1)
+        kind = _classify_db_err(e)
+        logger.error(f"[LOGIN] ERROR unexpected kind={kind} identifier={creds.email} took_ms={took_ms}: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {type(e).__name__}")
 
 @router.get("/auth/me")

@@ -39,6 +39,7 @@ from routes.news import router as news_router
 from routes.accounting import router as accounting_router, daily_billing_generation_cron
 from routes.subjects import router as subjects_router
 from routes.health import router as health_router
+from routes.monitoring import router as monitoring_router
 from routes.courses import router as courses_router
 from routes.messaging import router as messaging_router
 from routes.broadcast import router as broadcast_router
@@ -201,6 +202,7 @@ app.include_router(news_router)
 app.include_router(accounting_router)
 app.include_router(subjects_router)
 app.include_router(health_router)
+app.include_router(monitoring_router)
 app.include_router(courses_router)
 app.include_router(messaging_router)
 app.include_router(broadcast_router)
