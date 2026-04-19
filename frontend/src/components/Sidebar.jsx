@@ -105,7 +105,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
     
     loadUnreadCount();
     // Refresh every 30 seconds
-    const interval = setInterval(loadUnreadCount, 30000);
+    const interval = setInterval(loadUnreadCount, 60000);
     return () => clearInterval(interval);
   }, [token]);
   

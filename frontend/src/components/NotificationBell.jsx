@@ -229,6 +229,10 @@ export default function NotificationBell({ token, userRole }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Forward-ref pattern: handleWebSocketMessage needs loadWsTriggered which
+  // is defined later. Using a ref avoids TDZ and keeps hook deps stable.
+  const loadWsTriggeredRef = useRef(() => {});
+
   // Build correct path prefix based on current URL
   const getSchoolPrefix = useCallback(() => {
     const match = window.location.pathname.match(/^\/([^/]+)/);
@@ -244,6 +248,8 @@ export default function NotificationBell({ token, userRole }) {
         unread_count: prev.unread_count + 1,
         notifications: [{ ...notif, is_read: false }, ...prev.notifications]
       }));
+      // Refresh reminders + broadcast so counts stay in sync without polling
+      loadWsTriggeredRef.current();
       const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
       toast(notif.title, {
         description: notif.message,
@@ -337,27 +343,61 @@ export default function NotificationBell({ token, userRole }) {
     } catch {}
   }, [token, isParent]);
 
+  // WS-triggered loader: heavy endpoints that should NOT be polled.
+  // Called on mount once + re-called when WebSocket announces new content.
+  const loadWsTriggered = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [remindersRes, generalRes, broadcastRes] = await Promise.all([
+        axios.get(`${API}/notifications/reminders`, { headers }).catch(() => ({ data: { important: [], upcoming: [], new: [], total_count: 0 } })),
+        axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
+        axios.get(`${API}/broadcast/unread`, { headers }).catch(() => ({ data: { count: 0 } })),
+      ]);
+      setNotifications(remindersRes.data);
+      setGeneralNotifications(generalRes.data);
+      setUnreadBroadcasts(broadcastRes.data.count || 0);
+    } catch (err) {
+      console.error("Error loading WS-triggered notifications:", err);
+    }
+  }, [token]);
+
+  // Keep ref in sync so handleWebSocketMessage (declared earlier) can call latest fn
+  useEffect(() => {
+    loadWsTriggeredRef.current = loadWsTriggered;
+  }, [loadWsTriggered]);
+
+  // Lightweight poll (60s): only cheap stats endpoints.
+  const loadLightPoll = useCallback(async () => {
+    if (!token) return;
+    try {
+      const messagesRes = await axios.get(`${API}/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } }));
+      setUnreadMessages(messagesRes.data.unread || 0);
+      if (isParent) {
+        // attendance unread count (light) — /push/unread-count
+        const countRes = await axios.get(`${API}/push/unread-count`, { headers }).catch(() => ({ data: { count: 0 } }));
+        setAttendanceUnread(countRes.data.count || 0);
+        const badgeCount = countRes.data.count || 0;
+        if ("setAppBadge" in navigator) {
+          if (badgeCount > 0) navigator.setAppBadge(badgeCount).catch(() => {});
+          else navigator.clearAppBadge?.().catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error("Error loading light poll stats:", err);
+    }
+  }, [token, isParent]);
+
+  // Combined initial load (opened dropdown / mount)
   const loadNotifications = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [remindersRes, generalRes, messagesRes, broadcastRes] = await Promise.all([
-        axios.get(`${API}/notifications/reminders`, { headers }),
-        axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
-        axios.get(`${API}/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } })),
-        axios.get(`${API}/broadcast/unread`, { headers }).catch(() => ({ data: { count: 0 } }))
-      ]);
-      setNotifications(remindersRes.data);
-      setGeneralNotifications(generalRes.data);
-      setUnreadMessages(messagesRes.data.unread || 0);
-      setUnreadBroadcasts(broadcastRes.data.count || 0);
+      await Promise.all([loadWsTriggered(), loadLightPoll()]);
       if (isParent) loadAttendanceNotifs();
-    } catch (err) {
-      console.error("Error loading notifications:", err);
     } finally {
       setLoading(false);
     }
-  }, [token, isParent, loadAttendanceNotifs]);
+  }, [token, isParent, loadWsTriggered, loadLightPoll, loadAttendanceNotifs]);
 
   // FCM foreground listener for owner/admin roles — refreshes general notifications
   useEffect(() => {
@@ -375,10 +415,13 @@ export default function NotificationBell({ token, userRole }) {
   }, [token, isParent, loadNotifications]);
 
   useEffect(() => {
+    // Initial full load
     loadNotifications();
-    const interval = setInterval(loadNotifications, 60000);
+    // Polling interval: only cheap stats endpoints every 60s.
+    // Heavy endpoints (reminders/all/broadcast) refresh via WebSocket push.
+    const interval = setInterval(loadLightPoll, 60000);
     return () => clearInterval(interval);
-  }, [loadNotifications]);
+  }, [loadNotifications, loadLightPoll]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {

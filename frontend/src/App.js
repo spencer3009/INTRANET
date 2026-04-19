@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import "@/App.css";
+import { closeNotificationSocket } from "@/hooks/useNotificationSocket";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
@@ -512,6 +513,7 @@ function App() {
 
   const handleLogout = () => {
     const sub = user?.subdomain;
+    try { closeNotificationSocket(); } catch { /* ignore */ }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("active_portal");
