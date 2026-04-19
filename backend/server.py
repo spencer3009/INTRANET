@@ -337,7 +337,11 @@ async def _run_startup_tasks():
     """
     Heavy startup work (indexes, seeds, migrations, Firebase, cron jobs).
     Runs in background so failures here don't block readiness.
+    We also sleep briefly up-front so uvicorn has room to answer the
+    Kubernetes readiness probe without memory contention.
     """
+    import asyncio as _asyncio
+    await _asyncio.sleep(3)
     try:
         await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("type", 1)])
         await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("post_type", 1)])
@@ -386,11 +390,13 @@ async def _run_startup_tasks():
             else:
                 exp_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
             await db.schools.update_one({"id": school["id"]}, {"$set": {"expiration_date": exp_date}})
-        teachers_without_qr = await db.users.find({
-            "role": "teacher",
-            "qr_token": {"$exists": False}
-        }).to_list(None)
-        for teacher in teachers_without_qr:
+        # Stream teachers without QR token (avoid loading all into memory)
+        teachers_cursor = db.users.find(
+            {"role": "teacher", "qr_token": {"$exists": False}},
+            {"_id": 0, "id": 1, "school_id": 1},
+        )
+        qr_generated = 0
+        async for teacher in teachers_cursor:
             qr_payload = {
                 "teacher_id": teacher["id"],
                 "school_id": teacher.get("school_id", ""),
@@ -402,8 +408,9 @@ async def _run_startup_tasks():
                 {"id": teacher["id"]},
                 {"$set": {"qr_token": qr_token}}
             )
-        if teachers_without_qr:
-            logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
+            qr_generated += 1
+        if qr_generated:
+            logger.info(f"Generated QR tokens for {qr_generated} teachers")
         # Push notification indexes
         await safe_create_index(db.users, [("qr_id", 1)], sparse=True)
         await safe_create_index(db.push_tokens, [("user_id", 1)])
@@ -447,11 +454,10 @@ async def _run_startup_tasks():
 
         # ── PAE Migration: seed default turnos for all schools ──
         try:
-            logging.info("[PAE Migration] Verificando turnos por defecto...")
-            all_schools = await db.schools.find({}, {"_id": 0, "id": 1}).to_list(length=10000)
+            logger.info("[PAE Migration] Verificando turnos por defecto...")
             updated = 0
             already_ok = 0
-            for s in all_schools:
+            async for s in db.schools.find({}, {"_id": 0, "id": 1}):
                 seeded = await seed_pae_default_turnos(s["id"])
                 await seed_movilidad_default_turnos(s["id"])
                 if seeded:
@@ -459,44 +465,47 @@ async def _run_startup_tasks():
                 else:
                     already_ok += 1
             if updated > 0:
-                logging.info(f"[PAE Migration] {updated} colegios actualizados, {already_ok} colegios ya tenían turnos")
+                logger.info(f"[PAE Migration] {updated} colegios actualizados, {already_ok} colegios ya tenían turnos")
             else:
-                logging.info("[PAE Migration] Todos los colegios ya tienen turnos configurados. Skip.")
+                logger.info("[PAE Migration] Todos los colegios ya tienen turnos configurados. Skip.")
         except Exception as pae_err:
-            logging.error(f"[PAE Migration] Error durante migración de turnos: {pae_err}")
+            logger.error(f"[PAE Migration] Error durante migración de turnos: {pae_err}")
 
-        # Initialize Firebase Admin SDK
-        from utils.firebase_admin_sdk import get_firebase_app
-        fb_app = get_firebase_app()
-        if fb_app:
-            logging.info(f"Firebase Admin SDK ready: {fb_app.project_id}")
-        else:
-            logging.warning("Firebase Admin SDK not initialized - push notifications disabled")
+        # Initialize Firebase Admin SDK (deferred — non-critical for readiness)
+        try:
+            from utils.firebase_admin_sdk import get_firebase_app
+            fb_app = get_firebase_app()
+            if fb_app:
+                logger.info(f"Firebase Admin SDK ready: {fb_app.project_id}")
+            else:
+                logger.warning("Firebase Admin SDK not initialized - push notifications disabled")
+        except Exception as fb_err:
+            logger.error(f"Firebase init failed (non-fatal): {fb_err}")
 
-        # Start daily subscription cron job
-        import asyncio
-        asyncio.create_task(daily_subscription_cron())
-        logging.info("Daily subscription cron job started")
-        asyncio.create_task(close_expired_exams_cron())
-        asyncio.create_task(close_expired_tasks_cron())
-        logging.info("Exam auto-close cron job started")
-        asyncio.create_task(cleanup_expired_demo_accesses())
-        logging.info("Demo cleanup cron job started")
-        asyncio.create_task(daily_billing_generation_cron())
-        logging.info("Daily billing generation cron job started")
+        # Delay cron jobs another 30s so we don't pile memory pressure on top
+        # of the readiness window. These run forever — no rush to start.
+        await _asyncio.sleep(30)
+        _asyncio.create_task(daily_subscription_cron())
+        logger.info("Daily subscription cron job started")
+        _asyncio.create_task(close_expired_exams_cron())
+        _asyncio.create_task(close_expired_tasks_cron())
+        logger.info("Exam auto-close cron job started")
+        _asyncio.create_task(cleanup_expired_demo_accesses())
+        logger.info("Demo cleanup cron job started")
+        _asyncio.create_task(daily_billing_generation_cron())
+        logger.info("Daily billing generation cron job started")
 
-        # Sync profile_photo_url -> photo_url for demo users (one-time migration)
-        demo_users_to_sync = await db.users.find(
+        # Sync profile_photo_url -> photo_url for demo users (streaming, no .to_list)
+        synced = 0
+        async for du in db.users.find(
             {"is_demo_user": True, "profile_photo_url": {"$exists": True}},
             {"_id": 0, "id": 1, "profile_photo_url": 1, "photo_url": 1}
-        ).to_list(None)
-        synced = 0
-        for du in demo_users_to_sync:
+        ):
             if du.get("profile_photo_url") and du.get("photo_url") != du.get("profile_photo_url"):
                 await db.users.update_one({"id": du["id"]}, {"$set": {"photo_url": du["profile_photo_url"]}})
                 synced += 1
         if synced:
-            logging.info(f"Synced photo_url for {synced} demo users")
+            logger.info(f"Synced photo_url for {synced} demo users")
         logger.info("[STARTUP] Background init complete — all services ready.")
     except Exception as e:
         logger.error(f"[STARTUP] Error in background init: {type(e).__name__}: {e}")
