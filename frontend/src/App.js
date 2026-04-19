@@ -102,6 +102,7 @@ import PaymentBlockModal from "@/components/PaymentBlockModal";
 import SupportLayout from "@/components/SupportLayout";
 import SupportDashboardPage from "@/pages/SupportDashboardPage";
 import SupportSchoolsPage from "@/pages/SupportSchoolsPage";
+import SupportSessionsPage from "@/pages/SupportSessionsPage";
 import SupportProfilePage from "@/pages/SupportProfilePage";
 import SupportPricingPage from "@/pages/SupportPricingPage";
 import SupportAcademiaPage from "@/pages/SupportAcademiaPage";
@@ -2768,6 +2769,7 @@ function App() {
           >
             <Route index element={<SupportDashboardPage token={token} />} />
             <Route path="schools" element={<SupportSchoolsPage token={token} onLogin={handleLogin} />} />
+            <Route path="sessions" element={<SupportSessionsPage token={token} />} />
             <Route path="finances" element={<SupportFinancesPage token={token} />} />
             <Route path="pricing" element={<SupportPricingPage token={token} />} />
             <Route path="academia" element={<SupportAcademiaPage token={token} />} />

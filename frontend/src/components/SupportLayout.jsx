@@ -2,12 +2,13 @@ import { useState } from "react";
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, School, User, LogOut, Menu, X, 
-  Headset, ChevronRight, Shield, DollarSign, BarChart3, Video, Users
+  Headset, ChevronRight, Shield, DollarSign, BarChart3, Video, Users, Activity
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/support", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/support/schools", icon: School, label: "Colegios" },
+  { to: "/support/sessions", icon: Activity, label: "Sesiones Activas" },
   { to: "/support/finances", icon: BarChart3, label: "Finanzas" },
   { to: "/support/pricing", icon: DollarSign, label: "Precios" },
   { type: "divider" },

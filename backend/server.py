@@ -40,6 +40,7 @@ from routes.accounting import router as accounting_router, daily_billing_generat
 from routes.subjects import router as subjects_router
 from routes.health import router as health_router
 from routes.monitoring import router as monitoring_router
+from routes.support_monitor import router as support_monitor_router
 from routes.courses import router as courses_router
 from routes.messaging import router as messaging_router
 from routes.broadcast import router as broadcast_router
@@ -203,6 +204,7 @@ app.include_router(accounting_router)
 app.include_router(subjects_router)
 app.include_router(health_router)
 app.include_router(monitoring_router)
+app.include_router(support_monitor_router)
 app.include_router(courses_router)
 app.include_router(messaging_router)
 app.include_router(broadcast_router)
@@ -250,7 +252,14 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
     except Exception:
         await websocket.close(code=4001, reason="Invalid token")
         return
-    await ws_manager.connect(websocket, user_id)
+    user_meta = {
+        "name": payload.get("name", ""),
+        "last_name": payload.get("last_name", ""),
+        "email": payload.get("email", ""),
+        "role": payload.get("role", ""),
+        "school_id": payload.get("school_id"),
+    }
+    await ws_manager.connect(websocket, user_id, user_meta)
     try:
         while True:
             data = await websocket.receive_text()

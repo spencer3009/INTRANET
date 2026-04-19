@@ -215,12 +215,47 @@ from fastapi import WebSocket
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, list[WebSocket]] = {}
+        # Real-time session tracking (extended for Support Panel monitoring)
+        self.active_sessions: dict[str, dict] = {}
+        self._school_name_cache: dict[str, str] = {}
     
-    async def connect(self, websocket: WebSocket, user_id: str):
+    async def connect(self, websocket: WebSocket, user_id: str, user_meta: dict | None = None):
         await websocket.accept()
         if user_id not in self.active_connections:
             self.active_connections[user_id] = []
         self.active_connections[user_id].append(websocket)
+
+        # Register/refresh session metadata for Support Panel
+        if user_meta is not None:
+            if user_id not in self.active_sessions:
+                school_id = user_meta.get("school_id")
+                school_name = ""
+                if school_id:
+                    school_name = self._school_name_cache.get(school_id, "")
+                    if not school_name:
+                        try:
+                            school = await db.schools.find_one(
+                                {"id": school_id}, {"_id": 0, "name": 1}
+                            )
+                            if school:
+                                school_name = school.get("name", "") or ""
+                                self._school_name_cache[school_id] = school_name
+                        except Exception:
+                            pass
+                full_name = (user_meta.get("name", "") or "").strip()
+                last_name = (user_meta.get("last_name", "") or "").strip()
+                if last_name:
+                    full_name = f"{full_name} {last_name}".strip()
+                self.active_sessions[user_id] = {
+                    "user_id": user_id,
+                    "name": full_name or user_meta.get("email", ""),
+                    "role": user_meta.get("role", ""),
+                    "school_id": school_id,
+                    "school_name": school_name,
+                    "connected_at": datetime.now(timezone.utc).isoformat(),
+                    "connection_count": 0,
+                }
+            self.active_sessions[user_id]["connection_count"] = len(self.active_connections[user_id])
     
     def disconnect(self, websocket: WebSocket, user_id: str):
         if user_id in self.active_connections:
@@ -229,6 +264,9 @@ class ConnectionManager:
             ]
             if not self.active_connections[user_id]:
                 del self.active_connections[user_id]
+                self.active_sessions.pop(user_id, None)
+            elif user_id in self.active_sessions:
+                self.active_sessions[user_id]["connection_count"] = len(self.active_connections[user_id])
     
     async def send_to_user(self, user_id: str, data: dict):
         if user_id in self.active_connections:

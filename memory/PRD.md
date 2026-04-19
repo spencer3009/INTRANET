@@ -62,7 +62,12 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Testing: 13/13 backend tests PASSED, frontend OK en todas las pestañas (iteración 134)
 - Test file: `/app/backend/tests/test_clone_activities.py`
 
-## Gestión de Contraseñas de Padres (COMPLETO)
+## Monitoreo & Tracking en tiempo real (Feb 2026)
+- `GET /api/health` y `GET /api/health/db` (públicos, sin auth) — `/app/backend/routes/monitoring.py`
+- Logs granulares en `/api/auth/login`: `[LOGIN] START|DB QUERY|SUCCESS|ERROR` con clasificación `timeout|connection|other`
+- `GET /api/support/active-sessions` (solo `system_admin_global`) — tracking en memoria de WebSockets activas
+- `ConnectionManager` extendido en `/app/backend/routes/core.py` con `active_sessions` dict
+- Página `/support/sessions` en Support Panel con polling cada 30s, cards de métricas y tabla agrupada por colegio
 - Asignación masiva DNI como clave (`/api/admin/padres/asignar-clave-dni`)
 - Import Excel usa DNI por defecto si no hay contraseña
 - Soporte Carnet de Extranjería (CE) en pendientes
