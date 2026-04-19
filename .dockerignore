@@ -1,0 +1,8 @@
+# Runtime caches that must never be shipped in a deployment image.
+# The .db_name_cache used to persist a discovered MongoDB database name
+# across restarts. A stale cached value ("database") once broke production
+# by pointing the container at a non-existent DB, so we now detect the
+# db name fresh on every boot and explicitly exclude the cache file here
+# to prevent it from ever sneaking into a deploy artifact.
+backend/.db_name_cache
+.db_name_cache
