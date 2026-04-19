@@ -184,6 +184,7 @@ async def subscription_restriction_middleware(request: Request, call_next):
 # INCLUDE ALL ROUTERS
 # ══════════════════════════════════════════════════════════════════════════════
 
+app.include_router(monitoring_router)   # /api/health and /api/health/db FIRST — readiness probe for Emergent
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(student_portal_router)
@@ -203,7 +204,6 @@ app.include_router(news_router)
 app.include_router(accounting_router)
 app.include_router(subjects_router)
 app.include_router(health_router)
-app.include_router(monitoring_router)
 app.include_router(support_monitor_router)
 app.include_router(courses_router)
 app.include_router(messaging_router)
@@ -322,7 +322,22 @@ async def health_check():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.on_event("startup")
-async def create_indexes():
+async def announce_ready():
+    """
+    This handler MUST stay fast (<1s). Heavy initialization is scheduled
+    as a background task below so uvicorn starts serving /api/health
+    immediately and Emergent's readiness probe passes within 180s.
+    """
+    import asyncio
+    logger.info("[STARTUP] FastAPI ready — /api/health available. Scheduling background init.")
+    asyncio.create_task(_run_startup_tasks())
+
+
+async def _run_startup_tasks():
+    """
+    Heavy startup work (indexes, seeds, migrations, Firebase, cron jobs).
+    Runs in background so failures here don't block readiness.
+    """
     try:
         await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("type", 1)])
         await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("post_type", 1)])
@@ -482,8 +497,9 @@ async def create_indexes():
                 synced += 1
         if synced:
             logging.info(f"Synced photo_url for {synced} demo users")
+        logger.info("[STARTUP] Background init complete — all services ready.")
     except Exception as e:
-        logging.error(f"Error creating indexes: {e}")
+        logger.error(f"[STARTUP] Error in background init: {type(e).__name__}: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
