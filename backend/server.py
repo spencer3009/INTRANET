@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 # Core dependencies
 from routes.core import (
     db, client, ws_manager, JWT_SECRET, JWT_ALGORITHM,
-    DEMO_USER_BLOCKED_MESSAGE
+    DEMO_USER_BLOCKED_MESSAGE, safe_create_index
 )
 
 # Import ensure_global_support_user from support router
@@ -324,32 +324,32 @@ async def health_check():
 @app.on_event("startup")
 async def create_indexes():
     try:
-        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("type", 1)])
-        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("post_type", 1)])
-        await db.task_submissions.create_index([("school_id", 1), ("student_id", 1), ("task_id", 1)])
-        await db.academic_assignments.create_index([("school_id", 1), ("section_id", 1), ("status", 1)])
-        await db.attendances.create_index([("school_id", 1), ("user_id", 1), ("date", 1)])
-        await db.student_attendance.create_index([("school_id", 1), ("student_id", 1), ("date", 1)])
-        await db.academic_threads.create_index([("school_id", 1), ("participant_ids", 1)])
-        await db.internal_messages.create_index([("school_id", 1), ("recipient_id", 1), ("is_deleted", 1)])
-        await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1), ("created_at", -1)])
-        await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
-        await db.parent_notifications.create_index([("created_at", 1)], expireAfterSeconds=2592000)
+        await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("type", 1)])
+        await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("post_type", 1)])
+        await safe_create_index(db.task_submissions, [("school_id", 1), ("student_id", 1), ("task_id", 1)])
+        await safe_create_index(db.academic_assignments, [("school_id", 1), ("section_id", 1), ("status", 1)])
+        await safe_create_index(db.attendances, [("school_id", 1), ("user_id", 1), ("date", 1)])
+        await safe_create_index(db.student_attendance, [("school_id", 1), ("student_id", 1), ("date", 1)])
+        await safe_create_index(db.academic_threads, [("school_id", 1), ("participant_ids", 1)])
+        await safe_create_index(db.internal_messages, [("school_id", 1), ("recipient_id", 1), ("is_deleted", 1)])
+        await safe_create_index(db.parent_notifications, [("parent_id", 1), ("read_at", 1), ("created_at", -1)])
+        await safe_create_index(db.parent_notifications, [("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
+        await safe_create_index(db.parent_notifications, [("created_at", 1)], expireAfterSeconds=2592000)
         # Device tokens index (unique per user+token)
-        await db.device_tokens.create_index([("user_id", 1), ("fcm_token", 1)], unique=True)
-        await db.device_tokens.create_index([("user_id", 1), ("active", 1)])
+        await safe_create_index(db.device_tokens, [("user_id", 1), ("fcm_token", 1)], unique=True)
+        await safe_create_index(db.device_tokens, [("user_id", 1), ("active", 1)])
         # Psychology messaging indexes
-        await db.psychological_messages.create_index([("conversation_id", 1), ("created_at", 1)])
-        await db.psychological_messages.create_index([("to_user_id", 1), ("read", 1)])
-        await db.psychological_messages.create_index([("institution_id", 1), ("student_id", 1)])
-        await db.psychological_messages.create_index([("from_user_id", 1), ("created_at", -1)])
+        await safe_create_index(db.psychological_messages, [("conversation_id", 1), ("created_at", 1)])
+        await safe_create_index(db.psychological_messages, [("to_user_id", 1), ("read", 1)])
+        await safe_create_index(db.psychological_messages, [("institution_id", 1), ("student_id", 1)])
+        await safe_create_index(db.psychological_messages, [("from_user_id", 1), ("created_at", -1)])
         # Psychology agenda indexes
-        await db.psychological_appointments.create_index([("psychologist_id", 1), ("date", 1)])
-        await db.psychological_appointments.create_index([("institution_id", 1), ("date", 1)])
-        await db.psychological_appointments.create_index([("student_id", 1), ("date", 1)])
-        await db.psychological_workshops.create_index([("psychologist_id", 1), ("date", -1)])
-        await db.psychological_workshops.create_index([("institution_id", 1), ("status", 1)])
-        await db.user_school_roles.create_index(
+        await safe_create_index(db.psychological_appointments, [("psychologist_id", 1), ("date", 1)])
+        await safe_create_index(db.psychological_appointments, [("institution_id", 1), ("date", 1)])
+        await safe_create_index(db.psychological_appointments, [("student_id", 1), ("date", 1)])
+        await safe_create_index(db.psychological_workshops, [("psychologist_id", 1), ("date", -1)])
+        await safe_create_index(db.psychological_workshops, [("institution_id", 1), ("status", 1)])
+        await safe_create_index(db.user_school_roles, 
             [("user_id", 1), ("school_id", 1)],
             unique=True
         )
@@ -390,43 +390,43 @@ async def create_indexes():
         if teachers_without_qr:
             logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
         # Push notification indexes
-        await db.users.create_index([("qr_id", 1)], sparse=True)
-        await db.push_tokens.create_index([("user_id", 1)])
-        await db.push_tokens.create_index([("token", 1)], unique=True)
-        await db.parent_notifications.create_index([("parent_id", 1), ("created_at", -1)])
-        await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1)])
-        await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
+        await safe_create_index(db.users, [("qr_id", 1)], sparse=True)
+        await safe_create_index(db.push_tokens, [("user_id", 1)])
+        await safe_create_index(db.push_tokens, [("token", 1)], unique=True)
+        await safe_create_index(db.parent_notifications, [("parent_id", 1), ("created_at", -1)])
+        await safe_create_index(db.parent_notifications, [("parent_id", 1), ("read_at", 1)])
+        await safe_create_index(db.parent_notifications, [("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
         # Performance indexes for course detail page
-        await db.post_likes.create_index([("post_id", 1), ("user_id", 1)])
-        await db.post_comments.create_index([("post_id", 1), ("status", 1)])
-        await db.course_activities.create_index([("subject_id", 1), ("created_at", -1)])
-        await db.course_reminders.create_index([("subject_id", 1), ("status", 1), ("date", 1)])
-        await db.presence.create_index([("school_id", 1)])
-        await db.course_posts.create_index([("subject_id", 1), ("status", 1), ("created_at", -1)])
+        await safe_create_index(db.post_likes, [("post_id", 1), ("user_id", 1)])
+        await safe_create_index(db.post_comments, [("post_id", 1), ("status", 1)])
+        await safe_create_index(db.course_activities, [("subject_id", 1), ("created_at", -1)])
+        await safe_create_index(db.course_reminders, [("subject_id", 1), ("status", 1), ("date", 1)])
+        await safe_create_index(db.presence, [("school_id", 1)])
+        await safe_create_index(db.course_posts, [("subject_id", 1), ("status", 1), ("created_at", -1)])
 
         # Exam ↔ Register linkage: ONE column per subject+period (unique)
-        await db.online_exams.create_index(
+        await safe_create_index(db.online_exams, 
             [("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_column", 1)],
             unique=True,
             partialFilterExpression={"register_column": {"$in": ["EM", "EB", "P1", "P2", "P3"]}},
             name="uq_exam_register_column"
         )
-        await db.online_exams.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
-        await db.online_exams.create_index([("school_id", 1), ("subject_id", 1), ("period_id", 1)])
+        await safe_create_index(db.online_exams, [("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
+        await safe_create_index(db.online_exams, [("school_id", 1), ("subject_id", 1), ("period_id", 1)])
 
         # register_column_assignments: cross-collection uniqueness for exam+task linkage
-        await db.register_column_assignments.create_index(
+        await safe_create_index(db.register_column_assignments, 
             [("school_id", 1), ("subject_id", 1), ("section_id", 1), ("period_id", 1), ("register_column", 1)],
             unique=True,
             name="uq_register_column_assignment"
         )
-        await db.register_column_assignments.create_index(
+        await safe_create_index(db.register_column_assignments, 
             [("source_id", 1)],
             name="idx_rca_source_id"
         )
         # Task linkage indexes
-        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_column", 1)])
-        await db.course_posts.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
+        await safe_create_index(db.course_posts, [("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_column", 1)])
+        await safe_create_index(db.course_posts, [("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
 
         logging.info("MongoDB indexes created successfully")
 

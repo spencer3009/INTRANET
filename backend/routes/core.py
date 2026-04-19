@@ -128,6 +128,20 @@ def invalidate_db_name_cache() -> None:
     except Exception as e:
         logger.error(f"[DB_NAME] Failed to invalidate cache: {e}")
 
+
+async def safe_create_index(collection, keys, **kwargs):
+    """
+    Create a MongoDB index, swallowing any exception (e.g. Unauthorized,
+    IndexOptionsConflict) so it NEVER crashes startup.
+    Missing indexes only mean slightly slower queries.
+    """
+    try:
+        return await collection.create_index(keys, **kwargs)
+    except Exception as e:
+        coll_name = getattr(collection, "name", "<unknown>")
+        logger.warning(f"Index creation skipped on '{coll_name}' ({keys}): {type(e).__name__}: {e}")
+        return None
+
 JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'edunet.pe')

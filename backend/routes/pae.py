@@ -12,7 +12,7 @@ import logging
 from .core import (
     db, get_current_user, resolve_user_from_token, is_admin_user,
     require_role, now_iso, generate_id,
-    ADMIN_ROLES,
+    ADMIN_ROLES, safe_create_index,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,11 +67,11 @@ def turnos_overlap(a_start: str, a_end: str, b_start: str, b_end: str) -> bool:
 async def ensure_pae_indexes():
     """Create required indexes for PAE collections."""
     try:
-        await db.pae_turnos.create_index(
+        await safe_create_index(db.pae_turnos, 
             [("school_id", 1), ("orden", 1)],
             name="idx_pae_turnos_school_orden"
         )
-        await db.pae_registros.create_index(
+        await safe_create_index(db.pae_registros, 
             [("school_id", 1), ("student_id", 1), ("turno_id", 1), ("fecha", 1)],
             unique=True,
             name="idx_pae_registros_unique"

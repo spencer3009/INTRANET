@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Query
-from .core import db, get_current_user, resolve_user_from_token, require_role, JWT_SECRET
+from .core import db, get_current_user, resolve_user_from_token, require_role, JWT_SECRET, safe_create_index
 
 logger = logging.getLogger(__name__)
 
@@ -107,20 +107,20 @@ async def log_coordinacion_audit(user_id, action, resource_type, resource_id, st
 
 async def ensure_coordinacion_indexes():
     try:
-        await db.coordinacion_incidencias.create_index([("school_id", 1), ("status", 1), ("severity", -1)])
-        await db.coordinacion_incidencias.create_index([("school_id", 1), ("student_id", 1), ("occurred_at", -1)])
-        await db.coordinacion_incidencias.create_index([("school_id", 1), ("grade_id", 1), ("section_id", 1)])
-        await db.coordinacion_incidencias.create_index([("school_id", 1), ("assigned_to", 1), ("status", 1)])
-        await db.coordinacion_incidencias.create_index([("school_id", 1), ("deleted_at", 1)])
-        await db.coordinacion_seguimientos.create_index([("school_id", 1), ("incidencia_id", 1), ("entry_date", -1)])
-        await db.coordinacion_seguimientos.create_index([("school_id", 1), ("student_id", 1), ("entry_date", -1)])
-        await db.coordinacion_derivaciones.create_index([("school_id", 1), ("incidencia_id", 1)])
-        await db.coordinacion_derivaciones.create_index([("school_id", 1), ("status", 1), ("to_area", 1)])
-        await db.coordinacion_derivaciones.create_index([("school_id", 1), ("to_user_id", 1), ("status", 1)])
-        await db.coordinacion_charlas.create_index([("school_id", 1), ("scheduled_at", -1)])
-        await db.coordinacion_charlas.create_index([("school_id", 1), ("status", 1)])
-        await db.coordinacion_reuniones.create_index([("school_id", 1), ("student_id", 1), ("scheduled_at", -1)])
-        await db.coordinacion_reuniones.create_index([("school_id", 1), ("status", 1)])
+        await safe_create_index(db.coordinacion_incidencias, [("school_id", 1), ("status", 1), ("severity", -1)])
+        await safe_create_index(db.coordinacion_incidencias, [("school_id", 1), ("student_id", 1), ("occurred_at", -1)])
+        await safe_create_index(db.coordinacion_incidencias, [("school_id", 1), ("grade_id", 1), ("section_id", 1)])
+        await safe_create_index(db.coordinacion_incidencias, [("school_id", 1), ("assigned_to", 1), ("status", 1)])
+        await safe_create_index(db.coordinacion_incidencias, [("school_id", 1), ("deleted_at", 1)])
+        await safe_create_index(db.coordinacion_seguimientos, [("school_id", 1), ("incidencia_id", 1), ("entry_date", -1)])
+        await safe_create_index(db.coordinacion_seguimientos, [("school_id", 1), ("student_id", 1), ("entry_date", -1)])
+        await safe_create_index(db.coordinacion_derivaciones, [("school_id", 1), ("incidencia_id", 1)])
+        await safe_create_index(db.coordinacion_derivaciones, [("school_id", 1), ("status", 1), ("to_area", 1)])
+        await safe_create_index(db.coordinacion_derivaciones, [("school_id", 1), ("to_user_id", 1), ("status", 1)])
+        await safe_create_index(db.coordinacion_charlas, [("school_id", 1), ("scheduled_at", -1)])
+        await safe_create_index(db.coordinacion_charlas, [("school_id", 1), ("status", 1)])
+        await safe_create_index(db.coordinacion_reuniones, [("school_id", 1), ("student_id", 1), ("scheduled_at", -1)])
+        await safe_create_index(db.coordinacion_reuniones, [("school_id", 1), ("status", 1)])
         logger.info("Coordinacion indexes created successfully")
     except Exception as e:
         logger.error(f"Error creating coordinacion indexes: {e}")

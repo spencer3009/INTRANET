@@ -34,7 +34,7 @@ import time
 import cloudinary
 import cloudinary.utils
 
-from .core import BASE_DOMAIN
+from .core import BASE_DOMAIN, safe_create_index
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +245,7 @@ async def seed_data():
         existing_indexes = await db.schools.index_information()
         if 'subdomain_1' in existing_indexes:
             await db.schools.drop_index('subdomain_1')
-        await db.schools.create_index("subdomain", unique=True, sparse=True)
+        await safe_create_index(db.schools, "subdomain", unique=True, sparse=True)
     except Exception as e:
         logger.warning(f"Index creation warning: {e}")
     
@@ -254,7 +254,7 @@ async def seed_data():
         if 'email_1' in existing_indexes:
             pass  # Index already exists
         else:
-            await db.users.create_index("email", unique=True)
+            await safe_create_index(db.users, "email", unique=True)
     except Exception as e:
         logger.warning(f"User index warning: {e}")
     

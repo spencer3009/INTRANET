@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 from .core import (
     db, client, get_current_user, hash_password, verify_password,
-    JWT_SECRET, JWT_ALGORITHM, now_iso
+    JWT_SECRET, JWT_ALGORITHM, now_iso, safe_create_index
 )
 import jwt
 
@@ -1415,7 +1415,7 @@ async def ensure_global_support_user():
     logger.info(f"Global support user created: {user_id}")
     
     # Create index for user_school_roles
-    await db.user_school_roles.create_index(
+    await safe_create_index(db.user_school_roles, 
         [("user_id", 1), ("school_id", 1)],
         unique=True
     )
