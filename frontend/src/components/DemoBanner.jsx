@@ -14,7 +14,9 @@ export default function DemoBanner({ token, onDemoDeleted }) {
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    checkDemoStatus();
+    // Defer initial request 1.2s so we don't pile on during the login burst.
+    const t = setTimeout(() => { checkDemoStatus(); }, 1200);
+    return () => clearTimeout(t);
   }, []);
 
   const checkDemoStatus = async () => {

@@ -133,45 +133,59 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
       const startDate = today.toISOString().split('T')[0];
       const endDate = new Date(today.setMonth(today.getMonth() + 2)).toISOString().split('T')[0];
 
-      const [metricsRes, eventsRes, enrollmentRes, settingsRes, calendarRes, newsRes, bannersRes] = await Promise.all([
+      const isOwnerRole = user?.is_owner || user?.role === "owner" || user?.is_support_session;
+
+      // ── PHASE 1 (critical, load first): school settings, main metrics, owner stats.
+      //    These paint the primary header + key numbers. Kept small to avoid
+      //    saturating the backend with 20+ simultaneous requests on dashboard entry.
+      const phase1 = [
         axios.get(`${API}/dashboard/metrics`, { headers }),
-        axios.get(`${API}/dashboard/events`, { headers }),
-        axios.get(`${API}/dashboard/enrollment`, { headers }),
         axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
+      ];
+      if (isOwnerRole) {
+        phase1.push(axios.get(`${API}/dashboard/owner-stats`, { headers }).catch(() => ({ data: null })));
+      }
+
+      const phase1Results = await Promise.all(phase1);
+      const metricsRes = phase1Results[0];
+      const settingsRes = phase1Results[1];
+      const ownerRes = isOwnerRole ? phase1Results[2] : null;
+
+      setMetrics(metricsRes.data);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+        if (settingsRes.data.system_title) document.title = settingsRes.data.system_title;
+      }
+      if (ownerRes?.data) setOwnerStats(ownerRes.data);
+
+      // Breather: let backend process phase 1 before firing the rest.
+      await new Promise(r => setTimeout(r, 800));
+
+      // ── PHASE 2 (secondary, non-blocking UX): events, enrollment, calendar,
+      //    news, banners, monthly payments.
+      const phase2 = [
+        axios.get(`${API}/dashboard/events`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/dashboard/enrollment`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/news?status=published&limit=5`, { headers }).catch(() => ({ data: { news: [] } })),
         axios.get(`${API}/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
-      ]);
-      setMetrics(metricsRes.data);
-      setEvents(eventsRes.data);
-      setEnrollment(enrollmentRes.data);
+      ];
+      if (isOwnerRole) {
+        phase2.push(axios.get(`${API}/dashboard/monthly-payments`, { headers }).catch(() => ({ data: [] })));
+      }
+
+      const phase2Results = await Promise.all(phase2);
+      const [eventsRes, enrollmentRes, calendarRes, newsRes, bannersRes] = phase2Results;
+      const paymentsRes = isOwnerRole ? phase2Results[5] : null;
+
+      setEvents(eventsRes.data || []);
+      setEnrollment(enrollmentRes.data || []);
       setCalendarEvents(calendarRes.data || []);
       setNews(newsRes.data?.news || []);
       setBanners(bannersRes.data || []);
+      if (paymentsRes?.data) setMonthlyPayments(paymentsRes.data);
+
       setHasPermissionError(false);
-      
-      // Cargar estadísticas de propietario si aplica
-      const isOwnerRole = user?.is_owner || user?.role === "owner" || user?.is_support_session;
-      if (isOwnerRole) {
-        try {
-          const [ownerRes, paymentsRes] = await Promise.all([
-            axios.get(`${API}/dashboard/owner-stats`, { headers }),
-            axios.get(`${API}/dashboard/monthly-payments`, { headers })
-          ]);
-          setOwnerStats(ownerRes.data);
-          setMonthlyPayments(paymentsRes.data);
-        } catch (e) {
-          console.error("Error fetching owner stats:", e);
-        }
-      }
-      setHasPermissionError(false);
-      if (settingsRes.data) {
-        setSettings(settingsRes.data);
-        // Update browser title
-        if (settingsRes.data.system_title) {
-          document.title = settingsRes.data.system_title;
-        }
-      }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       if (err.response?.status === 401) onLogout();

@@ -415,12 +415,16 @@ export default function NotificationBell({ token, userRole }) {
   }, [token, isParent, loadNotifications]);
 
   useEffect(() => {
-    // Initial full load
-    loadNotifications();
+    // Defer initial load 1s so the main dashboard phase 1/2 gets served first
+    // and we don't contribute to the ~20-request pile-up on login.
+    const initialLoadTimer = setTimeout(() => { loadNotifications(); }, 1000);
     // Polling interval: only cheap stats endpoints every 60s.
     // Heavy endpoints (reminders/all/broadcast) refresh via WebSocket push.
     const interval = setInterval(loadLightPoll, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialLoadTimer);
+      clearInterval(interval);
+    };
   }, [loadNotifications, loadLightPoll]);
 
   useEffect(() => {
