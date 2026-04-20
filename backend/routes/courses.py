@@ -573,23 +573,18 @@ async def delete_course_post(
     if post["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar esta publicación")
     
-    # For tasks: Check if there are submissions
+    # For tasks: count submissions for the audit trail. We used to
+    # block the delete when there were submissions and force the
+    # teacher to archive instead, but product decision is now to let
+    # the teacher delete the task outright (with a strong confirmation
+    # modal on the frontend). The soft-delete below hides the task
+    # from every student view via the `deleted_at` filter.
+    submissions_count_for_audit = 0
+    graded_count_for_audit = 0
     if post.get("post_type") == "task":
-        submissions = post.get("submissions", [])
-        submissions_count = len(submissions)
-        
-        if submissions_count > 0:
-            # Cannot delete - has submissions
-            graded_count = sum(1 for s in submissions if s.get("grade") is not None)
-            raise HTTPException(
-                status_code=400, 
-                detail={
-                    "code": "TASK_HAS_SUBMISSIONS",
-                    "message": "Esta tarea tiene entregas y no puede ser eliminada. Usa la opción de archivar.",
-                    "submissions_count": submissions_count,
-                    "graded_count": graded_count
-                }
-            )
+        submissions = post.get("submissions", []) or []
+        submissions_count_for_audit = len(submissions)
+        graded_count_for_audit = sum(1 for s in submissions if s.get("grade") is not None)
     
     # For materials stored in Google Drive: Delete from Drive
     if post.get("storage_type") == "google_drive" and post.get("drive_file_id"):
@@ -639,7 +634,9 @@ async def delete_course_post(
         "school_id": user.get("school_id"),
         "details": {
             "task_title": post.get("title"),
-            "had_submissions": False
+            "had_submissions": submissions_count_for_audit > 0,
+            "submissions_count": submissions_count_for_audit,
+            "graded_count": graded_count_for_audit,
         }
     }
     await db.task_audit_logs.insert_one(audit_log)

@@ -25,7 +25,7 @@ import {
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Trophy, Download, Upload, 
   Calendar, Bell, Mail, Phone, MoreVertical, Plus,
-  ArrowLeft, AlertCircle, File as FileIcon, Image as ImageIcon, 
+  ArrowLeft, AlertCircle, AlertTriangle, File as FileIcon, Image as ImageIcon, 
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
@@ -8528,15 +8528,6 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       }
     } catch (err) {
       console.error('Error deleting task:', err);
-      // Handle the case where task has submissions
-      if (err.response?.data?.detail?.code === 'TASK_HAS_SUBMISSIONS') {
-        // This shouldn't happen if UI is working correctly, but handle gracefully
-        setSubmissionStats({
-          submissions_count: err.response.data.detail.submissions_count,
-          graded_count: err.response.data.detail.graded_count,
-          can_delete: false
-        });
-      }
     } finally {
       setDeleting(false);
     }
@@ -9742,16 +9733,16 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 </div>
               </>
             ) : (
-              /* Has submissions - Must archive */
+              /* Has submissions - show strong confirmation, allow delete anyway */
               <>
                 <div className="p-6">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                      <Archive className="w-6 h-6 text-amber-600" />
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-red-600" />
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-800">Esta tarea tiene entregas</h3>
-                      <p className="text-sm text-amber-600 font-medium">No puede ser eliminada</p>
+                      <p className="text-sm text-red-600 font-medium">Acción destructiva</p>
                     </div>
                   </div>
                   
@@ -9769,34 +9760,48 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     </div>
                   </div>
                   
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-                    <p className="text-sm text-amber-800">
-                      <strong>Eliminar esta tarea afectaría el historial académico.</strong>
-                      <br />
-                      En su lugar, puedes <strong>archivarla</strong> para ocultarla de la vista principal mientras se preservan todas las entregas y calificaciones.
-                    </p>
-                  </div>
-                  
+                  <p className="text-slate-700 mb-2">
+                    Esta tarea tiene entregas y calificaciones registradas. ¿Estás seguro que deseas eliminarla?
+                  </p>
+                  <p className="text-sm text-red-600 font-medium mb-4">
+                    Esta acción no se puede deshacer.
+                  </p>
+
                   <p className="text-slate-600 text-sm">
                     Tarea: "<strong>{taskToDelete?.title}</strong>"
                   </p>
+
+                  <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
+                    Alternativa: en lugar de eliminar, puedes{" "}
+                    <button
+                      onClick={handleArchiveTask}
+                      disabled={deleting}
+                      className="text-amber-600 font-semibold hover:underline disabled:opacity-50"
+                      data-testid="archive-task-btn"
+                    >
+                      archivar la tarea
+                    </button>
+                    {" "}para ocultarla preservando las entregas.
+                  </div>
                 </div>
                 
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     onClick={() => { setShowDeleteModal(false); setSubmissionStats(null); }}
-                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+                    disabled={deleting}
+                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                    data-testid="cancel-delete-task-btn"
                   >
                     Cancelar
                   </button>
                   <button
-                    onClick={handleArchiveTask}
+                    onClick={handleDeleteConfirm}
                     disabled={deleting}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
-                    data-testid="archive-task-btn"
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    data-testid="force-delete-task-btn"
                   >
-                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
-                    Archivar tarea
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Eliminar de todas formas
                   </button>
                 </div>
               </>
