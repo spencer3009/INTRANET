@@ -46,6 +46,8 @@ async def get_active_sessions(_user=Depends(_require_support_global)):
             "role": s.get("role", ""),
             "connected_at": s.get("connected_at"),
             "connection_count": s.get("connection_count", 1),
+            "current_page": s.get("current_page"),
+            "last_activity": s.get("last_activity"),
         }
         if not sid:
             no_school_bucket["connected_users"].append(entry)

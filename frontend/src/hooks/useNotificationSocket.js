@@ -115,6 +115,19 @@ function _ensureConnection(token) {
 }
 
 /**
+ * Send a page-view event through the shared socket so the Support Panel
+ * can display the page each connected user is currently viewing.
+ * Safely no-ops if the socket is not open.
+ */
+export function sendPageView(pageName) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    try {
+      ws.send(JSON.stringify({ type: "page_view", page: pageName }));
+    } catch { /* ignore */ }
+  }
+}
+
+/**
  * Call on logout / app close to tear down the shared socket.
  * Components that just unmount should NOT call this; they just
  * unsubscribe via the useEffect cleanup returned by the hook.

@@ -277,6 +277,8 @@ class ConnectionManager:
                     "school_name": school_name,
                     "connected_at": datetime.now(timezone.utc).isoformat(),
                     "connection_count": 0,
+                    "current_page": None,
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
                 }
             self.active_sessions[user_id]["connection_count"] = len(self.active_connections[user_id])
 
@@ -285,6 +287,15 @@ class ConnectionManager:
         if n_open > 1:
             logger.warning(f"[WS] User {user_id} has {n_open} concurrent WebSocket connections — possible frontend duplicate")
     
+    def record_page_view(self, user_id: str, page: str):
+        """
+        Update the current page + last_activity timestamp for a connected user.
+        Called whenever the frontend sends a `{type: "page_view", page: ...}` msg.
+        """
+        if user_id in self.active_sessions:
+            self.active_sessions[user_id]["current_page"] = (page or "")[:120]
+            self.active_sessions[user_id]["last_activity"] = datetime.now(timezone.utc).isoformat()
+
     def disconnect(self, websocket: WebSocket, user_id: str):
         if user_id in self.active_connections:
             self.active_connections[user_id] = [

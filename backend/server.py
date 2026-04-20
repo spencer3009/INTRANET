@@ -265,6 +265,15 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
+                continue
+            # Parse JSON control messages from the client (page_view, etc.)
+            try:
+                import json as _json
+                msg = _json.loads(data)
+            except Exception:
+                continue
+            if isinstance(msg, dict) and msg.get("type") == "page_view":
+                ws_manager.record_page_view(user_id, msg.get("page", ""))
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, user_id)
     except Exception:

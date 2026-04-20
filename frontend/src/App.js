@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import "@/App.css";
-import { closeNotificationSocket } from "@/hooks/useNotificationSocket";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import SchoolLoginPage from "@/pages/SchoolLoginPage";
@@ -216,6 +216,61 @@ function detectEnvironment() {
 // ══════════════════════════════════════════════════════════════════════════════
 // SHOPIFY RULE: Redirect to school route/subdomain if user has one
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Human-friendly page names for Support Panel → Sesiones Activas.
+// Matches the last path segment of the URL; fallback to the raw pathname.
+const PAGE_NAME_MAP = {
+  dashboard: "Dashboard",
+  inicio: "Inicio",
+  attendance: "Asistencia",
+  asistencia: "Asistencia",
+  grades: "Notas",
+  notas: "Notas",
+  users: "Usuarios",
+  usuarios: "Usuarios",
+  messages: "Mensajes",
+  mensajes: "Mensajes",
+  schedule: "Horarios",
+  horarios: "Horarios",
+  accounting: "Contabilidad",
+  contabilidad: "Contabilidad",
+  cursos: "Cursos",
+  courses: "Cursos",
+  subjects: "Asignaturas",
+  calendar: "Calendario",
+  calendario: "Calendario",
+  news: "Noticias",
+  noticias: "Noticias",
+  settings: "Configuración",
+  profile: "Perfil",
+  "registro-auxiliar": "Registro Auxiliar",
+  psicologia: "Psicología",
+  topico: "Tópico",
+  pae: "PAE / Alimentación",
+  movilidad: "Movilidad",
+  support: "Panel Soporte",
+  sessions: "Sesiones Activas",
+  schools: "Colegios",
+  finances: "Finanzas",
+  pricing: "Precios",
+};
+
+function PageViewTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    // Find a friendly label from the deepest known segment, else use the path.
+    const segments = location.pathname.split("/").filter(Boolean);
+    let label = location.pathname || "/";
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const hit = PAGE_NAME_MAP[segments[i]];
+      if (hit) { label = hit; break; }
+    }
+    // Debounce a tick — route transitions can fire multiple times.
+    const t = setTimeout(() => sendPageView(label), 150);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+  return null;
+}
 
 function ShopifyRedirect({ user, environment }) {
   const location = useLocation();
@@ -675,6 +730,7 @@ function App() {
           <SubscriptionProvider token={token}>
           <ShopifyRedirect user={user} environment={environment} />
           <ChatPalRouteGuard />
+          <PageViewTracker />
           <GlobalSubscriptionOverlay token={token} user={user} />
         
         {showPortalSelector && user && (
