@@ -1548,16 +1548,6 @@ async def get_qr_attendance_history(
         "history": history
     }
 
-# Event types with default colors
-EVENT_TYPES = {
-    "academic": {"label": "Académico", "color": "#3B82F6"},      # Blue
-    "institutional": {"label": "Institucional", "color": "#8B5CF6"},  # Purple
-    "administrative": {"label": "Administrativo", "color": "#64748B"},  # Gray
-    "holiday": {"label": "Feriado", "color": "#EF4444"},         # Red
-    "special": {"label": "Evento especial", "color": "#F59E0B"},  # Amber
-    "communication": {"label": "Comunicación", "color": "#10B981"}  # Green
-}
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ATTENDANCE ANNULMENT
