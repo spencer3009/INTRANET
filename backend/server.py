@@ -273,7 +273,11 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
             except Exception:
                 continue
             if isinstance(msg, dict) and msg.get("type") == "page_view":
-                ws_manager.record_page_view(user_id, msg.get("page", ""))
+                ws_manager.record_page_view(
+                    user_id,
+                    msg.get("page", ""),
+                    msg.get("request_count", 0),
+                )
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, user_id)
     except Exception:

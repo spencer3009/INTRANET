@@ -119,10 +119,14 @@ function _ensureConnection(token) {
  * can display the page each connected user is currently viewing.
  * Safely no-ops if the socket is not open.
  */
-export function sendPageView(pageName) {
+export function sendPageView(pageName, requestCount = 0) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     try {
-      ws.send(JSON.stringify({ type: "page_view", page: pageName }));
+      ws.send(JSON.stringify({
+        type: "page_view",
+        page: pageName,
+        request_count: requestCount,
+      }));
     } catch { /* ignore */ }
   }
 }

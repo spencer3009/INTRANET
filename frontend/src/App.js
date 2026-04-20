@@ -253,6 +253,33 @@ const PAGE_NAME_MAP = {
   schools: "Colegios",
   finances: "Finanzas",
   pricing: "Precios",
+  "asignacion-docente": "Asignación Docente",
+  "teacher-assignment": "Asignación Docente",
+  discipline: "Disciplina",
+  disciplina: "Disciplina",
+  events: "Eventos",
+  eventos: "Eventos",
+  surveys: "Encuestas",
+  encuestas: "Encuestas",
+};
+
+// Known simultaneous HTTP calls each page fires on entry. Used by the
+// Support Panel to flag pages that saturate the backend. Keep in sync
+// with the fetches inside each page component.
+const PAGE_REQUESTS_MAP = {
+  "Dashboard": 8,
+  "Asignación Docente": 15,
+  "Registro Auxiliar": 8,
+  "Contabilidad": 6,
+  "Notas": 5,
+  "Horarios": 4,
+  "Asistencia": 4,
+  "Usuarios": 3,
+  "Mensajes": 3,
+  "Disciplina": 3,
+  "Noticias": 2,
+  "Eventos": 2,
+  "Encuestas": 2,
 };
 
 function PageViewTracker() {
@@ -265,8 +292,9 @@ function PageViewTracker() {
       const hit = PAGE_NAME_MAP[segments[i]];
       if (hit) { label = hit; break; }
     }
+    const reqCount = PAGE_REQUESTS_MAP[label] || 0;
     // Debounce a tick — route transitions can fire multiple times.
-    const t = setTimeout(() => sendPageView(label), 150);
+    const t = setTimeout(() => sendPageView(label, reqCount), 150);
     return () => clearTimeout(t);
   }, [location.pathname]);
   return null;

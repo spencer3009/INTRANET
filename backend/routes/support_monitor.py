@@ -47,6 +47,7 @@ async def get_active_sessions(_user=Depends(_require_support_global)):
             "connected_at": s.get("connected_at"),
             "connection_count": s.get("connection_count", 1),
             "current_page": s.get("current_page"),
+            "page_requests": s.get("page_requests", 0),
             "last_activity": s.get("last_activity"),
         }
         if not sid:
