@@ -8837,8 +8837,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         
         {/* Submissions Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          {/* Table Header - Teal color from reference image */}
-          <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-4">
+          {/* Table Header (desktop only) */}
+          <div className="hidden md:block bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-4">
             <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
               <div className="col-span-2">Estudiante</div>
               <div className="col-span-2">Comentario</div>
@@ -8872,9 +8872,97 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 const hasChanges = editingGrades[submission.id] !== undefined;
                 
                 return (
-                  <div key={submission.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-slate-50 transition-colors">
-                    {/* Student */}
-                    <div className="col-span-2 flex items-center gap-2">
+                  <div key={submission.id} className="flex flex-col gap-3 p-4 md:grid md:grid-cols-12 md:gap-2 md:px-4 md:py-4 md:items-center hover:bg-slate-50 transition-colors">
+                    {/* MOBILE: Student header */}
+                    <div className="flex items-center justify-between gap-2 md:hidden">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {studentPhoto ? (
+                          <img src={studentPhoto} alt={submission.student?.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-slate-400" />
+                          </div>
+                        )}
+                        <span className="text-sm font-semibold text-slate-800 truncate">{submission.student?.name}</span>
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                        submission.status === 'A tiempo' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {submission.status === 'A tiempo' ? 'A TIEMPO' : 'TARDE'}
+                      </span>
+                    </div>
+                    {/* MOBILE: Comment */}
+                    <div className="md:hidden">
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Comentario del estudiante</label>
+                      {submission.comment ? (
+                        <div
+                          className="text-xs text-slate-700 bg-slate-50 px-3 py-2 rounded-lg leading-snug [&_p]:m-0"
+                          dangerouslySetInnerHTML={{ __html: submission.comment }}
+                        />
+                      ) : (
+                        <p className="text-xs text-slate-400 italic bg-slate-50 px-3 py-2 rounded-lg">Sin comentario</p>
+                      )}
+                    </div>
+                    {/* MOBILE: File + view */}
+                    <div className="flex items-center gap-2 md:hidden">
+                      {submission.file ? (
+                        <button
+                          onClick={() => handleDownloadSubmissionFile(submission)}
+                          disabled={downloadingFile === submission.id}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70"
+                        >
+                          {downloadingFile === submission.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                          Ver archivo
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">Sin archivo</span>
+                      )}
+                      <button
+                        onClick={() => setViewingSubmission(submission)}
+                        className="ml-auto w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition-colors"
+                        title="Ver entrega"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {/* MOBILE: Feedback input */}
+                    <div className="md:hidden">
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Feedback del profesor</label>
+                      <input
+                        type="text"
+                        placeholder="Añadir comentario..."
+                        value={currentFeedback}
+                        onChange={(e) => handleGradeChange(submission.id, 'feedback', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400"
+                      />
+                    </div>
+                    {/* MOBILE: Grade + save */}
+                    <div className="flex items-center gap-2 md:hidden">
+                      <label className="text-xs font-semibold text-slate-500">Nota:</label>
+                      <input
+                        type="number"
+                        placeholder="--"
+                        min="0"
+                        max={maxGrade}
+                        value={currentGrade}
+                        onChange={(e) => handleGradeChange(submission.id, 'grade', e.target.value)}
+                        className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400 text-center"
+                      />
+                      <span className="text-slate-400 text-xs">/ {maxGrade}</span>
+                      {hasChanges && (
+                        <button
+                          onClick={() => saveSubmissionGrade(submission.id)}
+                          disabled={savingGrade === submission.id}
+                          className="ml-auto px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                        >
+                          {savingGrade === submission.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          Guardar
+                        </button>
+                      )}
+                    </div>
+
+                    {/* DESKTOP: Student */}
+                    <div className="hidden md:flex col-span-2 items-center gap-2">
                       {studentPhoto ? (
                         <img 
                           src={studentPhoto} 
@@ -8889,8 +8977,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       <span className="text-xs font-medium text-slate-700 truncate">{submission.student?.name}</span>
                     </div>
                     
-                    {/* Student Comment — rendered as HTML, clamped to 2 lines */}
-                    <div className="col-span-2">
+                    {/* DESKTOP: Student Comment */}
+                    <div className="hidden md:block col-span-2">
                       {submission.comment ? (
                         <div
                           className="text-xs text-slate-600 bg-slate-50 px-2 py-2 rounded-lg min-h-[36px] overflow-hidden leading-snug [&_p]:m-0 [&_br]:hidden-none"
@@ -8906,8 +8994,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       )}
                     </div>
                     
-                    {/* Status */}
-                    <div className="col-span-1">
+                    {/* DESKTOP: Status */}
+                    <div className="hidden md:block col-span-1">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                         submission.status === 'A tiempo' 
                           ? 'bg-amber-100 text-amber-700' 
@@ -8917,8 +9005,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       </span>
                     </div>
                     
-                    {/* File/Response */}
-                    <div className="col-span-2">
+                    {/* DESKTOP: File/Response */}
+                    <div className="hidden md:block col-span-2">
                       {submission.file ? (
                         <button 
                           onClick={() => handleDownloadSubmissionFile(submission)}
@@ -8942,8 +9030,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       )}
                     </div>
                     
-                    {/* Teacher Comment */}
-                    <div className="col-span-2">
+                    {/* DESKTOP: Teacher Comment */}
+                    <div className="hidden md:block col-span-2">
                       <input
                         type="text"
                         placeholder="Comentario..."
@@ -8953,8 +9041,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       />
                     </div>
                     
-                    {/* Grade */}
-                    <div className="col-span-2 flex items-center gap-1">
+                    {/* DESKTOP: Grade */}
+                    <div className="hidden md:flex col-span-2 items-center gap-1">
                       <input
                         type="number"
                         placeholder="--"
@@ -8981,8 +9069,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       )}
                     </div>
 
-                    {/* View full submission */}
-                    <div className="col-span-1 flex items-center justify-center">
+                    {/* DESKTOP: View full submission */}
+                    <div className="hidden md:flex col-span-1 items-center justify-center">
                       <button
                         onClick={() => setViewingSubmission(submission)}
                         className="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition-colors active:scale-95"
@@ -9394,8 +9482,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        {/* Table Header */}
-        <div className="bg-gradient-to-r from-slate-100 to-slate-50 px-6 py-4 border-b border-slate-200">
+        {/* Table Header (desktop only) */}
+        <div className="hidden md:block bg-gradient-to-r from-slate-100 to-slate-50 px-6 py-4 border-b border-slate-200">
           <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
             <div className="col-span-2">Estado</div>
             <div className="col-span-4">Título</div>
@@ -9433,9 +9521,74 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
               const isExpired = dueDate && new Date(dueDate) < new Date();
               
               return (
-                <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
-                  {/* Status */}
-                  <div className="col-span-2">
+                <div key={task.id} className="flex flex-col gap-3 p-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 md:py-4 md:items-center hover:bg-slate-50 transition-colors">
+                  {/* MOBILE: Title + status header */}
+                  <div className="flex items-start justify-between gap-2 md:hidden">
+                    <p className="font-semibold text-slate-800 text-base flex-1 break-words">{task.title}</p>
+                    {isExpired ? (
+                      <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-600 rounded-full text-xs font-semibold">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        Vencida
+                      </span>
+                    ) : (
+                      <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        Publicado
+                      </span>
+                    )}
+                  </div>
+                  {(task.submissions_count > 0 || task.graded_count > 0) && (
+                    <div className="flex flex-wrap items-center gap-2 md:hidden text-xs">
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
+                        {task.submissions_count} {task.submissions_count === 1 ? 'entrega' : 'entregas'}
+                      </span>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-medium">
+                        {task.graded_count} calificadas
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 md:hidden">
+                    <span className="inline-block px-2 py-1 bg-lime-500 text-white rounded text-xs font-semibold">
+                      {getDeliveryType(task.content)}
+                    </span>
+                    <span className="text-xs text-slate-600">
+                      {dueDate ? formatDate(dueDate) : 'Sin fecha'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 md:hidden pt-1">
+                    <button
+                      onClick={() => setSelectedTask(task)}
+                      className="flex-1 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                      title="Ver tarea"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(task)}
+                      className="w-10 h-10 bg-amber-100 hover:bg-amber-200 text-amber-500 rounded-xl flex items-center justify-center transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCloneActivity(task)}
+                      className="w-10 h-10 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-xl flex items-center justify-center transition-colors"
+                      title="Clonar"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(task)}
+                      className="w-10 h-10 bg-red-100 hover:bg-red-200 text-red-500 rounded-xl flex items-center justify-center transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* DESKTOP: Status */}
+                  <div className="hidden md:block col-span-2">
                     {isExpired ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-600 rounded-full text-xs font-semibold">
                         <span className="w-2 h-2 bg-red-500 rounded-full"></span>
@@ -9449,8 +9602,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     )}
                   </div>
                   
-                  {/* Title */}
-                  <div className="col-span-4">
+                  {/* DESKTOP: Title */}
+                  <div className="hidden md:block col-span-4">
                     <p className="font-semibold text-slate-800 truncate">{task.title}</p>
                     {(task.submissions_count > 0 || task.graded_count > 0) && (
                       <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2" data-testid={`task-submissions-${task.id}`}>
@@ -9464,56 +9617,56 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     )}
                   </div>
                   
-                  {/* Type */}
-                  <div className="col-span-2">
+                  {/* DESKTOP: Type */}
+                  <div className="hidden md:block col-span-2">
                     <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
                       {getDeliveryType(task.content)}
                     </span>
                   </div>
                   
-                  {/* Due Date */}
-                  <div className="col-span-2">
+                  {/* DESKTOP: Due Date */}
+                  <div className="hidden md:block col-span-2">
                     <p className="text-sm text-slate-600">
                       {dueDate ? formatDate(dueDate) : <span className="text-slate-400">Sin fecha</span>}
                     </p>
                   </div>
                 
-                {/* Actions */}
-                <div className="col-span-2 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => setSelectedTask(task)}
-                    className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors"
-                    title="Ver tarea"
-                    data-testid={`view-task-${task.id}`}
-                  >
-                    <Eye className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleEditClick(task)}
-                    className="w-9 h-9 bg-amber-100 hover:bg-amber-200 text-amber-500 rounded-xl flex items-center justify-center transition-colors"
-                    title="Editar tarea"
-                    data-testid={`edit-task-${task.id}`}
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setCloneActivity(task)}
-                    className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-xl flex items-center justify-center transition-colors"
-                    title="Clonar"
-                    data-testid={`clone-task-${task.id}`}
-                  >
-                    <Copy className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(task)}
-                    className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-500 rounded-xl flex items-center justify-center transition-colors"
-                    title="Eliminar"
-                    data-testid={`delete-task-${task.id}`}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  {/* DESKTOP: Actions */}
+                  <div className="hidden md:flex col-span-2 items-center justify-center gap-2">
+                    <button
+                      onClick={() => setSelectedTask(task)}
+                      className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors"
+                      title="Ver tarea"
+                      data-testid={`view-task-${task.id}`}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(task)}
+                      className="w-9 h-9 bg-amber-100 hover:bg-amber-200 text-amber-500 rounded-xl flex items-center justify-center transition-colors"
+                      title="Editar tarea"
+                      data-testid={`edit-task-${task.id}`}
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setCloneActivity(task)}
+                      className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-xl flex items-center justify-center transition-colors"
+                      title="Clonar"
+                      data-testid={`clone-task-${task.id}`}
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(task)}
+                      className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-500 rounded-xl flex items-center justify-center transition-colors"
+                      title="Eliminar"
+                      data-testid={`delete-task-${task.id}`}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
               );
             })
           )}

@@ -459,7 +459,7 @@ export default function TasksTableContent({ subjectId, token, user, students, su
       </div>
       
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="bg-gradient-to-r from-slate-100 to-slate-50 px-6 py-4 border-b border-slate-200">
+        <div className="hidden md:block bg-gradient-to-r from-slate-100 to-slate-50 px-6 py-4 border-b border-slate-200">
           <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
             <div className="col-span-2">Estado</div>
             <div className="col-span-4">Título</div>
@@ -491,29 +491,102 @@ export default function TasksTableContent({ subjectId, token, user, students, su
             </div>
           ) : (
             tasks.map((task) => (
-              <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
-                <div className="col-span-2">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+              <div
+                key={task.id}
+                className="flex flex-col gap-3 p-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 md:py-4 md:items-center hover:bg-slate-50 transition-colors"
+              >
+                {/* MOBILE: Title + Status header */}
+                <div className="flex items-start justify-between gap-2 md:hidden">
+                  <p className="font-semibold text-slate-800 text-base flex-1 break-words">{task.title}</p>
+                  <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
                     <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     Publicado
                   </span>
                 </div>
+                {/* MOBILE: submissions badges */}
+                {(task.submissions_count > 0 || task.graded_count > 0) && (
+                  <div className="flex flex-wrap items-center gap-2 md:hidden text-xs">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                      {task.submissions_count || 0} {task.submissions_count === 1 ? 'entrega' : 'entregas'}
+                    </span>
+                    {task.graded_count > 0 && (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                        {task.graded_count} calificadas
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* MOBILE: type + due date */}
+                <div className="flex flex-wrap items-center gap-2 md:hidden">
+                  <span className="inline-block px-2 py-1 bg-lime-500 text-white rounded text-xs font-semibold">
+                    {getDeliveryType(task.content)}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(extractDueDate(task))}
+                  </span>
+                </div>
+                {/* MOBILE: actions */}
+                <div className="flex items-center gap-2 md:hidden pt-1">
+                  <button
+                    onClick={() => setSelectedTask(task)}
+                    className="flex-1 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                    title="Ver tarea"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Ver
+                  </button>
+                  <button
+                    onClick={() => setCloneTask(task)}
+                    className="w-10 h-10 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Clonar"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(task)}
+                    className="w-10 h-10 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* DESKTOP: Status */}
+                <div className="hidden md:block col-span-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    Publicado
+                  </span>
+                  {(task.submissions_count > 0 || task.graded_count > 0) && (
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5 text-xs">
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
+                        {task.submissions_count || 0} {task.submissions_count === 1 ? 'entrega' : 'entregas'}
+                      </span>
+                      {task.graded_count > 0 && (
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-medium">
+                          {task.graded_count} calificadas
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
-                <div className="col-span-4">
+                <div className="hidden md:block col-span-4">
                   <p className="font-semibold text-slate-800 truncate">{task.title}</p>
                 </div>
                 
-                <div className="col-span-2">
+                <div className="hidden md:block col-span-2">
                   <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
                     {getDeliveryType(task.content)}
                   </span>
                 </div>
                 
-                <div className="col-span-2">
+                <div className="hidden md:block col-span-2">
                   <p className="text-sm text-slate-600">{formatDate(extractDueDate(task))}</p>
                 </div>
                 
-                <div className="col-span-2 flex items-center justify-center gap-2">
+                <div className="hidden md:flex col-span-2 items-center justify-center gap-2">
                   <button
                     onClick={() => setSelectedTask(task)}
                     className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors"

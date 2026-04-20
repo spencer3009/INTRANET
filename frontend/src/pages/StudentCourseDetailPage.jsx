@@ -2376,8 +2376,8 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-      {/* Table Header */}
-      <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+      {/* Table Header (desktop only) */}
+      <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
         <div className="col-span-1">Estado</div>
         <div className="col-span-4">Título</div>
         <div className="col-span-2">Tipo</div>
@@ -2395,31 +2395,65 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
           const maxGrade = task.max_grade || task.metadata?.points || 20;
           
           return (
-            <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
-              {/* Status */}
-              <div className="col-span-1">
+            <div
+              key={task.id}
+              onClick={() => setSelectedTask(task)}
+              className="flex flex-col gap-3 p-4 md:grid md:grid-cols-12 md:gap-4 md:px-6 md:py-4 md:items-center hover:bg-slate-50 transition-colors cursor-pointer md:cursor-default"
+              data-testid={`student-task-row-${task.id}`}
+            >
+              {/* MOBILE: Title + status in header row */}
+              <div className="flex items-start justify-between gap-2 md:hidden">
+                <h3 className="font-semibold text-slate-800 text-base flex-1 break-words">{task.title}</h3>
+                <span className={`shrink-0 inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${taskStatus.color}`}>
+                  {taskStatus.label}
+                </span>
+              </div>
+              {task.description && (
+                <p className="text-xs text-slate-500 md:hidden break-words">{task.description}</p>
+              )}
+              {/* MOBILE: meta row */}
+              <div className="flex flex-wrap items-center gap-2 md:hidden">
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-lime-100 text-lime-700 text-xs font-medium rounded-md border border-lime-200">
+                  {deliveryType}
+                </span>
+                {dueDate && !isNaN(new Date(dueDate).getTime()) && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}{" "}
+                    {new Date(dueDate).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                  </span>
+                )}
+                {taskStatus.grade !== undefined ? (
+                  <span className="inline-flex font-semibold text-emerald-600 text-xs">{taskStatus.grade}/{maxGrade}</span>
+                ) : (
+                  <span className="inline-flex text-slate-400 text-xs">{maxGrade} pts</span>
+                )}
+              </div>
+
+              {/* DESKTOP: Status */}
+              <div className="hidden md:block col-span-1">
                 <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${taskStatus.color}`}>
                   {taskStatus.label}
                 </span>
               </div>
               
-              {/* Title */}
-              <div className="col-span-4">
+              {/* DESKTOP: Title */}
+              <div className="hidden md:block col-span-4">
                 <h3 className="font-medium text-slate-800 truncate">{task.title}</h3>
                 {task.description && (
                   <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>
                 )}
               </div>
               
-              {/* Type - Shows delivery type like owner portal */}
-              <div className="col-span-2">
+              {/* DESKTOP: Type */}
+              <div className="hidden md:block col-span-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-lime-100 text-lime-700 text-xs font-medium rounded-md border border-lime-200">
                   {deliveryType}
                 </span>
               </div>
               
-              {/* Due Date with Time */}
-              <div className="col-span-2 text-sm text-slate-600">
+              {/* DESKTOP: Due Date */}
+              <div className="hidden md:block col-span-2 text-sm text-slate-600">
                 {dueDate && !isNaN(new Date(dueDate).getTime()) 
                   ? (
                     <div>
@@ -2433,8 +2467,8 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
                 }
               </div>
               
-              {/* Score */}
-              <div className="col-span-2">
+              {/* DESKTOP: Score */}
+              <div className="hidden md:block col-span-2">
                 {taskStatus.grade !== undefined ? (
                   <span className="font-semibold text-emerald-600">{taskStatus.grade}/{maxGrade}</span>
                 ) : (
@@ -2442,11 +2476,10 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
                 )}
               </div>
               
-              {/* Action - View button (eye) + status indicator */}
-              <div className="col-span-1 flex items-center gap-1">
-                {/* Eye button to view task - ONLY this should be clickable */}
+              {/* DESKTOP: Action */}
+              <div className="hidden md:flex col-span-1 items-center gap-1">
                 <button
-                  onClick={() => setSelectedTask(task)}
+                  onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                   className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
                   title="Ver tarea"
                   data-testid={`view-task-${task.id}`}
@@ -2454,7 +2487,6 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
                   <Eye className="w-4 h-4" />
                 </button>
                 
-                {/* Status indicator - NOT clickable, just visual indicator */}
                 {taskStatus.status === "pending" && (
                   <span 
                     className="p-2 bg-amber-100 text-amber-600 rounded-lg cursor-default"
