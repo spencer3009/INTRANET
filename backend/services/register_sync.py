@@ -57,13 +57,47 @@ COLUMN_FIELD_MAP = {
     "P5": "part_p5",
     "p6": "part_p6",
     "P6": "part_p6",
+    # Frontend PLANTILLA_SISTEMA_FALLBACK — the subcolumn `field_key`/`id`
+    # already matches the real column name in `student_grades`, so it's an
+    # identity mapping. Needed because the frontend fallback is what shows
+    # in the modal when a school has no custom template (CO/RE, R1-R5, C1-C2,
+    # P1-P3, EXP, TG, P).
+    "act_co": "act_co",
+    "act_re": "act_re",
+    "rf_r1": "rf_r1",
+    "rf_r2": "rf_r2",
+    "rf_r3": "rf_r3",
+    "rf_r4": "rf_r4",
+    "rf_r5": "rf_r5",
+    "comp_c1": "comp_c1",
+    "comp_c2": "comp_c2",
+    "part_p1": "part_p1",
+    "part_p2": "part_p2",
+    "part_p3": "part_p3",
+    "part_exp": "part_exp",
+    "part_tg": "part_tg",
+    "part_p": "part_p",
+    "exam_mensual": "exam_mensual",
+    "exam_bimestral": "exam_bimestral",
 }
 
 VALID_COLUMNS = set(COLUMN_FIELD_MAP.keys())
-# Legacy hard-coded set — kept for backward-compatibility fallback only.
-# Task columns are now resolved dynamically from the school's active
-# Registro Auxiliar template (see `get_valid_task_columns_for_school`).
-TASK_VALID_COLUMNS = {"P1", "P2", "P3"}
+# Legacy + frontend-fallback whitelist. Used as:
+#   (a) a safety-net when `get_valid_task_columns_for_school` can't resolve
+#       any template at all (new school / missing seed).
+#   (b) the base layer in the union returned by
+#       `get_valid_task_columns_for_school`.
+# Includes every task-linkable subcolumna of the frontend
+# `PLANTILLA_SISTEMA_FALLBACK` so the Nueva Tarea modal works out of the box
+# for schools without a custom template.
+TASK_VALID_COLUMNS = {
+    "P1", "P2", "P3",
+    "act_co", "act_re",
+    "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+    "comp_c1", "comp_c2",
+    "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+    "exam_mensual", "exam_bimestral",
+}
 
 
 async def get_valid_task_columns_for_school(db, school_id: str) -> set:
