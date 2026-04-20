@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import axios from "axios";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
@@ -272,41 +273,57 @@ const PAGE_NAME_MAP = {
   encuestas: "Encuestas",
 };
 
-// Known simultaneous HTTP calls each page fires on entry. Used by the
-// Support Panel to flag pages that saturate the backend. Keep in sync
-// with the fetches inside each page component.
-const PAGE_REQUESTS_MAP = {
-  "Dashboard": 8,
-  "Asignación Docente": 15,
-  "Registro Auxiliar": 8,
-  "Contabilidad": 6,
-  "Notas": 5,
-  "Horarios": 4,
-  "Asistencia": 4,
-  "Usuarios": 3,
-  "Mensajes": 3,
-  "Disciplina": 3,
-  "Noticias": 2,
-  "Eventos": 2,
-  "Encuestas": 2,
-};
+// Known simultaneous HTTP calls each page fires on entry — measured
+// LIVE at runtime by the axios interceptor below. This map is no longer
+// a source of truth; PageViewTracker counts real requests per navigation.
+
+// Paths excluded from the page-request counter. These are system calls
+// (health probes, session polling, subscription status) that run
+// independently of what page the user is on.
+const PAGE_REQ_EXCLUDE = [
+  "/api/health",
+  "/api/support/active-sessions",
+  "/api/subscription/status",
+];
+
+// Mutable counter written by the axios interceptor, read by the tracker.
+// Kept module-level because it must be shared across every component.
+let _pageReqCounter = 0;
+
+// Install interceptor ONCE at module load. We guard with a symbol on
+// the axios.defaults object so hot-reload in dev doesn't double-wrap.
+if (!axios.defaults.__pageReqInterceptorInstalled) {
+  axios.interceptors.request.use((config) => {
+    try {
+      const url = config?.url || "";
+      if (url.includes("/api/") && !PAGE_REQ_EXCLUDE.some(ex => url.includes(ex))) {
+        _pageReqCounter += 1;
+      }
+    } catch { /* ignore */ }
+    return config;
+  });
+  axios.defaults.__pageReqInterceptorInstalled = true;
+}
 
 function PageViewTracker() {
   const location = useLocation();
   useEffect(() => {
-    // Find a friendly label from the deepest known segment, else use the path.
+    // Resolve friendly label from the deepest known segment, else use path.
     const segments = location.pathname.split("/").filter(Boolean);
     let label = location.pathname || "/";
     for (let i = segments.length - 1; i >= 0; i--) {
       const hit = PAGE_NAME_MAP[segments[i]];
       if (hit) { label = hit; break; }
     }
-    const reqCount = PAGE_REQUESTS_MAP[label] || 0;
-    // Debounce a tick — route transitions can fire multiple times.
+    // Delta measurement: snapshot the counter NOW, then after 1500ms
+    // subtract to get the number of requests this navigation triggered.
+    // Avoids races with sibling useEffects that fire axios during mount.
+    const startCount = _pageReqCounter;
     const t = setTimeout(() => {
-      console.log('[PageView]', label, reqCount);
-      sendPageView(label, reqCount);
-    }, 150);
+      const delta = Math.max(0, _pageReqCounter - startCount);
+      console.log('[PageView]', label, delta);
+      sendPageView(label, delta);
+    }, 1500);
     return () => clearTimeout(t);
   }, [location.pathname]);
   return null;
