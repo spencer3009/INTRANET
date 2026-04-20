@@ -23,6 +23,7 @@ let reconnectTimer = null;
 let pingTimer = null;
 let reconnectAttempts = 0;
 let manualClose = false;
+let lastPageView = null;   // { page, requestCount } — resent on every (re)open
 const listeners = new Set();         // Set<(data) => void>
 const statusListeners = new Set();   // Set<(isConnected: boolean) => void>
 
@@ -59,6 +60,17 @@ function _openSocket(token) {
     pingTimer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) ws.send("ping");
     }, 30000);
+    // Resend last known page view so the Support Panel populates even if
+    // the route was visited before the socket finished connecting.
+    if (lastPageView) {
+      try {
+        ws.send(JSON.stringify({
+          type: "page_view",
+          page: lastPageView.page,
+          request_count: lastPageView.requestCount,
+        }));
+      } catch { /* ignore */ }
+    }
   };
 
   ws.onmessage = (event) => {
@@ -120,6 +132,9 @@ function _ensureConnection(token) {
  * Safely no-ops if the socket is not open.
  */
 export function sendPageView(pageName, requestCount = 0) {
+  // Always cache the latest navigation so we can replay it when the socket
+  // (re)opens — fixes cases where the tracker fires before the WS is ready.
+  lastPageView = { page: pageName, requestCount };
   if (ws && ws.readyState === WebSocket.OPEN) {
     try {
       ws.send(JSON.stringify({
@@ -138,6 +153,7 @@ export function sendPageView(pageName, requestCount = 0) {
  */
 export function closeNotificationSocket() {
   manualClose = true;
+  lastPageView = null;   // wipe on logout so next user doesn't inherit it
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
   if (ws) {

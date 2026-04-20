@@ -222,6 +222,10 @@ function detectEnvironment() {
 const PAGE_NAME_MAP = {
   dashboard: "Dashboard",
   inicio: "Inicio",
+  teacher: "Panel Docente",
+  student: "Panel Alumno",
+  parent: "Panel Padre",
+  admin: "Panel Admin",
   attendance: "Asistencia",
   asistencia: "Asistencia",
   grades: "Notas",
@@ -230,19 +234,24 @@ const PAGE_NAME_MAP = {
   usuarios: "Usuarios",
   messages: "Mensajes",
   mensajes: "Mensajes",
+  messaging: "Mensajes",
   schedule: "Horarios",
   horarios: "Horarios",
+  horario: "Horarios",
   accounting: "Contabilidad",
   contabilidad: "Contabilidad",
   cursos: "Cursos",
   courses: "Cursos",
   subjects: "Asignaturas",
+  asignaturas: "Asignaturas",
   calendar: "Calendario",
   calendario: "Calendario",
   news: "Noticias",
   noticias: "Noticias",
   settings: "Configuración",
+  ajustes: "Configuración",
   profile: "Perfil",
+  perfil: "Perfil",
   "registro-auxiliar": "Registro Auxiliar",
   psicologia: "Psicología",
   topico: "Tópico",
@@ -294,7 +303,10 @@ function PageViewTracker() {
     }
     const reqCount = PAGE_REQUESTS_MAP[label] || 0;
     // Debounce a tick — route transitions can fire multiple times.
-    const t = setTimeout(() => sendPageView(label, reqCount), 150);
+    const t = setTimeout(() => {
+      console.log('[PageView]', label, reqCount);
+      sendPageView(label, reqCount);
+    }, 150);
     return () => clearTimeout(t);
   }, [location.pathname]);
   return null;
