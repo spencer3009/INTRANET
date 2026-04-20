@@ -8,13 +8,55 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
-# Maps register_column value to the student_grades field name
+# Maps register_column value to the student_grades field name.
+# Covers:
+#   - columnas_finales (exámenes mensual/bimestral) in both canonical and legacy keys
+#   - every "input" subcolumn of the SYSTEM template (IO/RE, T1-T5, C1-C2, P1-P6)
+# Keys are stored in both lower- and upper-case because the frontend historically
+# sent the subcolumna `id` in lower-case (e.g. "p2") while some older endpoints
+# and imports still use upper-case (e.g. "P2").
+# Fields part_p4/p5/p6 do not exist yet in student_grades documents — Mongo will
+# auto-create them on the first sync (schema-less).
 COLUMN_FIELD_MAP = {
+    # Exámenes (columnas_finales)
     "EM": "exam_mensual",
     "EB": "exam_bimestral",
+    "examen_mensual": "exam_mensual",
+    "examen_bimestral": "exam_bimestral",
+    # Actitudinal
+    "io": "act_co",
+    "IO": "act_co",
+    "re": "act_re",
+    "RE": "act_re",
+    # Tareas
+    "t1": "rf_r1",
+    "T1": "rf_r1",
+    "t2": "rf_r2",
+    "T2": "rf_r2",
+    "t3": "rf_r3",
+    "T3": "rf_r3",
+    "t4": "rf_r4",
+    "T4": "rf_r4",
+    "t5": "rf_r5",
+    "T5": "rf_r5",
+    # Competencia
+    "c1": "comp_c1",
+    "C1": "comp_c1",
+    "c2": "comp_c2",
+    "C2": "comp_c2",
+    # Pasitos / Participación
+    "p1": "part_p1",
     "P1": "part_p1",
+    "p2": "part_p2",
     "P2": "part_p2",
+    "p3": "part_p3",
     "P3": "part_p3",
+    "p4": "part_p4",
+    "P4": "part_p4",
+    "p5": "part_p5",
+    "P5": "part_p5",
+    "p6": "part_p6",
+    "P6": "part_p6",
 }
 
 VALID_COLUMNS = set(COLUMN_FIELD_MAP.keys())
