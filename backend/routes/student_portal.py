@@ -598,7 +598,6 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         # by the submit flow, so we check the embedded array only (same
         # approach as GET /api/student/tasks).
         for task in tasks:
-            task_id = task.get("id")
             submissions = task.get("submissions", []) or []
             student_submitted = any(s.get("student_id") == user["id"] for s in submissions)
             

@@ -179,6 +179,12 @@ async def get_course_posts(
         # the real count. Aggregate directly on course_posts so both
         # views stay consistent. school_id is included for multi-tenant
         # isolation.
+        #
+        # We also expose the CURRENT user's submission (only their own)
+        # so the student course view can show the correct badge
+        # ("Pendiente" / "Entregada" / "Calificada") without loading
+        # everyone's submissions. The full `submissions` array stays
+        # excluded from the projection to keep the payload light.
         gather_futures.append(db.course_posts.aggregate([
             {"$match": {
                 "id": {"$in": task_post_ids},
@@ -194,6 +200,15 @@ async def get_course_posts(
                             "input": {"$ifNull": ["$submissions", []]},
                             "as": "s",
                             "cond": {"$ne": ["$$s.grade", None]},
+                        }
+                    }
+                },
+                "my_submission": {
+                    "$first": {
+                        "$filter": {
+                            "input": {"$ifNull": ["$submissions", []]},
+                            "as": "s",
+                            "cond": {"$eq": ["$$s.student_id", user_id]},
                         }
                     }
                 },
@@ -227,6 +242,12 @@ async def get_course_posts(
             sub_info = subs_map.get(pid, {})
             post["submissions_count"] = sub_info.get("total", 0)
             post["graded_count"] = sub_info.get("graded", 0)
+            # Expose a one-element `submissions` array (only the current
+            # user's submission) so the student course page can compute
+            # its status badge using the existing frontend logic
+            # (`task.submissions?.find(s => s.student_id === studentId)`).
+            my_sub = sub_info.get("my_submission")
+            post["submissions"] = [my_sub] if my_sub else []
 
     return {"posts": posts, "total": total}
 
