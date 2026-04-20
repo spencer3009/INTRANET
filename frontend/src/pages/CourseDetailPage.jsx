@@ -8717,6 +8717,9 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   
   // State for downloading files
   const [downloadingFile, setDownloadingFile] = useState(null);
+
+  // State for viewing a full submission in a modal
+  const [viewingSubmission, setViewingSubmission] = useState(null);
   
   // Download submission file
   const handleDownloadSubmissionFile = async (submission) => {
@@ -8838,11 +8841,12 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-4">
             <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
               <div className="col-span-2">Estudiante</div>
-              <div className="col-span-3">Comentario</div>
+              <div className="col-span-2">Comentario</div>
               <div className="col-span-1">Estado</div>
               <div className="col-span-2">Archivo</div>
               <div className="col-span-2">Feedback</div>
               <div className="col-span-2">Nota</div>
+              <div className="col-span-1 text-center">Ver</div>
             </div>
           </div>
           
@@ -8885,11 +8889,21 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       <span className="text-xs font-medium text-slate-700 truncate">{submission.student?.name}</span>
                     </div>
                     
-                    {/* Student Comment */}
-                    <div className="col-span-3">
-                      <p className="text-xs text-slate-600 bg-slate-50 px-2 py-2 rounded-lg min-h-[36px] truncate">
-                        {submission.comment || <span className="text-slate-400 italic">Sin comentario</span>}
-                      </p>
+                    {/* Student Comment — rendered as HTML, clamped to 2 lines */}
+                    <div className="col-span-2">
+                      {submission.comment ? (
+                        <div
+                          className="text-xs text-slate-600 bg-slate-50 px-2 py-2 rounded-lg min-h-[36px] overflow-hidden leading-snug [&_p]:m-0 [&_br]:hidden-none"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                          dangerouslySetInnerHTML={{ __html: submission.comment }}
+                        />
+                      ) : (
+                        <p className="text-xs text-slate-400 italic bg-slate-50 px-2 py-2 rounded-lg min-h-[36px]">Sin comentario</p>
+                      )}
                     </div>
                     
                     {/* Status */}
@@ -8966,6 +8980,18 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                         </button>
                       )}
                     </div>
+
+                    {/* View full submission */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <button
+                        onClick={() => setViewingSubmission(submission)}
+                        className="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition-colors active:scale-95"
+                        title="Ver entrega"
+                        data-testid={`view-submission-${submission.id}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 );
               })
@@ -8986,6 +9012,118 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
             >
               Aplicar todas las calificaciones
             </button>
+          </div>
+        )}
+
+        {/* ───── Full Submission Modal ───────────────────────────────── */}
+        {viewingSubmission && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 py-8"
+            onClick={() => setViewingSubmission(null)}
+            data-testid="submission-detail-modal"
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-5 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-3 min-w-0">
+                  {viewingSubmission.student?.photo_url ? (
+                    <img
+                      src={viewingSubmission.student.photo_url}
+                      alt={viewingSubmission.student?.name}
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-white/40 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-base truncate">{viewingSubmission.student?.name || "Estudiante"}</h3>
+                    <p className="text-xs text-white/80 truncate">Entrega · {selectedTask.title}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setViewingSubmission(null)}
+                  className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors active:scale-95"
+                  aria-label="Cerrar"
+                  data-testid="close-submission-modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-5 py-5 overflow-y-auto space-y-4">
+                {/* Status */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                    viewingSubmission.status === 'A tiempo'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {viewingSubmission.status === 'A tiempo' ? 'A TIEMPO' : 'TARDE'}
+                  </span>
+                  {viewingSubmission.submitted_at && (
+                    <span className="text-xs text-slate-500">
+                      Entregado: {new Date(viewingSubmission.submitted_at).toLocaleString('es-PE')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Comment / response */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Respuesta del alumno</p>
+                  {viewingSubmission.comment ? (
+                    <div
+                      className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 leading-relaxed prose prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                      dangerouslySetInnerHTML={{ __html: viewingSubmission.comment }}
+                      data-testid="submission-comment-html"
+                    />
+                  ) : (
+                    <p className="text-sm text-slate-400 italic bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                      El alumno no dejó comentario.
+                    </p>
+                  )}
+                </div>
+
+                {/* Attached file */}
+                {viewingSubmission.file && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Archivo adjunto</p>
+                    <button
+                      onClick={() => handleDownloadSubmissionFile(viewingSubmission)}
+                      disabled={downloadingFile === viewingSubmission.id}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-semibold transition-colors disabled:opacity-70 active:scale-95"
+                      data-testid="submission-file-download"
+                    >
+                      {downloadingFile === viewingSubmission.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Descargando…
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4" />
+                          {viewingSubmission.file_name || viewingSubmission.file || "Ver archivo"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button
+                  onClick={() => setViewingSubmission(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors active:scale-95"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
