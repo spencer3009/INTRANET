@@ -94,7 +94,7 @@ import TeacherPsicologiaPage from "@/pages/TeacherPsicologiaPage";
 import AdminHealthPage from "@/pages/AdminHealthPage";
 import AdminTopicoPage from "@/pages/AdminTopicoPage";
 import AdminPsicologiaPage from "@/pages/AdminPsicologiaPage";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
 import SubscriptionBanner from "@/components/SubscriptionBanner";
@@ -303,6 +303,54 @@ if (!axios.defaults.__pageReqInterceptorInstalled) {
     return config;
   });
   axios.defaults.__pageReqInterceptorInstalled = true;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Auth-expiry interceptor
+// On any 401 response, decode the JWT in localStorage. If its `exp` is in
+// the past (or the token is malformed/missing) we conclude the session
+// has truly expired and fire a single `auth:expired` window event. The
+// App component listens for this event, shows a toast, and logs out.
+// We do NOT auto-logout on 401s that happen while the token is still
+// valid — those indicate a permission problem, not expiry.
+// ──────────────────────────────────────────────────────────────────────────────
+function _isJwtExpired(raw) {
+  if (!raw || typeof raw !== "string") return true;
+  try {
+    const payload = raw.split(".")[1];
+    if (!payload) return true;
+    const decoded = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    if (!decoded || typeof decoded.exp !== "number") return false; // no exp claim → treat as valid
+    return decoded.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+if (!axios.defaults.__authExpiryInterceptorInstalled) {
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      try {
+        const status = error?.response?.status;
+        const url = error?.config?.url || "";
+        // Skip login endpoint — a 401 there is "bad credentials", not expiry
+        const isLoginCall = url.includes("/api/auth/login");
+        if (status === 401 && !isLoginCall) {
+          const localToken = localStorage.getItem("token");
+          if (_isJwtExpired(localToken)) {
+            window.dispatchEvent(new CustomEvent("auth:expired", {
+              detail: { source: "http", status, url }
+            }));
+          }
+        }
+      } catch { /* ignore */ }
+      return Promise.reject(error);
+    }
+  );
+  axios.defaults.__authExpiryInterceptorInstalled = true;
 }
 
 function PageViewTracker() {
@@ -635,6 +683,33 @@ function App() {
       window.location.href = `/${sub}/login`;
     }
   };
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Global session-expiry listener.
+  // Fired by (a) the WebSocket hook when the server rejects the socket with
+  // 1008/4401/4403, or (b) the axios response interceptor when any HTTP call
+  // returns 401 AND the stored JWT is actually expired.
+  // Uses a ref-like guard so overlapping 401s from a burst of parallel calls
+  // only produce ONE toast and ONE redirect.
+  // ────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    let handled = false;
+    const onExpired = () => {
+      if (handled) return;
+      if (!localStorage.getItem("token")) return; // already logged out
+      handled = true;
+      try {
+        toast.error("Tu sesión ha expirado. Por favor inicia sesión nuevamente.");
+      } catch { /* ignore */ }
+      // Small delay so the user actually sees the toast before redirect.
+      setTimeout(() => {
+        try { handleLogout(); } catch { /* ignore */ }
+      }, 600);
+    };
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.subdomain]);
 
   // Refresh user data from backend on mount (picks up photo changes, etc.)
   useEffect(() => {

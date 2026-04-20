@@ -23,6 +23,7 @@ let reconnectTimer = null;
 let pingTimer = null;
 let reconnectAttempts = 0;
 let manualClose = false;
+let authRejected = false;  // true after server rejects WS with 403/1008
 let lastPageView = null;   // { page, requestCount } — resent on every (re)open
 const listeners = new Set();         // Set<(data) => void>
 const statusListeners = new Set();   // Set<(isConnected: boolean) => void>
@@ -83,11 +84,29 @@ function _openSocket(token) {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
     _notifyStatus(false);
     clearInterval(pingTimer);
     pingTimer = null;
     ws = null;
+    // 1008 (Policy Violation) or 4401/4403 => FastAPI rejected the WS
+    // because the JWT is missing/expired/invalid. Do NOT reconnect:
+    // every retry will fail the same way, spamming the backend logs
+    // and masking the real cause.
+    const code = event?.code;
+    const isAuthReject = code === 1008 || code === 4401 || code === 4403;
+    if (isAuthReject) {
+      authRejected = true;
+      manualClose = true;
+      reconnectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      try {
+        window.dispatchEvent(new CustomEvent("auth:expired", {
+          detail: { source: "websocket", code }
+        }));
+      } catch { /* ignore */ }
+      return;
+    }
     if (!manualClose && listeners.size > 0) {
       _scheduleReconnect(currentToken);
     }
@@ -110,6 +129,10 @@ function _scheduleReconnect(token) {
 
 function _ensureConnection(token) {
   if (!token) return;
+  // If we've already been told by the server that this token is invalid,
+  // refuse to try again until closeNotificationSocket() is called (which
+  // happens on login / explicit logout / new token).
+  if (authRejected) return;
   manualClose = false;
   // If socket already open for same token, nothing to do
   if (ws && ws.readyState === WebSocket.OPEN && currentToken === token) return;
@@ -153,6 +176,7 @@ export function sendPageView(pageName, requestCount = 0) {
  */
 export function closeNotificationSocket() {
   manualClose = true;
+  authRejected = false;   // reset so a fresh login can reopen the socket
   lastPageView = null;   // wipe on logout so next user doesn't inherit it
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
