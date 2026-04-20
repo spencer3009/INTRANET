@@ -49,6 +49,7 @@ from services.register_sync import (
     sync_exam_to_register, sync_single_student, retry_pending_syncs,
     sync_to_register, sync_single_student_task,
     COLUMN_FIELD_MAP, VALID_COLUMNS, TASK_VALID_COLUMNS,
+    get_valid_task_columns_for_school,
 )
 
 # ONLINE EXAMS MODULE - Premium Implementation
@@ -294,13 +295,19 @@ async def _validate_register_linkage(
     if not register_column:
         return
 
-    if source_type == "task" and register_column not in TASK_VALID_COLUMNS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Las tareas solo pueden vincularse a P1, P2 o P3"
-        )
-
-    if register_column not in VALID_COLUMNS:
+    if source_type == "task":
+        # Task slots come from the school's active Registro Auxiliar
+        # template (dynamic — not hard-coded P1/P2/P3).
+        valid_task_cols = await get_valid_task_columns_for_school(db, school_id)
+        if register_column not in valid_task_cols:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Esta columna no existe o no está habilitada para tareas en la "
+                    "plantilla activa del Registro Auxiliar."
+                ),
+            )
+    elif register_column not in VALID_COLUMNS:
         raise HTTPException(
             status_code=400,
             detail=f"register_column invalido: {register_column}. Valores validos: {', '.join(sorted(VALID_COLUMNS))}"

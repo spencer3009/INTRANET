@@ -18,7 +18,51 @@ COLUMN_FIELD_MAP = {
 }
 
 VALID_COLUMNS = set(COLUMN_FIELD_MAP.keys())
+# Legacy hard-coded set — kept for backward-compatibility fallback only.
+# Task columns are now resolved dynamically from the school's active
+# Registro Auxiliar template (see `get_valid_task_columns_for_school`).
 TASK_VALID_COLUMNS = {"P1", "P2", "P3"}
+
+
+async def get_valid_task_columns_for_school(db, school_id: str) -> set:
+    """
+    Return the set of register columns a TASK may be linked to, resolved
+    dynamically from the school's ACTIVE Registro Auxiliar template.
+
+    Rule of thumb (mirrors the frontend modal `taskSubcolumnasVinculables`):
+      - Every subcolumna of every criterio that has `tipo == "input"` is
+        valid for tasks.
+      - `columnas_finales` are reserved for EXAMS (EM, EB and similar) and
+        are excluded from tasks.
+
+    Fallback: if the school has no active template, return the legacy
+    hard-coded {P1, P2, P3} so older schools keep working.
+    """
+    try:
+        plantilla = await db.registro_auxiliar_plantillas.find_one(
+            {"school_id": school_id, "estado": "activa"},
+            {"_id": 0, "criterios": 1},
+        )
+        if not plantilla:
+            plantilla = await db.registro_auxiliar_plantillas.find_one(
+                {"es_sistema": True}, {"_id": 0, "criterios": 1}
+            )
+        if not plantilla:
+            return set(TASK_VALID_COLUMNS)
+
+        cols = set()
+        for cri in plantilla.get("criterios", []) or []:
+            for sub in cri.get("subcolumnas", []) or []:
+                if sub.get("tipo") != "input":
+                    continue
+                key = sub.get("field_key") or sub.get("id")
+                if key:
+                    cols.add(key)
+                    cols.add(str(key).upper())  # tolerate 'p1' vs 'P1'
+        return cols or set(TASK_VALID_COLUMNS)
+    except Exception as e:
+        logger.warning(f"[register] dynamic task-columns lookup failed for {school_id}: {e}")
+        return set(TASK_VALID_COLUMNS)
 
 
 def exam_score_to_vigesimal(percentage: float) -> int:

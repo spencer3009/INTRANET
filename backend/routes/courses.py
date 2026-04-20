@@ -35,6 +35,7 @@ import cloudinary.uploader
 from services.register_sync import (
     sync_single_student_task, sync_to_register,
     COLUMN_FIELD_MAP, TASK_VALID_COLUMNS,
+    get_valid_task_columns_for_school,
 )
 
 logger = logging.getLogger(__name__)
@@ -322,8 +323,18 @@ async def create_course_post(
 
         register_column = data.register_column
         if register_column:
-            if register_column not in TASK_VALID_COLUMNS:
-                raise HTTPException(status_code=400, detail="Las tareas solo pueden vincularse a P1, P2 o P3")
+            # Tasks must land on a subcolumna (type "input") of the active
+            # Registro Auxiliar template. Falls back to legacy P1/P2/P3
+            # only if the school has no custom template.
+            valid_task_cols = await get_valid_task_columns_for_school(db, school_id)
+            if register_column not in valid_task_cols:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Esta columna no existe o no está habilitada para tareas en la "
+                        "plantilla activa del Registro Auxiliar."
+                    ),
+                )
             if not resolved_period_id:
                 raise HTTPException(status_code=400, detail="No hay un periodo academico activo. Configure uno en Anos Academicos.")
             # Validate uniqueness via register_column_assignments
