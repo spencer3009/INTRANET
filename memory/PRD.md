@@ -73,6 +73,15 @@ Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + Mongo
 - Soporte Carnet de Extranjería (CE) en pendientes
 - `password_display` / `plain_password` para visualización admin
 
+## Multi-Phase API Loading (Feb 2026)
+Patrón para evitar OOM crashes en backend por ráfagas concurrentes de requests al montar páginas pesadas.
+- **DashboardPage.jsx** (completado): Fase 1 crítica → setTimeout(800ms) → Fase 2 secundaria
+- **AccountingPage.jsx** (completado 20/Abr/2026):
+  - Fase 1 (+0.81s): `settings`, `accounting/summary`, `academic/grades`, `academic/sections`
+  - Delay 800ms
+  - Fase 2 (+1.71s): `users`, `accounting/financial-settings`, `payments`, `expenses`, `debtors`, `period-summary`
+  - Verificado con screenshot tool (timeline de requests confirmado)
+
 ## Prioritized Backlog
 ### P0
 - (COMPLETADO) Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar

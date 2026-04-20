@@ -1,57 +1,67 @@
-<analysis>**original_problem_statement**: Replicar el componente de Horario unificado y expandir módulos del SaaS escolar. Implementar sección Procedencia Académica en el auto-registro. Implementar Sistema de Plantillas de Registro Auxiliar (Fases 1 a 4) para reemplazar notas hardcodeadas. Mejorar la UI de plantillas, solucionar la gestión de contraseñas para padres (DNI vs Aleatorias, soporte para Carnet de Extranjería), y agregar una funcionalidad global para CLONAR actividades (Tareas, Foros, Exámenes, Materiales) hacia otros grados y secciones.
+<analysis>**original_problem_statement**: Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del servidor en producción evitando OOM crashes mediante el escalonamiento de llamadas API, reducción de polling en el frontend y uso eficiente de WebSockets. Implementar monitoreo de salud y tracking de sesiones activas en tiempo real. Corregir vinculación de Exámenes y Tareas para que consuman dinámicamente la plantilla activa del colegio en lugar de valores hardcodeados.
 
 **PRODUCT REQUIREMENTS**:
-- P0: Sistema de Plantillas de Registro Auxiliar (Fase 4: Consumo dinámico y responsive).
-- P0: Clonación de Actividades (Tareas, Foros, Exámenes, Materiales) hacia otros niveles/grados/secciones.
-- P1: Módulo de Gestión de Padres: Asignación masiva de DNI como clave, visibilidad de claves, soporte para Carnet de Extranjería (CE).
+- P0: Optimización de carga en páginas pesadas (, ) dividiendo las llamadas a la API en fases.
+- P0: Conectar dinámicamente las modalidades Nueva Tarea y Nuevo Examen a las plantillas del Registro Auxiliar activo.
+- P1: Módulo de Gestión de Sesiones Activas en el Support Panel (track de página actual y conteo de requests).
+- P1: Health checks públicos () y startup de servidor no bloqueante.
 - P1: Guard global para bloquear servicios a alumnos /.
-- P1: Dashboard Owner con métricas reales.
 - P1: Psicología — Log de auditoría estricto.
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish** to the user).
 
 **what currently exists?**: 
-SaaS escolar (FastAPI + React + MongoDB) con un módulo financiero y de matrículas robusto. El **Sistema de Plantillas de Registro Auxiliar** está 100% completado (Fases 1 a 4), con renderizado dinámico, tabla responsive (), textos de cabecera verticales y UI premium. La gestión de padres permite asignar masivamente el DNI como contraseña, importar desde Excel (usando DNI por defecto) y soportar Carnet de Extranjería en las correcciones de pendientes. Se implementó un robusto sistema de clonación de actividades (Tareas, Foros, Exámenes, Materiales) con un modal en forma de árbol (Nivel → Grado → Sección → Asignatura).
+SaaS escolar (FastAPI + React + MongoDB) en producción. El servidor cuenta con endpoints de health check rápidos (), startup optimizado (tareas pesadas en background) y creación de índices tolerantes a fallos. El frontend utiliza un patrón Singleton para WebSockets y un interceptor de Axios para medir dinámicamente cuántas requests dispara cada página, enviando esta métrica al Support Panel. La página principal del Dashboard ya ha sido optimizada para cargar sus datos en dos fases (800ms de separación). Las tareas y exámenes se vinculan correctamente a los criterios dinámicos de las plantillas del registro auxiliar.
 
 **Last working item**:
-    - Last item agent was working: Integración final del  en las pestañas de Materiales, Foros y Exámenes dentro de , solucionando bugs de scope de React y asegurando que las actividades clonadas hereden el estado  en lugar de .
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use?: Frontend testing via  / Backend via /.
+    - Last item agent was working: Optimizar  para reducir 10 llamadas simultáneas al backend durante el montaje, dividiéndolas en 2 fases con  y 800ms de separación, tal como se hizo en el Dashboard.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Frontend testing agent / mcp_screenshot_tool
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Ningún issue en progreso o bloqueante. Se solucionaron todos los bugs reportados en la sesión.
+  Issue 1: Optimizar AccountingPage.jsx (P0)
+     - Attempted fixes: Se analizó el archivo con  y se identificó  con las 10 llamadas. Queda aplicar el .
+     - Next debug checklist: Modificar  en  para agrupar , , ,  en Fase 1, agregar , y ejecutar el resto (users, financial-settings, loadPayments, loadExpenses, etc.) en Fase 2.
+     - Why fix this issue and what will be achieved with the fix?: Evitará saturar el backend con ráfagas concurrentes (que provocaban OOM crashes y reinicios del contenedor) cuando usuarios entran al módulo de contabilidad.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None
 
 **In progress Task List**:
-  Ninguna tarea en progreso.
+  Task 1: Optimización de AccountingPage.jsx
+     - Where to resume: Aplicar los reemplazos en  para implementar el retraso de 800ms.
+     - What will be achieved with this?: Mejora crítica de estabilidad del servidor.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on something: Ninguno
 
 **Upcoming and Future Tasks**:
     Upcoming Tasks:
     - P1: Guard global para bloquear servicios (asistencia, notas, etc.) a alumnos en estado  o .
-    - P1: Conectar datos reales en las demás cards del Dashboard Owner.
     - P1: Psicología — Log de auditoría estricto.
     
     Future Tasks:
     - P2: Crear módulo de Encuestas.
     - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica:  (>11,000 líneas), .
+    - P2: Refactorización crítica:  (>11,000 líneas). Separar componentes internos.
     - P2: Crear plantilla Adventista para carnets QR.
     - P2: Fase 5 del Registro Auxiliar: almacenamiento dinámico de campos en backend (eliminar restricción de  fijos).
 
 **Completed work in this session**:
-- Feature: Consumo Dinámico en  (Fase 4 de Plantillas de Registro Auxiliar) (DONE).
-- Enhancement: Tabla de Registro Auxiliar responsive con ,  y drag handle (DONE).
-- Enhancement: Texto Vertical en Sub-Headers de Registro Auxiliar y limpieza de Header COL. FINALES (DONE).
-- Bug fix: Generación automática de  inteligente para columnas de plantillas (DONE).
-- Rediseño: Interfaz premium para Ajustes / Registro Auxiliar y Editor de Plantillas con cards, gradientes y modales de vista previa expandida (DONE).
-- Feature: Backend/Frontend para asignar masivamente DNI como clave a Padres (DONE).
-- Bug fix: Mostrar contraseñas () o DNI sugerido en el modal de edición de Padres (DONE).
-- Bug fix: Corrección de importación masiva de Excel de Padres para que asigne DNI como clave por defecto en vez de claves aleatorias (DONE).
-- Feature: Dropdown Tipo de Documento (DNI / Carnet de Extranjería) en el modal de edición de Padres Pendientes (DONE).
-- Feature: Backend endpoints (, ) para clonar actividades (DONE).
-- Feature:  con selector de árbol (Nivel → Grado → Sección → Asignatura) integrado en Tareas, Foros, Materiales y Exámenes (DONE).
-- Bug fix: Actividades clonadas ahora heredan el estado original (/) para que no se oculten como  (DONE).
+- Feature: Vinculación dinámica de Exámenes y Tareas a la Plantilla Activa (renderizado de columnas reales en lugar de EM/EB hardcodeadas) (DONE).
+- Enhancement: Corrección del texto en los badges del Dashboard (cambiado de EXALUMNO a ALUMNO) (DONE).
+- Feature: Endpoints de Monitoreo (, ) y logging granular en el login (DONE).
+- Feature: Soporte - Panel de Sesiones Activas por WebSocket (trackea nombre, colegio, hora de conexión, vista actual y conteo de requests) (DONE).
+- Enhancement: Startup backend no bloqueante. Las tareas pesadas de startup y cron jobs fueron movidas a background tasks () permitiendo que el health check pase inmediatamente (DONE).
+- Bug fix: Prevención de caídas por Mongo Unauthorized (Error 13) usando  (DONE).
+- Enhancement: Patrón Singleton en  para evitar múltiples conexiones WS del mismo usuario (DONE).
+- Enhancement: Reducción del polling frontend agresivo a 60s o eventos disparados por WS (DONE).
+- Bug fix: Escalonamiento en 2 fases de requests en  y componentes globales (, ) (DONE).
+- Enhancement: Interceptor de Axios en  para contar métricas de red reales en cada navegación SPA (DONE).
+- Enhancement: Agregado  para prevenir que caches locales de la BD suban a producción (DONE).
 
 **Earlier issues found/mentioned but not fixed**:
   None.
@@ -65,88 +75,93 @@ SaaS escolar (FastAPI + React + MongoDB) con un módulo financiero y de matrícu
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── courses.py                    # Maneja endpoints de Tareas, Foros, Materiales (clonación)
-│   │   ├── exams.py                      # Maneja endpoints de Exámenes (clonación)
-│   │   ├── parents.py                    # Endpoint importación masiva y asignar DNI como clave
-│   │   ├── users.py                      # Modal y utilidades de contraseñas ()
+│   │   ├── monitoring.py                 # NUEVO: Endpoints públicos 
+│   │   ├── support_monitor.py            # NUEVO: Endpoints soporte ()
+│   │   ├── core.py                       # Refactor: WebSocketManager extendido, 
+│   ├── server.py                         # Startup refactorizado (tareas pesadas pasaron a background)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── GradeBookTab.jsx          # Tabla refactorizada (Responsive, Dinámica, Texto Vertical)
-│   │   │   ├── RegistroAuxiliarPlantillasTab.jsx # UI Premium
-│   │   │   ├── course/
-│   │   │   │   ├── CloneActivityModal.jsx # NUEVO: Modal de clonación tipo árbol
+│   │   ├── App.js                        # NUEVO: Interceptor de Axios para métricas de requests
+│   │   ├── hooks/
+│   │   │   ├── useNotificationSocket.js  # Refactor: Patrón Singleton y 
 │   │   ├── pages/
-│   │   │   ├── PlantillaEditorPage.jsx   # UI Premium, Fix de labels
-│   │   │   ├── UsersPage.jsx             # Funcionalidad y modales de Padres / Pendientes
-│   │   │   ├── CourseDetailPage.jsx      # Integra el CloneActivityModal en todas sus pestañas
+│   │   │   ├── SupportSessionsPage.jsx   # NUEVO: Panel para monitoreo de sesiones
+│   │   │   ├── CourseDetailPage.jsx      # Fix: Modales de vinculación de plantillas (tareas/exámenes)
+│   │   │   ├── DashboardPage.jsx         # Refactor: Multi-fase loading (800ms)
+│   │   │   ├── AccountingPage.jsx        # PENDING: Optimizar en multi-fase loading
 
 **Key Technical Concepts**:
-Consumo dinámico de configuraciones (JSON) para renderizar tablas complejas.  de React para tablas HTML responsivas. Manejo seguro de passwords con hashes usando variables duales ( para Auth,  explícito para visualización admin controlada). Clonación de datos pesados entre colecciones relacionales de MongoDB manipulando llaves foráneas (, ).
+**WebSocket Singleton**: El hook  asegura 1 sola conexión WS activa por cliente. 
+**Multi-Phase API Loading**: Para evitar saturar los pods bajo carga (plan Starter/Grow), las páginas pesadas ejecutan llamadas cruciales en un , luego un delay artificial (), y finalmente las secundarias.
+**Métricas de SPA Routing**:  usa un interceptor de Axios que se resetea al cambiar el , recolectando el total de requests que hace una pantalla durante el primer 1.5s, enviándolo por WS () para diagnóstico en el Support Panel.
+**Tolerancia a fallos DB**: Las creaciones de índices en MongoDB usan un helper que absorbe errores de permisos (), permitiendo el arranque normal si faltan privilegios de Admin.
 
 **key DB schema**:
-  - :  (Contiene Tareas, Materiales, Foros)
-  - : 
-  - : 
+  -  (In Memory - ): 
 
 **changes in tech stack**:
   - None
 
 **All files of reference**:
-  -  (Consumo dinámico, Responsive, Texto vertical)
-  -  (Utilidades creadas de promedios)
-  -  (Rediseño, fix label_corto)
-  -  (Gestión contraseñas de padres, DNI/CE pendientes)
-  -  (NUEVO)
-  -  (Integración de clonación)
-  -  (Endpoint clonación de posts)
-  -  (Endpoint clonación de exámenes)
-  -  (Endpoints de importación y asignar clave)
-  -  (Informe creado solicitado por el usuario)
+  -  (WS Manager extendido, helper de DB)
+  -  (Manejo asíncrono y en background del arranque)
+  -  (Interceptor Axios de recuento de requests)
+  -  (Singleton WS y envío de vista)
+  -  (UI para admin de soporte)
+  -  (Ejemplo implementado de multi-phase loading)
+  -  (Archivo a editar ahora)
 
 **Areas that need refactoring**: 
-  -  es extremadamente grande (más de 11,000 líneas). Componentes internos como , ,  y  están definidos directamente dentro del mismo archivo. Deben separarse en archivos individuales bajo .
+  -  (>11,000 líneas). Prioridad P2 en backlog.
 
 **key api endpoints**:
-  - 
-  - 
-  - 
+  -  y 
   - 
 
 **Critical Info for New Agent**: 
-- **Gestión de contraseñas de Padres**: Para permitir que el admin vea la contraseña generada, los flujos de backend ahora guardan el valor explícito en  y/o . El modal de frontend de UsersPage lee ambos. En los imports masivos, si el padre no trae contraseña, se usa el **DNI** por defecto.
-- **Clonación de Actividades**: El modal  se renderiza internamente en los diferentes sub-componentes de . La estructura del modal utiliza un árbol (Nivel → Grado → Sección → Asignatura) haciendo fetch a .
-- **GradeBookTab Responsive**: Se utiliza un modelo de  que requiere que el cálculo de anchos se realice mediante JS iterando un . No modificar esta lógica a menos que sea estrictamente necesario, ya que maneja los resizes en tiempo real y soluciona el overflow horizontal.
+- **Gestión de Carga**: El backend es propenso a crashear por *Out of Memory (OOM)* si recibe decenas de peticiones simultáneas desde el mismo cliente al montarse un Dashboard masivo. Es CRÍTICO implementar el escalonamiento de promesas (Phase 1 ->  -> Phase 2) en páginas pesadas.
+- **Cache de MongoDB descartado**: Hubo un intento de usar  que falló en producción; esto ya se descartó y se añadió al .
+- **Health Checks**: El servidor de FastAPI debe registrar el  y los  de inmediato para superar los deployments en Kubernetes. Cualquier carga pesada de startup (ej. sincronizar datos masivos) debe envolverse en  al final del evento startup.
 
 **documents and test reports created in this job**: 
-  -  (Actualizado)
-  -  (NUEVO: Reporte solicitado por usuario)
+  -  (no cambiado estructuralmente pero utilizado para pruebas).
+  - Multiples reportes temporales en JSON para pruebas locales de frontend/backend de Emergent, todos con código de salida OK.
 
 **Last 10 User Messages and any pending HUMAN messages**: 
- - [User] Reportó que al usar la herramienta de clonación hacia 3 años A, Educación Cívica, no aparecían las tareas en la UI.
- - [Agent] Investigó la base de datos y descubrió que los clones se estaban guardando con estado .
- - [Agent] Modificó el backend para que el clon herede el estado de la actividad original ( o ) y actualizó los registros existentes en BD mediante bash.
- - [User] Solicitó crear un informe completo (documento .md) de todo el trabajo de clonación realizado.
- - [Agent] Creó el documento 
- - [User] Reportó que el modal de clonación no mostraba los niveles/grados en la pestaña Materiales, indicando que fallaban también en Foros y Exámenes.
- - [Agent] Descubrió que el componente  y sus correspondientes states y handlers no habían sido integrados en los sub-componentes internos de Foros, Exámenes y Materiales dentro de . Los agregó a todos, pasando los props necesarios.
- - [Agent] Verificó el funcionamiento en las pestañas restantes mediante .
- - *Pending Human Message*: (Ninguno, todo quedó funcionando y validado en el último screenshot del Agente).
+ 1. [User] Solicitó implementar el tracking de página actual en las sesiones de Support, enviándolo vía WS desde React.
+ 2. [Agent] Implementó la lógica en  y .
+ 3. [User] Pidió refinar agregando indicador de llamadas API simultáneas (hardcodeando un mapa de rutas) con semáforos de color.
+ 4. [Agent] Implementó el map hardcodeado y colores (verde, amarillo, rojo).
+ 5. [User] Reportó Bug: no se enviaba el evento de page_view al navegar, las variables quedaban en 0.
+ 6. [Agent] Arregló el race condition enviando el page_view luego de que el WS alcance estado OPEN.
+ 7. [User] Pidió reemplazar el mapa estático por un interceptor de Axios real que cuente en vivo los requests y espere 1500ms al cambiar de ruta.
+ 8. [Agent] Reemplazó  con un interceptor dinámico en .
+ 9. [User] Solicitó la optimización de carga para  escalonando 10 llamadas a 2 fases con un  de 800ms.
+ 10. *Pending Human Message*: El agente ejecutó el bash para encontrar las líneas en  pero falta implementar el cambio.
 
 **Project Health Check**:
-Healthy. E2E extensivo realizado en backend/frontend para flujos complejos de clonación y layouts dinámicos.
+Healthy. Frontend y Backend han sido sustancialmente estabilizados, logrando que el backend ya no experimente timeouts de 180s en los deploys y soportando navegación rápida gracias al refactor de requests.
 
 **3rd Party Integrations**: 
-  - Ninguna modificada en esta iteración. (Las existentes usan User Keys).
+  - Mismas que la iteración previa (Firebase, Cloudinary). No hubo agregados externos en esta sesión.
 
 **Testing status**:
-  - Testing agent used after significant changes: NO (Pruebas robustas manuales usando scripting en Python y ).
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+  - Testing agent used after significant changes: YES (Deployment agent se usó, no testing de features).
+  - Troubleshoot agent used after agent stuck in loop: NO (Support subagent fue usado como consultor experto de infraestructura).
+  - Test files created: Archivos temporales de test .
+  - Known regressions: Ninguna.
 
 **Credentials to test flow**:
-  Consultar . (Admin: , Owner: ).
+  Consultar . (Admin: , Support Global: ).
 
 **What agent forgot to execute**:
-El agente implementó exitosamente todos los requerimientos solicitados (Fase 4, rediseños, contraseñas de padres y modulo completo de clonación). No hay omisiones documentadas.</analysis>
+El agente hizo el  de  pero finalizó el turno antes de aplicar la separación de la Fase 1 y Fase 2 con el delay de 800ms. Esa es la primera tarea a ejecutar.
+
+**Debugging checklist for current issue**
+    Issue: Optimizar loadInitialData en AccountingPage.jsx dividiéndolo en 2 fases con Promise.all.
+
+    Frontend files to check: 
+     (Líneas ~2460 en adelante)
+    1. Agrupar , , ,  en un primer .
+    2. Agregar 
+    3. Ejecutar los load secundarios (, , , ) y la obtención de  en la segunda fase.</analysis>

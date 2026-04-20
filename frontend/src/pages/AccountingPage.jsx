@@ -2462,23 +2462,38 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, gradesRes, sectionsRes, usersRes, summaryRes, finSettingsRes] = await Promise.all([
+      // ============================================================
+      // FASE 1: Datos críticos para renderizar la UI (4 llamadas)
+      // ============================================================
+      const [settingsRes, summaryRes, gradesRes, sectionsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }),
-        axios.get(`${API}/academic/grades`, { headers }),
-        axios.get(`${API}/academic/sections`, { headers }),
-        axios.get(`${API}/users`, { headers }),
         axios.get(`${API}/accounting/summary`, { headers }),
-        axios.get(`${API}/accounting/financial-settings`, { headers }).catch(() => null)
+        axios.get(`${API}/academic/grades`, { headers }),
+        axios.get(`${API}/academic/sections`, { headers })
       ]);
-      
+
       setSettings(settingsRes.data);
+      setSummary(summaryRes.data);
       setGrades(gradesRes.data.filter(g => g.activo));
       setSections(sectionsRes.data.filter(s => s.activo));
+
+      // Permite al backend respirar antes de disparar la Fase 2
+      await new Promise(r => setTimeout(r, 800));
+
+      // ============================================================
+      // FASE 2: Datos secundarios (6 llamadas)
+      // ============================================================
+      const [usersRes, finSettingsRes] = await Promise.all([
+        axios.get(`${API}/users`, { headers }),
+        axios.get(`${API}/accounting/financial-settings`, { headers }).catch(() => null),
+        loadPayments(),
+        loadExpenses(),
+        loadDebtors(),
+        loadPeriodSummary(dateFrom, dateTo)
+      ]);
+
       setStudents(usersRes.data.filter(u => u.role === "student"));
-      setSummary(summaryRes.data);
       if (finSettingsRes) setFinancialSettings(finSettingsRes.data);
-      
-      await Promise.all([loadPayments(), loadExpenses(), loadDebtors(), loadPeriodSummary(dateFrom, dateTo)]);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {

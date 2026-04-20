@@ -91,7 +91,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://auditoria-psicologia.preview.emergentagent.com",
+        "https://server-stability-hub.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
