@@ -3973,16 +3973,39 @@ async def close_expired_tasks_cron():
             now = datetime.now(timezone.utc)
             now_iso = now.isoformat()
 
-            # Find active tasks whose due_date has passed
-            expired_tasks = await db.course_posts.find(
+            # Find active tasks with a due_date set. We do NOT filter by
+            # `due_date <= now_iso` in Mongo any more: that comparison was
+            # lexicographic on the raw string, which is WRONG for documents
+            # with mixed timezone offsets (e.g. "2026-04-20T23:59:00-05:00"
+            # sorts BEFORE "2026-04-21T04:00:00+00:00" alphabetically even
+            # though cronologically the first is LATER). We parse each
+            # due_date into an aware datetime and compare against `now`.
+            candidates = await db.course_posts.find(
                 {
                     "$or": [{"post_type": "task"}, {"type": "task"}],
                     "status": "active",
-                    "due_date": {"$lte": now_iso},
+                    "due_date": {"$exists": True, "$ne": None},
                     "deleted_at": {"$exists": False},
                 },
-                {"_id": 0}
-            ).to_list(100)
+                {"_id": 0},
+            ).to_list(1000)
+
+            expired_tasks = []
+            for task in candidates:
+                raw = task.get("due_date")
+                try:
+                    deadline = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                    if deadline.tzinfo is None:
+                        # Assume UTC for naive timestamps (legacy docs)
+                        deadline = deadline.replace(tzinfo=timezone.utc)
+                    if deadline <= now:
+                        expired_tasks.append(task)
+                except Exception as e:
+                    logger.warning(
+                        f"[TASK-CRON] skipping task {task.get('id')}: "
+                        f"invalid due_date={raw!r} ({e})"
+                    )
+                    continue
 
             for task in expired_tasks:
                 task_id = task["id"]

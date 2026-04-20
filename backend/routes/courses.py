@@ -304,9 +304,20 @@ async def create_course_post(
     # Store metadata for tasks (due_date, delivery_type, points, etc.)
     if data.metadata:
         post["metadata"] = data.metadata
-        # Also store due_date at root level for easier querying
+        # Also store due_date at root level for easier querying.
+        # IMPORTANT: normalise to UTC-Z so the close-expired cron can
+        # compare documents with mixed timezone offsets via a simple
+        # string comparison (all documents share the same "...Z" format).
         if data.post_type == "task" and data.metadata.get("due_date"):
-            post["due_date"] = data.metadata["due_date"]
+            due_raw = data.metadata["due_date"]
+            try:
+                dt = datetime.fromisoformat(str(due_raw).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                due_utc_iso = dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+                post["due_date"] = due_utc_iso
+            except Exception:
+                post["due_date"] = due_raw
         if data.post_type == "task" and data.metadata.get("points"):
             post["max_grade"] = data.metadata["points"]
     
