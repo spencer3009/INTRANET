@@ -56,6 +56,13 @@ async def get_valid_task_columns_for_school(db, school_id: str) -> set:
                     out.add(key)
                     out.add(str(key).upper())
                     out.add(str(key).lower())
+                # Also accept the visible label (frontend occasionally sends
+                # `label` instead of `id` as register_column — e.g. "R2", "CO").
+                label = sub.get("label")
+                if label:
+                    out.add(label)
+                    out.add(str(label).upper())
+                    out.add(str(label).lower())
         return out
 
     try:
