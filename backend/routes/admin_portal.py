@@ -553,11 +553,23 @@ async def submit_task(
         except (ValueError, TypeError):
             pass  # If date parsing fails, allow submission
     
-    # Check if already submitted
-    existing = task.get("submissions", [])
-    for sub in existing:
+    # Check if already submitted — allow replacing the existing
+    # submission while the task is still open and NOT yet graded. This
+    # lets students fix mistakes before the deadline. Once the teacher
+    # assigns a grade, the submission is locked.
+    existing_submission = None
+    existing_index = None
+    for idx, sub in enumerate(task.get("submissions", []) or []):
         if sub.get("student_id") == student_id:
-            raise HTTPException(status_code=400, detail="Ya has entregado esta tarea")
+            existing_submission = sub
+            existing_index = idx
+            break
+
+    if existing_submission and existing_submission.get("grade") is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Tu entrega ya fue calificada y no puede modificarse",
+        )
     
     # Validate that at least one of text or file is provided
     if not text_content and not file:
@@ -654,9 +666,12 @@ async def submit_task(
     
     now = datetime.now(timezone.utc).isoformat()
     
-    # Create submission object
+    # Create submission object — reuse the previous submission id when
+    # replacing so that any download links remembered by the student
+    # (and the auditable history kept by the teacher's view) stay
+    # stable.
     submission = {
-        "id": str(uuid.uuid4()),
+        "id": (existing_submission or {}).get("id") or str(uuid.uuid4()),
         "student_id": student_id,
         "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
         "text_content": text_content,
@@ -670,16 +685,25 @@ async def submit_task(
         "feedback": None
     }
     
-    # Add submission to task
-    await db.course_posts.update_one(
-        {"id": task_id},
-        {"$push": {"submissions": submission}}
-    )
+    # Add or replace submission in the embedded array.
+    if existing_submission is not None:
+        await db.course_posts.update_one(
+            {"id": task_id},
+            {"$set": {f"submissions.{existing_index}": submission}}
+        )
+        message = "Entrega actualizada exitosamente"
+    else:
+        await db.course_posts.update_one(
+            {"id": task_id},
+            {"$push": {"submissions": submission}}
+        )
+        message = "Tarea entregada exitosamente"
     
     return {
-        "message": "Tarea entregada exitosamente",
+        "message": message,
         "submission_id": submission["id"],
-        "storage_type": storage_type
+        "storage_type": storage_type,
+        "replaced": existing_submission is not None,
     }
 
 
