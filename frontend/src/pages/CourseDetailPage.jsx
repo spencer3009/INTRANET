@@ -9181,6 +9181,21 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     <p className="text-blue-100 text-sm">{levelName} • {gradeName}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Direct action: Ver entregas (prominent — users missed the hidden menu) */}
+                    <button
+                      onClick={handleViewSubmissions}
+                      className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-white text-blue-700 font-semibold text-sm shadow-sm hover:bg-blue-50 active:scale-95 transition-all"
+                      data-testid="open-submissions-btn"
+                      title="Ver entregas de esta tarea"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Ver entregas</span>
+                      {(selectedTask.submissions_count ?? 0) > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-blue-600 text-white text-[11px] font-bold">
+                          {selectedTask.submissions_count}
+                        </span>
+                      )}
+                    </button>
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                       <PenTool className="w-5 h-5 text-white" />
                     </div>
