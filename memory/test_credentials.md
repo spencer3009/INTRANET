@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://server-stability-hub.preview.emergentagent.com/elroble/login
+- Login URL: https://student-grades-fix.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu

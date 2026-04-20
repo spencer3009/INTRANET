@@ -1,96 +1,53 @@
-# PRD — EduNet (Colegio El Roble)
+# PRD - SaaS Escolar (INTRANET)
 
 ## Original Problem Statement
-Sistema de gestion escolar full-stack SaaS multi-tenant (FastAPI + React + MongoDB).
+Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del servidor en producción evitando OOM crashes mediante el escalonamiento de llamadas API, reducción de polling en el frontend y uso eficiente de WebSockets. Implementar monitoreo de salud y tracking de sesiones activas en tiempo real. Corregir vinculación de Exámenes y Tareas para que consuman dinámicamente la plantilla activa del colegio en lugar de valores hardcodeados.
 
-## Sistema de Plantillas de Registro Auxiliar
+## Stack
+- Backend: FastAPI + MongoDB (Motor)
+- Frontend: React
+- Auth: JWT custom
 
-### Fase 1 — Backend (COMPLETO, 8 endpoints smoke-tested)
-- Archivo: `/app/backend/routes/registro_auxiliar_plantillas.py`
-- Seed: plantilla del sistema ejecuta en startup
-- Endpoints: GET list, GET by id, POST create, POST clone, PUT update, PATCH estado, PATCH predeterminada, DELETE
+## User's Preferred Language
+Spanish (responder siempre al usuario en Español).
 
-### Fase 2 — Frontend Gestor (COMPLETO)
-- Archivo: `/app/frontend/src/components/RegistroAuxiliarPlantillasTab.jsx`
-- Tab "Registro Auxiliar" en Ajustes, cards de plantillas, preview modal
-- Permisos: admin/director/owner en `/app/frontend/src/lib/permissions.js`
+## Core Requirements
+- P0: Optimización de carga en páginas pesadas (Dashboard, Accounting) con multi-phase load.
+- P0: Conectar dinámicamente "Nueva Tarea" y "Nuevo Examen" con las plantillas del Registro Auxiliar activo.
+- P1: Gestión de Sesiones Activas en Support Panel (WS tracking de página, asignatura, grado).
+- P1: Health checks públicos (/api/health) + startup no bloqueante.
+- P1: Guard global para bloquear servicios a alumnos pending/rejected.
+- P1: Psicología — Log de auditoría estricto.
 
-### Fase 3 — Editor de Plantilla (COMPLETO)
-- Archivo: `/app/frontend/src/pages/PlantillaEditorPage.jsx`
-- Rutas: `/:subdomain/settings/registro-auxiliar/editor/:plantillaId` y `/nueva`
-- Features: criterios editables, subcolumnas, reorden, color picker, preview tiempo real, desglose de ponderación, indicador de suma, autoguardado 30s, guardar borrador, activar
+## Test Credentials
+Ver `/app/memory/test_credentials.md`.
 
-### Fase 3.5 — Botón Clonar Subcolumna en Editor (COMPLETO)
-- Archivo: `/app/frontend/src/pages/PlantillaEditorPage.jsx`
-- Botón clonar (icono Copy) en cada fila de subcolumna, entre tipo y eliminar
-- Inserción posicional (debajo de la original), normalización de orden, auto-focus en label
+## Completed (latest session)
+- [2026-02] `student_portal.py`: `/api/student/tasks` y `/api/student/dashboard` migrados al array embebido `course_posts.submissions`. Eliminadas queries a la colección obsoleta `db.task_submissions`.
+- Validación E2E con curl: estados `pending`, `submitted`, `graded`, `late` funcionan correctamente.
 
-### Fase 3.6 — Simplificación Columnas Finales + Modal Preview (COMPLETO)
-- Eliminado campo label_corto editable del editor (auto-generado desde label)
-- Modal de vista previa expandida (90vw x 85vh) con tabla completa + footer con suma
-
-### Fase 4 — Consumo Dinámico (COMPLETO)
-- Archivo creado: `/app/frontend/src/utils/registroAuxiliarUtils.js`
-  - PLANTILLA_SISTEMA_FALLBACK, assignFieldKeys, calcularPromedioBimestral, calcularPromedioCriterio
-- Archivo refactorizado: `/app/frontend/src/components/GradeBookTab.jsx`
-  - Fetch de plantilla activa/predeterminada del colegio al montar
-  - Render dinámico de criterios, subcolumnas, columnas finales desde plantilla
-  - Cálculo de promedios usando pesos de la plantilla
-  - Fallback a PLANTILLA_SISTEMA_FALLBACK si no hay plantilla activa
-  - Indicador "Plantilla: {nombre}" en el header
-  - Guardado de notas compatible con GRADE_SUB_FIELDS del backend (positional mapping)
-
-## Key Files
-- `/app/backend/routes/registro_auxiliar_plantillas.py`
-- `/app/frontend/src/components/RegistroAuxiliarPlantillasTab.jsx`
-- `/app/frontend/src/pages/PlantillaEditorPage.jsx`
-- `/app/frontend/src/pages/SettingsPage.jsx` (tabs General/RA)
-- `/app/frontend/src/components/GradeBookTab.jsx` (Fase 4 target)
-
-## Contabilidad (sesión anterior)
-- Auto-eliminación cuotas pendientes al registrar ingreso
-- Cálculo de mora sobre pension_mensual base (350)
-- Pagos Yape en listado de Ingresos con modal validación
-- Portal padre con mora visible
-
-## Clonación de Actividades (COMPLETO - Feb 2026, validado por testing agent)
-- Backend: `POST /api/course/posts/{post_id}/clonar` (Foros, Materiales, Tareas) en `/app/backend/routes/courses.py`
-- Backend: `POST /api/exams/{exam_id}/clonar` en `/app/backend/routes/exams.py`
-- Frontend: `/app/frontend/src/components/course/CloneActivityModal.jsx` (modal árbol Nivel→Grado→Sección→Asignatura)
-- Integrado en `/app/frontend/src/pages/CourseDetailPage.jsx` (pestañas Tareas, Foros, Materiales, Exámenes)
-- Respuesta: `{clonados: int, errores: []}`. Clones heredan status original (active/published, NO draft).
-- Testing: 13/13 backend tests PASSED, frontend OK en todas las pestañas (iteración 134)
-- Test file: `/app/backend/tests/test_clone_activities.py`
-
-## Monitoreo & Tracking en tiempo real (Feb 2026)
-- `GET /api/health` y `GET /api/health/db` (públicos, sin auth) — `/app/backend/routes/monitoring.py`
-- Logs granulares en `/api/auth/login`: `[LOGIN] START|DB QUERY|SUCCESS|ERROR` con clasificación `timeout|connection|other`
-- `GET /api/support/active-sessions` (solo `system_admin_global`) — tracking en memoria de WebSockets activas
-- `ConnectionManager` extendido en `/app/backend/routes/core.py` con `active_sessions` dict
-- Página `/support/sessions` en Support Panel con polling cada 30s, cards de métricas y tabla agrupada por colegio
-- Asignación masiva DNI como clave (`/api/admin/padres/asignar-clave-dni`)
-- Import Excel usa DNI por defecto si no hay contraseña
-- Soporte Carnet de Extranjería (CE) en pendientes
-- `password_display` / `plain_password` para visualización admin
-
-## Multi-Phase API Loading (Feb 2026)
-Patrón para evitar OOM crashes en backend por ráfagas concurrentes de requests al montar páginas pesadas.
-- **DashboardPage.jsx** (completado): Fase 1 crítica → setTimeout(800ms) → Fase 2 secundaria
-- **AccountingPage.jsx** (completado 20/Abr/2026):
-  - Fase 1 (+0.81s): `settings`, `accounting/summary`, `academic/grades`, `academic/sections`
-  - Delay 800ms
-  - Fase 2 (+1.71s): `users`, `accounting/financial-settings`, `payments`, `expenses`, `debtors`, `period-summary`
-  - Verificado con screenshot tool (timeline de requests confirmado)
-
-## Prioritized Backlog
-### P0
-- (COMPLETADO) Fase 4: Consumo Dinámico de Plantillas en Registro Auxiliar
-- (COMPLETADO) Clonación de Actividades (Tareas, Foros, Materiales, Exámenes)
-
+## Roadmap
 ### P1
-- Guard global alumnos pending/rejected
-- Dashboard Owner métricas reales
-- Psicología — Log de auditoría
+- Guard global para alumnos pending/rejected (bloquear asistencia, notas).
+- Psicología — Log de auditoría estricto.
 
 ### P2
-- Módulo Encuestas, Optimización rendimiento, Refactorización CourseDetailPage.jsx (>11000 líneas), Plantilla Adventista, Fase 5 Registro Auxiliar (almacenamiento dinámico backend)
+- Módulo de Encuestas.
+- Optimización de carga de exámenes masivos (3000 alumnos).
+- Refactor `CourseDetailPage.jsx` (>11k líneas).
+- Plantilla "Adventista" para carnets QR.
+- Fase 5 Registro Auxiliar: storage dinámico en `student_grades` (eliminar `COLUMN_FIELD_MAP` fijo).
+
+### P3
+- Fix `max_grade` en `courses.py` (actualmente requiere `metadata.points`).
+- Revisar otros crons por bugs de timezone lexicográficos.
+
+## Key Technical Concepts
+- **Array embebido de entregas**: `course_posts.submissions` es la única fuente de verdad. NO usar `db.task_submissions`.
+- **Timezone-aware Crons**: usar `datetime.fromisoformat()` para comparaciones; normalizar `due_date` a UTC Z.
+- **Validación tolerante de columnas**: labels (R1, SEM1) y UUIDs aceptados en `register_sync.py`.
+
+## Critical Warnings
+- La colección `db.task_submissions` está **obsoleta**. Toda lógica de entregas debe leer/escribir en `course_posts.submissions`.
+- Nunca comparaciones lexicográficas `{"$lte": now_iso}` sin garantizar UTC Z.
+- El agente no tiene acceso a la BD de producción real (ej. "IEP MI BUEN PASTOR"), solo seeds locales.

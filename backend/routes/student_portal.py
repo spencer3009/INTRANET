@@ -346,23 +346,37 @@ async def get_student_tasks(
     ).to_list(100)
     subjects_map = {s["id"]: s for s in subjects}
     
-    # BATCH QUERY 2: Get ALL tasks for these subjects
+    # BATCH QUERY 2: Get ALL tasks for these subjects (including their
+    # embedded `submissions` array — that's the single source of truth
+    # populated by the submit flow in admin_portal.py).
     raw_tasks = await db.course_posts.find({
         "school_id": school_id,
         "subject_id": {"$in": subject_ids},
         "$or": [{"type": "task"}, {"post_type": "task"}]
-    }, {"_id": 0, "id": 1, "title": 1, "content": 1, "description": 1, "due_date": 1, "created_at": 1, "subject_id": 1, "metadata": 1}).to_list(500)
-    
-    # BATCH QUERY 3: Get student's submissions
-    task_ids = [t.get("id") for t in raw_tasks if t.get("id")]
-    submissions = []
-    if task_ids:
-        submissions = await db.task_submissions.find({
-            "school_id": school_id,
-            "student_id": student_id,
-            "task_id": {"$in": task_ids}
-        }, {"_id": 0, "task_id": 1, "id": 1, "submitted_at": 1, "grade": 1, "feedback": 1}).to_list(500)
-    submissions_map = {s["task_id"]: s for s in submissions}
+    }, {
+        "_id": 0, "id": 1, "title": 1, "content": 1, "description": 1,
+        "due_date": 1, "created_at": 1, "subject_id": 1, "metadata": 1,
+        "submissions": 1,
+    }).to_list(500)
+
+    # Build a map {task_id -> this student's submission} from the embedded
+    # array. The legacy `db.task_submissions` collection is NOT populated by
+    # the submit flow, so querying it always returned nothing — which made
+    # every task appear as "Pendiente"/"Atrasada" even after the student
+    # submitted. Reading from the embedded array keeps this endpoint aligned
+    # with the teacher grading view and the submissions_count in the tasks
+    # list.
+    submissions_map = {}
+    for t in raw_tasks:
+        for sub in (t.get("submissions") or []):
+            if sub.get("student_id") == student_id:
+                submissions_map[t.get("id")] = {
+                    "id": sub.get("id"),
+                    "submitted_at": sub.get("submitted_at"),
+                    "grade": sub.get("grade"),
+                    "feedback": sub.get("feedback"),
+                }
+                break
     
     # Process tasks with status
     now = datetime.now(timezone.utc)
@@ -579,29 +593,13 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()}
         }, {"_id": 0}).sort("due_date", 1).to_list(50)
         
-        # Get all task IDs to check submissions in task_submissions collection
-        task_ids = [t.get("id") for t in tasks if t.get("id")]
-        submitted_task_ids = set()
-        
-        # Check task_submissions collection (primary)
-        if task_ids:
-            submitted_tasks = await db.task_submissions.find({
-                "school_id": school_id,
-                "student_id": user["id"],
-                "task_id": {"$in": task_ids}
-            }, {"_id": 0, "task_id": 1}).to_list(100)
-            submitted_task_ids = set(s["task_id"] for s in submitted_tasks)
-        
+        # Single source of truth: embedded `course_posts.submissions` array.
+        # The legacy `db.task_submissions` collection is no longer populated
+        # by the submit flow, so we check the embedded array only (same
+        # approach as GET /api/student/tasks).
         for task in tasks:
             task_id = task.get("id")
-            
-            # Check if student has already submitted this task
-            # First check task_submissions collection
-            if task_id in submitted_task_ids:
-                continue
-                
-            # Also check embedded submissions array for backwards compatibility
-            submissions = task.get("submissions", [])
+            submissions = task.get("submissions", []) or []
             student_submitted = any(s.get("student_id") == user["id"] for s in submissions)
             
             # Only show tasks that haven't been submitted

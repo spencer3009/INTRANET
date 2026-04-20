@@ -10,158 +10,158 @@
 
 **User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. Respond exclusively in **Spanish** to the user).
 
-**what currently exists?**: 
-SaaS escolar (FastAPI + React + MongoDB) en producción. El servidor cuenta con endpoints de health check rápidos (), startup optimizado (tareas pesadas en background) y creación de índices tolerantes a fallos. El frontend utiliza un patrón Singleton para WebSockets y un interceptor de Axios para medir dinámicamente cuántas requests dispara cada página, enviando esta métrica al Support Panel. La página principal del Dashboard ya ha sido optimizada para cargar sus datos en dos fases (800ms de separación). Las tareas y exámenes se vinculan correctamente a los criterios dinámicos de las plantillas del registro auxiliar.
+**what currently exists?**:
+SaaS escolar (FastAPI + React + MongoDB) en producción. El backend implementa WebSockets optimizados y multi-phase API loading (Dashboard, Contabilidad). El panel de soporte monitorea sesiones en tiempo real (ahora responsive y con tracking de asignatura/grado). Se ha unificado la lectura de entregas de tareas al array embebido  en lugar de colecciones separadas. El sistema de Registro Auxiliar valida dinámicamente las columnas contra plantillas customizadas del colegio y plantillas fallback, con mapeo de notas robusto. Crons de cierre automático corregidos para manejo seguro de Timezones.
 
 **Last working item**:
-    - Last item agent was working: Optimizar  para reducir 10 llamadas simultáneas al backend durante el montaje, dividiéndolas en 2 fases con  y 800ms de separación, tal como se hizo en el Dashboard.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use?: Frontend testing agent / mcp_screenshot_tool
-    - User Testing Done: N
+- Last item agent was working: Corregir el estado de las tareas (Pendiente, Entregada, Calificada) en el portal del alumno (). El endpoint leía de la colección obsoleta  en lugar del array embebido .
+- Status: TESTING PENDING
+- Agent Testing Done: N (Se aplicó el  pero el turno terminó antes de testear este último cambio en específico).
+- Which testing method agent to use?: backend testing agent / manual testing by curl
+- User Testing Done: N
 
-**All Pending/In progress Issue list**: 
-  Issue 1: Optimizar AccountingPage.jsx (P0)
-     - Attempted fixes: Se analizó el archivo con  y se identificó  con las 10 llamadas. Queda aplicar el .
-     - Next debug checklist: Modificar  en  para agrupar , , ,  en Fase 1, agregar , y ejecutar el resto (users, financial-settings, loadPayments, loadExpenses, etc.) en Fase 2.
-     - Why fix this issue and what will be achieved with the fix?: Evitará saturar el backend con ráfagas concurrentes (que provocaban OOM crashes y reinicios del contenedor) cuando usuarios entran al módulo de contabilidad.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None
+**All Pending/In progress Issue list**:
+- Issue 1: Validar el fix de los badges de estado en el portal del alumno.
+  - Attempted fixes: Se reemplazó la consulta a  por una agregación iterativa sobre  en .
+  - Next debug checklist: Usar curl contra  logueado como alumno para verificar que las tareas devuelvan el status correcto (, , , ).
+  - Why fix this issue and what will be achieved with the fix?: Garantiza que los estudiantes vean correctamente si entregaron una tarea o si ya fue calificada.
+  - Status: TESTING PENDING
+  - Is recurring issue? N
+  - Should Test frontend/backend/both after fix?: backend
+
+- Issue 2: Guardar en GitHub repo INTRANET.
+  - Attempted fixes: El usuario solicitó hacer deploy al repo INTRANET varias veces. Esto debe hacerse vía la UI Save to Github del chat.
+  - Next debug checklist: Recordar al usuario que debe utilizar el botón Save to Github seleccionando el repositorio INTRANET para hacer efectivos los cambios en producción.
+  - Status: USER VERIFICATION PENDING
+  - Is recurring issue? N
 
 **In progress Task List**:
-  Task 1: Optimización de AccountingPage.jsx
-     - Where to resume: Aplicar los reemplazos en  para implementar el retraso de 800ms.
-     - What will be achieved with this?: Mejora crítica de estabilidad del servidor.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on something: Ninguno
+None.
 
 **Upcoming and Future Tasks**:
-    Upcoming Tasks:
-    - P1: Guard global para bloquear servicios (asistencia, notas, etc.) a alumnos en estado  o .
-    - P1: Psicología — Log de auditoría estricto.
-    
-    Future Tasks:
-    - P2: Crear módulo de Encuestas.
-    - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica:  (>11,000 líneas). Separar componentes internos.
-    - P2: Crear plantilla Adventista para carnets QR.
-    - P2: Fase 5 del Registro Auxiliar: almacenamiento dinámico de campos en backend (eliminar restricción de  fijos).
+- P1: Guard global para bloquear servicios (asistencia, notas, etc.) a alumnos en estado  o .
+- P1: Psicología — Log de auditoría estricto.
+- P2: Crear módulo de Encuestas.
+- P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
+- P2: Refactorización crítica:  (>11,000 líneas). Separar componentes internos.
+- P2: Crear plantilla Adventista para carnets QR.
+- P2: Fase 5 del Registro Auxiliar: almacenamiento dinámico de campos en backend (eliminar restricción de  fijos en  para soportar completamente plantillas custom).
+- P3 (Opcional sugerido): Inconsistencia en  (creación de tarea) donde  enviado en root no se guarda, requiere estar en .
+- P3 (Opcional sugerido): Revisar otros cron jobs en backend para prevenir bugs similares de comparación lexicográfica de timezones (como el arreglado en ).
 
 **Completed work in this session**:
-- Feature: Vinculación dinámica de Exámenes y Tareas a la Plantilla Activa (renderizado de columnas reales en lugar de EM/EB hardcodeadas) (DONE).
-- Enhancement: Corrección del texto en los badges del Dashboard (cambiado de EXALUMNO a ALUMNO) (DONE).
-- Feature: Endpoints de Monitoreo (, ) y logging granular en el login (DONE).
-- Feature: Soporte - Panel de Sesiones Activas por WebSocket (trackea nombre, colegio, hora de conexión, vista actual y conteo de requests) (DONE).
-- Enhancement: Startup backend no bloqueante. Las tareas pesadas de startup y cron jobs fueron movidas a background tasks () permitiendo que el health check pase inmediatamente (DONE).
-- Bug fix: Prevención de caídas por Mongo Unauthorized (Error 13) usando  (DONE).
-- Enhancement: Patrón Singleton en  para evitar múltiples conexiones WS del mismo usuario (DONE).
-- Enhancement: Reducción del polling frontend agresivo a 60s o eventos disparados por WS (DONE).
-- Bug fix: Escalonamiento en 2 fases de requests en  y componentes globales (, ) (DONE).
-- Enhancement: Interceptor de Axios en  para contar métricas de red reales en cada navegación SPA (DONE).
-- Enhancement: Agregado  para prevenir que caches locales de la BD suban a producción (DONE).
+- Optimización  dividiendo las peticiones en 2 fases con 800ms de separación (DONE).
+- Fix bug:  en  (DONE).
+- Mejora de UI:  ahora es responsive tipo app móvil con grid cards (DONE).
+- Fix bug Auth: Loop infinito cuando expira el token JWT. Se añadió interceptor global en  para logout automático (DONE).
+- Enhancement: Panel de soporte ahora muestra curso, grado y sección detallada del alumno trackeado (DONE).
+- Fix bug:  en  (DONE).
+- Fix bug: Contador de Entregas en lista de tareas mostraba 0. Se migró la consulta de  al array embebido  (DONE).
+- Feature: Modal en Entregas para ver la respuesta completa del alumno (renderizando HTML) en lugar de un tooltip truncado (DONE).
+- UI/UX: Botón Ver entregas añadido directamente al header de la tarea para mejor accesibilidad (DONE).
+- UI/UX: Burbuja flotante de chat ocultada en todas las vistas de  y portal alumno  (DONE).
+- Fix bug: Error al vincular Tareas al Registro Auxiliar con columnas de plantillas customizadas.  ahora acepta labels dinámicos e IDs fallback, con el  extendido (DONE).
+- Fix bug (Crítico): Timezone bug en cron de cierre de tareas. Mongo comparaba fechas ISO lexicográficamente cerrando tareas antes de tiempo. Se forzó guardado en UTC-Z y se cambió el cron a parseo real de  (DONE).
 
 **Earlier issues found/mentioned but not fixed**:
-  None.
+None.
 
 **Known issue recurrence from previous fork**:
-  - Issue recurrence in previous fork: None
-  - Recurrence count: 0
-  - Status: RESOLVED
+- Issue recurrence in previous fork: None
+- Recurrence count: 0
+- Status: RESOLVED
 
 **Code Architecture**:
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── monitoring.py                 # NUEVO: Endpoints públicos 
-│   │   ├── support_monitor.py            # NUEVO: Endpoints soporte ()
-│   │   ├── core.py                       # Refactor: WebSocketManager extendido, 
-│   ├── server.py                         # Startup refactorizado (tareas pesadas pasaron a background)
+│   │   ├── courses.py                    # Gestión de tareas y entregas (array embebido)
+│   │   ├── exams.py                      # Cron jobs de cierre (corregido timezone)
+│   │   ├── student_portal.py             # Rutas de alumnos
+│   ├── services/
+│   │   ├── register_sync.py              # Mapeos dinámicos entre Tareas y Registro Auxiliar
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js                        # NUEVO: Interceptor de Axios para métricas de requests
-│   │   ├── hooks/
-│   │   │   ├── useNotificationSocket.js  # Refactor: Patrón Singleton y 
+│   │   ├── components/
+│   │   │   ├── MessageCenter.jsx         # Chat oculto por rutas
 │   │   ├── pages/
-│   │   │   ├── SupportSessionsPage.jsx   # NUEVO: Panel para monitoreo de sesiones
-│   │   │   ├── CourseDetailPage.jsx      # Fix: Modales de vinculación de plantillas (tareas/exámenes)
-│   │   │   ├── DashboardPage.jsx         # Refactor: Multi-fase loading (800ms)
-│   │   │   ├── AccountingPage.jsx        # PENDING: Optimizar en multi-fase loading
+│   │   │   ├── CourseDetailPage.jsx      # UI de Curso y Modal de Tareas/Entregas
+│   │   │   ├── AccountingPage.jsx        # Multi-phase load
 
 **Key Technical Concepts**:
-**WebSocket Singleton**: El hook  asegura 1 sola conexión WS activa por cliente. 
-**Multi-Phase API Loading**: Para evitar saturar los pods bajo carga (plan Starter/Grow), las páginas pesadas ejecutan llamadas cruciales en un , luego un delay artificial (), y finalmente las secundarias.
-**Métricas de SPA Routing**:  usa un interceptor de Axios que se resetea al cambiar el , recolectando el total de requests que hace una pantalla durante el primer 1.5s, enviándolo por WS () para diagnóstico en el Support Panel.
-**Tolerancia a fallos DB**: Las creaciones de índices en MongoDB usan un helper que absorbe errores de permisos (), permitiendo el arranque normal si faltan privilegios de Admin.
+- **Array embebido de entregas**: Las entregas de los alumnos residen dentro de  (un  por entrega), abandonando la colección separada .
+- **Validación tolerante de columnas**: Al crear tareas, se validan las columnas dinámicamente según la plantilla activa del colegio, o en su defecto la plantilla seed, aceptando tanto el UUID como el Label corto (ej. R1, SEM1) para evitar bloqueos por diferencias frontend/backend.
+- **Timezone-aware Crons**: Todas las fechas de límite () deben normalizarse a UTC (formato ) en base de datos. Los crons utilizan  para comparaciones cronológicas reales, evadiendo fallos lexicográficos de strings en MongoDB.
 
 **key DB schema**:
-  -  (In Memory - ): 
+- : Contiene tareas. Las entregas se anidan en el array  ().
+- : Notas finales. Aún utiliza campos fijos (, , , etc.).  en  hace la traducción.
 
 **changes in tech stack**:
-  - None
+- None
 
 **All files of reference**:
-  -  (WS Manager extendido, helper de DB)
-  -  (Manejo asíncrono y en background del arranque)
-  -  (Interceptor Axios de recuento de requests)
-  -  (Singleton WS y envío de vista)
-  -  (UI para admin de soporte)
-  -  (Ejemplo implementado de multi-phase loading)
-  -  (Archivo a editar ahora)
+-  (Load optimizado)
+- ,  (Fix imports)
+- ,  (Auth logout loop fix, Interceptor global)
+-  (WS page tracking + metadata)
+-  (Fix imports)
+-  (Endpoints de posts y tareas - Fix queries a submissions array y timezones)
+-  (Modal HTML de Entregas, botón header, contador)
+-  (Ocultamiento por ruta)
+-  (Extensión mapeo columnas y validación dinámica)
+-  (Cron datetime fixes)
+-  (Student task list fixes)
 
-**Areas that need refactoring**: 
-  -  (>11,000 líneas). Prioridad P2 en backlog.
+**Areas that need refactoring**:
+- : Extenso (>11,000 líneas).
+- Fase 5:  necesita cambiar su esquema estático por subdocumentos dinámicos () para eliminar el hardcoding del .
 
 **key api endpoints**:
-  -  y 
-  - 
+- 
+- 
+- 
+- 
 
-**Critical Info for New Agent**: 
-- **Gestión de Carga**: El backend es propenso a crashear por *Out of Memory (OOM)* si recibe decenas de peticiones simultáneas desde el mismo cliente al montarse un Dashboard masivo. Es CRÍTICO implementar el escalonamiento de promesas (Phase 1 ->  -> Phase 2) en páginas pesadas.
-- **Cache de MongoDB descartado**: Hubo un intento de usar  que falló en producción; esto ya se descartó y se añadió al .
-- **Health Checks**: El servidor de FastAPI debe registrar el  y los  de inmediato para superar los deployments en Kubernetes. Cualquier carga pesada de startup (ej. sincronizar datos masivos) debe envolverse en  al final del evento startup.
+**Critical Info for New Agent**:
+- **Cuidado con **: Esa colección en MongoDB está obsoleta. Toda lógica de evaluación de tareas entregadas debe hacerse iterando/leyendo el array embebido .
+- **Fechas en Mongo**: Nunca hacer comparaciones lexicográficas  con fechas recibidas del cliente si no se ha asegurado que el string está unificado en UTC ().
+- El entorno no tiene acceso a la base de datos de producción real (IEP MI BUEN PASTOR etc.), solo a los seeds locales. Si el cliente reporta bugs que no replicamos, crear endpoints temporales de diagnóstico o logs explícitos.
+- Responder al usuario SIEMPRE en Español.
 
-**documents and test reports created in this job**: 
-  -  (no cambiado estructuralmente pero utilizado para pruebas).
-  - Multiples reportes temporales en JSON para pruebas locales de frontend/backend de Emergent, todos con código de salida OK.
+**documents and test reports created in this job**:
+None
 
-**Last 10 User Messages and any pending HUMAN messages**: 
- 1. [User] Solicitó implementar el tracking de página actual en las sesiones de Support, enviándolo vía WS desde React.
- 2. [Agent] Implementó la lógica en  y .
- 3. [User] Pidió refinar agregando indicador de llamadas API simultáneas (hardcodeando un mapa de rutas) con semáforos de color.
- 4. [Agent] Implementó el map hardcodeado y colores (verde, amarillo, rojo).
- 5. [User] Reportó Bug: no se enviaba el evento de page_view al navegar, las variables quedaban en 0.
- 6. [Agent] Arregló el race condition enviando el page_view luego de que el WS alcance estado OPEN.
- 7. [User] Pidió reemplazar el mapa estático por un interceptor de Axios real que cuente en vivo los requests y espere 1500ms al cambiar de ruta.
- 8. [Agent] Reemplazó  con un interceptor dinámico en .
- 9. [User] Solicitó la optimización de carga para  escalonando 10 llamadas a 2 fases con un  de 800ms.
- 10. *Pending Human Message*: El agente ejecutó el bash para encontrar las líneas en  pero falta implementar el cambio.
+**Last 10 User Messages and any pending HUMAN messages**:
+1. [User] Pide que se arregle Esta columna no existe al asignar P1, R1, etc en Tareas.
+2. [Agent] Modifica  en  para aceptar el label y amplía map.
+3. [User] Muestra screenshot de que Esta columna no existe persiste.
+4. [Agent] Detecta que el colegio cae en un fallback local del frontend e implementa el fallback expandido en el backend.
+5. [User] Pide hacer una prueba calificando la tarea para ver si graba en el registro auxiliar.
+6. [Agent] Hace prueba E2E de calificación → Sync a bd OK, muestra fotos.
+7. [User] Pide foto del registro auxiliar visualmente.
+8. [Agent] Toma foto de la UI del Gradebook mostrando la nota sincronizada automáticamente.
+9. [User] Reporta que la burbuja de chat se sigue viendo en .
+10. [Agent] Arregla la regex usando  en .
+11. [User] Pide saber qué evalúa el portal de alumno para mostrar estado Pendiente, y que el agent arregle el bug de los badges que leen de la bd incorrecta, luego desplegar.
+12. *Pending*: Se aplicó el código del Issue de status badges, falta testear si devuelve los estados correctos en  y comunicarlo al usuario.
 
 **Project Health Check**:
-Healthy. Frontend y Backend han sido sustancialmente estabilizados, logrando que el backend ya no experimente timeouts de 180s en los deploys y soportando navegación rápida gracias al refactor de requests.
+Healthy.
 
-**3rd Party Integrations**: 
-  - Mismas que la iteración previa (Firebase, Cloudinary). No hubo agregados externos en esta sesión.
+**3rd Party Integrations**:
+- Mismas que iteración previa.
 
 **Testing status**:
-  - Testing agent used after significant changes: YES (Deployment agent se usó, no testing de features).
-  - Troubleshoot agent used after agent stuck in loop: NO (Support subagent fue usado como consultor experto de infraestructura).
-  - Test files created: Archivos temporales de test .
-  - Known regressions: Ninguna.
+- Testing agent used after significant changes: NO (Pruebas exhaustivas mediante bash/curl y screenshot tool).
+- Troubleshoot agent used after agent stuck in loop: NO.
+- Test files created: Ninguno.
+- Known regressions: Ninguna conocida.
 
 **Credentials to test flow**:
-  Consultar . (Admin: , Support Global: ).
+Admin: 
+Padre: 
+Alumno: 
 
 **What agent forgot to execute**:
-El agente hizo el  de  pero finalizó el turno antes de aplicar la separación de la Fase 1 y Fase 2 con el delay de 800ms. Esa es la primera tarea a ejecutar.
-
-**Debugging checklist for current issue**
-    Issue: Optimizar loadInitialData en AccountingPage.jsx dividiéndolo en 2 fases con Promise.all.
-
-    Frontend files to check: 
-     (Líneas ~2460 en adelante)
-    1. Agrupar , , ,  en un primer .
-    2. Agregar 
-    3. Ejecutar los load secundarios (, , , ) y la obtención de  en la segunda fase.</analysis>
+Testear localmente si el endpoint  ya devuelve el badge status (, , ) correctamente usando el array embebido en lugar de la colección obsoleta. Recordarle al usuario hacer Save to Github al repo INTRANET.</analysis>
