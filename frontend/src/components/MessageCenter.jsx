@@ -84,6 +84,14 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
     { id: "support", label: "Soporte", icon: HeadphonesIcon, count: stats.support }
   ];
 
+  // Hide the floating chat bubble inside the whole course area
+  // (tasks, exams, material, forum, submissions — all live under /curso/<id>).
+  // Teachers and owners asked to declutter the course workspace.
+  // Placed AFTER every hook so React's rules-of-hooks stay intact.
+  if (typeof window !== "undefined" && /\/curso\//i.test(window.location.pathname)) {
+    return null;
+  }
+
   return (
     <>
       {/* Floating Button */}
