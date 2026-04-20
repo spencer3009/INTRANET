@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   MessageSquare, X, Send, Megaphone, HeadphonesIcon, GraduationCap,
@@ -37,6 +38,7 @@ const STATUS_CONFIG = {
 // MAIN MESSAGE CENTER COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MessageCenter({ token, user, openWithUser, onClose }) {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("academic");
   const [stats, setStats] = useState({ total_unread: 0, institutional: 0, support: 0, academic: 0 });
@@ -84,11 +86,25 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
     { id: "support", label: "Soporte", icon: HeadphonesIcon, count: stats.support }
   ];
 
-  // Hide the floating chat bubble inside the whole course area
-  // (tasks, exams, material, forum, submissions — all live under /curso/<id>).
-  // Teachers and owners asked to declutter the course workspace.
-  // Placed AFTER every hook so React's rules-of-hooks stay intact.
-  if (typeof window !== "undefined" && /\/curso\//i.test(window.location.pathname)) {
+  // Hide the floating chat bubble inside the whole course area — regardless
+  // of the portal (owner/teacher/student/parent) or whether a subdomain is
+  // in the path. Covers:
+  //   /curso/<id>                       (owner/teacher via CourseDetailPage)
+  //   /<subdomain>/curso/<id>           (same, subdomain-scoped)
+  //   /student/courses/<id>             (student portal course view)
+  //   /student/tasks, /student/tasks/<id>
+  //   /parent/courses/<id>              (parent portal course view)
+  //   /teacher/courses/<id>
+  // Uses `useLocation` (reactive) so SPA navigation between portals updates
+  // the bubble visibility without a full page reload. Placed AFTER every
+  // hook so React's rules-of-hooks stay intact.
+  const HIDE_CHAT_PATTERNS = [
+    /\/curso(\/|$)/i,                    // /curso or /curso/<id>/...
+    /\/courses(\/|$)/i,                  // /student/courses, /parent/courses, ...
+    /\/(student|teacher|parent)\/tasks(\/|$)/i,
+    /\/(student|teacher|parent)\/exams(\/|$)/i,
+  ];
+  if (HIDE_CHAT_PATTERNS.some((rx) => rx.test(location.pathname || ""))) {
     return null;
   }
 
