@@ -92,69 +92,70 @@ export default function SupportSessionsPage({ token }) {
   const bySchool = data?.by_school ?? [];
 
   return (
-    <div className="space-y-6" data-testid="support-sessions-page">
+    <div className="space-y-4 md:space-y-6 pb-6" data-testid="support-sessions-page">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
+              <Activity className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            Sesiones Activas
+            <span className="truncate">Sesiones Activas</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Usuarios con WebSocket conectado en tiempo real · actualización cada 30s
+          <p className="text-[11px] md:text-sm text-slate-500 mt-1 leading-snug">
+            WebSocket en tiempo real · actualización cada 30s
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           {lastUpdate && (
-            <span className="text-xs text-slate-400 hidden sm:inline-flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-400 hidden md:inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              Actualizado: {formatTime(lastUpdate.toISOString())}
+              {formatTime(lastUpdate.toISOString())}
             </span>
           )}
           <button
             onClick={() => fetchSessions(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60 transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60 transition-all shadow-sm active:scale-95"
             data-testid="refresh-sessions-btn"
+            aria-label="Actualizar"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-            Actualizar
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm" data-testid="stat-total-users">
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Users className="w-5 h-5 text-emerald-600" />
+      {/* Stats — compactas en móvil, 3 columnas siempre */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-100 shadow-sm" data-testid="stat-total-users">
+          <div className="flex items-center justify-between mb-1 md:mb-2">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-50 flex items-center justify-center">
+              <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
             </div>
-            <span className="relative flex h-2.5 w-2.5">
+            <span className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              <span className="relative inline-flex rounded-full h-2 w-2 md:h-2.5 md:w-2.5 bg-emerald-500" />
             </span>
           </div>
-          <p className="text-3xl font-bold text-slate-800">{totalConnected}</p>
-          <p className="text-sm text-slate-500 mt-1">Usuarios conectados</p>
+          <p className="text-xl md:text-3xl font-bold text-slate-800 leading-none">{totalConnected}</p>
+          <p className="text-[10px] md:text-sm text-slate-500 mt-1 leading-tight">Conectados</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm" data-testid="stat-total-connections">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-2">
-            <Wifi className="w-5 h-5 text-blue-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-100 shadow-sm" data-testid="stat-total-connections">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-blue-50 flex items-center justify-center mb-1 md:mb-2">
+            <Wifi className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
           </div>
-          <p className="text-3xl font-bold text-slate-800">{totalConnections}</p>
-          <p className="text-sm text-slate-500 mt-1">Conexiones WebSocket abiertas</p>
+          <p className="text-xl md:text-3xl font-bold text-slate-800 leading-none">{totalConnections}</p>
+          <p className="text-[10px] md:text-sm text-slate-500 mt-1 leading-tight">WebSockets</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm" data-testid="stat-total-schools">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mb-2">
-            <SchoolIcon className="w-5 h-5 text-indigo-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-100 shadow-sm" data-testid="stat-total-schools">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-indigo-50 flex items-center justify-center mb-1 md:mb-2">
+            <SchoolIcon className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
           </div>
-          <p className="text-3xl font-bold text-slate-800">{bySchool.length}</p>
-          <p className="text-sm text-slate-500 mt-1">Colegios con actividad</p>
+          <p className="text-xl md:text-3xl font-bold text-slate-800 leading-none">{bySchool.length}</p>
+          <p className="text-[10px] md:text-sm text-slate-500 mt-1 leading-tight">Colegios</p>
         </div>
       </div>
 
@@ -178,24 +179,88 @@ export default function SupportSessionsPage({ token }) {
           <p className="text-sm text-slate-400 mt-1">Cuando algún usuario abra la app aparecerá aquí en tiempo real.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {bySchool.map((school) => (
-            <div key={school.school_id || "no-school"} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" data-testid={`school-bucket-${school.school_id || "none"}`}>
-              <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                    <SchoolIcon className="w-4.5 h-4.5 text-indigo-600" />
+            <div key={school.school_id || "no-school"} className="bg-white rounded-xl md:rounded-2xl border border-slate-100 shadow-sm overflow-hidden" data-testid={`school-bucket-${school.school_id || "none"}`}>
+              {/* School header */}
+              <div className="px-3 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                    <SchoolIcon className="w-4 h-4 md:w-[18px] md:h-[18px] text-indigo-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-800 truncate">{school.school_name || "(sin nombre)"}</p>
-                    {school.school_id && <p className="text-[11px] text-slate-400 truncate">{school.school_id}</p>}
+                    <p className="font-semibold text-slate-800 truncate text-sm md:text-base">{school.school_name || "(sin nombre)"}</p>
+                    {school.school_id && <p className="text-[10px] md:text-[11px] text-slate-400 truncate">{school.school_id}</p>}
                   </div>
                 </div>
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <Users className="w-3 h-3" /> {school.connected_users.length}
                 </span>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Mobile: card list */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {school.connected_users.map((u) => {
+                  const reqCount = u.page_requests || 0;
+                  const reqClass = reqCount === 0
+                    ? "bg-slate-100 text-slate-400 border-slate-200"
+                    : reqCount < 6
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : reqCount <= 12
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-red-50 text-red-700 border-red-200";
+                  return (
+                    <div key={u.user_id} className="px-3 py-3 active:bg-slate-50 transition-colors" data-testid={`session-row-${u.user_id}`}>
+                      {/* Row 1: name + role */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-800 text-sm truncate">{u.name || "(sin nombre)"}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{u.user_id}</p>
+                        </div>
+                        <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${ROLE_STYLES[u.role] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                          {ROLE_LABELS[u.role] || (u.role || "—").toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Row 2: current page pill */}
+                      {u.current_page && (
+                        <div className="flex items-center gap-2 mb-2" data-testid={`session-page-${u.user_id}`}>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-full">
+                            {u.current_page}
+                          </span>
+                          {u.last_activity && (
+                            <span className="text-[10px] text-slate-400 shrink-0">{formatConnectedSince(u.last_activity)}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Row 3: footer metrics */}
+                      <div className="flex items-center justify-between gap-2 text-[11px]">
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          <span className="font-medium text-slate-600">{formatTime(u.connected_at)}</span>
+                          <span className="text-slate-400">· {formatConnectedSince(u.connected_at)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${reqClass}`}
+                            title="Llamadas HTTP"
+                            data-testid={`session-requests-${u.user_id}`}
+                          >
+                            {reqCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <Wifi className="w-2.5 h-2.5" /> {u.connection_count}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50/50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
@@ -218,7 +283,7 @@ export default function SupportSessionsPage({ token }) {
                             ? "bg-amber-50 text-amber-700 border-amber-200"
                             : "bg-red-50 text-red-700 border-red-200";
                       return (
-                      <tr key={u.user_id} className="hover:bg-slate-50/70 transition-colors" data-testid={`session-row-${u.user_id}`}>
+                      <tr key={u.user_id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="px-5 py-2.5">
                           <p className="font-medium text-slate-800">{u.name || "(sin nombre)"}</p>
                           <p className="text-[11px] text-slate-400 truncate max-w-[220px]">{u.user_id}</p>
@@ -228,7 +293,7 @@ export default function SupportSessionsPage({ token }) {
                             {ROLE_LABELS[u.role] || (u.role || "—").toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-5 py-2.5" data-testid={`session-page-${u.user_id}`}>
+                        <td className="px-5 py-2.5">
                           {u.current_page ? (
                             <div>
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -242,8 +307,8 @@ export default function SupportSessionsPage({ token }) {
                             <span className="text-slate-300">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-2.5 text-center" data-testid={`session-requests-${u.user_id}`}>
-                          <span className={`inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-full text-[11px] font-bold border ${reqClass}`} title={`Estimado de llamadas HTTP que dispara la página al cargar`}>
+                        <td className="px-5 py-2.5 text-center">
+                          <span className={`inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-full text-[11px] font-bold border ${reqClass}`} title="Estimado de llamadas HTTP que dispara la página al cargar">
                             {reqCount}
                           </span>
                         </td>
