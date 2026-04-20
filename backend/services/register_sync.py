@@ -27,7 +27,7 @@ TASK_VALID_COLUMNS = {"P1", "P2", "P3"}
 async def get_valid_task_columns_for_school(db, school_id: str) -> set:
     """
     Return the set of register columns a TASK may be linked to, resolved
-    dynamically from the school's ACTIVE Registro Auxiliar template.
+    dynamically from the school's Registro Auxiliar templates.
 
     Rule of thumb (mirrors the frontend modal `taskSubcolumnasVinculables`):
       - Every subcolumna of every criterio that has `tipo == "input"` is
@@ -35,31 +35,52 @@ async def get_valid_task_columns_for_school(db, school_id: str) -> set:
       - `columnas_finales` are reserved for EXAMS (EM, EB and similar) and
         are excluded from tasks.
 
-    Fallback: if the school has no active template, return the legacy
-    hard-coded {P1, P2, P3} so older schools keep working.
-    """
-    try:
-        plantilla = await db.registro_auxiliar_plantillas.find_one(
-            {"school_id": school_id, "estado": "activa"},
-            {"_id": 0, "criterios": 1},
-        )
-        if not plantilla:
-            plantilla = await db.registro_auxiliar_plantillas.find_one(
-                {"es_sistema": True}, {"_id": 0, "criterios": 1}
-            )
-        if not plantilla:
-            return set(TASK_VALID_COLUMNS)
+    Resolution order (tolerant):
+      1. The school's ACTIVE template (estado == "activa")
+      2. Any other template belonging to the school (estado != deleted)
+      3. The SYSTEM template (es_sistema: True)
+      4. Legacy hard-coded {P1, P2, P3}
 
-        cols = set()
-        for cri in plantilla.get("criterios", []) or []:
+    We union (1)+(2)+(3) so older schools whose template was seeded but
+    not explicitly marked "activa" keep working. Normalized keys are also
+    stored in both lower-case and upper-case to tolerate casing drift.
+    """
+    def _extract(plantilla) -> set:
+        out = set()
+        for cri in (plantilla or {}).get("criterios", []) or []:
             for sub in cri.get("subcolumnas", []) or []:
                 if sub.get("tipo") != "input":
                     continue
                 key = sub.get("field_key") or sub.get("id")
                 if key:
-                    cols.add(key)
-                    cols.add(str(key).upper())  # tolerate 'p1' vs 'P1'
-        return cols or set(TASK_VALID_COLUMNS)
+                    out.add(key)
+                    out.add(str(key).upper())
+                    out.add(str(key).lower())
+        return out
+
+    try:
+        cols: set = set()
+        # 1. Any template that belongs to this school (regardless of state)
+        async for p in db.registro_auxiliar_plantillas.find(
+            {"school_id": school_id},
+            {"_id": 0, "criterios": 1, "estado": 1},
+        ):
+            if p.get("estado") == "eliminada":
+                continue
+            cols |= _extract(p)
+
+        # 2. System template (always accepted as safety net)
+        system = await db.registro_auxiliar_plantillas.find_one(
+            {"es_sistema": True}, {"_id": 0, "criterios": 1}
+        )
+        if system:
+            cols |= _extract(system)
+
+        # 3. Legacy slots — so a freshly-created school with no templates
+        #    at all still accepts the historic P1/P2/P3.
+        cols |= set(TASK_VALID_COLUMNS)
+
+        return cols
     except Exception as e:
         logger.warning(f"[register] dynamic task-columns lookup failed for {school_id}: {e}")
         return set(TASK_VALID_COLUMNS)

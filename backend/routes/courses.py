@@ -328,6 +328,10 @@ async def create_course_post(
             # only if the school has no custom template.
             valid_task_cols = await get_valid_task_columns_for_school(db, school_id)
             if register_column not in valid_task_cols:
+                logger.warning(
+                    f"[task-register] school={school_id} rejected column={register_column!r} | "
+                    f"valid={sorted(valid_task_cols)}"
+                )
                 raise HTTPException(
                     status_code=400,
                     detail=(
