@@ -169,13 +169,34 @@ async def get_course_posts(
     # Gather all batch queries in parallel
     gather_futures = [authors_future, likes_agg_future, comments_agg_future, user_likes_future]
     if task_post_ids:
-        gather_futures.append(db.task_submissions.aggregate([
-            {"$match": {"task_id": {"$in": task_post_ids}}},
-            {"$group": {
-                "_id": "$task_id",
-                "total": {"$sum": 1},
-                "graded": {"$sum": {"$cond": [{"$ne": ["$grade", None]}, 1, 0]}}
-            }}
+        # Submissions are stored as an embedded array inside each
+        # `course_posts` document — this is the single source of truth
+        # used by /course/tasks/{task_id}/submissions and the grading UI.
+        # Counting from db.task_submissions (a separate collection) was
+        # incorrect: that collection is not populated by the submit flow,
+        # so the list view always showed 0 while the detail view showed
+        # the real count. Aggregate directly on course_posts so both
+        # views stay consistent. school_id is included for multi-tenant
+        # isolation.
+        gather_futures.append(db.course_posts.aggregate([
+            {"$match": {
+                "id": {"$in": task_post_ids},
+                "school_id": school_id,
+            }},
+            {"$project": {
+                "_id": 0,
+                "id": 1,
+                "total": {"$size": {"$ifNull": ["$submissions", []]}},
+                "graded": {
+                    "$size": {
+                        "$filter": {
+                            "input": {"$ifNull": ["$submissions", []]},
+                            "as": "s",
+                            "cond": {"$ne": ["$$s.grade", None]},
+                        }
+                    }
+                },
+            }},
         ]).to_list(len(task_post_ids)))
 
     results = await asyncio.gather(*gather_futures)
@@ -191,7 +212,7 @@ async def get_course_posts(
     likes_map = {item["_id"]: item["count"] for item in likes_agg}
     comments_map = {item["_id"]: item["count"] for item in comments_agg}
     user_liked_set = {item["post_id"] for item in user_likes_list}
-    subs_map = {item["_id"]: item for item in (subs_agg or [])}
+    subs_map = {item["id"]: item for item in (subs_agg or [])}
 
     # 4. Enrich posts in memory — ZERO additional DB queries
     for post in posts:

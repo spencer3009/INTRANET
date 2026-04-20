@@ -9299,6 +9299,16 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                   {/* Title */}
                   <div className="col-span-4">
                     <p className="font-semibold text-slate-800 truncate">{task.title}</p>
+                    {(task.submissions_count > 0 || task.graded_count > 0) && (
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2" data-testid={`task-submissions-${task.id}`}>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium">
+                          {task.submissions_count} {task.submissions_count === 1 ? 'entrega' : 'entregas'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium">
+                          {task.graded_count} calificadas
+                        </span>
+                      </p>
+                    )}
                   </div>
                   
                   {/* Type */}
