@@ -288,16 +288,71 @@ class ConnectionManager:
         if n_open > 1:
             logger.warning(f"[WS] User {user_id} has {n_open} concurrent WebSocket connections — possible frontend duplicate")
     
-    def record_page_view(self, user_id: str, page: str, request_count: int = 0):
+    async def record_page_view(self, user_id: str, page: str, request_count: int = 0, metadata: dict | None = None):
         """
         Update the current page, simultaneous-request count, and
         last_activity timestamp for a connected user. Called on every
-        `{type:"page_view", page, request_count}` message from the client.
+        `{type:"page_view", page, request_count, ...meta}` message from
+        the client. Metadata may include a `subject_id` when the user is
+        inside a course page — in that case we resolve subject/grade/
+        section/level names from Mongo so the Support Panel can show
+        exactly which class the user is viewing.
         """
-        if user_id in self.active_sessions:
-            self.active_sessions[user_id]["current_page"] = (page or "")[:120]
-            self.active_sessions[user_id]["page_requests"] = int(request_count or 0)
-            self.active_sessions[user_id]["last_activity"] = datetime.now(timezone.utc).isoformat()
+        if user_id not in self.active_sessions:
+            return
+        session = self.active_sessions[user_id]
+        session["current_page"] = (page or "")[:120]
+        session["page_requests"] = int(request_count or 0)
+        session["last_activity"] = datetime.now(timezone.utc).isoformat()
+
+        # Resolve subject detail only when provided (course pages only).
+        # We wipe it on any other page so stale data doesn't stick.
+        subject_id = (metadata or {}).get("subject_id")
+        if not subject_id:
+            session.pop("subject_detail", None)
+            return
+        try:
+            subject = await db.subjects.find_one(
+                {"id": subject_id},
+                {"_id": 0, "name": 1, "grade_id": 1, "section_id": 1, "level_id": 1},
+            )
+            if not subject:
+                session.pop("subject_detail", None)
+                return
+            grade = None
+            if subject.get("grade_id"):
+                grade = await db.grades.find_one(
+                    {"id": subject["grade_id"]},
+                    {"_id": 0, "nombre": 1, "nivel_id": 1},
+                )
+            section = None
+            if subject.get("section_id"):
+                section = await db.sections.find_one(
+                    {"id": subject["section_id"]},
+                    {"_id": 0, "nombre": 1},
+                )
+            # Level: prefer subject.level_id, fallback to grade.nivel_id.
+            # Levels live in either `academic_levels` (primary) or `niveles`
+            # depending on how the school was seeded — check both.
+            level_id = subject.get("level_id") or (grade.get("nivel_id") if grade else None)
+            level = None
+            if level_id:
+                level = await db.academic_levels.find_one(
+                    {"id": level_id}, {"_id": 0, "nombre": 1}
+                )
+                if not level:
+                    level = await db.niveles.find_one(
+                        {"id": level_id}, {"_id": 0, "nombre": 1}
+                    )
+            session["subject_detail"] = {
+                "subject_name": subject.get("name"),
+                "grade": grade.get("nombre") if grade else None,
+                "section": section.get("nombre") if section else None,
+                "level": level.get("nombre") if level else None,
+            }
+        except Exception as e:
+            logger.warning(f"[page_view] subject lookup failed for {subject_id}: {e}")
+            session.pop("subject_detail", None)
 
     def disconnect(self, websocket: WebSocket, user_id: str):
         if user_id in self.active_connections:

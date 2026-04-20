@@ -363,14 +363,19 @@ function PageViewTracker() {
       const hit = PAGE_NAME_MAP[segments[i]];
       if (hit) { label = hit; break; }
     }
+    // If the user is on a course detail page (/curso/<uuid>), extract the
+    // subject UUID so the Support Panel can resolve subject name, grade,
+    // section and level for that specific session.
+    const courseMatch = location.pathname.match(/\/curso\/([a-f0-9-]{36})/i);
+    const metadata = courseMatch ? { subject_id: courseMatch[1] } : {};
     // Delta measurement: snapshot the counter NOW, then after 1500ms
     // subtract to get the number of requests this navigation triggered.
     // Avoids races with sibling useEffects that fire axios during mount.
     const startCount = _pageReqCounter;
     const t = setTimeout(() => {
       const delta = Math.max(0, _pageReqCounter - startCount);
-      console.log('[PageView]', label, delta);
-      sendPageView(label, delta);
+      console.log('[PageView]', label, delta, metadata);
+      sendPageView(label, delta, metadata);
     }, 1500);
     return () => clearTimeout(t);
   }, [location.pathname]);

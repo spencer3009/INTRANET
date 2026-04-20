@@ -69,6 +69,7 @@ function _openSocket(token) {
           type: "page_view",
           page: lastPageView.page,
           request_count: lastPageView.requestCount,
+          ...(lastPageView.metadata || {}),
         }));
       } catch { /* ignore */ }
     }
@@ -152,18 +153,21 @@ function _ensureConnection(token) {
 /**
  * Send a page-view event through the shared socket so the Support Panel
  * can display the page each connected user is currently viewing.
+ * The optional `metadata` object is merged into the top-level payload
+ * (e.g. `{ subject_id: "..." }` when inside a course page).
  * Safely no-ops if the socket is not open.
  */
-export function sendPageView(pageName, requestCount = 0) {
+export function sendPageView(pageName, requestCount = 0, metadata = {}) {
   // Always cache the latest navigation so we can replay it when the socket
   // (re)opens — fixes cases where the tracker fires before the WS is ready.
-  lastPageView = { page: pageName, requestCount };
+  lastPageView = { page: pageName, requestCount, metadata };
   if (ws && ws.readyState === WebSocket.OPEN) {
     try {
       ws.send(JSON.stringify({
         type: "page_view",
         page: pageName,
         request_count: requestCount,
+        ...(metadata || {}),
       }));
     } catch { /* ignore */ }
   }

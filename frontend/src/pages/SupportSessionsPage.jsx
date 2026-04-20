@@ -56,6 +56,16 @@ function formatTime(iso) {
   }
 }
 
+function formatSubjectDetail(detail) {
+  if (!detail) return null;
+  const parts = [];
+  if (detail.subject_name) parts.push(detail.subject_name);
+  const gradeLine = [detail.grade, detail.level].filter(Boolean).join(" ");
+  if (gradeLine) parts.push(gradeLine);
+  if (detail.section) parts.push(`Sección ${detail.section}`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 export default function SupportSessionsPage({ token }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -224,12 +234,19 @@ export default function SupportSessionsPage({ token }) {
 
                       {/* Row 2: current page pill */}
                       {u.current_page && (
-                        <div className="flex items-center gap-2 mb-2" data-testid={`session-page-${u.user_id}`}>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-full">
-                            {u.current_page}
-                          </span>
-                          {u.last_activity && (
-                            <span className="text-[10px] text-slate-400 shrink-0">{formatConnectedSince(u.last_activity)}</span>
+                        <div className="mb-2" data-testid={`session-page-${u.user_id}`}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-full">
+                              {u.current_page}
+                            </span>
+                            {u.last_activity && (
+                              <span className="text-[10px] text-slate-400 shrink-0">{formatConnectedSince(u.last_activity)}</span>
+                            )}
+                          </div>
+                          {formatSubjectDetail(u.subject_detail) && (
+                            <p className="text-[11px] text-slate-500 mt-1 leading-tight" data-testid={`session-subject-${u.user_id}`}>
+                              {formatSubjectDetail(u.subject_detail)}
+                            </p>
                           )}
                         </div>
                       )}
@@ -299,6 +316,11 @@ export default function SupportSessionsPage({ token }) {
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 {u.current_page}
                               </span>
+                              {formatSubjectDetail(u.subject_detail) && (
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-tight" data-testid={`session-subject-${u.user_id}`}>
+                                  {formatSubjectDetail(u.subject_detail)}
+                                </p>
+                              )}
                               {u.last_activity && (
                                 <p className="text-[10px] text-slate-400 mt-0.5">{formatConnectedSince(u.last_activity)}</p>
                               )}
