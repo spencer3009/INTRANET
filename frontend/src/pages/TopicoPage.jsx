@@ -577,6 +577,8 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   const [date, setDate] = useState(record?.date || now.toISOString().split("T")[0]);
   const [time, setTime] = useState(record?.time || now.toTimeString().slice(0, 5));
   const [incidentType, setIncidentType] = useState(record?.incident_type || "dolor");
+  const [weight, setWeight] = useState(record?.weight != null ? String(record.weight) : "");
+  const [height, setHeight] = useState(record?.height != null ? String(record.height) : "");
   const [description, setDescription] = useState(record?.description || "");
   const [actionTaken, setActionTaken] = useState(record?.action_taken || "");
   const [status, setStatus] = useState(record?.status || "atendido");
@@ -590,6 +592,16 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   const studentPhoto = student?.photo_url || null;
 
   const handleSave = async () => {
+    const weightNum = parseFloat(weight);
+    const heightNum = parseFloat(height);
+    if (isNaN(weightNum) || weightNum <= 0) {
+      toast.error("El peso es obligatorio y debe ser mayor a 0");
+      return;
+    }
+    if (isNaN(heightNum) || heightNum <= 0) {
+      toast.error("La talla es obligatoria y debe ser mayor a 0");
+      return;
+    }
     if (!description.trim()) {
       toast.error("La descripcion es obligatoria");
       return;
@@ -602,7 +614,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
     try {
       if (isEdit) {
         await axios.put(`${API}/health/topico/${record.id}`, {
-          date, time, incident_type: incidentType, description, action_taken: actionTaken, status, responsible,
+          date, time, incident_type: incidentType, weight: weightNum, height: heightNum, description, action_taken: actionTaken, status, responsible,
         }, { headers });
         toast.success("Registro actualizado");
       } else {
@@ -614,7 +626,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
           grade_name: gradeLabel,
           section_id: sectionId,
           section_name: sectionLabel,
-          date, time, incident_type: incidentType, description, action_taken: actionTaken, status, responsible,
+          date, time, incident_type: incidentType, weight: weightNum, height: heightNum, description, action_taken: actionTaken, status, responsible,
         }, { headers });
         toast.success("Registro creado");
       }
@@ -674,6 +686,23 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Peso (kg) *</label>
+              <input type="number" min="0" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)}
+                placeholder="Ej: 32.5"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                data-testid="modal-weight" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Talla (cm) *</label>
+              <input type="number" min="0" step="0.1" value={height} onChange={(e) => setHeight(e.target.value)}
+                placeholder="Ej: 135"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                data-testid="modal-height" />
+            </div>
           </div>
 
           <div>
@@ -787,6 +816,22 @@ function DetailModal({ record, students, onClose }) {
             <p className="text-xs font-semibold text-slate-400 uppercase">Descripcion</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{record.description}</p>
           </div>
+          {(record.weight != null || record.height != null) && (
+            <div className="grid grid-cols-2 gap-4">
+              {record.weight != null && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase">Peso</p>
+                  <p className="text-sm text-slate-700 font-semibold">{record.weight} kg</p>
+                </div>
+              )}
+              {record.height != null && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase">Talla</p>
+                  <p className="text-sm text-slate-700 font-semibold">{record.height} cm</p>
+                </div>
+              )}
+            </div>
+          )}
           {record.action_taken && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase">Accion Tomada</p>

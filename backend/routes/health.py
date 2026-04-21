@@ -22,6 +22,8 @@ class TopicoRecordCreate(BaseModel):
     date: str
     time: str
     incident_type: Literal["dolor", "golpe", "fiebre", "malestar_general", "emergencia", "otro"]
+    weight: float  # in kilograms
+    height: float  # in centimeters
     description: str
     action_taken: str
     status: Literal["atendido", "derivado", "en_observacion"]
@@ -31,6 +33,8 @@ class TopicoRecordUpdate(BaseModel):
     date: Optional[str] = None
     time: Optional[str] = None
     incident_type: Optional[str] = None
+    weight: Optional[float] = None
+    height: Optional[float] = None
     description: Optional[str] = None
     action_taken: Optional[str] = None
     status: Optional[str] = None
@@ -210,6 +214,8 @@ async def create_topico_record(data: TopicoRecordCreate, current_user=Depends(ge
         "date": data.date,
         "time": data.time,
         "incident_type": data.incident_type,
+        "weight": data.weight,
+        "height": data.height,
         "description": data.description,
         "action_taken": data.action_taken,
         "status": data.status,
