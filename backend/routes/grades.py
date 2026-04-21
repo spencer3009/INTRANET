@@ -297,6 +297,10 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
             "exam_mensual": g.get("exam_mensual"),
             "exam_bimestral": g.get("exam_bimestral"),
             "final_grade": g.get("final_grade"),
+            # Phase 5 — pass through the dynamic subdocument so the
+            # gradebook can render custom-template columns read from
+            # `grades_dynamic[column_id]`.
+            "grades_dynamic": g.get("grades_dynamic") or {},
         }
         student_grades.append(entry)
 

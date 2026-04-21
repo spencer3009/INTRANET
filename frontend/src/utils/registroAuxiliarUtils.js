@@ -72,6 +72,28 @@ export const PLANTILLA_SISTEMA_FALLBACK = {
   escala_maxima: 20,
 };
 
+/**
+ * Read a grade cell value for a student given the subcolumna definition.
+ *
+ * Priority:
+ *   1. `student[sub.field_key]` — legacy static field (CO/RE/R1/…)
+ *      for subcolumnas that were mapped to a fixed slot in
+ *      `GRADE_SUB_FIELDS`.
+ *   2. `student.grades_dynamic[sub.id]` — Phase 5 dynamic storage,
+ *      used by any subcolumna of a custom template (UUID-style ids
+ *      with no `field_key`).
+ *
+ * Returns `undefined` when neither path has a value, so the caller
+ * can coerce to "" for inputs.
+ */
+export function getGradeValue(student, sub) {
+  if (!student || !sub) return undefined;
+  if (sub.field_key && student[sub.field_key] !== undefined && student[sub.field_key] !== null) {
+    return student[sub.field_key];
+  }
+  return student.grades_dynamic?.[sub.id];
+}
+
 /** Promedio de valores no-null. Retorna null si todos son null/undefined/"". */
 export function calcularPromedioInput(values) {
   const nums = values.filter(v => v !== null && v !== undefined && v !== "");
@@ -117,8 +139,8 @@ export function assignFieldKeys(plantilla) {
 
 /** Promedio ponderado de un criterio para un alumno. */
 export function calcularPromedioCriterio(student, criterio) {
-  const inputSubs = criterio.subcolumnas.filter(s => s.tipo === "input" && s.field_key);
-  return calcularPromedioInput(inputSubs.map(s => student[s.field_key]));
+  const inputSubs = criterio.subcolumnas.filter(s => s.tipo === "input");
+  return calcularPromedioInput(inputSubs.map(s => getGradeValue(student, s)));
 }
 
 /**
@@ -140,7 +162,7 @@ export function calcularPromedioBimestral(student, plantilla) {
   }
 
   for (const col of plantilla.columnas_finales) {
-    const val = col.field_key ? student[col.field_key] : null;
+    const val = getGradeValue(student, col);
     if (val !== null && val !== undefined) {
       const w = (col.porcentaje || 0) / 100;
       totalWeighted += Number(val) * w;

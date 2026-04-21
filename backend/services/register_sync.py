@@ -401,9 +401,13 @@ async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filt
 
 async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action):
     """Sync task grades to student_grades (static or dynamic storage)."""
-    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 100
+    # When the task doesn't explicitly declare a max score we default
+    # to 20 (vigesimal scale), the Peruvian educational standard. This
+    # makes casual tasks with no configured max_grade save the raw
+    # teacher-entered value without a surprising rescale to /100.
+    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
     if max_points <= 0:
-        max_points = 100
+        max_points = 20
 
     submissions = task.get("submissions", [])
     
@@ -520,9 +524,9 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
     if not all([period_id, subject_id, school_id]):
         return
 
-    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 100
+    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
     if max_points <= 0:
-        max_points = 100
+        max_points = 20
 
     # Check lock
     lock_query = {"school_id": school_id, "subject_id": subject_id, "period_id": period_id}
