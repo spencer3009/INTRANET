@@ -52,6 +52,12 @@ class GradeEntry(BaseModel):
     # Single-column fields
     exam_mensual: Optional[float] = None
     exam_bimestral: Optional[float] = None
+    # Phase 5 — free-form map for columns that belong to the school's
+    # custom template. Keys are column ids (UUID-style), values are
+    # vigesimal notes (0-20) or None to clear the cell. Stored under
+    # `student_grades.grades_dynamic.<column_id>` so legacy static
+    # fields stay untouched.
+    grades_dynamic: Optional[Dict[str, Optional[float]]] = None
 
 GRADE_SUB_FIELDS = [
     "act_co", "act_re",
@@ -364,11 +370,27 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
             if val is not None and (val < 0 or val > 20):
                 raise HTTPException(status_code=400, detail=f"Nota invalida para {field}: {val}. Debe ser entre 0 y 20")
 
+        # Phase 5 — validate & merge dynamic columns into the `$set`
+        # payload as dotted keys so only the touched cells are updated
+        # (we never replace the whole subdocument, to avoid clobbering
+        # other columns written by tasks/exams sync).
+        set_payload = {}
+        if entry.grades_dynamic:
+            for col_id, val in entry.grades_dynamic.items():
+                if val is not None and (val < 0 or val > 20):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Nota invalida para columna '{col_id}': {val}. Debe ser entre 0 y 20",
+                    )
+                set_payload[f"grades_dynamic.{col_id}"] = val
+
         # Calculate final grade
         final = calculate_final_grade(grade_data, config)
         grade_data["final_grade"] = final
         grade_data["updated_at"] = now_iso()
         grade_data["updated_by"] = user["id"]
+
+        set_payload.update(grade_data)
 
         await db.student_grades.update_one(
             {
@@ -379,7 +401,7 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
                 "period_id": data.period_id,
             },
             {
-                "$set": grade_data,
+                "$set": set_payload,
                 "$setOnInsert": {
                     "id": generate_id(),
                     "school_id": school_id,

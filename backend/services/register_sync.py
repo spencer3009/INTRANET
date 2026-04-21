@@ -82,6 +82,98 @@ COLUMN_FIELD_MAP = {
 }
 
 VALID_COLUMNS = set(COLUMN_FIELD_MAP.keys())
+
+
+async def get_storage_field(db, column_id: str, school_id: str) -> tuple:
+    """
+    Decide where a grade for `column_id` should be stored in
+    `student_grades`. The register supports two coexisting storage
+    modes:
+
+    - **static**: legacy fields hard-coded in `COLUMN_FIELD_MAP` (the
+      system template that every school inherits by default). Kept as
+      top-level fields (`act_co`, `rf_r1`, …) for full backward-
+      compatibility with old documents, reports and indexes.
+    - **dynamic**: any column that belongs to a school's custom
+      template. These columns have UUID-style ids that cannot be
+      predicted at boot time, so they are stored under the
+      schemaless subdocument `grades_dynamic.<column_id>`.
+
+    Routing rules (in order):
+      1. If `column_id` is already known in the static map → static.
+      2. Otherwise, verify the id belongs to some (non-deleted)
+         template of this school or to the SYSTEM template. If it
+         does → dynamic, using `column_id` verbatim as the key.
+      3. If neither, log a warning and return (None, None) so the
+         caller skips the write instead of guessing.
+
+    Returns:
+        (field_type, field_key):
+            - field_type: "static" | "dynamic" | None
+            - field_key: MongoDB field name (e.g. "act_co") or the
+              column id to use under `grades_dynamic.<id>`.
+    """
+    if not column_id:
+        return (None, None)
+
+    # 1. Legacy / system template → single top-level field.
+    if column_id in COLUMN_FIELD_MAP:
+        return ("static", COLUMN_FIELD_MAP[column_id])
+
+    # 2. Column belongs to a custom template? Reuse the same tolerant
+    # extractor used everywhere else so "label" (e.g. "R2") and casing
+    # drift keep working.
+    def _column_exists_in(plantilla) -> bool:
+        for cri in (plantilla or {}).get("criterios", []) or []:
+            for sub in cri.get("subcolumnas", []) or []:
+                candidates = {
+                    sub.get("id"),
+                    sub.get("field_key"),
+                    sub.get("label"),
+                }
+                for c in candidates:
+                    if c and str(c) == str(column_id):
+                        return True
+                    if c and str(c).lower() == str(column_id).lower():
+                        return True
+        return False
+
+    try:
+        async for p in db.registro_auxiliar_plantillas.find(
+            {"school_id": school_id},
+            {"_id": 0, "criterios": 1, "estado": 1},
+        ):
+            if p.get("estado") == "eliminada":
+                continue
+            if _column_exists_in(p):
+                return ("dynamic", column_id)
+
+        system = await db.registro_auxiliar_plantillas.find_one(
+            {"es_sistema": True}, {"_id": 0, "criterios": 1}
+        )
+        if system and _column_exists_in(system):
+            return ("dynamic", column_id)
+    except Exception as e:
+        logger.warning(
+            f"[SYNC] dynamic column lookup failed for school={school_id} "
+            f"column={column_id}: {e}"
+        )
+
+    logger.warning(
+        f"[SYNC] column_id '{column_id}' not found in static map nor in any "
+        f"template for school {school_id}. Grade NOT saved."
+    )
+    return (None, None)
+
+
+def _build_grade_update(field_type: str, field_key: str, value):
+    """Build the `$set` payload for update_one depending on storage mode."""
+    if field_type == "static":
+        return {field_key: value}
+    if field_type == "dynamic":
+        return {f"grades_dynamic.{field_key}": value}
+    return {}
+
 # Legacy + frontend-fallback whitelist. Used as:
 #   (a) a safety-net when `get_valid_task_columns_for_school` can't resolve
 #       any template at all (new school / missing seed).
@@ -217,14 +309,26 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
         return
 
     grade_field = COLUMN_FIELD_MAP.get(register_column)
-    if not grade_field:
-        logger.error(f"[SYNC] Invalid register_column '{register_column}' for {source_type} {source_id}")
-        return
+    school_id = source.get("school_id")
+    if grade_field:
+        field_type = "static"
+        field_key = grade_field
+    else:
+        # Dynamic column (custom template): resolve by asking the school's
+        # templates; fall back to "not saved" if unknown.
+        field_type, field_key = await get_storage_field(
+            db, register_column, school_id
+        )
+        if not field_type:
+            await collection.update_one(
+                {"id": source_id},
+                {"$set": {"sync_status": "column_unknown"}}
+            )
+            return
 
     period_id = source.get("period_id")
     subject_id = source.get("subject_id")
     section_id = source.get("section_id")
-    school_id = source.get("school_id")
 
     if not all([period_id, subject_id, school_id]):
         logger.error(f"[SYNC] {source_type} {source_id} missing required fields for sync")
@@ -258,9 +362,9 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
         grade_filter_base["section_id"] = section_id
 
     if source_type == "exam":
-        await _sync_exam_grades(db, source, source_id, grade_field, grade_filter_base, action)
+        await _sync_exam_grades(db, source, source_id, field_type, field_key, grade_filter_base, action)
     elif source_type == "task":
-        await _sync_task_grades(db, source, source_id, grade_field, grade_filter_base, action)
+        await _sync_task_grades(db, source, source_id, field_type, field_key, grade_filter_base, action)
 
     new_status = "synced" if action != "delete" else "not_linked"
     await collection.update_one(
@@ -270,12 +374,12 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
 
     logger.info(
         f"[SYNC] {source_type} {source_id} action={action} "
-        f"(column={register_column} -> field={grade_field})"
+        f"(column={register_column} -> type={field_type} key={field_key})"
     )
 
 
-async def _sync_exam_grades(db, exam, exam_id, grade_field, grade_filter_base, action):
-    """Sync exam grades to student_grades."""
+async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filter_base, action):
+    """Sync exam grades to student_grades (static or dynamic storage)."""
     attempts = await db.exam_attempts.find(
         {"exam_id": exam_id, "status": "completed"},
         {"_id": 0, "student_id": 1, "percentage": 1}
@@ -283,10 +387,10 @@ async def _sync_exam_grades(db, exam, exam_id, grade_field, grade_filter_base, a
 
     for attempt in attempts:
         student_id = attempt["student_id"]
-        if action == "delete":
-            update_fields = {grade_field: None}
-        else:
-            update_fields = {grade_field: exam_score_to_vigesimal(attempt.get("percentage", 0))}
+        value = None if action == "delete" else exam_score_to_vigesimal(attempt.get("percentage", 0))
+        update_fields = _build_grade_update(field_type, field_key, value)
+        if not update_fields:
+            continue
 
         await db.student_grades.update_one(
             {**grade_filter_base, "student_id": student_id},
@@ -295,8 +399,8 @@ async def _sync_exam_grades(db, exam, exam_id, grade_field, grade_filter_base, a
         )
 
 
-async def _sync_task_grades(db, task, task_id, grade_field, grade_filter_base, action):
-    """Sync task grades to student_grades."""
+async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action):
+    """Sync task grades to student_grades (static or dynamic storage)."""
     max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 100
     if max_points <= 0:
         max_points = 100
@@ -315,11 +419,15 @@ async def _sync_task_grades(db, task, task_id, grade_field, grade_filter_base, a
             continue
 
         if action == "delete":
-            update_fields = {grade_field: None}
+            value = None
         elif grade is not None:
-            update_fields = {grade_field: task_score_to_vigesimal(grade, max_points)}
+            value = task_score_to_vigesimal(grade, max_points)
         else:
             continue  # No grade yet, skip
+
+        update_fields = _build_grade_update(field_type, field_key, value)
+        if not update_fields:
+            continue
 
         await db.student_grades.update_one(
             {**grade_filter_base, "student_id": student_id},
@@ -337,14 +445,19 @@ async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage
     if not exam or not exam.get("register_column"):
         return
 
-    grade_field = COLUMN_FIELD_MAP.get(exam["register_column"])
-    if not grade_field:
-        return
+    school_id = exam.get("school_id")
+    register_column = exam["register_column"]
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if grade_field:
+        field_type, field_key = "static", grade_field
+    else:
+        field_type, field_key = await get_storage_field(db, register_column, school_id)
+        if not field_type:
+            return
 
     period_id = exam.get("period_id")
     subject_id = exam.get("subject_id")
     section_id = exam.get("section_id")
-    school_id = exam.get("school_id")
 
     if not all([period_id, subject_id, school_id]):
         return
@@ -372,12 +485,13 @@ async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage
     if section_id:
         grade_filter["section_id"] = section_id
 
+    update_fields = _build_grade_update(field_type, field_key, grade_value)
     await db.student_grades.update_one(
         grade_filter,
-        {"$set": {grade_field: grade_value}},
+        {"$set": update_fields},
         upsert=True,
     )
-    logger.info(f"[SYNC] Student {student_id} exam grade synced: {grade_field}={grade_value}")
+    logger.info(f"[SYNC] Student {student_id} exam grade synced: type={field_type} key={field_key} value={grade_value}")
 
 
 async def sync_single_student_task(db, task_id: str, student_id: str, grade: float):
@@ -389,14 +503,19 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
     if not task or not task.get("register_column"):
         return
 
-    grade_field = COLUMN_FIELD_MAP.get(task["register_column"])
-    if not grade_field:
-        return
+    school_id = task.get("school_id")
+    register_column = task["register_column"]
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if grade_field:
+        field_type, field_key = "static", grade_field
+    else:
+        field_type, field_key = await get_storage_field(db, register_column, school_id)
+        if not field_type:
+            return
 
     period_id = task.get("period_id")
     subject_id = task.get("subject_id")
     section_id = task.get("section_id")
-    school_id = task.get("school_id")
 
     if not all([period_id, subject_id, school_id]):
         return
@@ -428,12 +547,13 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
     if section_id:
         grade_filter["section_id"] = section_id
 
+    update_fields = _build_grade_update(field_type, field_key, grade_value)
     await db.student_grades.update_one(
         grade_filter,
-        {"$set": {grade_field: grade_value}},
+        {"$set": update_fields},
         upsert=True,
     )
-    logger.info(f"[SYNC] Student {student_id} task grade synced: {grade_field}={grade_value}")
+    logger.info(f"[SYNC] Student {student_id} task grade synced: type={field_type} key={field_key} value={grade_value}")
 
 
 async def retry_pending_syncs(db, school_id: str, subject_id: str, section_id: str, period_id: str):
