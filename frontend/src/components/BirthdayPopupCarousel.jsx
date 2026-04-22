@@ -36,17 +36,22 @@ export default function BirthdayPopupCarousel({ token, user }) {
       return;
     }
 
-    // Guard against duplicate fetches during react strict mode / fast refresh
+    // Guard against duplicate fetches during React 18 StrictMode double-effect
+    // (and any fast-refresh triggered re-runs). We intentionally do NOT use a
+    // local "cancelled" flag tied to the effect cleanup: StrictMode invokes
+    // cleanup synchronously between the two effect runs, which would cancel
+    // the in-flight request and leave the popup invisible.
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
-    let cancelled = false;
     axios
       .get(`${API}/birthdays/today`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        if (cancelled) return;
         const list = Array.isArray(res.data) ? res.data : [];
         if (list.length === 0) return;
+        // Re-check the session flag right before showing — in case the user
+        // already closed it in another tab of the same session.
+        if (window.sessionStorage?.getItem(SESSION_KEY)) return;
         setPeople(list);
         setIndex(0);
         setVisible(true);
@@ -54,10 +59,6 @@ export default function BirthdayPopupCarousel({ token, user }) {
       .catch(() => {
         // Silent failure — this is a best-effort enhancement, not critical
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [token, user?.id]);
 
   const handleClose = () => {
