@@ -96,7 +96,8 @@ async def get_student_profile(current_user = Depends(get_current_user)):
             "subject_id": {"$in": subject_ids},
             "$or": [{"post_type": "task"}, {"type": "task"}],
             "due_date": {"$gte": datetime.now(timezone.utc).isoformat()},
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         })
     
     # Get unread messages count from internal_mail
@@ -205,13 +206,15 @@ async def get_student_courses(current_user = Depends(get_current_user)):
             "school_id": school_id,
             "subject_id": subject["id"],
             "type": "material",
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         })
         tasks_count = await db.course_posts.count_documents({
             "school_id": school_id,
             "subject_id": subject["id"],
             "type": "task",
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         })
         
         courses.append({
@@ -356,7 +359,8 @@ async def get_student_tasks(
         "school_id": school_id,
         "subject_id": {"$in": subject_ids},
         "$or": [{"type": "task"}, {"post_type": "task"}],
-        "deleted_at": {"$exists": False}
+        "deleted_at": {"$exists": False},
+        "status": {"$ne": "archived"}
     }, {
         "_id": 0, "id": 1, "title": 1, "content": 1, "description": 1,
         "due_date": 1, "created_at": 1, "subject_id": 1, "metadata": 1,
@@ -595,7 +599,8 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "subject_id": {"$in": subject_ids},
             "$or": [{"post_type": "task"}, {"type": "task"}],  # Support both field names
             "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()},
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         }, {"_id": 0}).sort("due_date", 1).to_list(50)
         
         # Single source of truth: embedded `course_posts.submissions` array.
@@ -681,7 +686,8 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "$or": [{"post_type": "task"}, {"type": "task"}],
             "submissions.student_id": user["id"],
             "submissions.grade": {"$exists": True, "$ne": None},
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         }, {"_id": 0, "submissions": 1, "max_grade": 1}).to_list(500)
         
         for task in tasks_with_grades:
@@ -709,7 +715,8 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "school_id": school_id,
             "subject_id": {"$in": subject_ids},
             "$or": [{"post_type": "task"}, {"type": "task"}],
-            "deleted_at": {"$exists": False}
+            "deleted_at": {"$exists": False},
+            "status": {"$ne": "archived"}
         }, {"_id": 0, "id": 1, "submissions": 1}).to_list(500)
         
         total = len(all_tasks)
