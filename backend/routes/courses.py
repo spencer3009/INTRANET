@@ -99,10 +99,17 @@ async def get_course_posts(
     school_id = user["school_id"]
     user_id = user["id"]
 
+    # Teacher/course feed: show all tasks regardless of whether their
+    # due_date has passed. A background cron flips expired tasks from
+    # "active" to "closed" (see close_expired_tasks_cron in exams.py),
+    # so filtering strictly on status="active" here made vencidas tasks
+    # — even those with submissions and grades — disappear from the
+    # teacher's view. We only want to hide archived/deleted posts; the
+    # student portal has its own due_date filter for "upcoming tasks".
     query_filter = {
         "subject_id": subject_id,
         "school_id": school_id,
-        "status": "active",
+        "status": {"$nin": ["archived", "deleted"]},
         "deleted_at": {"$exists": False}
     }
 
