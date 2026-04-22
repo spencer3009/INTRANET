@@ -203,9 +203,9 @@ export default function AttendanceAndNews({ news = [], token }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="attendance-news-panel">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-stretch" data-testid="attendance-news-panel">
         {/* Attendance Chart */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="attendance-chart">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col" data-testid="attendance-chart">
           <div className="flex items-center justify-between mb-2">
             <h3
               className="text-base font-bold text-[#001f4b]"
@@ -278,7 +278,7 @@ export default function AttendanceAndNews({ news = [], token }) {
         </div>
 
         {/* Announcements */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="announcements-panel">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col" data-testid="announcements-panel">
           <div className="flex items-center justify-between mb-1">
             <h3
               className="text-base font-bold text-[#001f4b]"
@@ -296,7 +296,7 @@ export default function AttendanceAndNews({ news = [], token }) {
             {hasRealNews ? "Comunicados recientes" : "Comunicados recientes del colegio"}
           </p>
 
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1 flex flex-col">
             {hasRealNews ? (
               // Show real news
               displayNews.map((item) => {
@@ -329,7 +329,7 @@ export default function AttendanceAndNews({ news = [], token }) {
               })
             ) : (
               // Empty state — no real news published yet by the school
-              <div className="flex flex-col items-center justify-center py-10 text-center" data-testid="news-empty-state">
+              <div className="flex flex-col items-center justify-center py-10 text-center flex-1" data-testid="news-empty-state">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                   <Megaphone className="w-7 h-7 text-slate-400" />
                 </div>
