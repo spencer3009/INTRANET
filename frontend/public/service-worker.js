@@ -1,5 +1,20 @@
-const CACHE_NAME = 'edunet-v9';
-const SW_VERSION = '9.0.0';
+const CACHE_NAME = 'edunet-v10';
+const SW_VERSION = '10.0.0';
+
+// Minimal precache list: only static, non-hashed assets we know exist at
+// build time. Webpack-hashed bundles (main.[hash].js / main.[hash].css)
+// cannot be precached by name and are handled by the runtime strategy
+// below. The important thing is: if any of these fetches fails we do
+// NOT swallow the error — the browser must receive a real failure so
+// it can retry or surface it, instead of loading an empty module and
+// crashing the app.
+const PRECACHE_URLS = [
+  '/index.html',
+  '/manifest.json',
+  '/favicon.ico',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+];
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FIREBASE CLOUD MESSAGING — merged here to avoid a second SW at the same scope
@@ -79,10 +94,27 @@ self.addEventListener("notificationclick", (event) => {
 // PWA LIFECYCLE
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Install: skip waiting immediately
+// Install: precache critical assets + skip waiting
 self.addEventListener('install', (event) => {
   console.log(`[SW] Installing v${SW_VERSION}`);
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      // addAll is all-or-nothing; if any URL fails, install fails and the
+      // old SW stays active. Use individual puts so one 404 cannot block
+      // the whole installation.
+      Promise.all(
+        PRECACHE_URLS.map((url) =>
+          fetch(url, { cache: 'no-cache' })
+            .then((resp) => {
+              if (resp && resp.ok) return cache.put(url, resp.clone());
+            })
+            .catch((err) => {
+              console.warn(`[SW] Precache failed for ${url}:`, err.message);
+            })
+        )
+      )
+    ).then(() => self.skipWaiting())
+  );
 });
 
 // Activate: claim all clients, clear old caches
@@ -150,13 +182,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: ONLY cache opportunistically on successful fetch
-  // Do NOT intercept failures — let the browser handle errors naturally
-  // This prevents 503 errors from appearing in the console
+  // Static assets: stale-while-revalidate, but ONLY cache successful
+  // responses and NEVER fake a successful empty response when the network
+  // fails. Faking empty 200s for JS/CSS used to cause silent blank screens
+  // in the PWA because the browser would evaluate the empty module and
+  // crash React when any component in that chunk was rendered.
   if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|webp|gif)$/)) {
     event.respondWith(
       caches.match(request).then((cached) => {
-        // Start network fetch in background
         const networkFetch = fetch(request)
           .then((response) => {
             if (response && response.ok) {
@@ -164,23 +197,20 @@ self.addEventListener('fetch', (event) => {
               caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             }
             return response;
-          })
-          .catch(() => {
-            // Network failed — return cached version if available
-            // If no cache exists, return a transparent 1x1 pixel for images
-            // or empty content for other assets — with status 200 to avoid 503
-            if (cached) return cached;
-            // For images: return transparent pixel
-            if (url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|gif)$/)) {
-              return new Response('', { status: 200, headers: { 'Content-Type': 'image/svg+xml' } });
-            }
-            // For JS/CSS: return empty — the app should still function
-            return new Response('', { status: 200, headers: { 'Content-Type': 'text/plain' } });
           });
-
-        // If we have a cached version, return it immediately
-        // and update the cache in the background (stale-while-revalidate)
-        return cached || networkFetch;
+        // Stale-while-revalidate: if we have a cached copy return it now
+        // and refresh in the background. If we don't, wait for the
+        // network response. If the network fails and there is no cache,
+        // let the error propagate so the browser handles it naturally
+        // (shows a broken image, retries, or triggers a real JS error
+        // instead of loading an empty file that corrupts the app).
+        if (cached) {
+          // Swallow background refresh errors so they don't reach the
+          // page, but do not substitute them with fake responses.
+          networkFetch.catch(() => {});
+          return cached;
+        }
+        return networkFetch;
       })
     );
     return;

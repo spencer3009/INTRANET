@@ -3,6 +3,7 @@ import axios from "axios";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import SchoolLoginPage from "@/pages/SchoolLoginPage";
@@ -861,6 +862,7 @@ function App() {
   };
 
   return (
+    <ErrorBoundary>
     <TenantContext.Provider value={tenantValue}>
       <DemoModeProvider user={user}>
         <BrowserRouter>
@@ -3003,6 +3005,7 @@ function App() {
       </DemoModeProvider>
       <Toaster position="top-right" richColors closeButton />
     </TenantContext.Provider>
+    </ErrorBoundary>
   );
 }
 
