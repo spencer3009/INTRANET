@@ -620,11 +620,11 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
                 dashboardData={dashboardData}
               />
 
-              {/* Mini Calendar */}
-              <MiniCalendar events={calendarEvents} />
-
               {/* Birthdays of the month */}
               <BirthdayMonthCarousel token={token} standalone />
+
+              {/* Mini Calendar */}
+              <MiniCalendar events={calendarEvents} />
             </div>
           </div>
 
