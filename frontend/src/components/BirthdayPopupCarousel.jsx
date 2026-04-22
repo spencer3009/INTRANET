@@ -140,23 +140,43 @@ export default function BirthdayPopupCarousel({ token, user }) {
         </button>
 
         {/* Carousel body */}
-        <div className="relative px-8 pt-8 pb-6 text-center">
+        <div className="relative px-8 pt-10 pb-6 text-center">
           <div className="absolute top-3 left-3 flex items-center gap-1.5 text-pink-500">
             <PartyPopper className="w-5 h-5" />
             <span className="text-[11px] font-bold uppercase tracking-wider">Cumpleaños</span>
           </div>
+
+          {/* Big centered cake icon */}
+          <div
+            className="text-7xl leading-none mb-3 select-none"
+            style={{
+              animation: "birthday-cake-pop 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both",
+              filter: "drop-shadow(0 6px 14px rgba(236, 72, 153, 0.35))",
+            }}
+            data-testid="birthday-popup-cake"
+            aria-hidden="true"
+          >
+            🎂
+          </div>
+          <style>{`
+            @keyframes birthday-cake-pop {
+              0%   { transform: scale(0.2) rotate(-20deg); opacity: 0; }
+              60%  { transform: scale(1.15) rotate(6deg); opacity: 1; }
+              100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            }
+          `}</style>
 
           {/* Avatar */}
           {current?.avatar_url ? (
             <img
               src={current.avatar_url}
               alt={current.name}
-              className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-pink-100 shadow-md"
+              className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-pink-100 shadow-md"
               data-testid="birthday-popup-avatar"
             />
           ) : (
             <div
-              className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 via-rose-400 to-amber-400 text-white text-3xl font-bold flex items-center justify-center mx-auto mb-4 shadow-md"
+              className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 via-rose-400 to-amber-400 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 shadow-md"
               data-testid="birthday-popup-avatar-initial"
             >
               {initial}
@@ -185,7 +205,7 @@ export default function BirthdayPopupCarousel({ token, user }) {
           )}
 
           <p className="text-lg font-semibold text-slate-700 mt-4">
-            🎂 ¡Feliz cumpleaños!
+            ¡Feliz cumpleaños!
           </p>
           <p className="text-sm text-slate-500 mt-1.5">
             Todo el equipo de EduNet te desea un día maravilloso.
