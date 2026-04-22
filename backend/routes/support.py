@@ -1947,3 +1947,62 @@ async def test_push_notification(school_id: str, user=Depends(require_support_ad
         "fcm_configured": fcm_configured,
         "school_name": school_name,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLEANUP - Permanent deletion of orphan course_posts (tasks) by title
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CleanupOrphanTasksRequest(BaseModel):
+    school_id: str = Field(..., min_length=1)
+    titles: list[str] = Field(..., min_length=1)
+
+
+async def require_support_or_owner(current_user=Depends(get_current_user)):
+    """Allow system_admin_global (support) or owner role."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+    role = user.get("role")
+    if role not in ("system_admin_global", "owner"):
+        raise HTTPException(status_code=403, detail="Acceso denegado. Solo soporte u owner.")
+    return user
+
+
+@router.delete("/cleanup-orphan-tasks")
+async def cleanup_orphan_tasks(
+    payload: CleanupOrphanTasksRequest,
+    user=Depends(require_support_or_owner),
+):
+    """
+    Permanently delete course_posts documents matching the given school_id
+    and any of the provided titles. Intended for support-only cleanup of
+    orphan tasks that can no longer be removed via the regular UI flow.
+
+    Owners may only clean up tasks within their own school.
+    """
+    # Restrict owners to their own school
+    if user.get("role") == "owner":
+        owner_school_id = user.get("school_id")
+        if not owner_school_id or owner_school_id != payload.school_id:
+            raise HTTPException(
+                status_code=403,
+                detail="El owner solo puede limpiar tareas de su propio colegio.",
+            )
+
+    # Clean titles (strip whitespace, drop empties)
+    titles = [t.strip() for t in payload.titles if isinstance(t, str) and t.strip()]
+    if not titles:
+        raise HTTPException(status_code=400, detail="La lista de titles no puede estar vacía.")
+
+    result = await db.course_posts.delete_many({
+        "school_id": payload.school_id,
+        "title": {"$in": titles},
+    })
+
+    logger.info(
+        "[cleanup-orphan-tasks] user=%s role=%s school=%s titles=%s deleted=%s",
+        user.get("id"), user.get("role"), payload.school_id, titles, result.deleted_count,
+    )
+
+    return {"deleted_count": result.deleted_count}
