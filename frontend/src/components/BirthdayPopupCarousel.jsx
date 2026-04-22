@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import confetti from "canvas-confetti";
 import { ChevronLeft, ChevronRight, X, PartyPopper } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -67,6 +68,39 @@ export default function BirthdayPopupCarousel({ token, user }) {
       /* storage disabled — safe to ignore */
     }
   };
+
+  // Fire a celebratory confetti burst from both sides the first time the
+  // popup becomes visible. Does NOT re-fire when the user navigates between
+  // carousel cards (that's what the fired ref is for).
+  const confettiFiredRef = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      confettiFiredRef.current = false;
+      return;
+    }
+    if (confettiFiredRef.current) return;
+    confettiFiredRef.current = true;
+
+    const timer = setTimeout(() => {
+      const colors = ["#EC4899", "#F59E0B", "#3B82F6", "#10B981", "#8B5CF6"];
+      const commonOpts = {
+        particleCount: 80,
+        spread: 70,
+        colors,
+        shapes: ["square", "circle"],
+        ticks: 200,
+        // Sit above the modal backdrop (z-300) so the confetti is visible
+        // and not dimmed by the background blur.
+        zIndex: 400,
+      };
+      // Left burst
+      confetti({ ...commonOpts, angle: 60, origin: { x: 0, y: 0.8 } });
+      // Right burst
+      confetti({ ...commonOpts, angle: 120, origin: { x: 1, y: 0.8 } });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   if (!visible || people.length === 0) return null;
 
