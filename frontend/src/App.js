@@ -4,6 +4,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import BirthdayPopupCarousel from "@/components/BirthdayPopupCarousel";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import SchoolLoginPage from "@/pages/SchoolLoginPage";
@@ -3004,6 +3005,7 @@ function App() {
       </BrowserRouter>
       </DemoModeProvider>
       <Toaster position="top-right" richColors closeButton />
+      <BirthdayPopupCarousel token={token} user={user} />
     </TenantContext.Provider>
     </ErrorBoundary>
   );

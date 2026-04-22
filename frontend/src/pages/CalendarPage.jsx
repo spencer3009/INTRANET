@@ -7,7 +7,7 @@ import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X,
   Loader2, AlertCircle, Check, Clock, Edit2, Trash2, Eye,
-  Filter, GraduationCap, Users, Building, Star, Megaphone, BookOpen
+  Filter, GraduationCap, Users, Building, Star, Megaphone, BookOpen, Cake
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -19,7 +19,8 @@ const EVENT_TYPES = {
   administrative: { label: "Administrativo", color: "#64748B", icon: Users, bgClass: "bg-slate-100", textClass: "text-slate-700" },
   holiday: { label: "Feriado", color: "#EF4444", icon: Star, bgClass: "bg-red-100", textClass: "text-red-700" },
   special: { label: "Evento especial", color: "#F59E0B", icon: Star, bgClass: "bg-amber-100", textClass: "text-amber-700" },
-  communication: { label: "Comunicación", color: "#10B981", icon: Megaphone, bgClass: "bg-emerald-100", textClass: "text-emerald-700" }
+  communication: { label: "Comunicación", color: "#10B981", icon: Megaphone, bgClass: "bg-emerald-100", textClass: "text-emerald-700" },
+  birthday: { label: "Cumpleaños", color: "#EC4899", icon: Cake, bgClass: "bg-pink-100", textClass: "text-pink-700" }
 };
 
 // View modes
@@ -632,6 +633,7 @@ export default function CalendarPage({ user, token, subdomain, onLogout }) {
   // Modal state
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [birthdayPopup, setBirthdayPopup] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDayModal, setShowDayModal] = useState(false);
   const [dayModalEvents, setDayModalEvents] = useState([]);
@@ -705,8 +707,34 @@ export default function CalendarPage({ user, token, subdomain, onLogout }) {
         params.event_type = typeFilter;
       }
       
-      const res = await axios.get(`${API}/calendar/events`, { headers, params });
-      setEvents(res.data);
+      // Birthdays don't honor the calendar/events type filter unless the user
+      // is explicitly filtering to 'birthday' or not filtering at all.
+      const includeBirthdays = !typeFilter || typeFilter === "birthday";
+      const birthdayYear = new Date(dateRange.start).getFullYear();
+
+      const [eventsRes, birthdaysRes] = await Promise.all([
+        axios.get(`${API}/calendar/events`, { headers, params }),
+        includeBirthdays
+          ? axios.get(`${API}/birthdays/calendar`, { headers, params: { year: birthdayYear } }).catch((err) => {
+              console.error("Error loading birthdays:", err);
+              return { data: [] };
+            })
+          : Promise.resolve({ data: [] })
+      ]);
+
+      // Map birthday entries to the calendar's event shape so CalendarGrid can
+      // render them without any extra branching.
+      const birthdayEvents = (birthdaysRes.data || []).map((b) => ({
+        id: `bday_${b.id}`,
+        type: "birthday",
+        title: `🎂 ${b.name}`,
+        start_date: b.calendar_date,
+        end_date: b.calendar_date,
+        color: EVENT_TYPES.birthday.color,
+        _birthday: b,
+      }));
+
+      setEvents([...(eventsRes.data || []), ...birthdayEvents]);
     } catch (err) {
       console.error("Error loading events:", err);
     } finally {
@@ -758,6 +786,16 @@ export default function CalendarPage({ user, token, subdomain, onLogout }) {
   };
 
   const handleEventClick = (event) => {
+    // Birthday events render a lightweight mini-popup instead of the full
+    // event editor (they are virtual, read-only, and not editable in DB).
+    if (event?.type === "birthday") {
+      setBirthdayPopup(event._birthday || {
+        name: (event.title || "").replace(/^🎂\s*/, ""),
+        person_type: "",
+        avatar_url: null,
+      });
+      return;
+    }
     setSelectedEvent(event);
     setShowEventModal(true);
   };
@@ -1047,6 +1085,65 @@ export default function CalendarPage({ user, token, subdomain, onLogout }) {
         events={dayModalEvents}
         onEventClick={handleEventClick}
       />
+
+      {/* Birthday mini-popup (triggered when clicking a 🎂 event in the calendar) */}
+      {birthdayPopup && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          data-testid="calendar-birthday-popup"
+          onClick={() => setBirthdayPopup(null)}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-1.5 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300" />
+            <button
+              onClick={() => setBirthdayPopup(null)}
+              className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              data-testid="calendar-birthday-popup-close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="px-6 pt-6 pb-5 text-center">
+              {birthdayPopup.avatar_url ? (
+                <img
+                  src={birthdayPopup.avatar_url}
+                  alt={birthdayPopup.name}
+                  className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-pink-100"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3">
+                  {(birthdayPopup.name || "?").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <p className="text-xl font-bold text-slate-800 mb-1">{birthdayPopup.name}</p>
+              {birthdayPopup.person_type && (
+                <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full mb-3 ${
+                  birthdayPopup.person_type === "student"
+                    ? "bg-sky-100 text-sky-700"
+                    : "bg-indigo-100 text-indigo-700"
+                }`}>
+                  {birthdayPopup.person_type === "student" ? "Alumno" : "Profesor"}
+                </span>
+              )}
+              <p className="text-slate-600 text-sm mt-2">
+                🎂 ¡Hoy es el cumpleaños de <span className="font-semibold text-slate-800">{birthdayPopup.name}</span>!
+              </p>
+            </div>
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setBirthdayPopup(null)}
+                className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );

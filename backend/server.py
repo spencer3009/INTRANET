@@ -33,6 +33,7 @@ from routes.schedule import router as schedule_router
 from routes.messages_legacy import router as messages_legacy_router
 from routes.attendance import router as attendance_router
 from routes.calendar import router as calendar_router
+from routes.birthdays import router as birthdays_router
 from routes.surveys import router as surveys_router
 from routes.discipline import router as discipline_router
 from routes.news import router as news_router
@@ -198,6 +199,7 @@ app.include_router(schedule_router)
 app.include_router(messages_legacy_router)
 app.include_router(attendance_router)
 app.include_router(calendar_router)
+app.include_router(birthdays_router)
 app.include_router(surveys_router)
 app.include_router(discipline_router)
 app.include_router(news_router)
