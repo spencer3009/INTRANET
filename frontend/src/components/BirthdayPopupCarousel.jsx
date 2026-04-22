@@ -148,7 +148,7 @@ export default function BirthdayPopupCarousel({ token, user }) {
 
           {/* Big centered cake icon */}
           <div
-            className="text-7xl leading-none mb-3 select-none"
+            className="text-7xl leading-none mb-6 select-none"
             style={{
               animation: "birthday-cake-pop 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both",
               filter: "drop-shadow(0 6px 14px rgba(236, 72, 153, 0.35))",
