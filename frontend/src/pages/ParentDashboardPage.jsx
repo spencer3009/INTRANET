@@ -1032,11 +1032,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-8 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div className="lg:col-span-8 flex flex-col gap-4">
               <HeroCarousel banners={banners} user={studentInfo} schoolName={schoolName} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-stretch">
                 {/* Courses */}
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
