@@ -195,14 +195,22 @@ async def support_schools_metrics(user=Depends(require_support_admin)):
     candidate_ids = await _visible_school_ids_for_user(user)
     # Non-global user without assignments: nothing visible
     if candidate_ids is not None and not candidate_ids:
-        return {"renovados_mes": 0, "vencidos": 0, "nuevos_mes": 0}
+        return {"total": 0, "renovados_mes": 0, "vencidos": 0, "nuevos_mes": 0}
 
     renovados, vencidos, nuevos = await asyncio.gather(
         _schools_in_metric("renovados_mes", candidate_ids),
         _schools_in_metric("vencidos", candidate_ids),
         _schools_in_metric("nuevos_mes", candidate_ids),
     )
+
+    # Total of visible schools (same scope as the other metrics)
+    if candidate_ids is None:
+        total = await db.schools.count_documents(NOT_IN_TRASH)
+    else:
+        total = await db.schools.count_documents({**NOT_IN_TRASH, "id": {"$in": candidate_ids}})
+
     return {
+        "total": total,
         "renovados_mes": len(renovados),
         "vencidos": len(vencidos),
         "nuevos_mes": len(nuevos),

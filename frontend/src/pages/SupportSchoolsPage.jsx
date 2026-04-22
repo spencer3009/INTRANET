@@ -118,7 +118,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [showAssign, setShowAssign] = useState(false);
   const [search, setSearch] = useState("");
   const [activeMetric, setActiveMetric] = useState(null); // null | "renovados_mes" | "vencidos" | "nuevos_mes"
-  const [metrics, setMetrics] = useState({ renovados_mes: null, vencidos: null, nuevos_mes: null });
+  const [metrics, setMetrics] = useState({ total: null, renovados_mes: null, vencidos: null, nuevos_mes: null });
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [switching, setSwitching] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -204,7 +204,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     try {
       setMetricsLoading(true);
       const res = await axios.get(`${API}/support/schools/metrics`, { headers });
-      setMetrics(res.data || { renovados_mes: 0, vencidos: 0, nuevos_mes: 0 });
+      setMetrics(res.data || { total: 0, renovados_mes: 0, vencidos: 0, nuevos_mes: 0 });
     } catch (err) {
       console.error("Error fetching school metrics:", err);
     } finally {
@@ -614,45 +614,74 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       </div>
 
       {/* Metric summary cards (filterable) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="school-metrics">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="school-metrics">
         {[
           {
+            key: null,
+            testKey: "todos",
+            label: "Todos los colegios",
+            icon: Building2,
+            accent: "#1a3c34",
+            accentBg: "bg-slate-100",
+            accentText: "text-slate-700",
+            ringClass: "ring-slate-400/60 border-slate-400 bg-slate-50",
+            metricField: "total",
+          },
+          {
             key: "renovados_mes",
+            testKey: "renovados_mes",
             label: "Renovados este mes",
             icon: RefreshCw,
             accent: "#00b894",
             accentBg: "bg-emerald-50",
             accentText: "text-emerald-600",
             ringClass: "ring-emerald-400/60 border-emerald-400 bg-emerald-50/40",
+            metricField: "renovados_mes",
           },
           {
             key: "vencidos",
+            testKey: "vencidos",
             label: "Vencidos / Sin renovar",
             icon: AlertTriangle,
             accent: "#f39c12",
             accentBg: "bg-amber-50",
             accentText: "text-amber-600",
             ringClass: "ring-amber-400/60 border-amber-400 bg-amber-50/40",
+            metricField: "vencidos",
           },
           {
             key: "nuevos_mes",
+            testKey: "nuevos_mes",
             label: "Nuevos este mes",
             icon: Sparkles,
             accent: "#0984e3",
             accentBg: "bg-sky-50",
             accentText: "text-sky-600",
             ringClass: "ring-sky-400/60 border-sky-400 bg-sky-50/40",
+            metricField: "nuevos_mes",
           },
         ].map((m) => {
           const Icon = m.icon;
-          const value = metrics[m.key];
-          const isActive = activeMetric === m.key;
+          const value = metrics[m.metricField];
+          // "Todos" is active when no filter is applied; the others follow activeMetric
+          const isActive = m.key === null ? activeMetric === null : activeMetric === m.key;
           return (
             <button
-              key={m.key}
+              key={m.testKey}
               type="button"
-              onClick={() => handleMetricClick(m.key)}
-              data-testid={`metric-card-${m.key}`}
+              onClick={() => {
+                if (m.key === null) {
+                  // "Todos" always clears any filter; never toggles off
+                  if (activeMetric !== null) {
+                    setActiveMetric(null);
+                    setSearch("");
+                    setLoading(true);
+                  }
+                } else {
+                  handleMetricClick(m.key);
+                }
+              }}
+              data-testid={`metric-card-${m.testKey}`}
               data-active={isActive ? "true" : "false"}
               className={`group text-left bg-white rounded-2xl border p-4 transition-all flex items-center gap-4 hover:shadow-md ${
                 isActive
@@ -664,17 +693,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <Icon className={`w-5 h-5 ${m.accentText}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">
+                <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold truncate">
                   {m.label}
                 </p>
                 <div className="flex items-baseline gap-2 mt-0.5">
                   {metricsLoading ? (
-                    <span className="inline-block h-7 w-10 rounded bg-slate-100 animate-pulse" data-testid={`metric-skeleton-${m.key}`} />
+                    <span className="inline-block h-7 w-10 rounded bg-slate-100 animate-pulse" data-testid={`metric-skeleton-${m.testKey}`} />
                   ) : (
                     <span
                       className="text-2xl font-bold text-slate-800"
                       style={{ fontVariantNumeric: "tabular-nums" }}
-                      data-testid={`metric-value-${m.key}`}
+                      data-testid={`metric-value-${m.testKey}`}
                     >
                       {value ?? 0}
                     </span>
