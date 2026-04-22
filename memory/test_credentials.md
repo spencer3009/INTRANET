@@ -31,7 +31,7 @@
 ### Parent (linked to student Magno Eduardo)
 - Name: Maria Peres Garcia
 - Email: maria.peres@gmail.com
-- Password: Parent123!
+- Password: Parent1234!
 - User ID: a12969b9-711b-4cfb-8e12-9bbb0c20f390
 - Linked Student ID: 4d30c475-c1cf-42d1-9485-620b556ecf72
 
