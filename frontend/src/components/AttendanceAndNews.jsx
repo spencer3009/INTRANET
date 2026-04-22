@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Newspaper, Clock, Pin, X, Calendar, User, Loader2 } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, TrendingUp, TrendingDown, Newspaper, Clock, Pin, X, Calendar, User, Loader2, Megaphone } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,42 +54,6 @@ function getTagInfo(news) {
   
   return categoryMap[news.category] || { tag: "Aviso", tagColor: "bg-slate-100 text-slate-600" };
 }
-
-// Default announcements for when no news is available
-const defaultAnnouncements = [
-  {
-    id: 1,
-    title: "Inscripciones abiertas para talleres extracurriculares",
-    content: "Se informa a toda la comunidad educativa que las inscripciones para los talleres extracurriculares del año escolar 2026 ya están abiertas. Los interesados pueden acercarse a secretaría para más información.",
-    time: "Hace 2 horas",
-    tag: "Nuevo",
-    tagColor: "bg-[#5c85d6] text-white",
-  },
-  {
-    id: 2,
-    title: "Cambio de horario: Educación Física pasa a viernes",
-    content: "Por disposición de la coordinación académica, las clases de Educación Física se trasladarán al día viernes a partir de la próxima semana.",
-    time: "Hace 5 horas",
-    tag: "Importante",
-    tagColor: "bg-[#e1b82c] text-[#001f4b]",
-  },
-  {
-    id: 3,
-    title: "Resultados del concurso de ortografía publicados",
-    content: "Ya están disponibles los resultados del concurso de ortografía. Felicitamos a todos los participantes.",
-    time: "Ayer",
-    tag: "Académico",
-    tagColor: "bg-[#5c85d6]/15 text-[#5c85d6]",
-  },
-  {
-    id: 4,
-    title: "Reunión de coordinadores reprogramada al jueves",
-    content: "Se comunica que la reunión de coordinadores ha sido reprogramada para el día jueves a las 4:00 PM.",
-    time: "Hace 2 días",
-    tag: "Aviso",
-    tagColor: "bg-slate-100 text-slate-600",
-  },
-];
 
 // Category color accents for the modal
 const categoryAccents = {
@@ -209,8 +173,10 @@ export default function AttendanceAndNews({ news = [], token }) {
       .finally(() => setAttLoading(false));
   }, [token]);
 
-  // Use real news if available, otherwise show defaults
-  const displayNews = news.length > 0 ? news.slice(0, 4) : defaultAnnouncements;
+  // Only show real news from the backend. If the school hasn't
+  // published any, render an empty state instead of hard-coded mock
+  // announcements to avoid confusing students with fake content.
+  const displayNews = news.slice(0, 4);
   const hasRealNews = news.length > 0;
 
   // Build chart data from real attendance
@@ -362,26 +328,16 @@ export default function AttendanceAndNews({ news = [], token }) {
                 );
               })
             ) : (
-              // Show default announcements
-              displayNews.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedNews(item)}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-                  data-testid={`announcement-${item.id}`}
-                >
-                  <div className="w-1 h-full min-h-[40px] rounded-full bg-[#001f4b]/10 group-hover:bg-[#e1b82c] transition-colors flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 leading-snug group-hover:text-[#001f4b]">{item.title}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.tagColor}`}>
-                        {item.tag}
-                      </span>
-                      <span className="text-[11px] text-slate-400">{item.time}</span>
-                    </div>
-                  </div>
+              // Empty state — no real news published yet by the school
+              <div className="flex flex-col items-center justify-center py-10 text-center" data-testid="news-empty-state">
+                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                  <Megaphone className="w-7 h-7 text-slate-400" />
                 </div>
-              ))
+                <p className="text-sm font-medium text-slate-600">Aún no hay comunicados</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-[220px]">
+                  Cuando el colegio publique noticias o avisos, los verás aquí.
+                </p>
+              </div>
             )}
           </div>
 

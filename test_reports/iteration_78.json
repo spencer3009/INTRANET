@@ -72,7 +72,7 @@
       "email": "admin@elroble.edu",
       "password": "1234abc8",
       "subdomain": "elroble",
-      "login_url": "https://student-grades-fix.preview.emergentagent.com/elroble/login"
+      "login_url": "https://gradebook-dynamic.preview.emergentagent.com/elroble/login"
     }
   },
 
