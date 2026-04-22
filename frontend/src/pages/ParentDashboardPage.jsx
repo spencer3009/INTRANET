@@ -164,6 +164,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [coursesPage, setCoursesPage] = useState(1);
   const [tasksPage, setTasksPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
+  const COURSES_PER_PAGE = 8;
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -1052,7 +1053,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   </div>
                   <div className="divide-y divide-slate-100 flex-1">
                     {courses.length > 0 ? (
-                      courses.slice((coursesPage - 1) * ITEMS_PER_PAGE, coursesPage * ITEMS_PER_PAGE).map((course) => (
+                      courses.slice((coursesPage - 1) * COURSES_PER_PAGE, coursesPage * COURSES_PER_PAGE).map((course) => (
                         <div key={course.id} onClick={() => navigateTo(`/parent/courses/${course.id}`)}
                           className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -1075,24 +1076,24 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       </div>
                     )}
                   </div>
-                  {courses.length > ITEMS_PER_PAGE && (
+                  {courses.length > COURSES_PER_PAGE && (
                     <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <span className="text-xs text-slate-500">
-                        {(coursesPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(coursesPage * ITEMS_PER_PAGE, courses.length)} de {courses.length}
+                        {(coursesPage - 1) * COURSES_PER_PAGE + 1}-{Math.min(coursesPage * COURSES_PER_PAGE, courses.length)} de {courses.length}
                       </span>
                       <div className="flex items-center gap-1">
                         <button onClick={() => setCoursesPage(p => Math.max(1, p - 1))} disabled={coursesPage === 1}
                           className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                           <ChevronLeft className="w-4 h-4 text-slate-600" />
                         </button>
-                        {Array.from({ length: Math.ceil(courses.length / ITEMS_PER_PAGE) }, (_, i) => (
+                        {Array.from({ length: Math.ceil(courses.length / COURSES_PER_PAGE) }, (_, i) => (
                           <button key={i + 1} onClick={() => setCoursesPage(i + 1)}
                             className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
                               coursesPage === i + 1 ? "bg-cyan-500 text-white" : "text-slate-600 hover:bg-slate-200"
                             }`}>{i + 1}</button>
                         ))}
-                        <button onClick={() => setCoursesPage(p => Math.min(Math.ceil(courses.length / ITEMS_PER_PAGE), p + 1))}
-                          disabled={coursesPage === Math.ceil(courses.length / ITEMS_PER_PAGE)}
+                        <button onClick={() => setCoursesPage(p => Math.min(Math.ceil(courses.length / COURSES_PER_PAGE), p + 1))}
+                          disabled={coursesPage === Math.ceil(courses.length / COURSES_PER_PAGE)}
                           className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                           <ChevronRight className="w-4 h-4 text-slate-600" />
                         </button>
