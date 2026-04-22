@@ -1682,6 +1682,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [parentImporting, setParentImporting] = useState(false);
   const [parentImportResult, setParentImportResult] = useState(null);
   const [parentsTabSearch, setParentsTabSearch] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
+  const [staffSearchFocused, setStaffSearchFocused] = useState(false);
   const [parentDragOver, setParentDragOver] = useState(false);
   const [parentImportProgress, setParentImportProgress] = useState(0);
   const [showParentPending, setShowParentPending] = useState(false);
@@ -2337,6 +2339,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const handleCardClick = (roleId) => {
     setSelectedRole(roleId);
+    setStaffSearch("");
+    setStaffSearchFocused(false);
   };
 
   // Open delete confirmation modal
@@ -2583,7 +2587,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             const email = (u.email || '').toLowerCase();
             return fullName.includes(q) || dni.includes(q) || email.includes(q);
           })
-        : users.filter(u => u.role === selectedRole || (u.additional_roles || []).includes(selectedRole));
+        : (() => {
+            const roleMatches = users.filter(u => u.role === selectedRole || (u.additional_roles || []).includes(selectedRole));
+            const q = staffSearch.trim().toLowerCase();
+            if (!q || selectedRole === 'parent') return roleMatches;
+            return roleMatches.filter(u => {
+              const fullName = `${u.name || ''} ${u.last_name || ''}`.toLowerCase();
+              const email = (u.email || '').toLowerCase();
+              const username = (u.username || '').toLowerCase();
+              const phone = (u.phone || '').toLowerCase();
+              const dni = (u.dni || '').toLowerCase();
+              return fullName.includes(q) || email.includes(q) || username.includes(q) || phone.includes(q) || dni.includes(q);
+            });
+          })();
     
     // Get total students count (unfiltered, exclude orphans without nivel)
     const totalStudents = users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id).length;
@@ -2600,7 +2616,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           <div className="relative z-10">
             {/* Back button */}
             <button
-              onClick={() => setSelectedRole(null)}
+              onClick={() => { setSelectedRole(null); setStaffSearch(""); setStaffSearchFocused(false); }}
               className="flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors group"
             >
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
@@ -3123,6 +3139,107 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════════════════
+            STAFF SEARCH BAR with AUTOCOMPLETE - For all non-student / non-parent roles
+            (teacher, admin, director, coordinator, psicologo, auxiliares, etc.)
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole && selectedRole !== 'student' && selectedRole !== 'parent' && (() => {
+          const roleMatches = users.filter(u => u.role === selectedRole || (u.additional_roles || []).includes(selectedRole));
+          const q = staffSearch.trim().toLowerCase();
+          const suggestions = q ? roleMatches.filter(u => {
+            const fullName = `${u.name || ''} ${u.last_name || ''}`.toLowerCase();
+            const email = (u.email || '').toLowerCase();
+            const username = (u.username || '').toLowerCase();
+            const phone = (u.phone || '').toLowerCase();
+            const dni = (u.dni || '').toLowerCase();
+            return fullName.includes(q) || email.includes(q) || username.includes(q) || phone.includes(q) || dni.includes(q);
+          }).slice(0, 8) : [];
+          return (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6 shadow-sm" data-testid="staff-search-bar">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={`Buscar ${roleConfig.labelSingular.toLowerCase()} por nombre, correo, DNI o teléfono...`}
+                  value={staffSearch}
+                  onChange={(e) => setStaffSearch(e.target.value)}
+                  onFocus={() => setStaffSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setStaffSearchFocused(false), 150)}
+                  className="w-full pl-12 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                  data-testid="staff-search-input"
+                  autoComplete="off"
+                />
+                {staffSearch && (
+                  <button
+                    onClick={() => setStaffSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                    data-testid="staff-search-clear"
+                  >
+                    <X className="w-3.5 h-3.5 text-slate-500" />
+                  </button>
+                )}
+
+                {/* Autocomplete dropdown */}
+                {staffSearchFocused && q && suggestions.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-30 max-h-80 overflow-y-auto"
+                    data-testid="staff-search-suggestions"
+                  >
+                    {suggestions.map((u) => {
+                      const fullName = `${u.name || ''} ${u.last_name || ''}`.trim() || u.email || 'Sin nombre';
+                      const initial = (u.name || u.email || '?').charAt(0).toUpperCase();
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            // Use onMouseDown so the click registers before onBlur fires
+                            e.preventDefault();
+                            setStaffSearch(fullName);
+                            setStaffSearchFocused(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left border-b border-slate-100 last:border-b-0"
+                          data-testid={`staff-suggestion-${u.id}`}
+                        >
+                          {u.photo_url ? (
+                            <img src={u.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${roleConfig.gradientBg} text-white font-bold flex items-center justify-center flex-shrink-0 text-sm`}>
+                              {initial}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">{fullName}</p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {u.email || u.username || '—'}
+                              {u.dni ? ` · DNI ${u.dni}` : ''}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {staffSearchFocused && q && suggestions.length === 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg px-4 py-3 z-30"
+                    data-testid="staff-search-empty"
+                  >
+                    <p className="text-sm text-slate-500">
+                      Sin coincidencias para <span className="font-medium text-slate-700">"{staffSearch}"</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+              {staffSearch.trim() && (
+                <p className="text-xs text-slate-500 mt-2 ml-1">
+                  {usersToDisplay.length} {usersToDisplay.length === 1 ? 'resultado' : 'resultados'} encontrados
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
             CONTENT AREA - Initial state, Empty state, Grouped view or Cards grid
             ═══════════════════════════════════════════════════════════════════════════════ */}
         {selectedRole === 'student' && !hasActiveStudentFilters ? (
@@ -3171,6 +3288,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <h3 className={`text-2xl font-bold ${roleConfig.textColor} mb-2`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                 {(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch))
                   || (selectedRole === 'parent' && parentsTabSearch.trim())
+                  || (selectedRole && selectedRole !== 'student' && selectedRole !== 'parent' && staffSearch.trim())
                   ? "Sin resultados"
                   : `Sin ${roleConfig.label.toLowerCase()}`
                 }
@@ -3180,13 +3298,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   ? "No se encontraron estudiantes con los filtros aplicados. Intenta ajustar los filtros."
                   : selectedRole === 'parent' && parentsTabSearch.trim()
                     ? `No se encontraron apoderados con "${parentsTabSearch}". Intenta con otro nombre, apellido o DNI.`
-                    : roleConfig.hideAddButton
-                      ? `Usuario de ${roleConfig.labelSingular} del sistema.`
-                      : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
+                    : (selectedRole && selectedRole !== 'student' && selectedRole !== 'parent' && staffSearch.trim())
+                      ? `No se encontraron ${roleConfig.label.toLowerCase()} con "${staffSearch}". Intenta con otro nombre, correo, DNI o teléfono.`
+                      : roleConfig.hideAddButton
+                        ? `Usuario de ${roleConfig.labelSingular} del sistema.`
+                        : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
                 }
               </p>
               {!((selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch))
-                || (selectedRole === 'parent' && parentsTabSearch.trim())) && !roleConfig.hideAddButton && (
+                || (selectedRole === 'parent' && parentsTabSearch.trim())
+                || (selectedRole && selectedRole !== 'student' && selectedRole !== 'parent' && staffSearch.trim())) && !roleConfig.hideAddButton && (
                 <button
                   onClick={() => handleAddUser(selectedRole)}
                   className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}
