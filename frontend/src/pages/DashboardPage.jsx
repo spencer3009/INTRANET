@@ -369,7 +369,7 @@ function DashboardInner({
             {/* Right column */}
             <div className="lg:col-span-4 space-y-6">
               <ProfileCard user={user} stats={{ subjects: metrics?.subjects || 0, students: metrics?.students || 0 }} ownerStats={ownerStats} schoolName={schoolName} token={token} onPayClick={() => setShowPayModal(true)} />
-              <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
+              <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} token={token} />
               <MiniCalendar events={calendarEvents} />
             </div>
           </div>

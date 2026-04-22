@@ -162,12 +162,16 @@ def _sort_key(person: Dict[str, Any]) -> str:
 async def birthdays_calendar(
     month: Optional[int] = Query(None, ge=1, le=12),
     year: Optional[int] = Query(None, ge=1900, le=2100),
+    from_day: Optional[int] = Query(None, ge=1, le=31, description="Return only birthdays on/after this day within the given month"),
     current_user=Depends(get_current_user),
 ):
     """List of birthday events to overlay on the Actividades calendar.
 
     Each event is projected onto `year` (defaults to current calendar year).
     Optional `month` further restricts the response to a single month.
+    Optional `from_day` (requires `month`) returns only birthdays whose day
+    is >= from_day within that month — useful for "remaining this month"
+    widgets on dashboards.
     Parents are never included.
     """
     user = await resolve_user_from_token(current_user)
@@ -184,6 +188,8 @@ async def birthdays_calendar(
         if not entry:
             continue
         if month is not None and entry["month"] != month:
+            continue
+        if from_day is not None and entry["month"] == month and entry["day"] < from_day:
             continue
         result.append(entry)
     return result

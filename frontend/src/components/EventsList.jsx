@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CalendarDays, Clock, MapPin, X } from "lucide-react";
+import BirthdayMonthCarousel from "./BirthdayMonthCarousel";
 
 const categoryIcons = {
   reunion: "bg-[#001f4b]",
@@ -120,7 +121,7 @@ function EventDetailModal({ event, onClose }) {
   );
 }
 
-export default function EventsList({ events }) {
+export default function EventsList({ events, token }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   if (!events || events.length === 0) {
@@ -134,6 +135,7 @@ export default function EventsList({ events }) {
           <p className="text-sm text-slate-500">No hay eventos programados</p>
           <p className="text-xs text-slate-400 mt-1">Los eventos del calendario aparecerán aquí</p>
         </div>
+        <BirthdayMonthCarousel token={token} />
       </div>
     );
   }
@@ -214,6 +216,8 @@ export default function EventsList({ events }) {
           Ver todos los eventos →
         </button>
       )}
+
+      <BirthdayMonthCarousel token={token} />
 
       {selectedEvent && (
         <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
