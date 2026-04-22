@@ -7,6 +7,7 @@ import MessageCenter from "../components/MessageCenter";
 import MobileBottomNav from "../components/MobileBottomNav";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import BirthdayMonthCarousel from "../components/BirthdayMonthCarousel";
 import BroadcastPopup from "../components/BroadcastPopup";
 import {
   BookOpen,
@@ -761,6 +762,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
               {/* Calendar - Same data as Owner's Portal */}
               <MiniCalendar events={calendarEvents} />
+
+              {/* Birthdays of the month */}
+              <BirthdayMonthCarousel token={token} standalone />
             </div>
           </div>
         </main>

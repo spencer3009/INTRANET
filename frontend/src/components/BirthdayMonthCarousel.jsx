@@ -22,7 +22,7 @@ const MONTHS = [
  * navigation arrows (or paginator dots), in which case auto-advance stops
  * for the session.
  */
-export default function BirthdayMonthCarousel({ token }) {
+export default function BirthdayMonthCarousel({ token, standalone = false }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
@@ -105,7 +105,10 @@ export default function BirthdayMonthCarousel({ token }) {
   const initial = (current?.name || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div data-testid="birthday-month-carousel">
+    <div
+      className={standalone ? "bg-white rounded-xl border border-slate-200 shadow-sm p-6" : ""}
+      data-testid="birthday-month-carousel"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-pink-100 flex items-center justify-center">

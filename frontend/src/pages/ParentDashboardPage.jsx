@@ -7,6 +7,7 @@ import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import BirthdayMonthCarousel from "../components/BirthdayMonthCarousel";
 import BroadcastPopup from "../components/BroadcastPopup";
 import HealthAlertPopup from "../components/HealthAlertPopup";
 import AttendanceToast from "../components/AttendanceToast";
@@ -1179,6 +1180,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             {/* Right column */}
             <div className="lg:col-span-4 space-y-4">
               <MiniCalendar events={calendarEvents} />
+
+              {/* Birthdays of the month */}
+              <BirthdayMonthCarousel token={token} standalone />
 
               {/* Circular Progress Charts - Tasks & Attendance */}
               <div className="bg-white rounded-2xl p-4 border border-slate-200" data-testid="progress-tasks">

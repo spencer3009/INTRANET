@@ -6,6 +6,7 @@ import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import BirthdayMonthCarousel from "../components/BirthdayMonthCarousel";
 import StudentHeader from "../components/StudentHeader";
 import TeacherFooter from "../components/TeacherFooter";
 import BroadcastPopup from "../components/BroadcastPopup";
@@ -621,6 +622,9 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
 
               {/* Mini Calendar */}
               <MiniCalendar events={calendarEvents} />
+
+              {/* Birthdays of the month */}
+              <BirthdayMonthCarousel token={token} standalone />
             </div>
           </div>
 
