@@ -7,7 +7,7 @@ import {
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
   Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock, Share2,
-  Archive, RotateCcw, AlertTriangle, ShieldAlert
+  Archive, RotateCcw, AlertTriangle, ShieldAlert, Sparkles
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -117,6 +117,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [loading, setLoading] = useState(true);
   const [showAssign, setShowAssign] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeMetric, setActiveMetric] = useState(null); // null | "renovados_mes" | "vencidos" | "nuevos_mes"
+  const [metrics, setMetrics] = useState({ renovados_mes: null, vencidos: null, nuevos_mes: null });
+  const [metricsLoading, setMetricsLoading] = useState(true);
   const [switching, setSwitching] = useState(null);
   const [assigning, setAssigning] = useState(null);
   const [editingExpiration, setEditingExpiration] = useState(null);
@@ -179,10 +182,13 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchData = async () => {
+  const fetchData = async (filterKey = null) => {
     try {
+      const schoolsUrl = filterKey
+        ? `${API}/support/schools?filter=${encodeURIComponent(filterKey)}`
+        : `${API}/support/schools`;
       const [myRes, allRes] = await Promise.all([
-        axios.get(`${API}/support/schools`, { headers }),
+        axios.get(schoolsUrl, { headers }),
         axios.get(`${API}/support/all-schools`, { headers })
       ]);
       setMySchools(myRes.data);
@@ -194,7 +200,28 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
-  useEffect(() => { fetchData(); }, [token]);
+  const fetchMetrics = async () => {
+    try {
+      setMetricsLoading(true);
+      const res = await axios.get(`${API}/support/schools/metrics`, { headers });
+      setMetrics(res.data || { renovados_mes: 0, vencidos: 0, nuevos_mes: 0 });
+    } catch (err) {
+      console.error("Error fetching school metrics:", err);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(activeMetric); }, [token, activeMetric]);
+  useEffect(() => { fetchMetrics(); }, [token]);
+
+  const handleMetricClick = (key) => {
+    // Toggle: click on active metric deselects
+    const next = activeMetric === key ? null : key;
+    setActiveMetric(next);
+    setSearch("");   // reset search when changing filter
+    setLoading(true);
+  };
 
   const handleSwitch = async (schoolId) => {
     setSwitching(schoolId);
@@ -238,7 +265,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         { school_id: schoolId }, { headers }
       );
       toast.success("Colegio asignado correctamente");
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al asignar colegio");
     } finally {
@@ -250,7 +278,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     try {
       await axios.delete(`${API}/support/unassign-school/${schoolId}`, { headers });
       toast.success("Acceso removido");
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al remover acceso");
     }
@@ -276,7 +305,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       await axios.patch(`${API}/support/schools/${archiveModal.id}/archive`, {}, { headers });
       toast.success("Colegio movido a papelera.");
       setArchiveModal(null);
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al archivar colegio");
     } finally {
@@ -292,7 +322,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       toast.success("Colegio restaurado correctamente.");
       setRestoreModal(null);
       fetchTrash();
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al restaurar colegio");
     } finally {
@@ -327,7 +358,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       }, { headers });
       toast.success(res.data.message || "Pago registrado");
       setPayModal(null);
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al registrar pago");
     } finally { setPaying(false); }
@@ -385,7 +417,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       toast.success("Fecha de vencimiento actualizada");
       setEditingExpiration(null);
       setNewExpDate("");
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al actualizar");
     }
@@ -421,7 +454,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       await axios.put(`${API}/support/school-pricing`, payload, { headers });
       toast.success("Precio personalizado guardado");
       setEditingPricing(null);
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error");
     }
@@ -432,7 +466,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       await axios.delete(`${API}/support/school-pricing/${schoolId}`, { headers });
       toast.success("Precio personalizado eliminado");
       setEditingPricing(null);
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error");
     }
@@ -473,7 +508,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       toast.success(res.data.message || "Membresia renovada");
       setRenewModal(null);
       setRenewCode("");
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al renovar");
     } finally {
@@ -505,7 +541,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       toast.success(res.data.message || "Colegio creado");
       setShowCreateSchool(false);
       setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", owner_ruc: "", owner_whatsapp: "" });
-      fetchData();
+      fetchData(activeMetric);
+      fetchMetrics();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al crear colegio");
     } finally {
@@ -574,6 +611,84 @@ export default function SupportSchoolsPage({ token, onLogin }) {
             Crear Colegio
           </button>
         </div>
+      </div>
+
+      {/* Metric summary cards (filterable) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="school-metrics">
+        {[
+          {
+            key: "renovados_mes",
+            label: "Renovados este mes",
+            icon: RefreshCw,
+            accent: "#00b894",
+            accentBg: "bg-emerald-50",
+            accentText: "text-emerald-600",
+            ringClass: "ring-emerald-400/60 border-emerald-400 bg-emerald-50/40",
+          },
+          {
+            key: "vencidos",
+            label: "Vencidos / Sin renovar",
+            icon: AlertTriangle,
+            accent: "#f39c12",
+            accentBg: "bg-amber-50",
+            accentText: "text-amber-600",
+            ringClass: "ring-amber-400/60 border-amber-400 bg-amber-50/40",
+          },
+          {
+            key: "nuevos_mes",
+            label: "Nuevos este mes",
+            icon: Sparkles,
+            accent: "#0984e3",
+            accentBg: "bg-sky-50",
+            accentText: "text-sky-600",
+            ringClass: "ring-sky-400/60 border-sky-400 bg-sky-50/40",
+          },
+        ].map((m) => {
+          const Icon = m.icon;
+          const value = metrics[m.key];
+          const isActive = activeMetric === m.key;
+          return (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => handleMetricClick(m.key)}
+              data-testid={`metric-card-${m.key}`}
+              data-active={isActive ? "true" : "false"}
+              className={`group text-left bg-white rounded-2xl border p-4 transition-all flex items-center gap-4 hover:shadow-md ${
+                isActive
+                  ? `ring-2 ${m.ringClass} shadow-sm`
+                  : "border-slate-200"
+              }`}
+            >
+              <div className={`w-11 h-11 rounded-xl ${m.accentBg} flex items-center justify-center flex-shrink-0`}>
+                <Icon className={`w-5 h-5 ${m.accentText}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">
+                  {m.label}
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  {metricsLoading ? (
+                    <span className="inline-block h-7 w-10 rounded bg-slate-100 animate-pulse" data-testid={`metric-skeleton-${m.key}`} />
+                  ) : (
+                    <span
+                      className="text-2xl font-bold text-slate-800"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                      data-testid={`metric-value-${m.key}`}
+                    >
+                      {value ?? 0}
+                    </span>
+                  )}
+                  {isActive && (
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${m.accentText}`}>
+                      Activo
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search */}

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from dateutil.relativedelta import relativedelta
+import asyncio
 import uuid
 import bcrypt
 import logging
@@ -114,10 +115,117 @@ async def support_schools_paginated(page: int = 1, per_page: int = 5, user=Depen
     }
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# METRIC FILTERS — shared helper used by /schools?filter=... and /schools/metrics
+# ──────────────────────────────────────────────────────────────────────────────
+
+VALID_SCHOOL_METRIC_FILTERS = ("renovados_mes", "vencidos", "nuevos_mes")
+
+
+async def _schools_in_metric(filter_key: str, candidate_ids: Optional[list[str]] = None):
+    """Return a set of school ids that match the given metric filter.
+
+    - renovados_mes: distinct school_id in renewal_logs (action=membership_renewal)
+      whose created_at falls in the current calendar month.
+    - vencidos: schools whose effective expiration date (fecha_vencimiento or
+      expiration_date) is strictly before now. We parse each date in memory to
+      avoid lexicographic string comparison pitfalls with mixed timezones.
+    - nuevos_mes: schools whose created_at falls in the current calendar month.
+    """
+    now = datetime.now(timezone.utc)
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_iso = start_of_month.isoformat()
+
+    if filter_key == "renovados_mes":
+        query = {"action": "membership_renewal", "created_at": {"$gte": start_iso}}
+        if candidate_ids is not None:
+            query["school_id"] = {"$in": candidate_ids}
+        ids = await db.renewal_logs.distinct("school_id", query)
+        return set(ids)
+
+    if filter_key == "nuevos_mes":
+        query = {**NOT_IN_TRASH, "created_at": {"$gte": start_iso}}
+        if candidate_ids is not None:
+            query["id"] = {"$in": candidate_ids}
+        docs = await db.schools.find(query, {"_id": 0, "id": 1}).to_list(None)
+        return {d["id"] for d in docs if d.get("id")}
+
+    if filter_key == "vencidos":
+        query = dict(NOT_IN_TRASH)
+        if candidate_ids is not None:
+            query["id"] = {"$in": candidate_ids}
+        docs = await db.schools.find(
+            query,
+            {"_id": 0, "id": 1, "expiration_date": 1, "fecha_vencimiento": 1}
+        ).to_list(None)
+        vencidos: set[str] = set()
+        for s in docs:
+            exp_str = s.get("fecha_vencimiento") or s.get("expiration_date")
+            if not exp_str:
+                continue
+            try:
+                exp_dt = datetime.fromisoformat(str(exp_str).replace("Z", "+00:00"))
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                if exp_dt < now and s.get("id"):
+                    vencidos.add(s["id"])
+            except Exception:
+                continue
+        return vencidos
+
+    return set()
+
+
+async def _visible_school_ids_for_user(user: dict) -> Optional[list[str]]:
+    """For non-global support users, restrict to assigned schools.
+    Returns None when the user is global admin (no restriction)."""
+    if user.get("role") == "system_admin_global":
+        return None
+    assignments = await db.user_school_roles.find(
+        {"user_id": user["id"], "unassigned": {"$ne": True}}, {"_id": 0, "school_id": 1}
+    ).to_list(length=500)
+    return [a["school_id"] for a in assignments if a.get("school_id")]
+
+
+@router.get("/schools/metrics")
+async def support_schools_metrics(user=Depends(require_support_admin)):
+    """Return summary metrics for the Colegios view:
+    renovados_mes, vencidos, nuevos_mes (respecting the caller's visibility).
+    """
+    candidate_ids = await _visible_school_ids_for_user(user)
+    # Non-global user without assignments: nothing visible
+    if candidate_ids is not None and not candidate_ids:
+        return {"renovados_mes": 0, "vencidos": 0, "nuevos_mes": 0}
+
+    renovados, vencidos, nuevos = await asyncio.gather(
+        _schools_in_metric("renovados_mes", candidate_ids),
+        _schools_in_metric("vencidos", candidate_ids),
+        _schools_in_metric("nuevos_mes", candidate_ids),
+    )
+    return {
+        "renovados_mes": len(renovados),
+        "vencidos": len(vencidos),
+        "nuevos_mes": len(nuevos),
+    }
+
+
 @router.get("/schools")
-async def support_schools(user=Depends(require_support_admin)):
-    """List ALL schools for support user. Global admins see everything."""
-    
+async def support_schools(
+    filter: Optional[str] = None,
+    user=Depends(require_support_admin),
+):
+    """List ALL schools for support user. Global admins see everything.
+
+    Optional query param `filter` restricts results to one of the
+    metric buckets (renovados_mes, vencidos, nuevos_mes) used by the
+    summary cards on the Colegios view.
+    """
+    if filter is not None and filter not in VALID_SCHOOL_METRIC_FILTERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"filter inválido. Usa uno de: {', '.join(VALID_SCHOOL_METRIC_FILTERS)}",
+        )
+
     is_global = user.get("role") == "system_admin_global"
     
     if is_global:
@@ -147,6 +255,14 @@ async def support_schools(user=Depends(require_support_admin)):
         )
         schools = await schools_cursor.to_list(length=500)
     
+    # Apply metric filter (renovados_mes / vencidos / nuevos_mes) BEFORE the
+    # expensive per-school enrichment loop, so we only compute pricing &
+    # counts for schools that actually match.
+    if filter:
+        candidate_ids = [s["id"] for s in schools if s.get("id")]
+        match_ids = await _schools_in_metric(filter, candidate_ids)
+        schools = [s for s in schools if s.get("id") in match_ids]
+
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
     if not global_pricing:
