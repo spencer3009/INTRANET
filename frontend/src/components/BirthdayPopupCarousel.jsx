@@ -20,7 +20,21 @@ export default function BirthdayPopupCarousel({ token, user }) {
   const [people, setPeople] = useState([]);
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [schoolName, setSchoolName] = useState("");
   const fetchedRef = useRef(false);
+
+  // Fetch the school name so we can protagonize the school in the greeting
+  // message instead of saying "EduNet" (the platform brand).
+  useEffect(() => {
+    if (!token) { setSchoolName(""); return; }
+    axios
+      .get(`${API}/school/info`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const name = res?.data?.school_name || res?.data?.system_name || res?.data?.name || "";
+        setSchoolName(name);
+      })
+      .catch(() => setSchoolName(""));
+  }, [token]);
 
   useEffect(() => {
     // Reset when the user logs out or changes
@@ -208,7 +222,7 @@ export default function BirthdayPopupCarousel({ token, user }) {
             ¡Feliz cumpleaños!
           </p>
           <p className="text-sm text-slate-500 mt-1.5">
-            Todo el equipo de EduNet te desea un día maravilloso.
+            Todo el equipo de <span className="font-semibold text-slate-700">{schoolName || "tu colegio"}</span> te desea un día maravilloso.
           </p>
 
           {/* Nav arrows */}
