@@ -153,12 +153,12 @@ export default function StudentTasksPage({ user, token, onLogout }) {
             <ClipboardList className="w-6 h-6 text-amber-500" />
             <h2 className="text-xl font-bold text-slate-800">Mis Tareas</h2>
             <span className="text-sm text-slate-500">
-              ({stats.pending} pendientes · {stats.submitted} entregadas · {stats.graded} calificadas)
+              ({stats.pending} pendientes · {stats.submitted} entregadas · {stats.graded} calificadas · {stats.late} atrasadas)
             </span>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <button
               onClick={() => setStatusFilter("pending")}
               className={`p-4 rounded-xl border transition-all ${
@@ -212,6 +212,26 @@ export default function StudentTasksPage({ user, token, onLogout }) {
                 <div className="text-left">
                   <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
                   <p className="text-xs text-slate-500">Calificadas</p>
+                </div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("late")}
+              className={`p-4 rounded-xl border transition-all ${
+                statusFilter === "late"
+                  ? "bg-red-50 border-red-300"
+                  : "bg-white border-slate-200 hover:border-red-200"
+              }`}
+              data-testid="student-tasks-card-late"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-slate-800">{stats.late}</p>
+                  <p className="text-xs text-slate-500">Atrasadas</p>
                 </div>
               </div>
             </button>
