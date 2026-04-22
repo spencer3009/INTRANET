@@ -105,7 +105,7 @@ export default function BirthdayMonthCarousel({ token }) {
   const initial = (current?.name || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div className="mt-5 pt-5 border-t border-slate-100" data-testid="birthday-month-carousel">
+    <div data-testid="birthday-month-carousel">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-pink-100 flex items-center justify-center">
