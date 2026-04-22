@@ -7,7 +7,7 @@ import {
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
   Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock, Share2,
-  Archive, RotateCcw, AlertTriangle, ShieldAlert, Sparkles
+  Archive, RotateCcw, AlertTriangle, ShieldAlert, Sparkles, ShieldCheck
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -118,7 +118,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [showAssign, setShowAssign] = useState(false);
   const [search, setSearch] = useState("");
   const [activeMetric, setActiveMetric] = useState(null); // null | "renovados_mes" | "vencidos" | "nuevos_mes"
-  const [metrics, setMetrics] = useState({ total: null, renovados_mes: null, vencidos: null, nuevos_mes: null });
+  const [metrics, setMetrics] = useState({ total: null, renovados_mes: null, vencidos: null, nuevos_mes: null, al_dia: null });
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [switching, setSwitching] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -204,7 +204,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     try {
       setMetricsLoading(true);
       const res = await axios.get(`${API}/support/schools/metrics`, { headers });
-      setMetrics(res.data || { total: 0, renovados_mes: 0, vencidos: 0, nuevos_mes: 0 });
+      setMetrics(res.data || { total: 0, renovados_mes: 0, vencidos: 0, nuevos_mes: 0, al_dia: 0 });
     } catch (err) {
       console.error("Error fetching school metrics:", err);
     } finally {
@@ -614,7 +614,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       </div>
 
       {/* Metric summary cards (filterable) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="school-metrics">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" data-testid="school-metrics">
         {[
           {
             key: null,
@@ -637,6 +637,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
             accentText: "text-emerald-600",
             ringClass: "ring-emerald-400/60 border-emerald-400 bg-emerald-50/40",
             metricField: "renovados_mes",
+          },
+          {
+            key: "al_dia",
+            testKey: "al_dia",
+            label: "Al día",
+            icon: ShieldCheck,
+            accent: "#14b8a6",
+            accentBg: "bg-teal-50",
+            accentText: "text-teal-600",
+            ringClass: "ring-teal-400/60 border-teal-400 bg-teal-50/40",
+            metricField: "al_dia",
           },
           {
             key: "vencidos",

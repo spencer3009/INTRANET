@@ -119,7 +119,7 @@ async def support_schools_paginated(page: int = 1, per_page: int = 5, user=Depen
 # METRIC FILTERS — shared helper used by /schools?filter=... and /schools/metrics
 # ──────────────────────────────────────────────────────────────────────────────
 
-VALID_SCHOOL_METRIC_FILTERS = ("renovados_mes", "vencidos", "nuevos_mes")
+VALID_SCHOOL_METRIC_FILTERS = ("renovados_mes", "vencidos", "nuevos_mes", "al_dia")
 
 
 async def _schools_in_metric(filter_key: str, candidate_ids: Optional[list[str]] = None):
@@ -173,6 +173,27 @@ async def _schools_in_metric(filter_key: str, candidate_ids: Optional[list[str]]
                 continue
         return vencidos
 
+    if filter_key == "al_dia":
+        # "Al día" = activos (no vencidos) Y no creados este mes Y no renovados este mes.
+        # Garantiza disjunción con renovados_mes, vencidos y nuevos_mes, por lo que:
+        #   total_visibles = |al_dia| + |renovados_mes| + |vencidos| + |nuevos_mes|
+        # cuando renovados_mes y nuevos_mes no se solapan (caso actual: una escuela
+        # recién creada no tiene aún renewal_log). Si llegara a haber solape por
+        # un edge case, la resta por conjuntos mantiene al_dia correcto y sin
+        # doble conteo.
+        query = dict(NOT_IN_TRASH)
+        if candidate_ids is not None:
+            query["id"] = {"$in": candidate_ids}
+        all_docs = await db.schools.find(query, {"_id": 0, "id": 1}).to_list(None)
+        all_ids = {d["id"] for d in all_docs if d.get("id")}
+
+        vencidos_set, renovados_set, nuevos_set = await asyncio.gather(
+            _schools_in_metric("vencidos", candidate_ids),
+            _schools_in_metric("renovados_mes", candidate_ids),
+            _schools_in_metric("nuevos_mes", candidate_ids),
+        )
+        return all_ids - vencidos_set - renovados_set - nuevos_set
+
     return set()
 
 
@@ -195,12 +216,13 @@ async def support_schools_metrics(user=Depends(require_support_admin)):
     candidate_ids = await _visible_school_ids_for_user(user)
     # Non-global user without assignments: nothing visible
     if candidate_ids is not None and not candidate_ids:
-        return {"total": 0, "renovados_mes": 0, "vencidos": 0, "nuevos_mes": 0}
+        return {"total": 0, "renovados_mes": 0, "vencidos": 0, "nuevos_mes": 0, "al_dia": 0}
 
-    renovados, vencidos, nuevos = await asyncio.gather(
+    renovados, vencidos, nuevos, al_dia = await asyncio.gather(
         _schools_in_metric("renovados_mes", candidate_ids),
         _schools_in_metric("vencidos", candidate_ids),
         _schools_in_metric("nuevos_mes", candidate_ids),
+        _schools_in_metric("al_dia", candidate_ids),
     )
 
     # Total of visible schools (same scope as the other metrics)
@@ -214,6 +236,7 @@ async def support_schools_metrics(user=Depends(require_support_admin)):
         "renovados_mes": len(renovados),
         "vencidos": len(vencidos),
         "nuevos_mes": len(nuevos),
+        "al_dia": len(al_dia),
     }
 
 
