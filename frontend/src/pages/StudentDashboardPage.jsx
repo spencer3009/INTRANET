@@ -499,9 +499,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
           </div>
 
           {/* Two Column Layout - Like Owner's Portal */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* Left column - Main content */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 flex flex-col gap-6">
               {/* Hero Carousel */}
               <HeroCarousel 
                 banners={banners} 
@@ -702,7 +702,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
               </div>
 
               {/* Recent Announcements */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
                 <div className="px-5 py-4 border-b border-slate-100">
                   <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                     <Bell className="w-5 h-5 text-indigo-500" />
@@ -710,7 +710,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                   </h2>
                 </div>
                 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 flex-1 flex flex-col">
                   {dashboardData?.recent_announcements?.length > 0 ? (
                     dashboardData.recent_announcements.map((ann) => (
                       <div 
@@ -742,7 +742,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                       </div>
                     ))
                   ) : (
-                    <div className="px-5 py-8 text-center text-slate-500">
+                    <div className="px-5 py-8 text-center text-slate-500 flex-1 flex flex-col items-center justify-center">
                       <Bell className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                       <p>No hay anuncios recientes</p>
                     </div>
