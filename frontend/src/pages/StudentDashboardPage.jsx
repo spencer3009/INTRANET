@@ -760,11 +760,11 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                 academic={academic}
               />
 
-              {/* Calendar - Same data as Owner's Portal */}
-              <MiniCalendar events={calendarEvents} />
-
               {/* Birthdays of the month */}
               <BirthdayMonthCarousel token={token} standalone />
+
+              {/* Calendar - Same data as Owner's Portal */}
+              <MiniCalendar events={calendarEvents} />
             </div>
           </div>
         </main>
