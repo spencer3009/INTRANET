@@ -626,8 +626,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                           return (
                           <div 
                             key={task.id}
-                            onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
+                            onClick={() => navigateTo(`/student/courses/${task.subject_id}?task=${task.id}`)}
                             className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
+                            data-testid={`upcoming-task-${task.id}`}
                           >
                             <div 
                               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
