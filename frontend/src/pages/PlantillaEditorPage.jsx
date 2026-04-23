@@ -200,7 +200,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
 
   // ── Save ──
   const buildPayload = (targetEstado) => ({
-    nombre, descripción, estado: targetEstado,
+    nombre, descripcion, estado: targetEstado,
     criterios: criterios.map((c, i) => ({ ...c, orden: i, subcolumnas: c.subcolumnas.map((s, j) => ({ ...s, orden: j })) })),
     columnas_finales: columnasFinales.map((c, i) => ({ ...c, orden: i })),
     label_promedio_final: labelPromedioFinal,

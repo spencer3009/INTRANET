@@ -5360,8 +5360,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             {student.email && <span className="text-xs text-slate-500">{student.email}</span>}
                             {student.student_code && <span className="text-xs text-slate-400">{student.student_code}</span>}
                           </div>
-                          {ubicación && (
-                            <p className="text-xs text-blue-600 font-medium mt-1">{ubicación}</p>
+                          {ubicacion && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">{ubicacion}</p>
                           )}
                           {student.import_errors && student.import_errors.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">

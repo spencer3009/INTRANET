@@ -346,7 +346,7 @@ export default function PaeScanner({ user, token }) {
                           <div className="min-w-0 flex-1">
                             <p className="font-bold text-sm truncate">{t.data?.student?.full_name || t.data?.message || "Error"}</p>
                             <p className="text-xs opacity-80">
-                              {t.type === "success" ? `${t.data?.grado || ""} ${t.data?.sección || ""}` :
+                              {t.type === "success" ? `${t.data?.grado || ""} ${t.data?.seccion || ""}` :
                                t.type === "warning" ? "Ya registrado" : "Error"}
                             </p>
                           </div>

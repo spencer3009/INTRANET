@@ -199,7 +199,7 @@ export default function PaeDashboard({ user, token, onLogout, onSwitchPortal }) 
                       <div>
                         <p className="font-medium text-slate-800 text-sm">{r.metadata?.nombre_estudiante}</p>
                         <p className="text-xs text-slate-400">
-                          {r.metadata?.grado} {r.metadata?.seccion && `- ${r.metadata.sección}`}
+                          {r.metadata?.grado} {r.metadata?.seccion && `- ${r.metadata.seccion}`}
                         </p>
                       </div>
                       <span className="text-xs text-slate-500 font-mono">{formatTime(r.hora_registro)}</span>

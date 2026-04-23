@@ -208,7 +208,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                           <span className="text-xs font-bold text-slate-700">{grado.label}</span>
                           <span className="text-[10px] text-slate-400">({grado.children.length} secc.)</span>
                         </button>
-                        {expanded.has(grado.key) && grado.children.map(sección => (
+                        {expanded.has(grado.key) && grado.children.map(seccion => (
                           <div key={seccion.key} className="border-t border-slate-50">
                             {/* Sección */}
                             <button onClick={() => toggleExpand(seccion.key)}
