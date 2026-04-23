@@ -407,6 +407,14 @@ async def login(creds: UserLogin):
             logger.error(f"[LOGIN] Permissions error: {perm_err}")
             permissions = {"role": user.get("role"), "is_owner": user.get("is_owner", False), "is_admin": False, "sections": {}}
 
+        # Feature flags — computed from the tenant's school document so the
+        # frontend can apply guards on the very first render (no race with /auth/me).
+        birthday_module_enabled = True
+        if school_id:
+            _school = await db.schools.find_one({"id": school_id}, {"_id": 0, "birthday_module_enabled": 1})
+            if _school:
+                birthday_module_enabled = bool(_school.get("birthday_module_enabled", True))
+
         took_ms = round((_time.perf_counter() - _t0) * 1000, 1)
         logger.info(f"[LOGIN] SUCCESS identifier={identifier} role={user.get('role')} subdomain={subdomain} took_ms={took_ms}")
         
@@ -429,7 +437,8 @@ async def login(creds: UserLogin):
                 "photo_url": user.get("photo_url"),
                 "phone": user.get("phone"),
                 "permissions": permissions,
-                "additional_roles": user.get("additional_roles", [])
+                "additional_roles": user.get("additional_roles", []),
+                "birthday_module_enabled": birthday_module_enabled,
             },
             "redirect_to_subdomain": subdomain is not None,
             "redirect_url": f"https://{subdomain}.{BASE_DOMAIN}" if subdomain else None
