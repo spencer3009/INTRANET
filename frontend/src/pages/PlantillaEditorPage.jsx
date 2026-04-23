@@ -200,7 +200,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
 
   // ── Save ──
   const buildPayload = (targetEstado) => ({
-    nombre, descripcion, estado: targetEstado,
+    nombre, descripción, estado: targetEstado,
     criterios: criterios.map((c, i) => ({ ...c, orden: i, subcolumnas: c.subcolumnas.map((s, j) => ({ ...s, orden: j })) })),
     columnas_finales: columnasFinales.map((c, i) => ({ ...c, orden: i })),
     label_promedio_final: labelPromedioFinal,
@@ -302,7 +302,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                 </div>
                 <div>
                   <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Criterios de Evaluación</h2>
-                  <p className="text-xs text-slate-400">Define las categorias y su peso en la nota final.</p>
+                  <p className="text-xs text-slate-400">Define las categorías y su peso en la nota final.</p>
                 </div>
               </div>
               <div className="space-y-4">

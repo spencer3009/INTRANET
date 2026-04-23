@@ -427,7 +427,7 @@ export default function RegisterPage() {
                       <Lock className="w-7 h-7 text-red-500" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 mb-2">Acceso restringido</h3>
-                    <p className="text-sm text-slate-500 mb-6">No tienes autorizacion para crear una cuenta de intranet.</p>
+                    <p className="text-sm text-slate-500 mb-6">No tienes autorización para crear una cuenta de intranet.</p>
                     <button
                       onClick={() => setShowBlockedModal(false)}
                       className="w-full py-3 bg-[#001f4b] text-white font-semibold rounded-xl hover:bg-[#0a3068] transition-colors"

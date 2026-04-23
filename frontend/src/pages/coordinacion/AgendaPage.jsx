@@ -194,7 +194,7 @@ export default function AgendaPage({ token, subdomain, user, onLogout }) {
                   <Calendar className="w-4 h-4 text-white" strokeWidth={2.5} />
                 </div>
                 <h3 className="text-[15px] font-semibold text-slate-900">
-                  {selectedDay ? `${selectedDay} de ${monthNames[month]}` : "Selecciona un dia"}
+                  {selectedDay ? `${selectedDay} de ${monthNames[month]}` : "Selecciona un día"}
                 </h3>
               </div>
 
@@ -204,14 +204,14 @@ export default function AgendaPage({ token, subdomain, user, onLogout }) {
                     <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mb-3">
                       <Calendar className="w-5 h-5 text-indigo-300" />
                     </div>
-                    <p className="text-sm text-slate-400 text-center">Haz clic en un dia del calendario para ver sus eventos.</p>
+                    <p className="text-sm text-slate-400 text-center">Haz clic en un día del calendario para ver sus eventos.</p>
                   </div>
                 ) : selectedEvents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                       <Calendar className="w-5 h-5 text-slate-300" />
                     </div>
-                    <p className="text-sm text-slate-400">No hay eventos para este dia.</p>
+                    <p className="text-sm text-slate-400">No hay eventos para este día.</p>
                   </div>
                 ) : (
                   <div className="space-y-2.5">

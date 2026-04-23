@@ -39,7 +39,7 @@ export default function SupportLayout({ user, token, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] flex" data-testid="support-layout">
-      {/* Mobile overlay - only covers content area, not sidebar */}
+      {/* Mobile overlay - only covers content área, not sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 left-[260px] bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}

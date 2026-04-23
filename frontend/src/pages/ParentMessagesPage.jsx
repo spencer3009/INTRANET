@@ -79,7 +79,7 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Highlight,
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: "Escribe tu mensaje aqui..." }),
+      Placeholder.configure({ placeholder: "Escribe tu mensaje aquí..." }),
     ],
     content: "",
     editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4" } },
@@ -480,7 +480,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
       </div>
 
       <ComposeModal isOpen={showCompose} onClose={() => { setShowCompose(false); setReplyTo(null); }} token={token} onSent={() => { loadMessages(activeFolder); loadStats(); }} replyTo={replyTo} />
-      <ConfirmModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ isOpen: false, type: null, messageId: null })} onConfirm={handleConfirmAction} title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"} message={confirmModal.type === "emptyTrash" ? "Se eliminaran todos los mensajes de forma permanente. Esta accion no se puede deshacer." : "Se eliminara este mensaje permanentemente. Esta accion no se puede deshacer."} confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"} confirmStyle="danger" icon={AlertTriangle} loading={confirmLoading} />
+      <ConfirmModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ isOpen: false, type: null, messageId: null })} onConfirm={handleConfirmAction} title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"} message={confirmModal.type === "emptyTrash" ? "Se eliminaran todos los mensajes de forma permanente. Esta acción no se puede deshacer." : "Se eliminara este mensaje permanentemente. Esta acción no se puede deshacer."} confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"} confirmStyle="danger" icon={AlertTriangle} loading={confirmLoading} />
       <MobileBottomNav role="parent" />
     </div>
   );

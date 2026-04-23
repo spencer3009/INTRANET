@@ -8,7 +8,7 @@ const STATE_CONFIG = {
   RESTRICCION_PARCIAL:  { bar: "bg-orange-500",   badge: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",   label: "Restringido", Icon: AlertTriangle, iconCls: "text-orange-500" },
   PAGO_OBLIGATORIO:     { bar: "bg-red-500",     badge: "bg-red-50 text-red-700 ring-1 ring-red-200",           label: "Pago obligatorio", Icon: ShieldOff, iconCls: "text-red-500" },
   SUSPENDIDO:           { bar: "bg-slate-400",   badge: "bg-slate-700 text-white",                               label: "Suspendido", Icon: ShieldOff, iconCls: "text-slate-400" },
-  PAGO_EN_VERIFICACION: { bar: "bg-blue-500",     badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",       label: "Pago en verificacion", Icon: CheckCircle2, iconCls: "text-blue-500" },
+  PAGO_EN_VERIFICACION: { bar: "bg-blue-500",     badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",       label: "Pago en verificación", Icon: CheckCircle2, iconCls: "text-blue-500" },
 };
 
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" }) : "--";
@@ -44,7 +44,7 @@ export default function SubscriptionCard({ token }) {
         const err = await res.json();
         alert(err.detail || "Error");
       }
-    } catch { alert("Error de conexion"); }
+    } catch { alert("Error de conexión"); }
     finally { setSubmitting(false); }
   };
 
@@ -127,7 +127,7 @@ export default function SubscriptionCard({ token }) {
           <div className="px-5 pb-5 pt-2">
             <div className="flex items-center gap-2 justify-center px-4 py-3 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold">
               <CheckCircle2 className="w-4 h-4" />
-              Pago en verificacion
+              Pago en verificación
             </div>
           </div>
         )}
@@ -162,7 +162,7 @@ export default function SubscriptionCard({ token }) {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Número de operacion (8 digitos)</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Número de operación (8 digitos)</label>
                     <input
                       type="text" inputMode="numeric" maxLength={8}
                       value={operationCode}
@@ -191,7 +191,7 @@ export default function SubscriptionCard({ token }) {
                 <div className="text-center py-6">
                   <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-3" />
                   <p className="text-lg font-bold text-slate-800">Pago registrado</p>
-                  <p className="text-sm text-slate-500 mt-2">Su pago esta en proceso de verificacion.</p>
+                  <p className="text-sm text-slate-500 mt-2">Su pago esta en proceso de verificación.</p>
                   <button onClick={() => { setShowPayModal(false); setSuccess(false); setOperationCode(""); }} className="mt-4 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm">
                     Cerrar
                   </button>

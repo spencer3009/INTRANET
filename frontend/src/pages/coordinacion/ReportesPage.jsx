@@ -123,7 +123,7 @@ function TabIncidenciasPorGrado({ token }) {
              style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
           <div className="col-span-3">Grado / Sección</div>
           <div className="col-span-1 text-center">Total</div>
-          <div className="col-span-6">Distribucion</div>
+          <div className="col-span-6">Distribución</div>
           <div className="col-span-2 text-center">Por severidad</div>
         </div>
         {data.items.map((item, idx) => (
@@ -166,14 +166,14 @@ function TabReincidentes({ token, subdomain }) {
   }, [token]);
 
   if (loading) return <div className="flex items-center justify-center py-16"><Loader2 className="w-7 h-7 animate-spin text-indigo-400" /></div>;
-  if (!data?.items?.length) return <EmptyState message="No hay estudiantes reincidentes en los ultimos 30 dias" />;
+  if (!data?.items?.length) return <EmptyState message="No hay estudiantes reincidentes en los últimos 30 días" />;
 
   const basePath = subdomain ? `/${subdomain}/coordinacion` : '/coordinacion';
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <p className="text-sm text-slate-500">{data.total} estudiante(s) con <strong className="text-slate-700">{data.umbral}+</strong> incidencias en {data.periodo_dias} dias</p>
+        <p className="text-sm text-slate-500">{data.total} estudiante(s) con <strong className="text-slate-700">{data.umbral}+</strong> incidencias en {data.periodo_dias} días</p>
         <ExportButtons reportType="reincidentes" token={token} filters={{}} />
       </div>
 

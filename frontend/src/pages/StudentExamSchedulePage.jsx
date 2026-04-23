@@ -46,7 +46,7 @@ function formatRelativeDate(dateStr) {
   if (diffDays === 0) return "Hoy";
   if (diffDays === 1) return "Manana";
   if (diffDays === -1) return "Ayer";
-  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} dias`;
+  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} días`;
   if (diffDays < 0) return "Pasado";
   return "";
 }
@@ -417,7 +417,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-2xl border border-slate-200/80 h-full overflow-hidden shadow-sm">
                     <div className="px-5 py-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600">
-                      <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Detalle del dia</p>
+                      <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Detalle del día</p>
                       <h3 className="font-bold text-white flex items-center gap-2 text-lg" style={{ fontFamily: "Manrope, sans-serif" }}>
                         {selectedDate ? (
                           <>
@@ -426,7 +426,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                               <span className="text-xs px-2 py-0.5 bg-white/15 rounded-full font-medium">{formatRelativeDate(selectedDate)}</span>
                             )}
                           </>
-                        ) : "Selecciona un dia"}
+                        ) : "Selecciona un día"}
                       </h3>
                       {selectedDate && (
                         <p className="text-white/60 text-xs mt-1">{examsForSelectedDate.length} examen{examsForSelectedDate.length !== 1 ? "es" : ""} programado{examsForSelectedDate.length !== 1 ? "s" : ""}</p>
@@ -439,8 +439,8 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                           <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Calendar className="w-7 h-7 text-slate-300" />
                           </div>
-                          <p className="text-sm text-slate-500 font-medium">Selecciona un dia en el calendario</p>
-                          <p className="text-xs text-slate-400 mt-1">Veras los examenes programados aqui</p>
+                          <p className="text-sm text-slate-500 font-medium">Selecciona un día en el calendario</p>
+                          <p className="text-xs text-slate-400 mt-1">Veras los examenes programados aquí</p>
                         </div>
                       ) : examsForSelectedDate.length === 0 ? (
                         <div className="text-center py-10">
@@ -448,7 +448,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                             <Sparkles className="w-7 h-7 text-emerald-400" />
                           </div>
                           <h4 className="font-bold text-slate-700 mb-1">Día libre</h4>
-                          <p className="text-slate-400 text-sm">No hay examenes este dia</p>
+                          <p className="text-slate-400 text-sm">No hay examenes este día</p>
                         </div>
                       ) : (
                         <div className="space-y-4">

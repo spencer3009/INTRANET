@@ -1332,7 +1332,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       <button 
         onClick={() => {
           const basePath = subdomain ? `/${subdomain}` : "";
-          navigate(`${basePath}/anos-academicos`);
+          navigate(`${basePath}/anos-académicos`);
         }}
         className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50"
       >
@@ -1621,7 +1621,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      <Sidebar active="ajustes-academicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain} user={user} />
+      <Sidebar active="ajustes-académicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain} user={user} />
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">

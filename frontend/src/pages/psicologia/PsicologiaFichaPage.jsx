@@ -502,7 +502,7 @@ function SessionModal({ session, onSave, onClose }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Duracion (min)</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Duración (min)</label>
               <input
                 type="number"
                 value={form.duration_minutes}
@@ -536,7 +536,7 @@ function SessionModal({ session, onSave, onClose }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Fecha proxima sesión (opcional)</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Fecha próxima sesión (opcional)</label>
             <input
               type="date"
               value={form.next_session_date}

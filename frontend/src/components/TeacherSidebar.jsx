@@ -43,7 +43,7 @@ export default function TeacherSidebar({
   
   return (
     <>
-      {/* Mobile overlay - only covers content area, not sidebar */}
+      {/* Mobile overlay - only covers content área, not sidebar */}
       {expanded && (
         <div className="fixed inset-0 left-[280px] bg-black/30 z-[200] lg:hidden" onClick={onToggle} />
       )}

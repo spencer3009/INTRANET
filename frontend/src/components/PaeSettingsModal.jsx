@@ -138,7 +138,7 @@ export default function PaeSettingsModal({ open, onClose, token, onLogout }) {
                 {prefs.sonidos ? <Volume2 className="w-5 h-5 text-emerald-600" /> : <VolumeX className="w-5 h-5 text-slate-400" />}
                 <div>
                   <p className="text-sm font-medium text-slate-700">Sonidos de feedback</p>
-                  <p className="text-xs text-slate-400">Beeps de exito y error</p>
+                  <p className="text-xs text-slate-400">Beeps de éxito y error</p>
                 </div>
               </div>
               <button
@@ -212,7 +212,7 @@ export default function PaeSettingsModal({ open, onClose, token, onLogout }) {
               data-testid="pae-settings-logout"
             >
               <LogOut className="w-4 h-4" />
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </div>

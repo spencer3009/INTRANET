@@ -161,7 +161,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
     },
     {
       title: "Asistencia Manual Profesores",
-      description: "Marcar asistencia de docentes del dia",
+      description: "Marcar asistencia de docentes del día",
       icon: UserCog,
       color: "from-purple-500 to-fuchsia-600",
       borderColor: "border-purple-200",
@@ -279,8 +279,8 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
 
             {/* Pie Charts - Today */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <PieSummary data={todayStudents} title="Alumnos - Distribucion de Hoy" colors={COLORS_STUDENT} testId="pie-students-today" />
-              <PieSummary data={todayTeachers} title="Profesores - Distribucion de Hoy" colors={COLORS_TEACHER} testId="pie-teachers-today" />
+              <PieSummary data={todayStudents} title="Alumnos - Distribución de Hoy" colors={COLORS_STUDENT} testId="pie-students-today" />
+              <PieSummary data={todayTeachers} title="Profesores - Distribución de Hoy" colors={COLORS_TEACHER} testId="pie-teachers-today" />
             </div>
 
             {/* Student Attendance Chart */}
@@ -294,7 +294,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
                     <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
                       Asistencia de Alumnos
                     </h3>
-                    <p className="text-xs text-slate-400">Últimos 14 dias</p>
+                    <p className="text-xs text-slate-400">Últimos 14 días</p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={280}>
@@ -324,7 +324,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
                     <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
                       Asistencia de Profesores
                     </h3>
-                    <p className="text-xs text-slate-400">Últimos 14 dias</p>
+                    <p className="text-xs text-slate-400">Últimos 14 días</p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={280}>

@@ -32,12 +32,12 @@ export default function SubscriptionBanner() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-red-800" data-testid="banner-title">
-                Su suscripcion ha vencido.
+                Su suscripción ha vencido.
                 <span className="font-normal text-red-600"> Para continuar utilizando la plataforma debe registrar su pago.</span>
               </p>
               <p className="text-xs text-red-600/80 mt-0.5">
                 {fmtDate && <>Vencio el {fmtDate}. </>}
-                {dias_vencido > 0 && <>{dias_vencido} dia{dias_vencido > 1 ? "s" : ""} vencido. </>}
+                {dias_vencido > 0 && <>{dias_vencido} día{dias_vencido > 1 ? "s" : ""} vencido. </>}
                 {monto_plan > 0 && <>Monto pendiente: <span className="font-bold">S/ {monto_plan.toFixed(2)}</span></>}
               </p>
             </div>

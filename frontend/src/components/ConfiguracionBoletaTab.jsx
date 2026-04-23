@@ -246,7 +246,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
             />
           </div>
 
-          {/* Pie de pagina */}
+          {/* Pie de página */}
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 mb-1">Pie de Página (opcional)</label>
             <textarea

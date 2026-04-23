@@ -583,7 +583,7 @@ export default function MaterialTableContent({ subjectId, token, user }) {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Eliminar material</h3>
-                <p className="text-sm text-slate-500">Esta accion no se puede deshacer</p>
+                <p className="text-sm text-slate-500">Esta acción no se puede deshacer</p>
               </div>
             </div>
             <p className="text-slate-600 mb-6">

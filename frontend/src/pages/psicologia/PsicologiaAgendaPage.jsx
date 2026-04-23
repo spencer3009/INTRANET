@@ -271,7 +271,7 @@ function MonthView({ appointments, refDate, onDayClick, today }) {
                   const c = TYPE_COLORS[a.appointment_type] || TYPE_COLORS.otro;
                   return <div key={a.id} className={`h-1.5 rounded-full ${c.bg}`} title={a.title} />;
                 })}
-                {dayAppts.length > 3 && <p className="text-[9px] text-slate-400">+{dayAppts.length - 3} mas</p>}
+                {dayAppts.length > 3 && <p className="text-[9px] text-slate-400">+{dayAppts.length - 3} más</p>}
               </div>
             </button>
           );
@@ -418,7 +418,7 @@ function AppointmentModal({ token, editing, onSaved, onClose, defaultDate }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Duracion</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Duración</label>
               <select value={form.duration_minutes} onChange={e => setForm(f => ({...f, duration_minutes: e.target.value}))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="appt-duration">
                 {DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}

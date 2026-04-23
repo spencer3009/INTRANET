@@ -457,7 +457,7 @@ export default function ExamAttemptPage() {
                   {/* Open/Fill */}
                   {(currentQuestion.question_type === 'fill_blanks' || currentQuestion.question_type === 'open') && (
                     <textarea value={answers[currentQuestion.id]?.text_answer || ''} onChange={(e) => handleAnswerSelect(currentQuestion.id, null, e.target.value)}
-                      placeholder="Escribe tu respuesta aqui..." rows={5}
+                      placeholder="Escribe tu respuesta aquí..." rows={5}
                       data-testid="open-answer-textarea"
                       className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none resize-none text-slate-800 placeholder:text-slate-400" />
                   )}

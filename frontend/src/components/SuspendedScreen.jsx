@@ -31,7 +31,7 @@ export default function SuspendedScreen({ token }) {
         alert(err.detail || "Error al enviar solicitud");
       }
     } catch {
-      alert("Error de conexion");
+      alert("Error de conexión");
     } finally {
       setSubmitting(false);
     }
@@ -46,11 +46,11 @@ export default function SuspendedScreen({ token }) {
 
         <h1 className="text-2xl font-bold text-white mb-3">Suscripción Suspendida</h1>
         <p className="text-slate-400 mb-2">
-          Su suscripcion ha sido suspendida por falta de pago.
+          Su suscripción ha sido suspendida por falta de pago.
         </p>
         {sub.dias_vencido > 0 && (
           <p className="text-red-400 text-sm font-semibold mb-6">
-            {sub.dias_vencido} dias vencido | Monto pendiente: S/ {sub.monto_plan?.toFixed(2)}
+            {sub.dias_vencido} días vencido | Monto pendiente: S/ {sub.monto_plan?.toFixed(2)}
           </p>
         )}
 
@@ -92,7 +92,7 @@ export default function SuspendedScreen({ token }) {
               <p className="text-2xl font-bold text-white">S/ {sub.monto_plan?.toFixed(2)}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-white/70 mb-1">Número de operacion (8 digitos)</label>
+              <label className="block text-sm font-semibold text-white/70 mb-1">Número de operación (8 digitos)</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -126,7 +126,7 @@ export default function SuspendedScreen({ token }) {
             <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
             <p className="text-emerald-300 font-bold text-lg">Pago registrado</p>
             <p className="text-white/60 text-sm mt-2">
-              Su pago esta en proceso de verificacion. Le notificaremos cuando sea confirmado.
+              Su pago esta en proceso de verificación. Le notificaremos cuando sea confirmado.
             </p>
           </div>
         )}

@@ -86,7 +86,7 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
     { id: "support", label: "Soporte", icon: HeadphonesIcon, count: stats.support }
   ];
 
-  // Hide the floating chat bubble inside the whole course area — regardless
+  // Hide the floating chat bubble inside the whole course área — regardless
   // of the portal (owner/teacher/student/parent) or whether a subdomain is
   // in the path. Covers:
   //   /curso/<id>                       (owner/teacher via CourseDetailPage)
@@ -1289,7 +1289,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
           </div>
         </div>
         
-        {/* Messages area */}
+        {/* Messages área */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {conversationMessages.map((msg) => (
             <div key={msg.id} className="flex justify-end">

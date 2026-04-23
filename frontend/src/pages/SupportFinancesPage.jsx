@@ -42,7 +42,7 @@ export default function SupportFinancesPage({ token }) {
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   const handleDeletePayment = async (entryId) => {
-    if (!window.confirm("¿Eliminar este pago? Esta accion no se puede deshacer.")) return;
+    if (!window.confirm("¿Eliminar este pago? Esta acción no se puede deshacer.")) return;
     try {
       await fetch(`${API}/api/support/finances/${entryId}`, { method: "DELETE", headers });
       toast.success("Pago eliminado");
@@ -209,7 +209,7 @@ export default function SupportFinancesPage({ token }) {
                   <th className="px-5 py-2.5 font-medium">Fecha</th>
                   <th className="px-5 py-2.5 font-medium">Colegio</th>
                   <th className="px-5 py-2.5 font-medium">Descripción</th>
-                  <th className="px-5 py-2.5 font-medium">Metodo</th>
+                  <th className="px-5 py-2.5 font-medium">Método</th>
                   <th className="px-5 py-2.5 font-medium">Cod. Operación</th>
                   <th className="px-5 py-2.5 font-medium">Confirmado por</th>
                   <th className="px-5 py-2.5 font-medium text-right">Monto</th>
@@ -258,7 +258,7 @@ export default function SupportFinancesPage({ token }) {
       {/* Monthly Summary Table */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-800">Resumen mensual (ultimos 12 meses)</h2>
+          <h2 className="text-base font-semibold text-slate-800">Resumen mensual (últimos 12 meses)</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

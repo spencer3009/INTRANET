@@ -395,7 +395,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3" data-testid="enrollment-pending-banner">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Matrícula pendiente de aprobacion</p>
+                <p className="text-sm font-semibold text-amber-800">Matrícula pendiente de aprobación</p>
                 <p className="text-xs text-amber-600">El colegio esta revisando la solicitud de matrícula. Te notificaremos cuando sea aprobada.</p>
               </div>
             </div>
@@ -892,11 +892,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                           isOverdue ? 'bg-red-50 text-red-700 border-red-200' :
                           'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
-                          {isVerifying ? 'EN VERIFICACION' : isOverdue ? 'VENCIDO' : 'PENDIENTE'}
+                          {isVerifying ? 'EN VERIFICACIÓN' : isOverdue ? 'VENCIDO' : 'PENDIENTE'}
                         </span>
                       )}
                       {allPaid && (
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">AL DIA</span>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200">AL DÍA</span>
                       )}
                     </div>
 
@@ -929,7 +929,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     {allPaid ? (
                       <div className="flex flex-col items-center justify-center py-4 text-center">
                         <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
-                        <p className="font-bold text-emerald-700 text-sm">Estas al dia con tus pagos</p>
+                        <p className="font-bold text-emerald-700 text-sm">Estas al día con tus pagos</p>
                         <p className="text-xs text-slate-500 mt-1">Todas las cuotas estan pagadas</p>
                       </div>
                     ) : nextCuota ? (
@@ -940,7 +940,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         {nextCuota.payment_date && (
                           <p className={`text-xs mb-3 ${isOverdue ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
                             {isOverdue ? (
-                              <>Vencido hace {Math.ceil((Date.now() - new Date(nextCuota.payment_date).getTime()) / 86400000)} dias</>
+                              <>Vencido hace {Math.ceil((Date.now() - new Date(nextCuota.payment_date).getTime()) / 86400000)} días</>
                             ) : (
                               <>Vence: {new Date(nextCuota.payment_date).toLocaleDateString('es-PE', {day:'numeric',month:'long',year:'numeric'})}</>
                             )}
@@ -978,7 +978,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         {isVerifying ? (
                           <div className="w-full py-3 rounded-xl bg-amber-50 border border-amber-300 text-center">
                             <span className="text-sm font-semibold text-amber-700 flex items-center justify-center gap-2">
-                              <Clock className="w-4 h-4" /> Pago en verificacion
+                              <Clock className="w-4 h-4" /> Pago en verificación
                             </span>
                           </div>
                         ) : (

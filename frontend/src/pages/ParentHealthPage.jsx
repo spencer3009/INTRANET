@@ -41,7 +41,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState("topico");
+  const [activeTab, setActiveTab] = useState("tópico");
   const [loading, setLoading] = useState(true);
   const [topicoRecords, setTopicoRecords] = useState([]);
   const [psicologiaRecords, setPsicologiaRecords] = useState([]);
@@ -82,7 +82,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
     setLoading(true);
     try {
       const [topicoRes, psicoRes] = await Promise.all([
-        axios.get(`${API}/api/health/parent/topico?student_id=${studentId}`, { headers }),
+        axios.get(`${API}/api/health/parent/tópico?student_id=${studentId}`, { headers }),
         axios.get(`${API}/api/health/parent/psicologia?student_id=${studentId}`, { headers }),
       ]);
       setTopicoRecords(topicoRes.data.records || []);
@@ -158,9 +158,9 @@ export default function ParentHealthPage({ user, token, onLogout }) {
           {/* Tabs */}
           <div className="flex gap-2 mb-6" data-testid="health-tabs">
             <button
-              onClick={() => setActiveTab("topico")}
+              onClick={() => setActiveTab("tópico")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                activeTab === "tópico"
+                activeTab === "topico"
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
               }`}
@@ -169,13 +169,13 @@ export default function ParentHealthPage({ user, token, onLogout }) {
               <Stethoscope className="w-4 h-4" />
               Tópico
               <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === "tópico" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                activeTab === "topico" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
               }`}>{topicoRecords.length}</span>
             </button>
             <button
               onClick={() => setActiveTab("psicologia")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                activeTab === "psicología"
+                activeTab === "psicologia"
                   ? "bg-purple-600 text-white shadow-md"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
               }`}
@@ -184,7 +184,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
               <Brain className="w-4 h-4" />
               Psicología
               <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === "psicología" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                activeTab === "psicologia" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
               }`}>{psicologiaRecords.length}</span>
             </button>
           </div>
@@ -219,7 +219,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      activeTab === "tópico" ? "bg-blue-100" : "bg-purple-100"
+                      activeTab === "topico" ? "bg-blue-100" : "bg-purple-100"
                     }`}>
                       {activeTab === "topico" ? (
                         <Stethoscope className="w-5 h-5 text-blue-600" />
@@ -268,7 +268,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedRecord(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
             <div className={`px-6 py-4 flex items-center justify-between ${
-              activeTab === "tópico"
+              activeTab === "topico"
                 ? "bg-gradient-to-r from-blue-600 to-cyan-500"
                 : "bg-gradient-to-r from-purple-600 to-fuchsia-500"
             }`}>

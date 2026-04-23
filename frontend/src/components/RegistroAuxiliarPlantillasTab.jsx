@@ -127,7 +127,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
                     <h3 className="font-bold text-slate-800 text-base">{sistema.nombre}</h3>
                     <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold tracking-wide border border-slate-200">SOLO LECTURA</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 max-w-lg">{sistema.descripcion || "Estructura de evaluación estandar de EduNet. Clonala para crear tu propia version personalizada."}</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-lg">{sistema.descripcion || "Estructura de evaluación estandar de EduNet. Clonala para crear tu propia versión personalizada."}</p>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">

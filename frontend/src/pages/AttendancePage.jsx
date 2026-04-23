@@ -2024,7 +2024,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                       <ClipboardCheck className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Registros del dia</p>
+                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
                       <p className="text-xs text-slate-400">Ver asistencias de alimentacion</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
@@ -2066,7 +2066,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                       <ClipboardCheck className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Registros del dia</p>
+                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
                       <p className="text-xs text-slate-400">Ver registros de movilidad</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />

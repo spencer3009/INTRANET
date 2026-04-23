@@ -122,7 +122,7 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Highlight,
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: "Escribe tu mensaje aqui..." }),
+      Placeholder.configure({ placeholder: "Escribe tu mensaje aquí..." }),
     ],
     content: "",
     editorProps: {
@@ -870,7 +870,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                   <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
                     <Megaphone className="w-16 h-16 mb-4 opacity-50" />
                     <p className="text-lg font-medium">No hay comunicados</p>
-                    <p className="text-sm">Los comunicados institucionales apareceran aqui</p>
+                    <p className="text-sm">Los comunicados institucionales apareceran aquí</p>
                   </div>
                 ) : (
                   broadcastMessages.map(b => (
@@ -1231,8 +1231,8 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
         title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"}
         message={
           confirmModal.type === "emptyTrash"
-            ? "Se eliminaran todos los mensajes de forma permanente y esta accion no se puede deshacer."
-            : "Se eliminara este mensaje permanentemente. Esta accion no se puede deshacer."
+            ? "Se eliminaran todos los mensajes de forma permanente y esta acción no se puede deshacer."
+            : "Se eliminara este mensaje permanentemente. Esta acción no se puede deshacer."
         }
         confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"}
         confirmStyle="danger"

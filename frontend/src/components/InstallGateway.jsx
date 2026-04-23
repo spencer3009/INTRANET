@@ -121,7 +121,7 @@ export default function InstallGateway({ children }) {
             </h1>
 
             <p className="text-sm text-slate-500 leading-relaxed mb-8">
-              Para instalar la App EduNet primero debe abrir esta pagina en su navegador.
+              Para instalar la App EduNet primero debe abrir esta página en su navegador.
             </p>
 
             {/* SINGLE PRIMARY BUTTON */}

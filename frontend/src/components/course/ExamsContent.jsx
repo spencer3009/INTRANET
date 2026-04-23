@@ -125,7 +125,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
   }, [isOpen, exam]);
 
   const handleSubmit = async () => {
-    if (!title.trim()) { setError('El titulo es requerido'); return; }
+    if (!title.trim()) { setError('El título es requerido'); return; }
     if (examType === 'digital' && (!startDate || !endDate)) { setError('Las fechas son requeridas'); return; }
     if (examType === 'omr') {
       if (numQuestions < 5 || numQuestions > 100) { setError('Preguntas: entre 5 y 100'); return; }
@@ -183,7 +183,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
                   examType === 'omr' ? 'border-emerald-500 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}>
                 <Grid3X3 className={`w-7 h-7 ${examType === 'omr' ? 'text-emerald-600' : 'text-gray-400'}`} />
-                <span className={`text-sm font-semibold ${examType === 'omr' ? 'text-emerald-700' : 'text-gray-500'}`}>Examen fisico OMR</span>
+                <span className={`text-sm font-semibold ${examType === 'omr' ? 'text-emerald-700' : 'text-gray-500'}`}>Examen físico OMR</span>
               </button>
             </div>
           )}

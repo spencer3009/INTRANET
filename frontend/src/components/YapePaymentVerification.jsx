@@ -124,9 +124,9 @@ export default function YapePaymentVerification({ token }) {
       <div className="p-6 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">Verificacion de Pagos Yape</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Verificación de Pagos Yape</h3>
             <p className="text-sm text-gray-500">
-              {total} {total === 1 ? "pago" : "pagos"} {filterStatus === "pendiente_verificacion" ? "pendientes de verificacion" : "encontrados"}
+              {total} {total === 1 ? "pago" : "pagos"} {filterStatus === "pendiente_verificacion" ? "pendientes de verificación" : "encontrados"}
             </p>
           </div>
 
@@ -182,7 +182,7 @@ export default function YapePaymentVerification({ token }) {
         ) : payments.length === 0 ? (
           <div className="text-center py-16" data-testid="yape-empty-state">
             <CreditCard className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No hay pagos {filterStatus === "pendiente_verificacion" ? "pendientes de verificacion" : "en esta categoria"}</p>
+            <p className="text-gray-500 text-sm">No hay pagos {filterStatus === "pendiente_verificacion" ? "pendientes de verificación" : "en esta categoría"}</p>
           </div>
         ) : (
           <table className="w-full" data-testid="yape-payments-table">
@@ -338,7 +338,7 @@ export default function YapePaymentVerification({ token }) {
 
               {confirmModal.action === "verificar" ? (
                 <p className="text-sm text-gray-600">
-                  Al verificar, este pago se registrara como ingreso en Contabilidad con metodo "Yape".
+                  Al verificar, este pago se registrara como ingreso en Contabilidad con método "Yape".
                 </p>
               ) : (
                 <div>
@@ -346,7 +346,7 @@ export default function YapePaymentVerification({ token }) {
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Ej: El codigo de operacion no coincide con los registros de Yape"
+                    placeholder="Ej: El código de operación no coincide con los registros de Yape"
                     rows={3}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-200 focus:border-rose-400 outline-none resize-none"
                     data-testid="yape-reject-reason-input"
@@ -373,7 +373,7 @@ export default function YapePaymentVerification({ token }) {
                 data-testid="yape-confirm-action-btn"
               >
                 {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {confirmModal.action === "verificar" ? "Confirmar Verificacion" : "Confirmar Rechazo"}
+                {confirmModal.action === "verificar" ? "Confirmar Verificación" : "Confirmar Rechazo"}
               </button>
             </div>
           </div>

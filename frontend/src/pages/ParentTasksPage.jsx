@@ -40,8 +40,8 @@ function formatDueDate(dateStr) {
   if (diff === 0) return "Hoy";
   if (diff === 1) return "Manana";
   if (diff === -1) return "Ayer";
-  if (diff > 0 && diff <= 7) return `En ${diff} dias`;
-  if (diff < 0) return `Hace ${Math.abs(diff)} dias`;
+  if (diff > 0 && diff <= 7) return `En ${diff} días`;
+  if (diff < 0) return `Hace ${Math.abs(diff)} días`;
   return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
 }
 

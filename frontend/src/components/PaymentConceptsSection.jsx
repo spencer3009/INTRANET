@@ -24,7 +24,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ name: "", amount: "", concept_type: "unico", status: "active" });
+  const [form, setForm] = useState({ name: "", amount: "", concept_type: "único", status: "active" });
 
   const loadConcepts = async () => {
     try {
@@ -42,7 +42,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", amount: "", concept_type: "unico", status: "active" });
+    setForm({ name: "", amount: "", concept_type: "único", status: "active" });
     setShowForm(true);
   };
 
@@ -332,7 +332,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
         onConfirm={handleDelete}
         loading={deleting}
         title="Eliminar Concepto"
-        message={`¿Eliminar "${deleteTarget?.name}"? Los ingresos historicos no se veran afectados.`}
+        message={`¿Eliminar "${deleteTarget?.name}"? Los ingresos históricos no se veran afectados.`}
         confirmText="Eliminar"
         variant="danger"
         icon="delete"

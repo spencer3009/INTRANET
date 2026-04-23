@@ -72,8 +72,8 @@ export const processProfilePhoto = async (file, options = {}) => {
   // Compress and convert to WebP
   const webpBlob = await compressImageToWebP(file, { maxWidth, quality });
   
-  // Create a new File object with .webp extension
-  const originalName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+  // Create a new File object with .webp extensión
+  const originalName = file.name.replace(/\.[^/.]+$/, ''); // Remove extensión
   const newFileName = `${originalName}.webp`;
   
   return new File([webpBlob], newFileName, { type: 'image/webp' });

@@ -195,7 +195,7 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
               {/* Add category */}
               <div className="flex gap-2">
                 <input value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()}
-                  placeholder="Nueva categoria..." className="flex-1 px-4 py-2.5 border border-dashed border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-400"
+                  placeholder="Nueva categoría..." className="flex-1 px-4 py-2.5 border border-dashed border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-400"
                   data-testid="new-category-input" />
                 <button onClick={addCategory} className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 flex items-center gap-1.5"
                   data-testid="add-category-btn"><Plus className="w-4 h-4" /> Agregar</button>
@@ -281,7 +281,7 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
     if (!form.title.trim()) { setError("Título requerido"); return; }
     const categoryId = editingVideo ? moveCategoryId : autoCategoryId;
     const subcategoryId = editingVideo ? moveSubcategoryId : autoSubcategoryId;
-    if (!categoryId) { setError("No hay categoria seleccionada"); return; }
+    if (!categoryId) { setError("No hay categoría seleccionada"); return; }
     setSaving(true);
     try {
       if (editingVideo) {
@@ -427,7 +427,7 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Duracion</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Duración</label>
               <input type="text" value={form.duration} onChange={e => setForm(p => ({ ...p, duration: e.target.value }))}
                 placeholder="4:32" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 data-testid="video-duration-input" />
@@ -708,7 +708,7 @@ export default function SupportAcademiaPage({ token }) {
         <button onClick={() => setShowCatModal(true)}
           className="px-4 py-2.5 bg-[#0a1628] text-white rounded-xl text-sm font-semibold hover:bg-[#1a2d4a] transition-colors flex items-center gap-2"
           data-testid="manage-categories-btn">
-          <FolderOpen className="w-4 h-4" /> Gestionar categorias
+          <FolderOpen className="w-4 h-4" /> Gestionar categorías
         </button>
       </div>
 
@@ -734,7 +734,7 @@ export default function SupportAcademiaPage({ token }) {
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)}
-          placeholder="Buscar videos por titulo..." className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          placeholder="Buscar videos por título..." className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
           data-testid="academia-search" />
       </div>
 
@@ -774,7 +774,7 @@ export default function SupportAcademiaPage({ token }) {
 
               /* === REORDER MODE === */
               reorderMode ? (
-                reorderCats.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorias</p> :
+                reorderCats.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorías</p> :
                 reorderCats.map((cat, catIdx) => (
                   <div key={cat.id}
                     draggable
@@ -851,7 +851,7 @@ export default function SupportAcademiaPage({ token }) {
               ) :
 
               /* === NORMAL MODE === */
-              categories.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorias</p> :
+              categories.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorías</p> :
                 categories.map(cat => (
                   <div key={cat.id}>
                     <button onClick={() => handleSelectCat(cat)}
@@ -995,7 +995,7 @@ export default function SupportAcademiaPage({ token }) {
           {!selectedCat && !loading && (
             <div className="text-center py-12">
               <Video className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-slate-400">Selecciona una categoria para ver los videos</p>
+              <p className="text-sm text-slate-400">Selecciona una categoría para ver los videos</p>
             </div>
           )}
         </div>

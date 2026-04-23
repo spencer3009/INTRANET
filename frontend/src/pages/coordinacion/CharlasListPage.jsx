@@ -267,7 +267,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
                     className={inputCls} data-testid="charla-datetime" />
                 </div>
                 <div>
-                  <label className={labelCls}>Duracion (min)</label>
+                  <label className={labelCls}>Duración (min)</label>
                   <input type="number" value={form.duration_minutes} min={15} max={480}
                     onChange={(e) => setForm(p => ({ ...p, duration_minutes: e.target.value }))}
                     className={inputCls} data-testid="charla-duration" />

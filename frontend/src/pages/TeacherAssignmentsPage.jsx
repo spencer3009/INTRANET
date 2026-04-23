@@ -1051,7 +1051,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
       );
       const { created, skipped } = res.data;
       const parts = [];
-      if (created > 0) parts.push(`${created} asignacion${created !== 1 ? "es" : ""} creada${created !== 1 ? "s" : ""}`);
+      if (created > 0) parts.push(`${created} asignación${created !== 1 ? "es" : ""} creada${created !== 1 ? "s" : ""}`);
       if (skipped > 0) parts.push(`${skipped} ya existia${skipped !== 1 ? "n" : ""}`);
       alert(parts.join(", ") || "Operación completada");
       onSuccess();
@@ -1308,7 +1308,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
                     <span className="font-semibold text-violet-900">Profesor: {teacherLabel}</span>
                   </div>
                   <p className="text-sm text-violet-700">
-                    Se crearan <strong>{previewItems.length}</strong> asignacion{previewItems.length !== 1 ? "es" : ""} como <strong>{form.role}</strong>
+                    Se crearan <strong>{previewItems.length}</strong> asignación{previewItems.length !== 1 ? "es" : ""} como <strong>{form.role}</strong>
                   </p>
                 </div>
                 <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl" data-testid="bulk-preview-list">
@@ -1538,7 +1538,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex">
       <Sidebar 
-        active="asignacion-docente"
+        active="asignación-docente"
         onNavigate={() => {}}
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}

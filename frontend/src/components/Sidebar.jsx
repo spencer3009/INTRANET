@@ -35,10 +35,10 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const allNavItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard", section: "dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users", section: "users" },
-  { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos", section: "grades" },
-  { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
+  { id: "anos-académicos", label: "Años Académicos", icon: Calendar, route: "/anos-académicos", section: "grades" },
+  { id: "ajustes-académicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas", section: "courses" },
-  { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
+  { id: "asignación-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignación-docente", section: "courses" },
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
@@ -134,7 +134,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   
   return (
     <>
-      {/* Mobile overlay - only covers content area, not sidebar */}
+      {/* Mobile overlay - only covers content área, not sidebar */}
       {expanded && (
         <div className="fixed inset-0 left-[280px] bg-black/30 z-[200] lg:hidden" onClick={onToggle} />
       )}

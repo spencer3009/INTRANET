@@ -64,7 +64,7 @@ export default function YapeConfigPanel({ token }) {
   const handleToggle = async () => {
     const newEnabled = !config.enabled;
     if (newEnabled && !config.qr_image_base64 && !newQrFile) {
-      toast.error("Debe subir una imagen del codigo QR antes de activar");
+      toast.error("Debe subir una imagen del código QR antes de activar");
       return;
     }
     setConfig(prev => ({ ...prev, enabled: newEnabled }));
@@ -72,7 +72,7 @@ export default function YapeConfigPanel({ token }) {
 
   const handleSave = async () => {
     if (config.enabled && !config.qr_image_base64 && !newQrFile) {
-      toast.error("Debe subir una imagen del codigo QR antes de activar");
+      toast.error("Debe subir una imagen del código QR antes de activar");
       return;
     }
 
@@ -123,7 +123,7 @@ export default function YapeConfigPanel({ token }) {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-800">Cobro por Yape</h3>
-            <p className="text-sm text-gray-500">Configura el codigo QR para que los padres paguen</p>
+            <p className="text-sm text-gray-500">Configura el código QR para que los padres paguen</p>
           </div>
         </div>
         <button
@@ -145,7 +145,7 @@ export default function YapeConfigPanel({ token }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: QR Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Imagen del codigo QR de Yape</label>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Imagen del código QR de Yape</label>
             <div
               className="relative border-[3px] border-dashed rounded-2xl flex flex-col items-center justify-center aspect-square max-w-[360px] transition-colors cursor-pointer border-gray-300 hover:border-gray-400 bg-white"
               onClick={() => fileInputRef.current?.click()}
@@ -236,7 +236,7 @@ export default function YapeConfigPanel({ token }) {
               {config.enabled ? (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Los padres pueden ver el codigo QR y reportar pagos</span>
+                  <span>Los padres pueden ver el código QR y reportar pagos</span>
                 </>
               ) : (
                 <>

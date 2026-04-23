@@ -96,7 +96,7 @@ export default function PsicologiaTalleresPage({ user, token, onLogout }) {
           </div>
           <select value={catFilter} onChange={e => { setCatFilter(e.target.value); setPage(1); }}
             className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="cat-filter">
-            <option value="">Todas las categorias</option>
+            <option value="">Todas las categorías</option>
             {Object.entries(CAT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
@@ -210,7 +210,7 @@ function WorkshopDetail({ ws, token, onClose, onEdit, onDelete, onStart, onRefre
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div><p className="text-[10px] text-slate-500">Fecha</p><p className="text-sm font-medium text-slate-800">{dt.toLocaleDateString("es-PE", { day: "numeric", month: "short" })}</p></div>
             <div><p className="text-[10px] text-slate-500">Hora</p><p className="text-sm font-medium text-slate-800">{dt.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</p></div>
-            <div><p className="text-[10px] text-slate-500">Duracion</p><p className="text-sm font-medium text-slate-800">{ws.duration_minutes} min</p></div>
+            <div><p className="text-[10px] text-slate-500">Duración</p><p className="text-sm font-medium text-slate-800">{ws.duration_minutes} min</p></div>
             <div><p className="text-[10px] text-slate-500">Ubicación</p><p className="text-sm font-medium text-slate-800">{ws.location || "-"}</p></div>
           </div>
 
@@ -365,7 +365,7 @@ function WorkshopModal({ token, editing, onSaved, onClose }) {
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" data-testid="ws-time" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Duracion</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Duración</label>
               <select value={form.duration_minutes} onChange={e => setForm(f => ({...f, duration_minutes: e.target.value}))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm">
                 {[30,45,60,90,120,180].map(d => <option key={d} value={d}>{d} min</option>)}

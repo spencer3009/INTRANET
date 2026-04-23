@@ -25,7 +25,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
 
   const handleSubmit = async () => {
     if (!operationCode.trim() || operationCode.trim().length !== 8) {
-      toast.error("El codigo de operacion debe tener exactamente 8 digitos");
+      toast.error("El código de operación debe tener exactamente 8 digitos");
       return;
     }
     if (!amount || amount <= 0) {
@@ -128,7 +128,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
           {/* STEP 1: QR */}
           {step === 1 && (
             <div data-testid="yape-step-1">
-              <p className="text-base font-bold text-gray-800 mb-3 text-center">Escanea el codigo QR con Yape</p>
+              <p className="text-base font-bold text-gray-800 mb-3 text-center">Escanea el código QR con Yape</p>
 
               {yapeConfig?.qr_image_base64 ? (
                 <div className="border border-gray-200 rounded-xl p-2 flex justify-center bg-white mb-3">
@@ -178,11 +178,11 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
           {/* STEP 2: Operation Code */}
           {step === 2 && (
             <div data-testid="yape-step-2">
-              <p className="text-base font-bold text-gray-800 mb-2 text-center">Ingresa el codigo de operacion</p>
+              <p className="text-base font-bold text-gray-800 mb-2 text-center">Ingresa el código de operación</p>
               <p className="text-sm text-gray-500 mb-6 text-center">Lo encuentras en el comprobante de Yape (8 digitos)</p>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Código de operacion Yape *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Código de operación Yape *</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -213,7 +213,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
                 <button
                   onClick={() => {
                     if (operationCode.length !== 8) {
-                      toast.error("El codigo debe tener exactamente 8 digitos");
+                      toast.error("El código debe tener exactamente 8 digitos");
                       return;
                     }
                     setStep(3);

@@ -32,7 +32,7 @@ import {
 // Admin Navigation Structure - Organized by logical sections
 const NAV_SECTIONS = [
   {
-    id: "operacion",
+    id: "operación",
     label: "OPERACIÓN",
     items: [
       { id: "dashboard", label: "Dashboard", icon: Home, route: "/admin" },
@@ -46,11 +46,11 @@ const NAV_SECTIONS = [
     id: "estructura",
     label: "ESTRUCTURA ACADÉMICA",
     items: [
-      { id: "estructura-academica", label: "Estructura Académica", icon: Layers, route: "/admin/academic-structure" },
+      { id: "estructura-académica", label: "Estructura Académica", icon: Layers, route: "/admin/academic-structure" },
     ]
   },
   {
-    id: "gestion",
+    id: "gestión",
     label: "GESTIÓN ACADÉMICA",
     items: [
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
@@ -64,7 +64,7 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    id: "comunicacion",
+    id: "comunicación",
     label: "COMUNICACIÓN",
     items: [
       { id: "mensajes", label: "Centro de Mensajes", icon: MessageSquare, route: "/admin/messages" },
@@ -72,7 +72,7 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    id: "configuracion",
+    id: "configuración",
     label: "CONFIGURACIÓN",
     items: [
       { id: "sistema", label: "Sistema", icon: Settings, route: "/admin/settings" },
@@ -95,7 +95,7 @@ export default function AdminSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
-  const [expandedSections, setExpandedSections] = useState(["operacion", "estructura"]);
+  const [expandedSections, setExpandedSections] = useState(["operación", "estructura"]);
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
@@ -143,7 +143,7 @@ export default function AdminSidebar({
   
   return (
     <>
-      {/* Mobile overlay - only covers content area, not sidebar */}
+      {/* Mobile overlay - only covers content área, not sidebar */}
       {isExpanded && (
         <div className="fixed inset-0 left-64 bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
       )}

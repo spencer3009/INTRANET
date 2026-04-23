@@ -1479,7 +1479,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <input
                     type="text"
                     value={form.ocupacion}
-                    onChange={(e) => handleChange('ocupacion', e.target.value)}
+                    onChange={(e) => handleChange('ocupación', e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     placeholder="Ej: Ingeniero, Docente, Comerciante"
                   />
@@ -2013,7 +2013,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [regeneratingQR, setRegeneratingQR] = useState(false);
 
   const handleRegenerateAllQR = async () => {
-    if (!window.confirm("Esta accion regenerara TODOS los codigos QR de alumnos y docentes con un formato optimizado. Los QR anteriores dejaran de funcionar. ¿Deseas continuar?")) return;
+    if (!window.confirm("Esta acción regenerara TODOS los códigos QR de alumnos y docentes con un formato optimizado. Los QR anteriores dejaran de funcionar. ¿Deseas continuar?")) return;
     setRegeneratingQR(true);
     try {
       const res = await axios.post(`${API}/attendance/qr/regenerate-all`, {}, { headers });
@@ -2451,7 +2451,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     // Validate password if provided
     if (showPasswordSection && editPassword) {
       const strength = calculatePasswordStrength(editPassword);
-      if (strength.label === "Débil") {
+      if (strength.label === "Debil") {
         setInfoModalContent({
           title: "Contraseña Débil",
           message: "La contraseña debe ser al menos 'Media' para poder guardar. Incluye mayúsculas, minúsculas, números y caracteres especiales.",
@@ -3240,7 +3240,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         })()}
 
         {/* ═══════════════════════════════════════════════════════════════════════════════
-            CONTENT AREA - Initial state, Empty state, Grouped view or Cards grid
+            CONTENT ÁREA - Initial state, Empty state, Grouped view or Cards grid
             ═══════════════════════════════════════════════════════════════════════════════ */}
         {selectedRole === 'student' && !hasActiveStudentFilters ? (
           /* Initial state - No filters applied yet */
@@ -4775,7 +4775,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                 <span className={`font-medium ${calculatePasswordStrength(editPassword).textColor}`}>
                                   Fortaleza: {calculatePasswordStrength(editPassword).label}
                                 </span>
-                                {calculatePasswordStrength(editPassword).label === "Débil" && (
+                                {calculatePasswordStrength(editPassword).label === "Debil" && (
                                   <span className="flex items-center gap-1 text-red-500">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     No permitido guardar
@@ -5360,8 +5360,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             {student.email && <span className="text-xs text-slate-500">{student.email}</span>}
                             {student.student_code && <span className="text-xs text-slate-400">{student.student_code}</span>}
                           </div>
-                          {ubicacion && (
-                            <p className="text-xs text-blue-600 font-medium mt-1">{ubicacion}</p>
+                          {ubicación && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">{ubicación}</p>
                           )}
                           {student.import_errors && student.import_errors.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -5468,7 +5468,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               <input value={editingPendingData.phone} onChange={e => setEditingPendingData(p => ({...p, phone: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Genero</label>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Género</label>
                               <select value={editingPendingData.gender} onChange={e => setEditingPendingData(p => ({...p, gender: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                                 <option value="">Seleccionar</option>
                                 <option value="Masculino">Masculino</option>
@@ -5658,7 +5658,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     ) : (
                       <>
                         <FileSpreadsheet className={`w-14 h-14 mx-auto mb-3 ${importDragOver ? 'text-blue-500' : 'text-gray-300'}`} />
-                        <p className="text-gray-600 font-semibold mb-1">{importDragOver ? 'Suelte el archivo aqui' : 'Arrastre o seleccione un archivo'}</p>
+                        <p className="text-gray-600 font-semibold mb-1">{importDragOver ? 'Suelte el archivo aquí' : 'Arrastre o seleccione un archivo'}</p>
                         <p className="text-xs text-gray-400 mb-4">Formatos: .xlsx, .xls, .csv</p>
                         <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors" data-testid="import-file-input-label">
                           <Upload className="w-4 h-4" /> Seleccionar Archivo
@@ -5735,7 +5735,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       data-testid="use-file-config-btn"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Usar configuracion del archivo
+                      Usar configuración del archivo
                     </button>
                     <button
                       onClick={() => { setImportModalStep("upload"); setImportMismatchData(null); }}
@@ -5757,7 +5757,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <div className="absolute inset-0 flex items-center justify-center"><FileSpreadsheet className="w-8 h-8 text-emerald-500" /></div>
                   </div>
                   <p className="text-gray-800 font-bold text-lg">Procesando estudiantes...</p>
-                  <p className="text-sm text-gray-400 mt-1">Creando cuentas, codigos y QR automaticamente</p>
+                  <p className="text-sm text-gray-400 mt-1">Creando cuentas, códigos y QR automaticamente</p>
                   <div className="mt-5 mx-auto w-48 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: '60%' }}></div></div>
                 </div>
               )}
@@ -5896,7 +5896,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     data-testid="parent-import-dropzone"
                   >
                     <Upload className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-slate-700">Arrastra tu archivo aqui</p>
+                    <p className="text-sm font-semibold text-slate-700">Arrastra tu archivo aquí</p>
                     <p className="text-xs text-slate-400 mt-1">o haz clic para seleccionar</p>
                     <p className="text-[10px] text-slate-400 mt-2">.xlsx, .xls, .csv (max 5MB)</p>
                     <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="parent-file-input"
@@ -6033,7 +6033,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           const errStr = errs.join(" ").toLowerCase();
                           const hasDniErr = errStr.includes("dni");
                           const hasEmailErr = errStr.includes("email") || errStr.includes("correo");
-                          const hasGenderErr = errStr.includes("genero");
+                          const hasGenderErr = errStr.includes("género");
                           const hasEmptyErr = errStr.includes("empty");
                           const isDniValid = d.tipo_documento === "CE" ? /^[A-Za-z0-9]{9,12}$/.test(d.dni || "") : /^\d{8}$/.test(d.dni || "");
                           const isEmailValid = !d.email || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email);
@@ -6091,7 +6091,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                     className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="9 digitos" maxLength={9} />
                                 </div>
                                 <div className="col-span-2 sm:col-span-1">
-                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Genero</label>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Género</label>
                                   <select value={d.gender || ""} onChange={e => setEditingParentPendingData(x => ({...x, gender: e.target.value}))}
                                     className={`w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors bg-white ${fieldErr("gender") ? "border-2 border-rose-400 focus:border-rose-500" : "border border-slate-200 focus:border-blue-400"}`}>
                                     <option value="">Seleccionar</option>
@@ -6099,12 +6099,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                     <option value="Femenino">Femenino</option>
                                     <option value="Otro">Otro</option>
                                   </select>
-                                  {fieldErr("gender") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Seleccione un genero valido</p>}
+                                  {fieldErr("gender") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Seleccione un género valido</p>}
                                 </div>
                               </div>
-                              {errs.filter(e => !["dni","email","correo","genero","empty"].some(k => e.toLowerCase().includes(k))).length > 0 && (
+                              {errs.filter(e => !["dni","email","correo","género","empty"].some(k => e.toLowerCase().includes(k))).length > 0 && (
                                 <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg">
-                                  {errs.filter(e => !["dni","email","correo","genero","empty"].some(k => e.toLowerCase().includes(k))).map((e,i) => (
+                                  {errs.filter(e => !["dni","email","correo","género","empty"].some(k => e.toLowerCase().includes(k))).map((e,i) => (
                                     <p key={i} className="text-[10px] text-rose-600 font-medium">{e}</p>
                                   ))}
                                 </div>

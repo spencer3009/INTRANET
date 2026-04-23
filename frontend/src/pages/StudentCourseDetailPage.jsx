@@ -1622,7 +1622,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }
   const timeStatus = getTimeStatus();
   
   // Determine what type of submission is allowed
-  const allowsText = deliveryType === 'Texto en línea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
+  const allowsText = deliveryType === 'Texto en linea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
   const allowsFiles = deliveryType === 'Archivos' || deliveryType === 'Texto y archivos';
 
   const handleFileSelect = (e) => {
@@ -2641,7 +2641,7 @@ function MaterialContent({ materials, token, highlightedPostId, onClearHighlight
     );
   }
 
-  // Get file icon based on extension or type
+  // Get file icon based on extensión or type
   const getFileIcon = (material) => {
     const fileName = material.file_name || material.drive_file_name || material.title;
     const ext = fileName?.split('.').pop()?.toLowerCase();
@@ -4774,7 +4774,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
   const handleNavigateToDetail = (tab, postId) => {
     setActiveTab(tab);
     setHighlightedPostId(postId);
-    // Scroll to top of content area
+    // Scroll to top of content área
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   

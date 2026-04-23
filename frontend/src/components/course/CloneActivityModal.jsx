@@ -40,7 +40,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
           ? new Set(subjects.filter(s => s.teacher_id === user.id).map(s => s.id))
           : null;
 
-        // Build tree: group by nivel > grado > seccion > asignaturas
+        // Build tree: group by nivel > grado > sección > asignaturas
         const nivelMap = {};
         grades.forEach(g => {
           const nivel = g.nivel || g.level || "General";
@@ -76,7 +76,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                 return {
                   key: `sec_${sec.id}`,
                   label: `Sección ${sec.nombre || sec.name}`,
-                  type: "seccion",
+                  type: "sección",
                   children: secSubjects,
                 };
               }).filter(sec => sec.children.length > 0),
@@ -169,7 +169,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                 <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${cloneHere ? "translate-x-4" : "translate-x-0"}`} />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Crear una copia aqui mismo</p>
+                <p className="text-sm font-bold text-slate-800">Crear una copia aquí mismo</p>
                 <p className="text-xs text-slate-500">Se creara una copia en la misma asignatura</p>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                           <span className="text-xs font-bold text-slate-700">{grado.label}</span>
                           <span className="text-[10px] text-slate-400">({grado.children.length} secc.)</span>
                         </button>
-                        {expanded.has(grado.key) && grado.children.map(seccion => (
+                        {expanded.has(grado.key) && grado.children.map(sección => (
                           <div key={seccion.key} className="border-t border-slate-50">
                             {/* Sección */}
                             <button onClick={() => toggleExpand(seccion.key)}

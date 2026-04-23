@@ -33,7 +33,7 @@ function formatRelativeDate(dateString) {
   if (diffDays < 0) return { text: "Vencido", isOverdue: true };
   if (diffDays === 0) return { text: "Hoy", isUrgent: true };
   if (diffDays === 1) return { text: "Manana", isUrgent: true };
-  if (diffDays <= 2) return { text: `En ${diffDays} dias`, isUrgent: true };
+  if (diffDays <= 2) return { text: `En ${diffDays} días`, isUrgent: true };
   return { text: date.toLocaleDateString("es-PE", { day: "numeric", month: "short" }), isNormal: true };
 }
 
@@ -683,7 +683,7 @@ export default function NotificationBell({ token, userRole }) {
                   <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Todo al dia!</p>
+                  <p className="text-gray-500 text-sm font-medium">Todo al día!</p>
                   <p className="text-gray-400 text-xs mt-1">No hay actividad reciente</p>
                 </div>
               ) : (
@@ -704,7 +704,7 @@ export default function NotificationBell({ token, userRole }) {
                     <UserCheck className="w-6 h-6 text-emerald-300" />
                   </div>
                   <p className="text-gray-500 text-sm font-medium">Sin notificaciones</p>
-                  <p className="text-gray-400 text-xs mt-1">Las notificaciones de asistencia apareceran aqui</p>
+                  <p className="text-gray-400 text-xs mt-1">Las notificaciones de asistencia apareceran aquí</p>
                 </div>
               ) : (
                 <div>
@@ -747,7 +747,7 @@ export default function NotificationBell({ token, userRole }) {
                   <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Todo al dia!</p>
+                  <p className="text-gray-500 text-sm font-medium">Todo al día!</p>
                   <p className="text-gray-400 text-xs mt-1">No tienes recordatorios pendientes</p>
                 </div>
               ) : (

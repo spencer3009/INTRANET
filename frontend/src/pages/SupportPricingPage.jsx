@@ -131,7 +131,7 @@ export default function SupportPricingPage({ token }) {
         </div>
         <div>
           <h1 className="text-xl font-bold text-slate-800" style={{ fontFamily: 'Manrope, sans-serif' }}>Configuración de Precios</h1>
-          <p className="text-sm text-slate-500">Parametros globales de facturacion</p>
+          <p className="text-sm text-slate-500">Parámetros globales de facturacion</p>
         </div>
       </div>
 
@@ -315,7 +315,7 @@ export default function SupportPricingPage({ token }) {
             data-testid="save-pricing-btn"
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar configuracion
+            Guardar configuración
           </button>
         </div>
       </div>
@@ -327,7 +327,7 @@ export default function SupportPricingPage({ token }) {
             <QrCode className="w-4 h-4 text-violet-500" />
             Configuración de QR de Pago
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Este QR se mostrara en el modal de pago cuando un colegio tenga suscripcion vencida</p>
+          <p className="text-xs text-slate-400 mt-0.5">Este QR se mostrara en el modal de pago cuando un colegio tenga suscripción vencida</p>
         </div>
 
         <div className="p-6 space-y-5">
@@ -418,7 +418,7 @@ export default function SupportPricingPage({ token }) {
             data-testid="save-qr-btn"
           >
             {qrSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar configuracion de pago
+            Guardar configuración de pago
           </button>
         </div>
       </div>

@@ -1407,10 +1407,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all"
                         data-testid="tolerance-minutes"
                       />
-                      <p className="text-xs text-slate-400 mt-1">Minutos despues de la hora limite para considerar tardanza</p>
+                      <p className="text-xs text-slate-400 mt-1">Minutos después de la hora límite para considerar tardanza</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Marcar falta despues de (minutos)</label>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Marcar falta después de (minutos)</label>
                       <input
                         type="number"
                         min="0"
@@ -1429,7 +1429,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       <Clock className="w-5 h-5 text-emerald-600" />
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">Activar tardanza automatica</p>
-                        <p className="text-xs text-slate-500">El sistema marcara automaticamente tardanza o falta segun el horario por nivel</p>
+                        <p className="text-xs text-slate-500">El sistema marcara automaticamente tardanza o falta según el horario por nivel</p>
                       </div>
                     </div>
                     <button
@@ -1794,7 +1794,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         </div>
                         <h3 className="text-lg font-bold text-slate-800 mb-1">Eliminar turno</h3>
                         <p className="text-sm text-slate-500 mb-5">
-                          Estas seguro de eliminar el turno "<strong>{paeDeleteConfirm.nombre}</strong>"? Esta accion no se puede deshacer.
+                          Estas seguro de eliminar el turno "<strong>{paeDeleteConfirm.nombre}</strong>"? Esta acción no se puede deshacer.
                         </p>
                         <div className="flex gap-3">
                           <button type="button" onClick={() => setPaeDeleteConfirm(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">

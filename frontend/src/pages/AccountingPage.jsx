@@ -1142,7 +1142,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       .catch(() => setStudentPension(null));
   };
 
-  // Filter out "unico" concepts already paid by this student
+  // Filter out "único" concepts already paid by this student
   const availableConcepts = useMemo(() => 
     paymentConcepts.filter(c => {
       if (c.concept_type === "unico" && studentPaidConcepts.includes(c.name)) return false;
@@ -1161,7 +1161,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       return found.amount.toString();
     }
     // Fallback to financial settings
-    if (conceptName.toLowerCase() === "matricula" || conceptName === "Matrícula") {
+    if (conceptName.toLowerCase() === "matricula" || conceptName === "Matricula") {
       const val = financialSettings?.matricula || financialSettings?.matricula_monto || 0;
       return val > 0 ? val.toString() : "";
     }
@@ -1684,7 +1684,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
               )}
               {interestAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 font-medium">Mora ({daysLate} dia{daysLate !== 1 ? "s" : ""} - sobre Mensualidad)</span>
+                  <span className="text-gray-500 font-medium">Mora ({daysLate} día{daysLate !== 1 ? "s" : ""} - sobre Mensualidad)</span>
                   <span className="font-bold text-rose-500">+ S/ {formatNumber(interestAmount)}</span>
                 </div>
               )}
@@ -3092,8 +3092,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         loading={processing}
         title="Confirmar Pago"
         message={confirmMoraPreview.mora > 0
-          ? `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}?\n\nSe aplicara mora de S/ ${formatNumber(confirmMoraPreview.mora)} (${confirmMoraPreview.daysLate} dias de atraso).\nTotal final: S/ ${formatNumber(confirmMoraPreview.newTotal)}`
-          : `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}? Esta accion registrara el ingreso como confirmado.`
+          ? `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}?\n\nSe aplicara mora de S/ ${formatNumber(confirmMoraPreview.mora)} (${confirmMoraPreview.daysLate} días de atraso).\nTotal final: S/ ${formatNumber(confirmMoraPreview.newTotal)}`
+          : `¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}? Esta acción registrara el ingreso como confirmado.`
         }
         confirmText="Confirmar Pago"
         variant="success"
@@ -3140,7 +3140,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">Validar Pago Yape</h2>
-                  <p className="text-xs text-purple-200">Verificacion de codigo de operacion</p>
+                  <p className="text-xs text-purple-200">Verificación de código de operación</p>
                 </div>
               </div>
               <button onClick={() => { setShowYapeVerifyModal(false); setSelectedPayment(null); }} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
@@ -3173,13 +3173,13 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
               {/* Operation Code Display */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Código de operacion ingresado por el padre</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Código de operación ingresado por el padre</label>
                 <div className="bg-purple-50 border-2 border-purple-200 rounded-xl px-5 py-4 text-center">
                   <span className="text-3xl font-black text-purple-800 tracking-widest" data-testid="yape-op-code-display">
                     {selectedPayment.yape_operation_code || "—"}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-2 text-center">Verifique este codigo en su aplicacion Yape antes de confirmar</p>
+                <p className="text-xs text-gray-400 mt-2 text-center">Verifique este código en su aplicacion Yape antes de confirmar</p>
               </div>
 
               {/* Reject reason (collapsible) */}

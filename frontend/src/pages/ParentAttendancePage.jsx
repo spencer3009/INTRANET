@@ -290,7 +290,7 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                 <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
                   <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><CalendarCheck className="w-8 h-8 text-emerald-400" /></div>
                   <h3 className="font-semibold text-slate-700 mb-2">Sin registros este mes</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Cuando se registre la asistencia, la veras aqui</p>
+                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Cuando se registre la asistencia, la veras aquí</p>
                 </div>
               )}
             </>

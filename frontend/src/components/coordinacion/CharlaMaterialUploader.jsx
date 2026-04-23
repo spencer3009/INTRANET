@@ -41,7 +41,7 @@ export default function CharlaMaterialUploader({ token, charlaId, onMaterialAdde
     }
     const config = TYPE_CONFIG[fileType];
     if (file.size > config.maxMB * 1024 * 1024) {
-      setError(`El archivo excede el limite de ${config.maxMB}MB para ${config.label}.`);
+      setError(`El archivo excede el límite de ${config.maxMB}MB para ${config.label}.`);
       return;
     }
 
@@ -194,7 +194,7 @@ export default function CharlaMaterialUploader({ token, charlaId, onMaterialAdde
         <div className="space-y-2">
           <input
             type="text"
-            placeholder="Nombre del recurso (ej: Presentacion sobre bullying)"
+            placeholder="Nombre del recurso (ej: Presentación sobre bullying)"
             value={linkForm.name}
             onChange={(e) => setLinkForm((p) => ({ ...p, name: e.target.value }))}
             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"

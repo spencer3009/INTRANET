@@ -921,7 +921,7 @@ function ReplicateSubjectsModal({ isOpen, onClose, targetSection, sections, subj
               <p className="text-sm text-gray-500">
                 Desde <strong>{mode === "grade" && selectedSource?.gradeName ? `${selectedSource.gradeName} — ` : ""}{selectedSource?.nombre}</strong> hacia <strong>{targetSection.nombre}</strong>
               </p>
-              <p className="text-xs text-gray-400 mt-3">Podras modificar profesores y horarios despues.</p>
+              <p className="text-xs text-gray-400 mt-3">Podras modificar profesores y horarios después.</p>
             </div>
           )}
 
@@ -1113,7 +1113,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   };
 
   const handleDeleteSubject = async (subject) => {
-    if (!window.confirm(`¿Eliminar la asignatura "${subject.name}"? Esta accion no se puede deshacer.`)) return;
+    if (!window.confirm(`¿Eliminar la asignatura "${subject.name}"? Esta acción no se puede deshacer.`)) return;
     try {
       await axios.delete(`${API}/academic/subjects/${subject.id}`, { headers });
       toast.success("Asignatura eliminada");
@@ -1306,7 +1306,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
                       <p className={`text-3xl sm:text-5xl font-black ${currentTheme.accent}`}>{gradeSections.length}</p>
-                      <p className="text-sm sm:text-base text-gray-500 font-semibold">seccion{gradeSections.length !== 1 ? "es" : ""}</p>
+                      <p className="text-sm sm:text-base text-gray-500 font-semibold">sección{gradeSections.length !== 1 ? "es" : ""}</p>
                     </div>
                   </div>
                 </div>

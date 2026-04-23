@@ -289,7 +289,7 @@ function AcademiaContent({ token }) {
           type="text"
           value={searchText}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Buscar tutoriales por titulo, descripción o categoria..."
+          placeholder="Buscar tutoriales por título, descripción o categoría..."
           className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FBBF24]/30 focus:border-[#FBBF24]/50 transition-all shadow-sm"
           data-testid="portal-search"
         />
@@ -326,7 +326,7 @@ function AcademiaContent({ token }) {
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Categorías</p>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  {stats.total_categories} categorias &middot; {stats.total_videos} videos
+                  {stats.total_categories} categorías &middot; {stats.total_videos} videos
                 </p>
               </div>
               <div>
@@ -483,7 +483,7 @@ function AcademiaContent({ token }) {
                 <p className="text-xs text-slate-400 mt-1.5">
                   {searchActive
                     ? `No se encontraron tutoriales para "${searchText}"`
-                    : "Esta categoria aun no tiene tutoriales publicados"}
+                    : "Esta categoría aun no tiene tutoriales publicados"}
                 </p>
               </div>
             ) : (

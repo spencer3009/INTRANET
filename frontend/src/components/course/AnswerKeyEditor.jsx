@@ -68,7 +68,7 @@ export default function AnswerKeyEditor({ examId, numQuestions, optionsPerQuesti
 
   return (
     <div className="space-y-0" data-testid="answer-key-editor">
-      {/* Progress - sticky at top of scroll area */}
+      {/* Progress - sticky at top of scroll área */}
       <div className="sticky top-0 z-10 bg-white pb-3">
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
           <div className="flex items-center justify-between mb-1.5">

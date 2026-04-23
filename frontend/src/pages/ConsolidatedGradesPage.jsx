@@ -90,7 +90,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const handlePrint = () => window.print();
 
   // Build flat column list for the table
-  // In the Excel, all subjects (areas + sub-subjects) are at the same header level
+  // In the Excel, all subjects (áreas + sub-subjects) are at the same header level
   const allColumns = data?.columns || [];
 
   const summaryHeaders = [
@@ -120,7 +120,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const dateStr = now.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeStr = now.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  // Detect if this column is an "area" type (should be styled differently)
+  // Detect if this column is an "área" type (should be styled differently)
   const isAreaColumn = (col) => col.type === "area";
 
   const schoolName = settings?.system_name || user?.name || "Mi Colegio";
@@ -186,12 +186,12 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         .cns-hdr-num { background:#D9E1F2!important; font-weight:bold!important; font-size:12px!important; }
         .cns-hdr-name { background:#D9E1F2!important; font-weight:bold!important; font-size:12px!important; text-align:center!important; }
 
-        /* Vertical text for subject/area/summary headers */
+        /* Vertical text for subject/área/summary headers */
         .cns-hdr-vert { height:170px; padding:6px 3px!important; vertical-align:bottom!important; }
         .cns-hdr-vert .cns-vtext { writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; font-size:12px; display:inline-block; text-align:left; line-height:1.2; }
         /* Área column headers (bold) */
-        .cns-hdr-area { background:#B4C6E7!important; }
-        .cns-hdr-area .cns-vtext { font-weight:bold; color:#111; text-transform:uppercase; }
+        .cns-hdr-área { background:#B4C6E7!important; }
+        .cns-hdr-área .cns-vtext { font-weight:bold; color:#111; text-transform:uppercase; }
         /* Sub-subject column headers */
         .cns-hdr-subj { background:#D9E1F2!important; }
         .cns-hdr-subj .cns-vtext { font-weight:500; color:#222; }
@@ -214,7 +214,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         .cns-dr:hover { background:#e8eeff; }
         .cns-dr:hover .cns-fn { background:#e8eeff; }
         .cns-grade-fail { color:#cc0000; font-weight:bold; }
-        .cns-grade-area { font-weight:bold; background:#edf1fa; }
+        .cns-grade-área { font-weight:bold; background:#edf1fa; }
         .cns-summ-cell { background:#f0f4e8; font-weight:600; }
         .cns-prom-cell { background:#e3ebd5; font-weight:bold; }
 
@@ -384,7 +384,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                   <th
                     key={col.id}
                     rowSpan={2}
-                    className={`cns-hdr-vert ${isAreaColumn(col) ? "cns-hdr-area" : "cns-hdr-subj"}`}
+                    className={`cns-hdr-vert ${isAreaColumn(col) ? "cns-hdr-área" : "cns-hdr-subj"}`}
                     title={col.name}
                   >
                     <span className="cns-vtext">{col.name}</span>
@@ -413,7 +413,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       {allColumns.map((col) => {
                         const val = student.grades[col.id];
                         const isFail = val !== null && val !== undefined && val < 11;
-                        const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
+                        const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-área" : ""].filter(Boolean).join(" ");
                         return <td key={col.id} className={cls}>{val ?? ""}</td>;
                       })}
                       <td className="cns-summ-cell">{student.conducta ?? ""}</td>

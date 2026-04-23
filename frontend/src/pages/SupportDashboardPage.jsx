@@ -88,7 +88,7 @@ export default function SupportDashboardPage({ token }) {
           </div>
           <h1 className="text-2xl lg:text-3xl font-bold mb-2">Bienvenido al Centro de Soporte</h1>
           <p className="text-slate-400 text-sm lg:text-base max-w-xl">
-            Gestiona el acceso a los colegios, revisa metricas globales y proporciona soporte tecnico desde aqui.
+            Gestiona el acceso a los colegios, revisa metricas globales y proporciona soporte técnico desde aquí.
           </p>
         </div>
       </div>

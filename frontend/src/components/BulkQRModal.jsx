@@ -168,7 +168,7 @@ export default function BulkQRModal({ open, onClose, token }) {
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="accent-violet-500 w-4 h-4" />
-              <span className="text-sm text-slate-600">Incluir codigo del alumno</span>
+              <span className="text-sm text-slate-600">Incluir código del alumno</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={ordenar} onChange={e => setOrdenar(e.target.checked)} className="accent-violet-500 w-4 h-4" />

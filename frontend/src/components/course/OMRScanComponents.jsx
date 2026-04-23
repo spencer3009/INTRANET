@@ -656,11 +656,11 @@ function OMRResultsCard({ exam, token, onRegisterComplete }) {
           </div>
           <div className="bg-emerald-50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-emerald-700">{highest}</p>
-            <p className="text-xs text-emerald-600">Mas alta</p>
+            <p className="text-xs text-emerald-600">Más alta</p>
           </div>
           <div className="bg-red-50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-red-700">{lowest}</p>
-            <p className="text-xs text-red-600">Mas baja</p>
+            <p className="text-xs text-red-600">Más baja</p>
           </div>
         </div>
 

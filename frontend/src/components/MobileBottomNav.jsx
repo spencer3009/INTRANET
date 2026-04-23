@@ -24,14 +24,14 @@ const teacherItems = [
 
 const ownerItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
-  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignacion-docente" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignación-docente" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/asignaturas" },
   { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/asistencias?tab=qr-scanner" },
 ];
 
 const adminItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
-  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignacion-docente" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignación-docente" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/asignaturas" },
   { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/asistencias?tab=qr-scanner" },
 ];

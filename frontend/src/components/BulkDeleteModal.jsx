@@ -184,7 +184,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
                 <>
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <p className="text-sm text-amber-800 font-medium">
-                      Solo se eliminaran <strong>{analysis.deletable_count}</strong> alumnos SIN actividad academica.
+                      Solo se eliminaran <strong>{analysis.deletable_count}</strong> alumnos SIN actividad académica.
                       Los alumnos con historial NO seran afectados.
                     </p>
                   </div>

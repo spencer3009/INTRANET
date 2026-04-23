@@ -72,8 +72,8 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between" data-testid="support-session-banner">
           <div className="flex items-center gap-2">
             <Headset className="w-4 h-4 text-white" />
-            <span className="text-xs font-semibold text-white">SESION DE SOPORTE</span>
-            <span className="text-xs text-emerald-100 hidden sm:inline">Estas navegando como soporte tecnico</span>
+            <span className="text-xs font-semibold text-white">SESIÓN DE SOPORTE</span>
+            <span className="text-xs text-emerald-100 hidden sm:inline">Estas navegando como soporte técnico</span>
           </div>
           <button onClick={handleBackToSupport} className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold text-white transition-colors" data-testid="back-to-support-btn">
             <ArrowLeft className="w-3.5 h-3.5" />

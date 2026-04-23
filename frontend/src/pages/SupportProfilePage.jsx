@@ -227,7 +227,7 @@ export default function SupportProfilePage({ token, user, onUserUpdate }) {
               data-testid="profile-whatsapp-input"
             />
           </div>
-          <p className="text-xs text-slate-400 mt-1">Este número se mostrara en la página de login de los colegios. Ingresa el número con codigo de pais, sin + ni espacios.</p>
+          <p className="text-xs text-slate-400 mt-1">Este número se mostrara en la página de login de los colegios. Ingresa el número con código de pais, sin + ni espacios.</p>
         </div>
 
         <button

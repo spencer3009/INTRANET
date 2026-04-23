@@ -253,7 +253,7 @@ export default function ReunionDetailPage({ token, subdomain, user: currentUser,
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-3">Comparta este enlace por WhatsApp. Expira en 7 dias.</p>
+                <p className="text-xs text-slate-400 mt-3">Comparta este enlace por WhatsApp. Expira en 7 días.</p>
               </div>
             )}
           </div>

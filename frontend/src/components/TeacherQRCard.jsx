@@ -12,7 +12,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <QrCode className="w-8 h-8 text-slate-400" />
         </div>
-        <p className="text-slate-600">Este profesor no tiene codigo QR generado.</p>
+        <p className="text-slate-600">Este profesor no tiene código QR generado.</p>
       </div>
     );
   }

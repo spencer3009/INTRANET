@@ -9,9 +9,9 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const modules = [
   {
-    id: "topico", label: "Topico",
-    description: "Registro de atención médica, incidencias y seguimiento fisico",
-    icon: Cross, path: "topico", bgIcon: "bg-rose-100", hoverBorder: "hover:border-rose-300",
+    id: "tópico", label: "Tópico",
+    description: "Registro de atención médica, incidencias y seguimiento físico",
+    icon: Cross, path: "tópico", bgIcon: "bg-rose-100", hoverBorder: "hover:border-rose-300",
     hoverBg: "group-hover:bg-rose-500", textIcon: "text-rose-600", bar: "bg-rose-500",
   },
   {
@@ -96,7 +96,7 @@ export default function AdminHealthPage({ user, token, onLogout }) {
               </div>
               <h3 className="font-bold text-slate-800 text-lg mb-2">Sin acceso</h3>
               <p className="text-sm text-slate-500 mb-6">
-                No tienes permisos para acceder al modulo de Salud y Bienestar. Contacta al propietario del colegio para solicitar acceso.
+                No tienes permisos para acceder al módulo de Salud y Bienestar. Contacta al propietario del colegio para solicitar acceso.
               </p>
               <button
                 onClick={() => navigate(`${base}/admin`)}

@@ -697,7 +697,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
   const upcomingReminders = activeReminders.filter(r => new Date(r.date) >= now);
   const pastReminders = activeReminders.filter(r => new Date(r.date) < now);
 
-  // Full width version for tab content (no outer container)
+  // Full width versión for tab content (no outer container)
   if (isFullWidth) {
     const renderReminderRow = (reminder, isPast = false, isCompleted = false) => {
       const typeConfig = REMINDER_TYPES[reminder.type] || REMINDER_TYPES.notice;

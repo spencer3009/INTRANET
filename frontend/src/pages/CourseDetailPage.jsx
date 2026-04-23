@@ -1455,7 +1455,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    // Determine resource type based on file extension for more accurate handling
+    // Determine resource type based on file extensión for more accurate handling
     const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
     const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
     const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
@@ -1586,7 +1586,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       const status = err.response?.status;
       const detail = err.response?.data?.detail;
       if (status === 401 && detail && typeof detail === 'object' && detail.code === 'DRIVE_REAUTH_REQUIRED') {
-        setError("Tu conexion con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
+        setError("Tu conexión con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
       } else {
         setError((typeof detail === 'string' ? detail : detail?.message) || 'Error al publicar');
       }
@@ -2484,7 +2484,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    // Determine resource type based on file extension
+    // Determine resource type based on file extensión
     const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
     const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
     const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
@@ -2637,7 +2637,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   
   if (!isOpen) return null;
   
-  // Get file extension icon
+  // Get file extensión icon
   const getFileIcon = (fileName) => {
     if (!fileName) return FileIcon;
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -2748,7 +2748,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
                         }
                         const allTaken = taskAvailability && taskSubcolumnasVinculables.every(s => !_taskSlotAvailable(s.field_key, taskAvailability) && !_taskSlotAvailable(s.id, taskAvailability));
                         if (allTaken) {
-                          return <p className="text-xs text-gray-500 italic">Todas las columnas de participacion ya fueron asignadas.</p>;
+                          return <p className="text-xs text-gray-500 italic">Todas las columnas de participación ya fueron asignadas.</p>;
                         }
                         // Agrupar por criterio manteniendo orden
                         const grouped = [];
@@ -3225,7 +3225,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    // Determine resource type based on file extension
+    // Determine resource type based on file extensión
     const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
     const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
     const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
@@ -3363,7 +3363,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
   
   if (!isOpen || !task) return null;
   
-  // Get file extension icon
+  // Get file extensión icon
   const getFileIcon = (fileName) => {
     if (!fileName) return FileIcon;
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -3700,7 +3700,7 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    // Determine resource type based on file extension
+    // Determine resource type based on file extensión
     const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
     const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
     const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
@@ -5400,12 +5400,12 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
     e.preventDefault();
     setError("");
 
-    if (!title.trim()) { setError("El titulo es requerido"); return; }
+    if (!title.trim()) { setError("El título es requerido"); return; }
 
     if (examType === "digital") {
       if (!date) { setError("La fecha es requerida"); return; }
       if (!startTime || !endTime) { setError("Las horas de inicio y fin son requeridas"); return; }
-      if (!durationMinutes || durationMinutes < 1) { setError("La duracion debe ser al menos 1 minuto"); return; }
+      if (!durationMinutes || durationMinutes < 1) { setError("La duración debe ser al menos 1 minuto"); return; }
 
       const startDatetime = new Date(`${date}T${startTime}`).toISOString();
       const endDatetime = new Date(`${date}T${endTime}`).toISOString();
@@ -5547,7 +5547,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
                   examType === "omr" ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 bg-white hover:border-gray-300"
                 }`}>
                 <Grid3X3 className={`w-7 h-7 ${examType === "omr" ? "text-emerald-600" : "text-gray-400"}`} />
-                <span className={`text-sm font-semibold ${examType === "omr" ? "text-emerald-700" : "text-gray-500"}`}>Examen fisico OMR</span>
+                <span className={`text-sm font-semibold ${examType === "omr" ? "text-emerald-700" : "text-gray-500"}`}>Examen físico OMR</span>
               </button>
             </div>
           )}
@@ -5605,7 +5605,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
                     {registerStatus === "closed" && (
                       <div className="p-2 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700">
                         <AlertCircle className="w-3 h-3 inline mr-1" />
-                        El Registro Auxiliar de este bimestre esta cerrado. Las notas quedaran pendientes de sincronizacion hasta que se reabra.
+                        El Registro Auxiliar de este bimestre esta cerrado. Las notas quedaran pendientes de sincronización hasta que se reabra.
                       </div>
                     )}
 
@@ -7438,7 +7438,7 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
                 {/* Top color strip */}
                 <div className={`h-1.5 ${isOmr ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`} />
                 
-                {/* Clickable main area */}
+                {/* Clickable main área */}
                 <div
                   className="p-4 flex-1 cursor-pointer"
                   onClick={() => setSelectedExamId(exam.id)}
@@ -10151,7 +10151,7 @@ function MaterialTableContent({ subjectId, token, user }) {
       
       // Handle Drive reauth required
       if (status === 401 && detail && typeof detail === 'object' && detail.code === 'DRIVE_REAUTH_REQUIRED') {
-        setError("Tu conexion con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
+        setError("Tu conexión con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
         // Update drive status locally
         setDriveStatus(prev => ({ ...prev, connected: false }));
       } else {

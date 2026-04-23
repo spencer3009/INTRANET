@@ -40,7 +40,7 @@ function formatRelativeDate(dateStr) {
   if (diffDays === 0) return "Hoy";
   if (diffDays === 1) return "Manana";
   if (diffDays === -1) return "Ayer";
-  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} dias`;
+  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} días`;
   if (diffDays < 0) return "Pasado";
   return "";
 }
@@ -260,14 +260,14 @@ export default function ParentExamsPage({ user, token, onLogout }) {
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-2xl border border-slate-200/80 h-full overflow-hidden shadow-sm">
                     <div className="px-5 py-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600">
-                      <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Detalle del dia</p>
+                      <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Detalle del día</p>
                       <h3 className="font-bold text-white flex items-center gap-2 text-lg" style={{ fontFamily: "Manrope, sans-serif" }}>
-                        {selectedDate ? <>{new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}{formatRelativeDate(selectedDate) && <span className="text-xs px-2 py-0.5 bg-white/15 rounded-full font-medium">{formatRelativeDate(selectedDate)}</span>}</> : "Selecciona un dia"}
+                        {selectedDate ? <>{new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}{formatRelativeDate(selectedDate) && <span className="text-xs px-2 py-0.5 bg-white/15 rounded-full font-medium">{formatRelativeDate(selectedDate)}</span>}</> : "Selecciona un día"}
                       </h3>
                     </div>
                     <div className="p-4 max-h-[440px] overflow-y-auto">
                       {!selectedDate ? (
-                        <div className="text-center py-10"><div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Calendar className="w-7 h-7 text-slate-300" /></div><p className="text-sm text-slate-500 font-medium">Selecciona un dia</p></div>
+                        <div className="text-center py-10"><div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Calendar className="w-7 h-7 text-slate-300" /></div><p className="text-sm text-slate-500 font-medium">Selecciona un día</p></div>
                       ) : examsForSelectedDate.length === 0 ? (
                         <div className="text-center py-10"><div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><Sparkles className="w-7 h-7 text-emerald-400" /></div><h4 className="font-bold text-slate-700 mb-1">Día libre</h4><p className="text-slate-400 text-sm">No hay examenes</p></div>
                       ) : (

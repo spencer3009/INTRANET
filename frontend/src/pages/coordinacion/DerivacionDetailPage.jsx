@@ -96,7 +96,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
 
   const loadStaff = async (area) => {
     try {
-      const res = await coordinacionApi.getStaffByArea(token, area);
+      const res = await coordinacionApi.getStaffByArea(token, área);
       setStaff(res.staff || []);
     } catch {
       setStaff([]);
@@ -213,7 +213,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
               <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wider">Notas de resolucion</p>
+                  <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wider">Notas de resolución</p>
                 </div>
                 <p className="text-sm text-slate-700 whitespace-pre-wrap">{deriv.resolution_notes}</p>
               </div>
@@ -275,9 +275,9 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Notas de resolucion</label>
+                <label className={labelCls}>Notas de resolución</label>
                 <textarea value={resolutionNotes} onChange={(e) => setResolutionNotes(e.target.value)}
-                  placeholder="Notas de resolucion (opcional)" rows={3}
+                  placeholder="Notas de resolución (opcional)" rows={3}
                   className={`${inputCls} resize-none`} data-testid="deriv-resolution-notes" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -311,7 +311,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
             <div className="p-6 space-y-4" data-testid="assign-form">
               {staff.length === 0 ? (
                 <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100">
-                  <p className="text-sm text-amber-700 font-medium">No hay personal disponible para esta area en el colegio.</p>
+                  <p className="text-sm text-amber-700 font-medium">No hay personal disponible para esta área en el colegio.</p>
                 </div>
               ) : (
                 <div>

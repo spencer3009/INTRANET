@@ -56,7 +56,7 @@ export default function DerivacionesListPage({ token, subdomain, user, onLogout 
 
   const page = parseInt(searchParams.get("page") || "1");
   const filterStatus = searchParams.get("status") || "";
-  const filterArea = searchParams.get("area") || "";
+  const filterArea = searchParams.get("área") || "";
   const filterUnassigned = searchParams.get("unassigned") === "true";
 
   const [kpis, setKpis] = useState({ total: 0, pendientes: 0, en_proceso: 0, resueltas: 0 });
@@ -173,11 +173,11 @@ export default function DerivacionesListPage({ token, subdomain, user, onLogout 
           </div>
           <select
             value={filterArea}
-            onChange={(e) => updateFilter("area", e.target.value)}
+            onChange={(e) => updateFilter("área", e.target.value)}
             className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
             data-testid="filter-deriv-area"
           >
-            <option value="">Todas las areas</option>
+            <option value="">Todas las áreas</option>
             {Object.entries(AREA_LABELS).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}

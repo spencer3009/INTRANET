@@ -164,7 +164,7 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
                 const grado = gradeMap[s.grado_id] || "";
                 const seccion = sectionMap[s.seccion_id] || "";
                 const initials = `${(s.name || "")[0] || ""}${(s.last_name || "")[0] || ""}`.toUpperCase();
-                const academicInfo = [nivel, grado, seccion].filter(Boolean).join(" - ");
+                const academicInfo = [nivel, grado, sección].filter(Boolean).join(" - ");
 
                 return (
                   <button

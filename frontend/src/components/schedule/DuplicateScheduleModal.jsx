@@ -12,7 +12,7 @@ const DAY_LABELS = { lunes: "Lun", martes: "Mar", miercoles: "Mie", jueves: "Jue
 
 const MODES = [
   { id: "section", label: "Copiar a otra sección", desc: "Duplica todos los bloques de una sección a otra(s)", icon: Users, color: "from-blue-500 to-indigo-600" },
-  { id: "day", label: "Copiar un dia a otros dias", desc: "Replica los bloques de un dia en otros dias de la semana", icon: Calendar, color: "from-emerald-500 to-teal-600" },
+  { id: "day", label: "Copiar un día a otros días", desc: "Replica los bloques de un día en otros días de la semana", icon: Calendar, color: "from-emerald-500 to-teal-600" },
   { id: "year", label: "Copiar a otro ano académico", desc: "Duplica el horario completo hacia un ano académico diferente", icon: CalendarRange, color: "from-orange-500 to-amber-600" },
 ];
 

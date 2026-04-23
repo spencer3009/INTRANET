@@ -312,7 +312,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                             <span className="text-base text-slate-700 font-medium">{month.month_name}</span>
                             {isYapePending && (
                               <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> Pago reportado, en verificacion
+                                <Clock className="w-3 h-3" /> Pago reportado, en verificación
                               </p>
                             )}
                             {isYapeRejected && (
@@ -338,7 +338,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                                   ? 'bg-red-50 text-red-700 border border-red-200'
                                   : 'bg-amber-50 text-amber-700 border border-amber-200'
                           }`}>
-                            {isPaid ? 'PAGADO' : isYapePending ? 'EN VERIFICACION' : isOverdue ? 'MOROSO' : 'PENDIENTE'}
+                            {isPaid ? 'PAGADO' : isYapePending ? 'EN VERIFICACIÓN' : isOverdue ? 'MOROSO' : 'PENDIENTE'}
                           </span>
                           {canPayYape && (
                             <button

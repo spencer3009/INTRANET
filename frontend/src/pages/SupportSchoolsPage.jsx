@@ -496,7 +496,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     if (!renewModal) return;
     const isDirect = renewTab === "direct";
     if (!isDirect && (renewCode.length !== 8 || !/^\d{8}$/.test(renewCode))) {
-      toast.error("El codigo debe tener exactamente 8 digitos");
+      toast.error("El código debe tener exactamente 8 digitos");
       return;
     }
     setRenewing(true);
@@ -562,8 +562,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     const now = new Date();
     const exp = new Date(expDate);
     const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { text: `Vencido hace ${Math.abs(diffDays)} dias`, color: "text-red-500", isExpired: true };
-    if (diffDays <= 7) return { text: `Vence en ${diffDays} dias`, color: "text-amber-500", isExpired: false };
+    if (diffDays < 0) return { text: `Vencido hace ${Math.abs(diffDays)} días`, color: "text-red-500", isExpired: true };
+    if (diffDays <= 7) return { text: `Vence en ${diffDays} días`, color: "text-amber-500", isExpired: false };
     return { text: formatDate(expDate), color: "text-slate-500", isExpired: false };
   };
 
@@ -885,7 +885,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                        school.plan_estado === "AVISO_VENCIMIENTO" ? "Vencido" :
                        school.plan_estado === "RESTRICCION_PARCIAL" ? "Restringido" :
                        school.plan_estado === "PAGO_OBLIGATORIO" ? "Pago obligatorio" :
-                       school.plan_estado === "PAGO_EN_VERIFICACION" ? "Pago en verificacion" :
+                       school.plan_estado === "PAGO_EN_VERIFICACION" ? "Pago en verificación" :
                        school.plan_estado === "SUSPENDIDO" ? "Suspendido" :
                        "Activo"}
                     </span>
@@ -1259,7 +1259,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual</label>
                     <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold" data-testid="create-school-amount">
                       S/ {globalPrice !== null ? globalPrice.toFixed(2) : "..."}
-                      <span className="text-xs font-normal text-slate-400 ml-2">(segun configuración de Precios)</span>
+                      <span className="text-xs font-normal text-slate-400 ml-2">(según configuración de Precios)</span>
                     </div>
                   </div>
                 </div>
@@ -1415,7 +1415,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="text-white font-bold text-base">Renovar Membresia</h3>
-                <p className="text-white/70 text-xs mt-0.5">Verificacion de pago Yape/Plin</p>
+                <p className="text-white/70 text-xs mt-0.5">Verificación de pago Yape/Plin</p>
               </div>
               <button
                 onClick={() => setRenewModal(null)}
@@ -1433,14 +1433,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${renewTab === "code" ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
                 data-testid="renew-tab-code"
               >
-                Con codigo
+                Con código
               </button>
               <button
                 onClick={() => setRenewTab("direct")}
                 className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${renewTab === "direct" ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
                 data-testid="renew-tab-direct"
               >
-                Renovacion directa
+                Renovación directa
               </button>
             </div>
 
@@ -1456,7 +1456,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 </div>
               </div>
 
-              {/* Tab: Con codigo */}
+              {/* Tab: Con código */}
               {renewTab === "code" && (
                 <>
                   {renewModal.clientCode ? (
@@ -1465,12 +1465,12 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
                         {renewModal.clientCode}
                       </div>
-                      <p className="text-xs mt-1.5 text-slate-400">Verifica que este codigo coincida con tu registro de Yape</p>
+                      <p className="text-xs mt-1.5 text-slate-400">Verifica que este código coincida con tu registro de Yape</p>
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Número de operacion <span className="text-red-500">*</span></label>
-                      <p className="text-xs text-slate-400 mb-2">Ingresa el codigo de operacion del pago.</p>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Número de operación <span className="text-red-500">*</span></label>
+                      <p className="text-xs text-slate-400 mb-2">Ingresa el código de operación del pago.</p>
                       <input
                         type="text" inputMode="numeric" maxLength={8} value={renewCode}
                         onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
@@ -1484,14 +1484,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 </>
               )}
 
-              {/* Tab: Renovacion directa */}
+              {/* Tab: Renovación directa */}
               {renewTab === "direct" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-                  <p className="text-sm font-semibold text-amber-800">Renovacion sin codigo de operacion</p>
+                  <p className="text-sm font-semibold text-amber-800">Renovación sin código de operación</p>
                   <p className="text-xs text-amber-700">
-                    Usa esta opcion cuando el cliente envio el comprobante de pago por WhatsApp u otro medio y no registro el codigo en el sistema.
+                    Usa esta opción cuando el cliente envio el comprobante de pago por WhatsApp u otro medio y no registro el código en el sistema.
                   </p>
-                  <p className="text-xs text-amber-600 font-medium">Se renovara por 30 dias a partir de hoy.</p>
+                  <p className="text-xs text-amber-600 font-medium">Se renovara por 30 días a partir de hoy.</p>
                 </div>
               )}
 
@@ -1505,7 +1505,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   data-testid="renew-modal-confirm"
                 >
                   {renewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Confirmar Renovacion
+                  Confirmar Renovación
                 </button>
               </div>
             </div>

@@ -101,7 +101,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
             <h2 className="text-lg font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
               Configuración Financiera
             </h2>
-            <p className="text-xs text-slate-500">Parametros base de pensiones, descuentos e intereses</p>
+            <p className="text-xs text-slate-500">Parámetros base de pensiones, descuentos e intereses</p>
           </div>
         </div>
         {isOwnerOrAdmin && (
@@ -122,7 +122,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
         {/* Tab header with icon and title */}
         <div className="bg-gradient-to-r from-slate-200 to-slate-300 px-6 py-4 flex items-center gap-3">
           <Zap className="w-5 h-5 text-slate-600" />
-          <h3 className="text-sm font-bold text-slate-700 tracking-wide">Generacion de Cobranza</h3>
+          <h3 className="text-sm font-bold text-slate-700 tracking-wide">Generación de Cobranza</h3>
         </div>
         {/* Tab buttons */}
         <div className="bg-white px-5 py-3 flex items-center gap-3 border-b border-slate-200">
@@ -210,7 +210,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
 
             {/* Día de vencimiento */}
             <div>
-              <h4 className="text-sm font-bold text-slate-700 mb-3">Día de generacion</h4>
+              <h4 className="text-sm font-bold text-slate-700 mb-3">Día de generación</h4>
               <div className="max-w-xs">
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                   <CalendarDays className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
@@ -227,7 +227,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                   data-testid="dia-vencimiento-input"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-2">El sistema generara automaticamente las cuotas de todos los alumnos activos cada mes en el dia de vencimiento configurado, durante el periodo del ano escolar.</p>
+              <p className="text-xs text-slate-400 mt-2">El sistema generara automaticamente las cuotas de todos los alumnos activos cada mes en el día de vencimiento configurado, durante el periodo del ano escolar.</p>
             </div>
           </div>
         )}
@@ -239,7 +239,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
               <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-amber-800">El sistema ya genera cobros automaticamente</p>
-                <p className="text-xs text-amber-600 mt-0.5">Esta accion es solo para casos excepcionales donde necesite forzar la generacion de cuotas manualmente.</p>
+                <p className="text-xs text-amber-600 mt-0.5">Esta acción es solo para casos excepcionales donde necesite forzar la generación de cuotas manualmente.</p>
               </div>
             </div>
 
@@ -266,7 +266,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
               </div>
             )}
 
-            <p className="text-xs text-slate-400">Use esta opción solo si necesita forzar la generacion de cuotas manualmente. En condiciones normales el sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
+            <p className="text-xs text-slate-400">Use esta opción solo si necesita forzar la generación de cuotas manualmente. En condiciones normales el sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
           </div>
         )}
       </div>
@@ -303,14 +303,14 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 type="number"
                 step="0.01"
                 value={form.matricula}
-                onChange={(e) => set("matricula", parseFloat(e.target.value) || 0)}
+                onChange={(e) => set("matrícula", parseFloat(e.target.value) || 0)}
                 disabled={!isOwnerOrAdmin}
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
                 placeholder="300.00"
                 data-testid="matricula-input"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1.5">Monto unico de matrícula anual por alumno</p>
+            <p className="text-[11px] text-slate-400 mt-1.5">Monto único de matrícula anual por alumno</p>
           </div>
         </div>
       </div>
@@ -337,7 +337,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
           <div className="p-6">
             <p className="text-xs text-slate-500 mb-4">
               {form.pronto_pago_activo 
-                ? "Descuento activo para padres que pagan antes de la fecha limite." 
+                ? "Descuento activo para padres que pagan antes de la fecha límite." 
                 : "Activar descuento por pronto pago."
               }
             </p>
@@ -385,11 +385,11 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                     )}
                   </div>
                 </div>
-                {/* Fecha limite */}
+                {/* Fecha límite */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
                     <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                    Fecha limite de pronto pago
+                    Fecha límite de pronto pago
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -411,8 +411,8 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                     {form.pronto_pago_modalidad === "porcentaje"
                       ? <>Ahorro: <strong>{form.pronto_pago_monto}%</strong> de descuento
                           {form.pension_mensual > 0 && <> (S/ {(form.pension_mensual * form.pronto_pago_monto / 100).toFixed(2)})</>}
-                          {" "}si paga antes del dia {form.pronto_pago_fecha_limite}</>
-                      : <>Ahorro: <strong>S/ {form.pension_mensual > 0 ? (form.pension_mensual - form.pronto_pago_monto).toFixed(2) : "—"}</strong> si paga antes del dia {form.pronto_pago_fecha_limite}</>
+                          {" "}si paga antes del día {form.pronto_pago_fecha_limite}</>
+                      : <>Ahorro: <strong>S/ {form.pension_mensual > 0 ? (form.pension_mensual - form.pronto_pago_monto).toFixed(2) : "—"}</strong> si paga antes del día {form.pronto_pago_fecha_limite}</>
                     }
                   </div>
                 )}
@@ -467,7 +467,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 </div>
                 {/* Modalidad toggle */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Modalidad de calculo</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Modalidad de cálculo</label>
                   <div className="flex bg-slate-100 rounded-xl p-1" data-testid="interes-modalidad-toggle">
                     {[{id: "monto_fijo", label: "Monto fijo"}, {id: "porcentaje", label: "Porcentaje"}].map(opt => (
                       <button
@@ -565,7 +565,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
         <div className="p-5">
           <div className="space-y-3">
             {[
-              { value: "matricula", label: "Activar con matrícula", desc: "El alumno se activa al registrar pago de matrícula" },
+              { value: "matrícula", label: "Activar con matrícula", desc: "El alumno se activa al registrar pago de matrícula" },
               { value: "matricula_pension", label: "Activar con matrícula + primera pension", desc: "El alumno se activa al registrar matrícula y primera mensualidad" },
               { value: "on_create", label: "Activar al registrar alumno", desc: "El alumno se activa automaticamente al ser registrado, sin requerir ningun pago" }
             ].map(opt => (
@@ -603,7 +603,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 data-testid="save-activation-btn"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Guardar configuracion
+                Guardar configuración
               </button>
             </div>
           )}
