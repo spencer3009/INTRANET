@@ -96,13 +96,39 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   }, [nextTickMinutes, formatTime]);
 
   // Vertical mode: guide lines
+  // Guide lines for the vertical mode. Priority:
+  //   1. manual_ticks (exact HH:MM list defined by the admin)
+  //   2. slot_interval_minutes (configurable interval)
+  //   3. block_duration (legacy fallback)
   const guideLines = useMemo(() => {
+    const toLine = (mins) => ({
+      minutes: mins,
+      time: minutesToTime(mins),
+      topPx: ((mins - gridStart) / totalMinutes) * gridHeightPx,
+    });
+
+    const ticks = Array.isArray(settings?.manual_ticks) ? settings.manual_ticks.filter(Boolean) : [];
+    if (ticks.length > 0) {
+      // Convert each tick to minutes, keep only those inside [gridStart, gridEnd].
+      const lines = [...ticks]
+        .map(timeToMinutes)
+        .filter((m) => m >= gridStart && m <= gridEnd)
+        .sort((a, b) => a - b)
+        .map(toLine);
+      // Always include end anchor so the last tick stretches to the bottom correctly.
+      if (lines.length === 0 || lines[lines.length - 1].minutes < gridEnd) {
+        lines.push(toLine(gridEnd));
+      }
+      return lines;
+    }
+
+    const step = parseInt(settings?.slot_interval_minutes || guideInterval || 60, 10);
     const lines = [];
-    for (let mins = gridStart; mins <= gridEnd; mins += guideInterval) {
-      lines.push({ minutes: mins, time: minutesToTime(mins), topPx: ((mins - gridStart) / totalMinutes) * gridHeightPx });
+    for (let mins = gridStart; mins <= gridEnd; mins += step) {
+      lines.push(toLine(mins));
     }
     return lines;
-  }, [gridStart, gridEnd, guideInterval, totalMinutes, totalHeightPx]);
+  }, [settings, gridStart, gridEnd, guideInterval, totalMinutes, gridHeightPx]);
 
   const schedulesByDay = useMemo(() => {
     const map = {}; ALL_DAYS.forEach(d => { map[d.id] = []; });
@@ -494,8 +520,21 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const rect = e.currentTarget.getBoundingClientRect();
     const yPx = e.clientY - rect.top;
     const clickedMins = gridStart + (yPx / gridHeightPx) * totalMinutes;
-    const snapped = Math.round(clickedMins / guideInterval) * guideInterval;
-    onCellClick(dayId, minutesToTime(Math.max(gridStart, Math.min(gridEnd, snapped))));
+    // Snap to the closest guide line (works for manual ticks, slot_interval and legacy).
+    let snappedMin = gridStart;
+    if (guideLines.length > 0) {
+      let best = guideLines[0].minutes;
+      let bestDiff = Math.abs(clickedMins - best);
+      for (const gl of guideLines) {
+        const diff = Math.abs(clickedMins - gl.minutes);
+        if (diff < bestDiff) { best = gl.minutes; bestDiff = diff; }
+      }
+      snappedMin = best;
+    } else {
+      const step = parseInt(settings?.slot_interval_minutes || guideInterval || 60, 10);
+      snappedMin = Math.round(clickedMins / step) * step;
+    }
+    onCellClick(dayId, minutesToTime(Math.max(gridStart, Math.min(gridEnd, snappedMin))));
   };
 
   return (
