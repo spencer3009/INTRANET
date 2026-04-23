@@ -1049,6 +1049,42 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     )}
 
                     <input type="text" value={pricingForm.discount_notes} onChange={(e) => setPricingForm({...pricingForm, discount_notes: e.target.value})} placeholder="Nota (ej: Descuento promocional)" className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+
+                    {/* Live monthly total preview based on current inputs and student_count */}
+                    {(() => {
+                      const studentCount = school.student_count ?? 0;
+                      const globalP = pricingInfo[school.id]?.global || {};
+                      // Resolve each value: form wins, otherwise fall back to global config
+                      const mode = pricingForm.billing_mode || globalP.billing_mode || "base_plus_student";
+                      const base = pricingForm.base_monthly_fee !== "" ? Number(pricingForm.base_monthly_fee) : Number(globalP.base_monthly_fee ?? 0);
+                      const perStudent = pricingForm.per_student_fee !== "" ? Number(pricingForm.per_student_fee) : Number(globalP.per_student_fee ?? 0);
+                      const flat = pricingForm.flat_fee !== "" ? Number(pricingForm.flat_fee) : Number(globalP.flat_fee ?? 0);
+                      let total = 0;
+                      let breakdown = "";
+                      if (mode === "flat_fee") {
+                        total = flat;
+                        breakdown = `Tarifa fija S/ ${flat.toFixed(2)}`;
+                      } else if (mode === "student_only") {
+                        total = studentCount * perStudent;
+                        breakdown = `${studentCount} alumno${studentCount !== 1 ? "s" : ""} × S/ ${perStudent.toFixed(2)}`;
+                      } else {
+                        total = base + studentCount * perStudent;
+                        breakdown = `S/ ${base.toFixed(2)} base + ${studentCount} × S/ ${perStudent.toFixed(2)}`;
+                      }
+                      if (!isFinite(total)) total = 0;
+                      return (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 flex items-center justify-between" data-testid="pricing-preview">
+                          <div className="min-w-0">
+                            <p className="text-[9px] uppercase tracking-wider text-emerald-600 font-semibold">Tarifa mensual estimada</p>
+                            <p className="text-[10px] text-slate-500 truncate">{breakdown}</p>
+                          </div>
+                          <p className="text-base font-bold text-emerald-700 tabular-nums whitespace-nowrap" data-testid="pricing-preview-total">
+                            S/ {total.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex items-center gap-2 pt-1">
                       <button onClick={(e) => { e.stopPropagation(); handleSavePricing(school.id); }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1" data-testid="save-school-pricing-btn">
                         <Check className="w-3 h-3" /> Guardar
