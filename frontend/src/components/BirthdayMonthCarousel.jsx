@@ -29,9 +29,23 @@ export default function BirthdayMonthCarousel({ token, standalone = false }) {
   const [autoPaused, setAutoPaused] = useState(false);
   const intervalRef = useRef(null);
 
+  // Feature flag: read tenant-level birthday module flag from cached user.
+  // Defaults to true for new/legacy tenants without the field.
+  const moduleEnabled = useMemo(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage?.getItem("user") : null;
+      if (!raw) return true;
+      const u = JSON.parse(raw);
+      return u?.birthday_module_enabled !== false;
+    } catch (_) {
+      return true;
+    }
+  }, []);
+
   useEffect(() => {
-    if (!token) {
+    if (!token || !moduleEnabled) {
       setLoading(false);
+      setItems([]);
       return;
     }
     let cancelled = false;
@@ -103,6 +117,9 @@ export default function BirthdayMonthCarousel({ token, standalone = false }) {
   const isToday = current && current.day === today.getDate() && current.month === today.getMonth() + 1;
   const dayLabel = current ? `${current.day} de ${MONTHS[current.month - 1]}` : "";
   const initial = (current?.name || "?").trim().charAt(0).toUpperCase();
+
+  // Feature flag off -> render nothing (no section, no placeholder).
+  if (!moduleEnabled) return null;
 
   return (
     <div

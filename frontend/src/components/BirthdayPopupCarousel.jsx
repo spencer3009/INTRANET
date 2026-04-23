@@ -69,6 +69,15 @@ export default function BirthdayPopupCarousel({ token, user }) {
       return;
     }
 
+    // Feature flag: if the school has disabled the birthday module, do not
+    // fetch, do not render anything. Default TRUE for new/legacy tenants.
+    if (user.birthday_module_enabled === false) {
+      setVisible(false);
+      setPeople([]);
+      fetchedRef.current = false;
+      return;
+    }
+
     // Only show once per session
     if (typeof window !== "undefined" && window.sessionStorage?.getItem(SESSION_KEY)) {
       return;

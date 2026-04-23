@@ -14,7 +14,7 @@ import {
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
   Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse,
-  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog, ClipboardList
+  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog, ClipboardList, Cake
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 import RegistroAuxiliarPlantillasTab from "@/components/RegistroAuxiliarPlantillasTab";
@@ -60,6 +60,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
   const [allowPendingStudents, setAllowPendingStudents] = useState(false);
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
+  const [birthdayModuleEnabled, setBirthdayModuleEnabled] = useState(true);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Health & Wellness permissions state
@@ -117,6 +118,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
         setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
         setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
+        // Birthday module flag defaults to TRUE for new/legacy schools.
+        setBirthdayModuleEnabled(res.data.birthday_module_enabled !== false);
         // Load health permissions
         try {
           const hpRes = await axios.get(`${API}/settings/health-permissions`, { headers });
@@ -458,6 +461,28 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al actualizar configuración");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleToggleBirthdayModule = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !birthdayModuleEnabled;
+      await axios.put(`${API}/settings/roles`, { birthday_module_enabled: newValue }, { headers });
+      setBirthdayModuleEnabled(newValue);
+      setSuccess(newValue ? "Módulo de Cumpleaños activado" : "Módulo de Cumpleaños desactivado");
+      setTimeout(() => setSuccess(""), 3000);
+      // Refresh cached /auth/me so the global guard picks up the change on next navigation.
+      try {
+        const me = await axios.get(`${API}/auth/me`, { headers });
+        if (me?.data) {
+          localStorage.setItem('user', JSON.stringify(me.data));
+        }
+      } catch (_) { /* non-fatal */ }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar el módulo de cumpleaños");
     } finally {
       setSavingRoles(false);
     }
@@ -1143,6 +1168,47 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       <span
                         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
                           allowAdminBroadcast ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                      {savingRoles && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Birthday Module Section (Owner-only) */}
+              <section className="mt-8" data-testid="birthday-module-section">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-slate-800 mb-1">Módulo de Cumpleaños</h2>
+                  <p className="text-sm text-slate-500 mb-6">Activa o desactiva los popups, sliders y eventos de cumpleaños en todos los portales del colegio</p>
+
+                  <div className="flex items-center justify-between p-4 bg-pink-50 border border-pink-200 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-pink-200">
+                        <Cake className="w-5 h-5 text-pink-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Módulo de Cumpleaños</h3>
+                        <p className="text-sm text-slate-500">
+                          Muestra popups y sliders de cumpleaños de alumnos y profesores en todos los portales del colegio.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleBirthdayModule}
+                      disabled={savingRoles}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 ${
+                        birthdayModuleEnabled ? 'bg-pink-500' : 'bg-slate-300'
+                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-birthday-module"
+                      aria-label="Activar o desactivar el módulo de cumpleaños"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          birthdayModuleEnabled ? 'translate-x-8' : 'translate-x-1'
                         }`}
                       />
                       {savingRoles && (

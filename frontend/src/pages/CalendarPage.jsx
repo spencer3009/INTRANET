@@ -709,7 +709,13 @@ export default function CalendarPage({ user, token, subdomain, onLogout }) {
       
       // Birthdays don't honor the calendar/events type filter unless the user
       // is explicitly filtering to 'birthday' or not filtering at all.
-      const includeBirthdays = !typeFilter || typeFilter === "birthday";
+      // Respect the tenant-level feature flag — skip the fetch entirely when disabled.
+      let birthdayModuleEnabled = true;
+      try {
+        const raw = typeof window !== "undefined" ? window.localStorage?.getItem("user") : null;
+        if (raw) birthdayModuleEnabled = JSON.parse(raw)?.birthday_module_enabled !== false;
+      } catch (_) { /* default to enabled */ }
+      const includeBirthdays = birthdayModuleEnabled && (!typeFilter || typeFilter === "birthday");
       const birthdayYear = new Date(dateRange.start).getFullYear();
 
       const [eventsRes, birthdaysRes] = await Promise.all([

@@ -464,11 +464,18 @@ async def get_me(current_user=Depends(get_current_user)):
     # Get RBAC permissions
     permissions = await get_user_permissions(user, school_id)
     
+    # Feature flags — exposed here to avoid a separate fetch on page load,
+    # preventing UI flashes before the guard is applied.
+    birthday_module_enabled = True
+    if school_id and school:
+        birthday_module_enabled = bool(school.get("birthday_module_enabled", True))
+
     return {
         **user,
         "school_id": school_id,
         "subdomain": subdomain,
-        "permissions": permissions
+        "permissions": permissions,
+        "birthday_module_enabled": birthday_module_enabled,
     }
 
 @router.get("/auth/permissions")

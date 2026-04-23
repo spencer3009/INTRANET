@@ -158,6 +158,21 @@ def _sort_key(person: Dict[str, Any]) -> str:
     return f"{(person.get('name') or '').strip()} {(person.get('last_name') or '').strip()}".strip().lower()
 
 
+async def _birthday_module_enabled(school_id: str) -> bool:
+    """Feature flag: whether the birthday module is enabled for this tenant.
+    Defaults to True (new/legacy schools without the field are enabled).
+    """
+    if not school_id:
+        return False
+    school = await db.schools.find_one(
+        {"id": school_id},
+        {"_id": 0, "birthday_module_enabled": 1},
+    )
+    if not school:
+        return False
+    return bool(school.get("birthday_module_enabled", True))
+
+
 @router.get("/calendar")
 async def birthdays_calendar(
     month: Optional[int] = Query(None, ge=1, le=12),
@@ -179,6 +194,9 @@ async def birthdays_calendar(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
 
     school_id = user["school_id"]
+    # Feature flag: if the module is disabled for this school, return [] immediately.
+    if not await _birthday_module_enabled(school_id):
+        return []
     current_year = year or datetime.now(PERU_TZ).year
 
     students, teachers = await _get_birthday_people(school_id)
@@ -204,6 +222,9 @@ async def birthdays_today(current_user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
 
     school_id = user["school_id"]
+    # Feature flag: if the module is disabled for this school, return [] immediately.
+    if not await _birthday_module_enabled(school_id):
+        return []
     now_local = datetime.now(PERU_TZ)
     today_m, today_d = now_local.month, now_local.day
     current_year = now_local.year
