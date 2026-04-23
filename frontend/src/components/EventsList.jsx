@@ -133,13 +133,22 @@ export default function EventsList({ events, token }) {
       }).slice(0, 4)
     : [];
 
+  // Feature flag: when the birthday module is disabled, we skip the
+  // separator/border that visually splits the two blocks — otherwise the
+  // card shows an empty top area with a lonely horizontal line.
+  let birthdayModuleEnabled = true;
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage?.getItem("user") : null;
+    if (raw) birthdayModuleEnabled = JSON.parse(raw)?.birthday_module_enabled !== false;
+  } catch (_) { /* default to enabled */ }
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="events-list">
-      {/* Birthdays — shown on top */}
-      <BirthdayMonthCarousel token={token} />
+      {/* Birthdays — shown on top (renders nothing when module is disabled) */}
+      {birthdayModuleEnabled && <BirthdayMonthCarousel token={token} />}
 
-      {/* Visual separator between birthdays and events */}
-      <div className="mt-5 pt-5 border-t border-slate-100">
+      {/* Visual separator between birthdays and events — only when birthdays are shown */}
+      <div className={birthdayModuleEnabled ? "mt-5 pt-5 border-t border-slate-100" : ""}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>
             Próximos Eventos
