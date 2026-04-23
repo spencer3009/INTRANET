@@ -96,7 +96,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
 
   const loadStaff = async (area) => {
     try {
-      const res = await coordinacionApi.getStaffByArea(token, área);
+      const res = await coordinacionApi.getStaffByArea(token, area);
       setStaff(res.staff || []);
     } catch {
       setStaff([]);

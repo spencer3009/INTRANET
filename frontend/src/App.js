@@ -265,7 +265,7 @@ const PAGE_NAME_MAP = {
   schools: "Colegios",
   finances: "Finanzas",
   pricing: "Precios",
-  "asignación-docente": "Asignación Docente",
+  "asignacion-docente": "Asignación Docente",
   "teacher-assignment": "Asignación Docente",
   discipline: "Disciplina",
   disciplina: "Disciplina",
@@ -1232,7 +1232,7 @@ function App() {
             }
           />
           <Route
-            path="/teacher/salud-bienestar/tópico"
+            path="/teacher/salud-bienestar/topico"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherTopicoPage user={user} token={token} onLogout={handleLogout} />
@@ -1673,7 +1673,7 @@ function App() {
             }
           />
           <Route
-            path="/:subdomain/admin/salud-bienestar/tópico"
+            path="/:subdomain/admin/salud-bienestar/topico"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AdminTopicoPage user={user} token={token} onLogout={handleLogout} />
@@ -2032,7 +2032,7 @@ function App() {
             }
           />
           <Route
-            path="/:subdomain/teacher/salud-bienestar/tópico"
+            path="/:subdomain/teacher/salud-bienestar/topico"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherTopicoPage user={user} token={token} onLogout={handleLogout} />
@@ -2556,7 +2556,7 @@ function App() {
 
           {/* Academic Years Page - Path-based (for preview mode) */}
           <Route
-            path="/:subdomain/anos-académicos"
+            path="/:subdomain/anos-academicos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AcademicYearsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2566,7 +2566,7 @@ function App() {
 
           {/* Academic Years Page - Direct path (for subdomain mode) */}
           <Route
-            path="/anos-académicos"
+            path="/anos-academicos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AcademicYearsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2596,7 +2596,7 @@ function App() {
 
           {/* Teacher Assignments Page - URL path mode (Spanish) */}
           <Route
-            path="/:subdomain/asignación-docente"
+            path="/:subdomain/asignacion-docente"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherAssignmentsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2606,7 +2606,7 @@ function App() {
 
           {/* Teacher Assignments Page - Direct path (for subdomain mode) */}
           <Route
-            path="/asignación-docente"
+            path="/asignacion-docente"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherAssignmentsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2773,7 +2773,7 @@ function App() {
 
           {/* Tópico Page - URL path mode */}
           <Route
-            path="/:subdomain/salud-bienestar/tópico"
+            path="/:subdomain/salud-bienestar/topico"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2783,7 +2783,7 @@ function App() {
 
           {/* Tópico Page - Direct path */}
           <Route
-            path="/salud-bienestar/tópico"
+            path="/salud-bienestar/topico"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />

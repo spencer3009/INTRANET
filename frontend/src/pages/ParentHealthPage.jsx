@@ -41,7 +41,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState("tópico");
+  const [activeTab, setActiveTab] = useState("topico");
   const [loading, setLoading] = useState(true);
   const [topicoRecords, setTopicoRecords] = useState([]);
   const [psicologiaRecords, setPsicologiaRecords] = useState([]);
@@ -82,7 +82,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
     setLoading(true);
     try {
       const [topicoRes, psicoRes] = await Promise.all([
-        axios.get(`${API}/api/health/parent/tópico?student_id=${studentId}`, { headers }),
+        axios.get(`${API}/api/health/parent/topico?student_id=${studentId}`, { headers }),
         axios.get(`${API}/api/health/parent/psicologia?student_id=${studentId}`, { headers }),
       ]);
       setTopicoRecords(topicoRes.data.records || []);
@@ -158,7 +158,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
           {/* Tabs */}
           <div className="flex gap-2 mb-6" data-testid="health-tabs">
             <button
-              onClick={() => setActiveTab("tópico")}
+              onClick={() => setActiveTab("topico")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
                 activeTab === "topico"
                   ? "bg-blue-600 text-white shadow-md"

@@ -859,7 +859,7 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
 
   const handleManageAssignments = (teacher) => {
     // Navigate to teacher assignments page with teacher filter
-    navigateTo(`/asignación-docente?teacher=${teacher.id}`);
+    navigateTo(`/asignacion-docente?teacher=${teacher.id}`);
   };
 
   const navigateTo = (path) => {
@@ -914,7 +914,7 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigateTo('/asignación-docente')}
+                onClick={() => navigateTo('/asignacion-docente')}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors"
               >
                 <BookOpen className="w-4 h-4" />

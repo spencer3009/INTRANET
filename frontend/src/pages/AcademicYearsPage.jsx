@@ -1281,7 +1281,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/20 flex">
-      <Sidebar active="anos-académicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={settings?.system_name} subdomain={subdomain} user={user} />
+      <Sidebar active="anos-academicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={settings?.system_name} subdomain={subdomain} user={user} />
       
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader

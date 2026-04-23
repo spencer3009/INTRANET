@@ -57,7 +57,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
       if (nivelId) params.append("nivel_id", nivelId);
       if (gradoId) params.append("grado_id", gradoId);
       if (seccionId) params.append("seccion_id", seccionId);
-      const res = await axios.get(`${API}/pae/registros-día?${params}`, { headers });
+      const res = await axios.get(`${API}/pae/registros-dia?${params}`, { headers });
       setData(res.data);
     } catch (err) {
       console.error("Error loading registros:", err);

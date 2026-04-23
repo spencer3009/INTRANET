@@ -32,7 +32,7 @@ import {
 // Admin Navigation Structure - Organized by logical sections
 const NAV_SECTIONS = [
   {
-    id: "operación",
+    id: "operacion",
     label: "OPERACIÓN",
     items: [
       { id: "dashboard", label: "Dashboard", icon: Home, route: "/admin" },
@@ -50,7 +50,7 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    id: "gestión",
+    id: "gestion",
     label: "GESTIÓN ACADÉMICA",
     items: [
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
@@ -64,7 +64,7 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    id: "comunicación",
+    id: "comunicacion",
     label: "COMUNICACIÓN",
     items: [
       { id: "mensajes", label: "Centro de Mensajes", icon: MessageSquare, route: "/admin/messages" },
@@ -72,7 +72,7 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    id: "configuración",
+    id: "configuracion",
     label: "CONFIGURACIÓN",
     items: [
       { id: "sistema", label: "Sistema", icon: Settings, route: "/admin/settings" },
@@ -95,7 +95,7 @@ export default function AdminSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
-  const [expandedSections, setExpandedSections] = useState(["operación", "estructura"]);
+  const [expandedSections, setExpandedSections] = useState(["operacion", "estructura"]);
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;

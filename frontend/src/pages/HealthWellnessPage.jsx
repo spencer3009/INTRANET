@@ -9,11 +9,11 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 const modules = [
   {
-    id: "tópico",
+    id: "topico",
     label: "Tópico",
     description: "Registro de atención médica, incidencias y seguimiento físico",
     icon: Cross,
-    path: "tópico",
+    path: "topico",
     color: "rose",
     bgIcon: "bg-rose-100",
     hoverBorder: "hover:border-rose-300",

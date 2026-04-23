@@ -56,7 +56,7 @@ export default function DerivacionesListPage({ token, subdomain, user, onLogout 
 
   const page = parseInt(searchParams.get("page") || "1");
   const filterStatus = searchParams.get("status") || "";
-  const filterArea = searchParams.get("área") || "";
+  const filterArea = searchParams.get("area") || "";
   const filterUnassigned = searchParams.get("unassigned") === "true";
 
   const [kpis, setKpis] = useState({ total: 0, pendientes: 0, en_proceso: 0, resueltas: 0 });

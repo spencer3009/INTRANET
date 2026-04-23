@@ -190,7 +190,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
   const loadRecords = async () => {
     setLoadingRecords(true);
     try {
-      const res = await axios.get(`${API}/health/tópico`, {
+      const res = await axios.get(`${API}/health/topico`, {
         headers,
         params: { grade_id: selectedGrade, section_id: selectedSection, limit: 100 },
       });
@@ -223,7 +223,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
   const handleDelete = async (recordId) => {
     if (!window.confirm("¿Eliminar este registro?")) return;
     try {
-      await axios.delete(`${API}/health/tópico/${recordId}`, { headers });
+      await axios.delete(`${API}/health/topico/${recordId}`, { headers });
       toast.success("Registro eliminado");
       setRecords((prev) => prev.filter((r) => r.id !== recordId));
       if (detailRecord?.id === recordId) setDetailRecord(null);
@@ -613,12 +613,12 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
     setSaving(true);
     try {
       if (isEdit) {
-        await axios.put(`${API}/health/tópico/${record.id}`, {
+        await axios.put(`${API}/health/topico/${record.id}`, {
           date, time, incident_type: incidentType, weight: weightNum, height: heightNum, description, action_taken: actionTaken, status, responsible,
         }, { headers });
         toast.success("Registro actualizado");
       } else {
-        await axios.post(`${API}/health/tópico`, {
+        await axios.post(`${API}/health/topico`, {
           student_id: studentId,
           student_name: studentName,
           student_photo_url: studentPhoto,
