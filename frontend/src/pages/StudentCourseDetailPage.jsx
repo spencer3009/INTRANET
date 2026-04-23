@@ -1577,7 +1577,7 @@ function RichTextEditor({ content, onChange, placeholder }) {
 }
 
 // Task Submission Form Component
-function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }) {
+function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingSubmission }) {
   const [textContent, setTextContent] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -1586,6 +1586,10 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }
   // "already submitted" card by default. `isEditing` toggles the
   // replace-submission form.
   const [isEditing, setIsEditing] = useState(false);
+  // Retract (delete entire submission) flow state
+  const [showRetractModal, setShowRetractModal] = useState(false);
+  const [retracting, setRetracting] = useState(false);
+  const [retractError, setRetractError] = useState('');
   
   const fileInputRef = useRef(null);
   
@@ -1798,23 +1802,36 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }
             </div>
           )}
 
-          {/* Edit button */}
+          {/* Edit + Retract buttons */}
           {canEditExisting && (
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <p className="text-sm text-slate-500">¿Necesitas corregir algo antes de que venza el plazo?</p>
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setTextContent(existingSubmission.text_content || '');
-                  setSelectedFile(null);
-                  setError('');
-                }}
-                className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/25"
-                data-testid="edit-submission-btn"
-              >
-                <Edit3 className="w-4 h-4" />
-                Modificar entrega
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRetractModal(true)}
+                  disabled={retracting}
+                  className="px-4 py-3 bg-white border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 hover:border-red-300 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="retract-submission-btn"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Retirar entrega
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(true);
+                    setTextContent(existingSubmission.text_content || '');
+                    setSelectedFile(null);
+                    setError('');
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/25"
+                  data-testid="edit-submission-btn"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Modificar entrega
+                </button>
+              </div>
             </div>
           )}
           {!canEditExisting && !isGraded && isExpired && (
@@ -1823,6 +1840,74 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }
             </div>
           )}
         </div>
+
+        {/* Retract confirmation modal */}
+        {showRetractModal && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+            onClick={() => !retracting && setShowRetractModal(false)}
+            data-testid="retract-confirm-modal"
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-red-500 to-rose-500 px-6 py-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-white text-lg">Retirar entrega</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-slate-700">
+                  ¿Seguro que quieres retirar tu entrega? Se borrará el archivo y el texto enviado.
+                </p>
+                <p className="text-sm text-slate-500">
+                  La tarea volverá al estado <span className="font-semibold text-slate-700">Pendiente</span> y podrás volver a entregarla antes del plazo. Esta acción no se puede deshacer.
+                </p>
+                {retractError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2" data-testid="retract-error">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{retractError}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowRetractModal(false); setRetractError(''); }}
+                    disabled={retracting}
+                    className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition disabled:opacity-50"
+                    data-testid="retract-cancel-btn"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!onRetract) return;
+                      setRetracting(true);
+                      setRetractError('');
+                      try {
+                        await onRetract(task);
+                        setShowRetractModal(false);
+                      } catch (err) {
+                        setRetractError(err.message || 'Error al retirar la entrega');
+                      } finally {
+                        setRetracting(false);
+                      }
+                    }}
+                    disabled={retracting}
+                    className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-medium hover:from-red-600 hover:to-rose-600 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    data-testid="retract-confirm-btn"
+                  >
+                    {retracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {retracting ? 'Retirando...' : 'Sí, retirar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -2053,7 +2138,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, existingSubmission }
 }
 
 // Tasks Content - Table view like owner's portal (Read-only for students)
-function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token, highlightedPostId, onClearHighlight }) {
+function TasksContent({ tasks, studentId, onSubmitTask, onRetractSubmission, students, subject, token, highlightedPostId, onClearHighlight }) {
   const [selectedTask, setSelectedTask] = useState(null);
   
   // Auto-select task if highlightedPostId matches
@@ -2222,6 +2307,7 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
                 task={selectedTask}
                 deliveryType={deliveryType}
                 onSubmit={onSubmitTask}
+                onRetract={onRetractSubmission}
                 existingSubmission={selectedTask.submissions?.find(s => s.student_id === studentId) || selectedTask.my_submission}
               />
             )}
@@ -4960,6 +5046,25 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
     }
   };
 
+  // Retract (delete) the student's submission so they can re-submit from scratch.
+  const handleRetractSubmission = async (task) => {
+    try {
+      await axios.delete(`${API}/api/course/tasks/${task.id}/submission`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await loadContent();
+      setSuccessModalContent({
+        title: "Entrega retirada",
+        message: "Tu entrega fue eliminada. Ahora puedes volver a enviar la tarea antes del plazo.",
+        type: "success",
+      });
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error("Error retracting submission:", err);
+      throw new Error(err.response?.data?.detail || 'Error al retirar la entrega');
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "tablero":
@@ -4988,7 +5093,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
           />
         );
       case "tareas":
-        return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} students={students} subject={subject} token={token} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
+        return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} onRetractSubmission={handleRetractSubmission} students={students} subject={subject} token={token} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "material":
         return <MaterialContent materials={materials} token={token} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "examenes":

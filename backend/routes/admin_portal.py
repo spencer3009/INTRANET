@@ -707,6 +707,111 @@ async def submit_task(
     }
 
 
+@router.delete("/course/tasks/{task_id}/submission")
+async def retract_task_submission(
+    task_id: str,
+    current_user = Depends(get_current_user),
+):
+    """Retract (delete) the current student's submission for a task.
+
+    Rules:
+      * Only the owning student can retract their own submission.
+      * Blocked if the submission has already been graded.
+      * Blocked if the deadline has passed (regardless of `allow_late_submissions`)
+        — per product decision: once the plazo closes, no retracting.
+      * Removes the submission from `course_posts.submissions` array.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Solo los estudiantes pueden retirar su entrega")
+
+    # Enforce active-student guard (pending/rejected cannot act)
+    from .core import enforce_student_active
+    await enforce_student_active(user)
+
+    school_id = user["school_id"]
+    student_id = user["id"]
+
+    # Locate the task
+    task = await db.course_posts.find_one({
+        "id": task_id,
+        "school_id": school_id,
+        "$or": [{"post_type": "task"}, {"type": "task"}],
+    }, {"_id": 0, "id": 1, "due_date": 1, "metadata": 1, "submissions": 1, "submissions_count": 1})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+
+    # Find the student's submission
+    existing = None
+    for sub in (task.get("submissions") or []):
+        if sub.get("student_id") == student_id:
+            existing = sub
+            break
+    if not existing:
+        raise HTTPException(status_code=404, detail="No tienes una entrega para esta tarea")
+
+    # Block if graded
+    if existing.get("grade") is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Tu entrega ya fue calificada y no puede retirarse. Habla con tu profesor.",
+        )
+
+    # Block if deadline passed (strict — even if late submissions allowed)
+    due_date = task.get("due_date") or (task.get("metadata") or {}).get("due_date")
+    if due_date:
+        try:
+            if isinstance(due_date, str):
+                deadline = datetime.fromisoformat(due_date.replace("Z", "+00:00"))
+            else:
+                deadline = due_date
+            now = datetime.now(timezone.utc)
+            if deadline < now:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El plazo de la tarea ya venció. No puedes retirar tu entrega.",
+                )
+        except HTTPException:
+            raise
+        except (ValueError, TypeError):
+            pass  # Ignore unparsable dates, allow retraction
+
+    # Pull the submission out of the embedded array + decrement counter
+    update_doc = {
+        "$pull": {"submissions": {"student_id": student_id}},
+    }
+    current_count = task.get("submissions_count") or 0
+    if current_count > 0:
+        update_doc["$inc"] = {"submissions_count": -1}
+
+    await db.course_posts.update_one(
+        {"id": task_id, "school_id": school_id},
+        update_doc,
+    )
+
+    # Audit log (best-effort, non-fatal)
+    try:
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "user_id": student_id,
+            "action": "task_submission_retracted",
+            "resource_type": "task_submission",
+            "resource_id": existing.get("id"),
+            "metadata": {"task_id": task_id},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    return {
+        "message": "Entrega retirada. Ya puedes volver a enviar tu tarea antes del plazo.",
+        "task_id": task_id,
+    }
+
+
 @router.get("/course/tasks/{task_id}/submissions/{submission_id}/download")
 async def download_submission_file(
     task_id: str,
