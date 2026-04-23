@@ -198,7 +198,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
 
           {/* Common fields */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Titulo del examen *</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Título del examen *</label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
               placeholder="Ej: Examen parcial" data-testid="exam-title-input" />

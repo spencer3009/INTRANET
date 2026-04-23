@@ -189,7 +189,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         /* Vertical text for subject/area/summary headers */
         .cns-hdr-vert { height:170px; padding:6px 3px!important; vertical-align:bottom!important; }
         .cns-hdr-vert .cns-vtext { writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; font-size:12px; display:inline-block; text-align:left; line-height:1.2; }
-        /* Area column headers (bold) */
+        /* Área column headers (bold) */
         .cns-hdr-area { background:#B4C6E7!important; }
         .cns-hdr-area .cns-vtext { font-weight:bold; color:#111; text-transform:uppercase; }
         /* Sub-subject column headers */

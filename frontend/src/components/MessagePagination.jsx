@@ -83,7 +83,7 @@ export default function MessagePagination({ page = 1, totalPages = 1, totalMessa
         onClick={() => onPageChange(totalPages)}
         disabled={page >= totalPages}
         className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        title="Ultima"
+        title="Última"
         data-testid="pagination-last"
       >
         <ChevronsRight className="w-5 h-5" />

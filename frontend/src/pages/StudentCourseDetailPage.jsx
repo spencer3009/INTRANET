@@ -5083,7 +5083,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
           />
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content Área */}
         <main className="p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">

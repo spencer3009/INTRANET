@@ -119,7 +119,7 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
                   <p className="font-semibold text-slate-800 text-sm">Permitir selección de nivel, grado y sección por el padre</p>
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  El padre puede indicar el Nivel, Grado, Seccion y Turno de su preferencia. El colegio puede modificarlo al aprobar.
+                  El padre puede indicar el Nivel, Grado, Sección y Turno de su preferencia. El colegio puede modificarlo al aprobar.
                 </p>
                 {!academicEditable && enabled && (
                   <p className="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-1.5 inline-block">

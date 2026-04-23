@@ -245,7 +245,7 @@ function AcademiaContent({ token }) {
               <FolderOpen className="w-4 h-4 text-[#FBBF24]" />
               <div>
                 <p className="text-xl font-bold text-[#FBBF24] leading-none" data-testid="academia-stat-categories">{stats.total_categories}</p>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Categorias</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Categorías</p>
               </div>
             </div>
           </div>
@@ -323,7 +323,7 @@ function AcademiaContent({ token }) {
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-slate-500" />
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Categorias</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Categorías</p>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   {stats.total_categories} categorias &middot; {stats.total_videos} videos

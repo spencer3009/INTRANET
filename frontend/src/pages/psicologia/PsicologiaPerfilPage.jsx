@@ -140,12 +140,12 @@ export default function PsicologiaPerfilPage({ user, token, onLogout }) {
         <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             <Brain className="w-5 h-5 text-violet-600" />
-            Informacion Editable
+            Información Editable
           </h3>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
               <Phone className="w-3 h-3 inline mr-1" />
-              Telefono
+              Teléfono
             </label>
             <input
               type="text"
@@ -159,7 +159,7 @@ export default function PsicologiaPerfilPage({ user, token, onLogout }) {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
               <MapPin className="w-3 h-3 inline mr-1" />
-              Ubicacion de oficina
+              Ubicación de oficina
             </label>
             <input
               type="text"

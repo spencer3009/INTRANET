@@ -607,7 +607,7 @@ function OMRResultsCard({ exam, token, onRegisterComplete }) {
       alert("Configure el destino en el Registro Auxiliar primero (EM, EB, P1, P2, P3)");
       return;
     }
-    const colNames = { EM: "Examen Mensual", EB: "Examen Bimestral", P1: "Practica 1", P2: "Practica 2", P3: "Practica 3" };
+    const colNames = { EM: "Examen Mensual", EB: "Examen Bimestral", P1: "Práctica 1", P2: "Práctica 2", P3: "Práctica 3" };
     if (!window.confirm(`¿Registrar ${results.length} notas en ${colNames[exam.register_column] || exam.register_column}?`)) return;
 
     setRegistering(true);

@@ -206,7 +206,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   <p className={`text-2xl font-black ${paymentData.matrícula?.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                     S/ {(paymentData.matricula?.amount || 0).toLocaleString('es-PE')}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">Matricula {paymentData.matricula?.paid ? '- Pagada' : '- Pendiente'}</p>
+                  <p className="text-xs text-slate-500 mt-1">Matrícula {paymentData.matricula?.paid ? '- Pagada' : '- Pendiente'}</p>
                 </div>
               </div>
                 );

@@ -406,7 +406,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     data-testid="name-col-resize-handle"
                   />
                 </th>
-                <th colSpan={totalSubCols + colFinalesCount} style={S.thTop}>CRITERIOS DE EVALUACION</th>
+                <th colSpan={totalSubCols + colFinalesCount} style={S.thTop}>CRITERIOS DE EVALUACIÓN</th>
                 <th rowSpan={2} style={{ ...S.thFinal, background: "#FFD700", color: "#000", writingMode: "horizontal-tb", transform: "none", height: "auto", fontSize: 12, fontWeight: 800 }}>100%</th>
               </tr>
               {/* ROW 2: Percentage weights */}

@@ -14,7 +14,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SCAN_DEBOUNCE_MS = 1500;
 
 const CAMERA_ERROR_TYPES = {
-  NOT_SECURE: { title: "Conexion no segura", message: "La camara requiere una conexion segura (HTTPS)", icon: Shield, color: "amber", action: "openSecure" },
+  NOT_SECURE: { title: "Conexión no segura", message: "La camara requiere una conexion segura (HTTPS)", icon: Shield, color: "amber", action: "openSecure" },
   PERMISSION_DENIED: { title: "Permiso denegado", message: "Activa los permisos de camara en tu navegador", icon: Settings, color: "red", action: "retry" },
   NOT_FOUND: { title: "Camara no encontrada", message: "No se detecto ninguna camara en este dispositivo", icon: Camera, color: "slate", action: "retry" },
   GENERIC: { title: "Error de camara", message: "No se pudo acceder a la camara", icon: X, color: "red", action: "retry" },

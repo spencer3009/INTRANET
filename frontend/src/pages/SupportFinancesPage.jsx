@@ -58,7 +58,7 @@ export default function SupportFinancesPage({ token }) {
   const filters = [
     { id: "year", label: "Anual", icon: BarChart3 },
     { id: "month", label: "Por Mes", icon: Calendar },
-    { id: "day", label: "Por Dia", icon: CalendarDays },
+    { id: "day", label: "Por Día", icon: CalendarDays },
     { id: "range", label: "Rango", icon: CalendarRange },
   ];
 
@@ -210,7 +210,7 @@ export default function SupportFinancesPage({ token }) {
                   <th className="px-5 py-2.5 font-medium">Colegio</th>
                   <th className="px-5 py-2.5 font-medium">Descripción</th>
                   <th className="px-5 py-2.5 font-medium">Metodo</th>
-                  <th className="px-5 py-2.5 font-medium">Cod. Operacion</th>
+                  <th className="px-5 py-2.5 font-medium">Cod. Operación</th>
                   <th className="px-5 py-2.5 font-medium">Confirmado por</th>
                   <th className="px-5 py-2.5 font-medium text-right">Monto</th>
                   <th className="px-3 py-2.5 font-medium w-10"></th>

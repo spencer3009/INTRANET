@@ -211,7 +211,7 @@ function WorkshopDetail({ ws, token, onClose, onEdit, onDelete, onStart, onRefre
             <div><p className="text-[10px] text-slate-500">Fecha</p><p className="text-sm font-medium text-slate-800">{dt.toLocaleDateString("es-PE", { day: "numeric", month: "short" })}</p></div>
             <div><p className="text-[10px] text-slate-500">Hora</p><p className="text-sm font-medium text-slate-800">{dt.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</p></div>
             <div><p className="text-[10px] text-slate-500">Duracion</p><p className="text-sm font-medium text-slate-800">{ws.duration_minutes} min</p></div>
-            <div><p className="text-[10px] text-slate-500">Ubicacion</p><p className="text-sm font-medium text-slate-800">{ws.location || "-"}</p></div>
+            <div><p className="text-[10px] text-slate-500">Ubicación</p><p className="text-sm font-medium text-slate-800">{ws.location || "-"}</p></div>
           </div>
 
           {ws.objectives?.length > 0 && (
@@ -328,13 +328,13 @@ function WorkshopModal({ token, editing, onSaved, onClose }) {
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Titulo *</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Título *</label>
             <input type="text" value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} required
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="ws-title" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Categoria *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Categoría *</label>
               <select value={form.topic_category} onChange={e => setForm(f => ({...f, topic_category: e.target.value}))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" data-testid="ws-category">
                 {Object.entries(CAT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -373,7 +373,7 @@ function WorkshopModal({ token, editing, onSaved, onClose }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Ubicacion</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Ubicación</label>
             <input type="text" value={form.location} onChange={e => setForm(f => ({...f, location: e.target.value}))}
               placeholder="Ej: Auditorio, Sala de usos multiples" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" data-testid="ws-location" />
           </div>

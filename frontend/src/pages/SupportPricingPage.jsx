@@ -325,7 +325,7 @@ export default function SupportPricingPage({ token }) {
         <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
           <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
             <QrCode className="w-4 h-4 text-violet-500" />
-            Configuracion de QR de Pago
+            Configuración de QR de Pago
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">Este QR se mostrara en el modal de pago cuando un colegio tenga suscripcion vencida</p>
         </div>
@@ -373,7 +373,7 @@ export default function SupportPricingPage({ token }) {
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
                   <Phone className="w-4 h-4 text-emerald-500" />
-                  Numero de Yape
+                  Número de Yape
                 </label>
                 <div className="flex items-center">
                   <span className="px-3 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-sm text-slate-500">+51</span>

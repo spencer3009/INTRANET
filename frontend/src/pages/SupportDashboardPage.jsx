@@ -121,7 +121,7 @@ export default function SupportDashboardPage({ token }) {
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-500" />
-            <h2 className="font-semibold text-slate-800">Ultimos Colegios Registrados</h2>
+            <h2 className="font-semibold text-slate-800">Últimos Colegios Registrados</h2>
             {schoolsPaginated && (
               <span className="text-xs text-slate-400 ml-1">({schoolsPaginated.total} total)</span>
             )}
@@ -162,7 +162,7 @@ export default function SupportDashboardPage({ token }) {
             {schoolsPaginated.total_pages > 1 && (
               <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-xs text-slate-400">
-                  Pagina {schoolsPaginated.page} de {schoolsPaginated.total_pages}
+                  Página {schoolsPaginated.page} de {schoolsPaginated.total_pages}
                 </span>
                 <div className="flex items-center gap-2">
                   <button

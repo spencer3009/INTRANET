@@ -22,7 +22,7 @@ const TYPE_COLORS = {
 
 const TYPE_LABELS = {
   sesion_individual: "Individual", sesion_grupal: "Grupal", sesion_familiar: "Familiar",
-  reunion_padres: "Reunion padres", observacion_aula: "Obs. aula", evaluacion: "Evaluacion", otro: "Otro"
+  reunion_padres: "Reunion padres", observacion_aula: "Obs. aula", evaluacion: "Evaluación", otro: "Otro"
 };
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
@@ -121,7 +121,7 @@ export default function PsicologiaAgendaPage({ user, token, onLogout }) {
             <button key={v} onClick={() => setView(v)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors capitalize ${view === v ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               data-testid={`view-${v}`}>
-              {v === "day" ? "Dia" : v === "week" ? "Semana" : "Mes"}
+              {v === "day" ? "Día" : v === "week" ? "Semana" : "Mes"}
             </button>
           ))}
         </div>
@@ -405,7 +405,7 @@ function AppointmentModal({ token, editing, onSaved, onClose, defaultDate }) {
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Titulo *</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Título *</label>
             <input type="text" value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} required
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="appt-title" />
           </div>
@@ -457,7 +457,7 @@ function AppointmentModal({ token, editing, onSaved, onClose, defaultDate }) {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Ubicacion</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Ubicación</label>
             <input type="text" value={form.location} onChange={e => setForm(f => ({...f, location: e.target.value}))}
               placeholder="Ej: Consultorio, Aula 3B" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="appt-location" />
           </div>

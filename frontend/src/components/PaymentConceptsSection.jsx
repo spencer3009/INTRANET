@@ -12,7 +12,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const formatNumber = (n) =>
   Number(n || 0).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const CONCEPT_TYPES = { recurrente: "Recurrente", unico: "Unico" };
+const CONCEPT_TYPES = { recurrente: "Recurrente", unico: "Único" };
 
 export default function PaymentConceptsSection({ token, user, onConceptsChange }) {
   const headers = { Authorization: `Bearer ${token}` };
@@ -289,7 +289,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     data-testid="concept-type-select"
                   >
-                    <option value="unico">Unico</option>
+                    <option value="unico">Único</option>
                     <option value="recurrente">Recurrente</option>
                   </select>
                 </div>

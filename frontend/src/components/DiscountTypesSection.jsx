@@ -269,7 +269,7 @@ export default function DiscountTypesSection({ token }) {
     setSyncing(true);
     try {
       const res = await axios.post(`${API}/accounting/discounts/sync`, {}, { headers });
-      toast.success(`Sincronizacion completada: ${res.data.assigned} asignados, ${res.data.removed} removidos`);
+      toast.success(`Sincronización completada: ${res.data.assigned} asignados, ${res.data.removed} removidos`);
       loadTypes();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al sincronizar");

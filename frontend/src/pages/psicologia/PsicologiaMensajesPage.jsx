@@ -212,7 +212,7 @@ export default function PsicologiaMensajesPage({ user, token, onLogout }) {
                 </div>
               </div>
 
-              {/* Messages Area */}
+              {/* Messages Área */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" data-testid="messages-area">
                 {loadingMsgs ? (
                   <div className="flex items-center justify-center h-32"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full"></div></div>

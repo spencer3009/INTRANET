@@ -210,7 +210,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                         </button>
                         {expanded.has(grado.key) && grado.children.map(seccion => (
                           <div key={seccion.key} className="border-t border-slate-50">
-                            {/* Seccion */}
+                            {/* Sección */}
                             <button onClick={() => toggleExpand(seccion.key)}
                               className="w-full flex items-center gap-2 pl-10 pr-3 py-1.5 hover:bg-slate-50 transition-colors">
                               {expanded.has(seccion.key) ? <ChevronDown className="w-3 h-3 text-slate-300" /> : <ChevronRight className="w-3 h-3 text-slate-300" />}

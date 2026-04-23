@@ -729,7 +729,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       <p className={`text-lg font-bold ${paymentData.matrícula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                         S/ {(paymentData.matricula.amount || 0).toLocaleString('es-PE')}
                       </p>
-                      <p className={`text-[10px] font-medium ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matricula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
+                      <p className={`text-[10px] font-medium ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
                     </div>
                   </div>
 
@@ -883,7 +883,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-800">Pagar con Yape</h3>
-                          <p className="text-xs text-slate-500">Proxima cuota del alumno</p>
+                          <p className="text-xs text-slate-500">Próxima cuota del alumno</p>
                         </div>
                       </div>
                       {nextCuota && (

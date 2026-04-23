@@ -102,7 +102,7 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
             <p className="text-xs text-slate-500">{total} estudiantes registrados</p>
           </div>
           {totalPages > 1 && (
-            <p className="text-xs text-slate-400">Pagina {page} de {totalPages}</p>
+            <p className="text-xs text-slate-400">Página {page} de {totalPages}</p>
           )}
         </div>
 

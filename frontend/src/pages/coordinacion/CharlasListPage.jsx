@@ -244,7 +244,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4" data-testid="charla-form">
               <div>
-                <label className={labelCls}>Titulo *</label>
+                <label className={labelCls}>Título *</label>
                 <input type="text" value={form.title} maxLength={200}
                   onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))}
                   className={inputCls}
@@ -471,7 +471,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
           {total > 25 && (
             <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium tabular-nums">
-                Pagina {page} de {totalPages}
+                Página {page} de {totalPages}
               </span>
               <div className="flex gap-2">
                 <button

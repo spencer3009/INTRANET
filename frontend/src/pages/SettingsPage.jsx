@@ -1106,7 +1106,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     <UserCog className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800">Asignacion de Roles Auxiliares al Personal</h2>
+                    <h2 className="text-lg font-bold text-slate-800">Asignación de Roles Auxiliares al Personal</h2>
                     <p className="text-sm text-slate-500">Otorga roles adicionales (Alimentacion, Movilidad, Asistencia) a profesores y personal sin perder su rol principal</p>
                   </div>
                 </div>

@@ -174,7 +174,7 @@ export default function SupportProfilePage({ token, user, onUserUpdate }) {
       <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
         <h3 className="font-semibold text-slate-800 flex items-center gap-2">
           <User className="w-4 h-4 text-emerald-500" />
-          Informacion Personal
+          Información Personal
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

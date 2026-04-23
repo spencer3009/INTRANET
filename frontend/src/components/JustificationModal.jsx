@@ -71,7 +71,7 @@ export default function JustificationModal({ isOpen, onClose, onSave, studentNam
           {/* Note textarea */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Descripcion <span className="text-slate-400 font-normal">(opcional)</span>
+              Descripción <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
             <textarea
               value={note}

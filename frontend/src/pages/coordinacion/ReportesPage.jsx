@@ -183,7 +183,7 @@ function TabReincidentes({ token, subdomain }) {
           <div className="col-span-5">Estudiante</div>
           <div className="col-span-3">Grado</div>
           <div className="col-span-2 text-center">Incidencias</div>
-          <div className="col-span-2 text-center">Accion</div>
+          <div className="col-span-2 text-center">Acción</div>
         </div>
         {data.items.map((r, idx) => (
           <div key={r.student_id} className="grid grid-cols-12 gap-2 px-6 py-4 border-b border-slate-50 items-center hover:bg-slate-50/50 transition-colors" data-testid={`reincident-row-${idx}`}>

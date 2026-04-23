@@ -1877,7 +1877,7 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
             </div>
           </div>
 
-          {/* Content Area */}
+          {/* Content Área */}
           {loading ? (
             <div className="bg-white rounded-xl border border-slate-200 flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-amber-600" />

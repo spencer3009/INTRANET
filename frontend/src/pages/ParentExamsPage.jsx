@@ -16,13 +16,13 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const EXAM_TYPES = {
   parcial: { label: "Parcial", color: "#6366F1", light: "bg-indigo-50 text-indigo-700" },
   final: { label: "Final", color: "#DC2626", light: "bg-rose-50 text-rose-700" },
-  "práctica": { label: "Practica", color: "#059669", light: "bg-emerald-50 text-emerald-700" },
+  "práctica": { label: "Práctica", color: "#059669", light: "bg-emerald-50 text-emerald-700" },
   quiz: { label: "Quiz", color: "#F59E0B", light: "bg-amber-50 text-amber-700" }
 };
 
 function ExamStatusBadge({ status }) {
   const config = {
-    upcoming: { label: "Proximo", cls: "bg-blue-100 text-blue-700 border-blue-200", icon: Timer },
+    upcoming: { label: "Próximo", cls: "bg-blue-100 text-blue-700 border-blue-200", icon: Timer },
     in_progress: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
     ongoing: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
     completed: { label: "Finalizado", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: Archive },
@@ -227,7 +227,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-[#1e293b] flex items-center gap-3" style={{ fontFamily: "Manrope, sans-serif" }}>Examenes de {selectedChild?.name || ""}</h1>
-              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2"><GraduationCap className="w-4 h-4" />{gradeName && <span className="font-medium text-slate-600">{gradeName}</span>}{sectionName && <><span className="text-slate-300">-</span><span>Seccion {sectionName}</span></>}</p>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2"><GraduationCap className="w-4 h-4" />{gradeName && <span className="font-medium text-slate-600">{gradeName}</span>}{sectionName && <><span className="text-slate-300">-</span><span>Sección {sectionName}</span></>}</p>
             </div>
             <button onClick={goToday} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"><Calendar className="w-4 h-4 inline mr-1.5" />Hoy</button>
           </div>
@@ -241,7 +241,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
               {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><FileText className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{exams.length}</p><p className="text-xs text-indigo-200 mt-1 font-medium">Examenes este mes</p></div></div>
-                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><Target className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{upcomingExams.length}</p><p className="text-xs text-amber-100 mt-1 font-medium">Proximos</p></div></div>
+                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><Target className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{upcomingExams.length}</p><p className="text-xs text-amber-100 mt-1 font-medium">Próximos</p></div></div>
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><CheckCircle className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{completedCount}</p><p className="text-xs text-emerald-100 mt-1 font-medium">Completados</p></div></div>
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><TrendingUp className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{new Set(exams.map(e => e.subject_name).filter(Boolean)).size}</p><p className="text-xs text-violet-200 mt-1 font-medium">Materias</p></div></div>
               </div>
@@ -269,7 +269,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
                       {!selectedDate ? (
                         <div className="text-center py-10"><div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Calendar className="w-7 h-7 text-slate-300" /></div><p className="text-sm text-slate-500 font-medium">Selecciona un dia</p></div>
                       ) : examsForSelectedDate.length === 0 ? (
-                        <div className="text-center py-10"><div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><Sparkles className="w-7 h-7 text-emerald-400" /></div><h4 className="font-bold text-slate-700 mb-1">Dia libre</h4><p className="text-slate-400 text-sm">No hay examenes</p></div>
+                        <div className="text-center py-10"><div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><Sparkles className="w-7 h-7 text-emerald-400" /></div><h4 className="font-bold text-slate-700 mb-1">Día libre</h4><p className="text-slate-400 text-sm">No hay examenes</p></div>
                       ) : (
                         <div className="space-y-4">{examsForSelectedDate.map(exam => <ParentExamCard key={exam.id} exam={exam} />)}</div>
                       )}
@@ -282,7 +282,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
               {upcomingExams.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between">
-                    <h3 className="font-bold text-white flex items-center gap-2 text-sm"><Target className="w-4 h-4 text-amber-400" />Proximos Examenes</h3>
+                    <h3 className="font-bold text-white flex items-center gap-2 text-sm"><Target className="w-4 h-4 text-amber-400" />Próximos Examenes</h3>
                     <span className="text-xs font-bold px-2.5 py-1 bg-white/15 text-white rounded-full">{upcomingExams.length}</span>
                   </div>
                   <div className="divide-y divide-slate-100">

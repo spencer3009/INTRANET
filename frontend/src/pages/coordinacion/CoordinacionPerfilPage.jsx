@@ -130,7 +130,7 @@ export default function CoordinacionPerfilPage({ user, token, onLogout, onUserUp
         {/* Phone */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
-            <Phone className="w-3.5 h-3.5" /> Telefono
+            <Phone className="w-3.5 h-3.5" /> Teléfono
           </label>
           <input type="tel" value={form.phone}
             onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}

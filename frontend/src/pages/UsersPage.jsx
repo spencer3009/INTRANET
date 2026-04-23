@@ -1751,7 +1751,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       a.href = url;
       const nivel = levels.find(l => l.id === studentFilterLevel)?.nombre || "Nivel";
       const grado = grades.find(g => g.id === studentFilterGrade)?.nombre || "Grado";
-      const seccion = sections.find(s => s.id === studentFilterSection)?.nombre || "Seccion";
+      const seccion = sections.find(s => s.id === studentFilterSection)?.nombre || "Sección";
       a.download = `Backup_Estudiantes_${nivel}_${grado}_${seccion}.xlsx`;
       document.body.appendChild(a);
       a.click();
@@ -1872,7 +1872,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     const missing = [];
     if (!studentFilterLevel) missing.push("Nivel");
     if (!studentFilterGrade) missing.push("Grado");
-    if (!studentFilterSection) missing.push("Seccion");
+    if (!studentFilterSection) missing.push("Sección");
     if (!studentFilterShift) missing.push("Turno");
     if (missing.length > 0) {
       setMissingExportFilters(missing);
@@ -2869,7 +2869,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               >
                 <option value="">{studentFilterGrade ? "Todas las secciones" : "Primero selecciona grado"}</option>
                 {filteredSectionsForStudentFilter.filter(s => s.activo).map(s => (
-                  <option key={s.id} value={s.id}>Seccion {s.nombre}</option>
+                  <option key={s.id} value={s.id}>Sección {s.nombre}</option>
                 ))}
               </select>
 
@@ -5554,7 +5554,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <div className="flex flex-wrap gap-2">
                         {studentFilterLevel && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span>}
                         {studentFilterGrade && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span>}
-                        {studentFilterSection && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">Seccion {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
+                        {studentFilterSection && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">Sección {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
                         {studentFilterShift && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span>}
                       </div>
                     </div>
@@ -5636,7 +5636,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <div className="flex flex-wrap gap-2">
                         {studentFilterLevel && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span>}
                         {studentFilterGrade && <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span>}
-                        {studentFilterSection && <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">Seccion {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
+                        {studentFilterSection && <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">Sección {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
                         {studentFilterShift && <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span>}
                       </div>
                     </div>

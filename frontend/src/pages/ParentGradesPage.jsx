@@ -188,7 +188,7 @@ export default function ParentGradesPage({ user, token, onLogout }) {
                       {group.grades.map((grade, idx) => (
                         <div key={idx} className="px-4 py-3 flex items-center gap-4">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-800">{grade.evaluation_name || grade.title || "Evaluacion"}</p>
+                            <p className="font-medium text-slate-800">{grade.evaluation_name || grade.title || "Evaluación"}</p>
                             {grade.comments && <p className="text-xs text-slate-500 mt-0.5">{grade.comments}</p>}
                             {grade.created_at && <p className="text-xs text-slate-400 mt-0.5">{new Date(grade.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}</p>}
                           </div>

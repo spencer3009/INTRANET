@@ -32,7 +32,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
   const isEdit = !!entry;
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load subjects when PROFESOR + GRADO + SECCION change
+  // Load subjects when PROFESOR + GRADO + SECCIÓN change
   useEffect(() => {
     const loadTeacherSubjects = async () => {
       if (!form.profesor_id || !form.grado_id || !form.seccion_id) {

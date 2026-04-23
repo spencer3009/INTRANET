@@ -185,7 +185,7 @@ export default function MovilidadDashboard({ user, token, onLogout, onSwitchPort
             {/* Last records */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm" data-testid="movilidad-recent-records">
               <div className="px-6 py-4 border-b border-slate-100">
-                <h2 className="text-base font-bold text-slate-800">Ultimos Registros</h2>
+                <h2 className="text-base font-bold text-slate-800">Últimos Registros</h2>
               </div>
               {ultimos.length === 0 ? (
                 <div className="text-center py-10 text-slate-400">

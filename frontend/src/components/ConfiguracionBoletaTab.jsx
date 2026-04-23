@@ -112,7 +112,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
           <div className="flex-1">
             <p className="text-sm font-medium text-emerald-800">Boletas activas</p>
             <p className="text-xs text-emerald-600 mt-0.5">
-              Proxima boleta a emitir: <strong>{nextBoleta}</strong>
+              Próxima boleta a emitir: <strong>{nextBoleta}</strong>
             </p>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
             />
           </div>
 
-          {/* Direccion */}
+          {/* Dirección */}
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 mb-1">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Dirección *</span>

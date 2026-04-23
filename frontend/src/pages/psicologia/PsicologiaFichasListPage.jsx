@@ -102,7 +102,7 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
             <p className="text-xs text-slate-500">{total} fichas registradas</p>
           </div>
           {totalPages > 1 && (
-            <p className="text-xs text-slate-400">Pagina {page} de {totalPages}</p>
+            <p className="text-xs text-slate-400">Página {page} de {totalPages}</p>
           )}
         </div>
 
@@ -220,7 +220,7 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
                       {r.last_session && (
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />
-                          <span className="text-xs text-slate-500">Ultima: {formatDate(r.last_session)}</span>
+                          <span className="text-xs text-slate-500">Última: {formatDate(r.last_session)}</span>
                         </div>
                       )}
                     </div>

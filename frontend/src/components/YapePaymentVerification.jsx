@@ -276,7 +276,7 @@ export default function YapePaymentVerification({ token }) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
           <span className="text-sm text-gray-500">
-            Pagina {page} de {totalPages} ({total} pagos)
+            Página {page} de {totalPages} ({total} pagos)
           </span>
           <div className="flex gap-2">
             <button

@@ -768,7 +768,7 @@ export default function NotificationBell({ token, userRole }) {
                     <div>
                       <div className="px-4 py-2 bg-rose-50 border-b border-rose-100">
                         <p className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Proximos a vencer ({notifications.upcoming.length})
+                          <Clock className="w-3 h-3" /> Próximos a vencer ({notifications.upcoming.length})
                         </p>
                       </div>
                       {notifications.upcoming.map((r) => (

@@ -16,13 +16,13 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const EXAM_TYPES = {
   parcial: { label: "Parcial", color: "#6366F1", bg: "bg-indigo-500", light: "bg-indigo-50 text-indigo-700" },
   final: { label: "Final", color: "#DC2626", bg: "bg-rose-500", light: "bg-rose-50 text-rose-700" },
-  "práctica": { label: "Practica", color: "#059669", bg: "bg-emerald-500", light: "bg-emerald-50 text-emerald-700" },
+  "práctica": { label: "Práctica", color: "#059669", bg: "bg-emerald-500", light: "bg-emerald-50 text-emerald-700" },
   quiz: { label: "Quiz", color: "#F59E0B", bg: "bg-amber-500", light: "bg-amber-50 text-amber-700" }
 };
 
 function ExamStatusBadge({ status }) {
   const config = {
-    upcoming: { label: "Proximo", cls: "bg-blue-100 text-blue-700 border-blue-200", icon: Timer },
+    upcoming: { label: "Próximo", cls: "bg-blue-100 text-blue-700 border-blue-200", icon: Timer },
     in_progress: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
     ongoing: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
     completed: { label: "Finalizado", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: Archive },
@@ -330,7 +330,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
               <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4" />
                 {gradeName && <span className="font-medium text-slate-600">{gradeName}</span>}
-                {sectionName && <><span className="text-slate-300">-</span><span>Seccion {sectionName}</span></>}
+                {sectionName && <><span className="text-slate-300">-</span><span>Sección {sectionName}</span></>}
               </p>
             </div>
             <button onClick={goToday} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm">
@@ -369,7 +369,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                       <Target className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-3xl font-extrabold text-white">{upcomingExams.length}</p>
-                    <p className="text-xs text-amber-100 mt-1 font-medium">Proximos / En curso</p>
+                    <p className="text-xs text-amber-100 mt-1 font-medium">Próximos / En curso</p>
                     {inProgressCount > 0 && <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-white rounded-full animate-pulse" />}
                   </div>
                 </div>
@@ -447,7 +447,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                           <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Sparkles className="w-7 h-7 text-emerald-400" />
                           </div>
-                          <h4 className="font-bold text-slate-700 mb-1">Dia libre</h4>
+                          <h4 className="font-bold text-slate-700 mb-1">Día libre</h4>
                           <p className="text-slate-400 text-sm">No hay examenes este dia</p>
                         </div>
                       ) : (
@@ -468,7 +468,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                   <div className="px-5 py-4 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between">
                     <h3 className="font-bold text-white flex items-center gap-2 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>
                       <Target className="w-4 h-4 text-amber-400" />
-                      Proximos Examenes
+                      Próximos Examenes
                     </h3>
                     <span className="text-xs font-bold px-2.5 py-1 bg-white/15 text-white rounded-full">{upcomingExams.length}</span>
                   </div>

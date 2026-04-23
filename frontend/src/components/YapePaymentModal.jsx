@@ -71,7 +71,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
 
   const steps = [
     { num: 1, label: "Escanear QR" },
-    { num: 2, label: "Codigo" },
+    { num: 2, label: "Código" },
     { num: 3, label: "Confirmar" },
   ];
 
@@ -182,7 +182,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
               <p className="text-sm text-gray-500 mb-6 text-center">Lo encuentras en el comprobante de Yape (8 digitos)</p>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Codigo de operacion Yape *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Código de operacion Yape *</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -244,7 +244,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
                   <span className="font-semibold text-gray-800">{payment.month_name || payment.concept || "-"}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Codigo Yape:</span>
+                  <span className="text-gray-500">Código Yape:</span>
                   <code className="font-bold text-lg tracking-wider text-purple-700">{operationCode}</code>
                 </div>
                 <hr className="border-gray-200" />

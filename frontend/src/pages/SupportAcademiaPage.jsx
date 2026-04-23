@@ -48,7 +48,7 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
       setNewCatName("");
       load();
       onRefresh();
-      toast.success("Categoria creada");
+      toast.success("Categoría creada");
     } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
   };
 
@@ -67,7 +67,7 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
     try {
       await axios.delete(`${API}/academia/categories/${cat.id}`, { headers });
       load(); onRefresh();
-      toast.success("Categoria eliminada");
+      toast.success("Categoría eliminada");
     } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
   };
 
@@ -122,7 +122,7 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
         <div className="bg-gradient-to-r from-[#0a1628] to-[#1a2d4a] px-6 py-5 rounded-t-2xl flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <FolderOpen className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-white">Gestionar Categorias</h2>
+            <h2 className="text-lg font-bold text-white">Gestionar Categorías</h2>
           </div>
           <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
@@ -278,7 +278,7 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
   const handleSubmit = async (e) => {
     e.preventDefault(); setError("");
     if (!form.youtube_url.trim()) { setError(`URL de ${form.platform === "vimeo" ? "Vimeo" : "YouTube"} requerida`); return; }
-    if (!form.title.trim()) { setError("Titulo requerido"); return; }
+    if (!form.title.trim()) { setError("Título requerido"); return; }
     const categoryId = editingVideo ? moveCategoryId : autoCategoryId;
     const subcategoryId = editingVideo ? moveSubcategoryId : autoSubcategoryId;
     if (!categoryId) { setError("No hay categoria seleccionada"); return; }
@@ -412,9 +412,9 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Titulo *</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Título *</label>
             <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} maxLength={200}
-              placeholder="Titulo del video" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              placeholder="Título del video" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
               data-testid="video-title-input" />
           </div>
 
@@ -716,7 +716,7 @@ export default function SupportAcademiaPage({ token }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="academia-stats">
         {[
           { label: "Total Videos", value: stats.total_videos, icon: Film, color: "text-blue-600 bg-blue-100" },
-          { label: "Categorias", value: stats.total_categories, icon: FolderOpen, color: "text-emerald-600 bg-emerald-100" },
+          { label: "Categorías", value: stats.total_categories, icon: FolderOpen, color: "text-emerald-600 bg-emerald-100" },
           { label: "Publicados", value: stats.published_count, icon: Globe, color: "text-green-600 bg-green-100" },
           { label: "Borradores", value: stats.draft_count, icon: Edit2, color: "text-amber-600 bg-amber-100" },
         ].map(s => (
@@ -744,7 +744,7 @@ export default function SupportAcademiaPage({ token }) {
         <div className="w-[280px] flex-shrink-0 hidden lg:block">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-24" data-testid="categories-panel">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-700">Categorias</span>
+              <span className="text-sm font-bold text-slate-700">Categorías</span>
               <div className="flex items-center gap-1">
                 {!reorderMode && (
                   <button onClick={enterReorderMode} className="p-1 text-slate-400 hover:text-[#2d8a56] hover:bg-[#e8f5ee] rounded-lg transition-colors" title="Reordenar" data-testid="enter-reorder-btn">

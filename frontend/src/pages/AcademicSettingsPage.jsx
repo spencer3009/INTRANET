@@ -201,7 +201,7 @@ const SECTION_PATTERNS = [
   /(AÑOS|°|GRADO)\s+[A-Za-z]$/i,    // grade + letter: "4 AÑOS B"  
   /°\s*[A-Za-z]$/,                   // "1°A", "2° B"
 ];
-const SECTION_WORDS = ["SECCION", "SECCIÓN", "AULA", "ALAMO", "ÁLAMO", "ROBLE", "CEDRO", "PINO", "SAUCE", "OLIVO"];
+const SECTION_WORDS = ["SECCIÓN", "SECCIÓN", "AULA", "ALAMO", "ÁLAMO", "ROBLE", "CEDRO", "PINO", "SAUCE", "OLIVO"];
 
 function looksLikeSection(name) {
   const upper = name.trim().toUpperCase();

@@ -714,7 +714,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Accion Tomada</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Acción Tomada</label>
             <textarea value={actionTaken} onChange={(e) => setActionTaken(e.target.value)} rows={2}
               placeholder="Que se hizo..."
               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -834,7 +834,7 @@ function DetailModal({ record, students, onClose }) {
           )}
           {record.action_taken && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Accion Tomada</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Acción Tomada</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{record.action_taken}</p>
             </div>
           )}

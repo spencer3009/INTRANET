@@ -209,7 +209,7 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
                 </div>
               </div>
 
-              {/* Crop Area */}
+              {/* Crop Área */}
               <div className="bg-slate-100 rounded-xl p-4 flex items-center justify-center min-h-[300px] max-h-[400px] overflow-auto">
                 {imgSrc ? (
                   <ReactCrop

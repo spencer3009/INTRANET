@@ -16,7 +16,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const RECORD_TYPES = [
   { value: "conductual", label: "Conductual" },
   { value: "emocional", label: "Emocional" },
-  { value: "academico_relacionado", label: "Academico-relacionado" },
+  { value: "academico_relacionado", label: "Académico-relacionado" },
   { value: "otro", label: "Otro" },
 ];
 
@@ -351,7 +351,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                           )}
                           {canWrite && (
                           <button onClick={() => openNewRecord(s)} className="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5" data-testid={`register-btn-${s.id || s.student_id}`}>
-                            <Plus className="w-4 h-4" />Registrar Sesion
+                            <Plus className="w-4 h-4" />Registrar Sesión
                           </button>
                           )}
                         </div>

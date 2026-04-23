@@ -57,7 +57,7 @@ function getSubState(expDate) {
     return { id: "suspended", days: 0, overdueDays, label: "Suspendido", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-600 text-white" };
   }
   if (days <= 5) return { id: "critical", days, overdueDays: 0, label: "Vence pronto", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-50 text-red-700 ring-1 ring-red-200" };
-  if (days <= 10) return { id: "warning", days, overdueDays: 0, label: "Proximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
+  if (days <= 10) return { id: "warning", days, overdueDays: 0, label: "Próximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
   return { id: "active", days, overdueDays: 0, label: "Activo", color: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" };
 }
 
@@ -173,7 +173,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span className="text-xs font-bold text-slate-700">Suscripcion</span>
+              <span className="text-xs font-bold text-slate-700">Suscripción</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${subState.badge}`}>{subState.label}</span>
             </div>
           </div>

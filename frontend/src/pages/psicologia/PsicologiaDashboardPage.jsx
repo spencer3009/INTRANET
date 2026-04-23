@@ -253,7 +253,7 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
             })}
           </div>
 
-          {/* Two Column Layout: Citas de Hoy + Proximos Talleres */}
+          {/* Two Column Layout: Citas de Hoy + Próximos Talleres */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
             {/* Today's Appointments */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-testid="today-appointments-card">
@@ -309,7 +309,7 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
                   <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
                     <GraduationCap className="w-4 h-4 text-teal-600" />
                   </div>
-                  <h3 className="font-semibold text-slate-800 text-sm">Proximos Talleres</h3>
+                  <h3 className="font-semibold text-slate-800 text-sm">Próximos Talleres</h3>
                   {upcomingWorkshops.length > 0 && (
                     <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-100 text-teal-700">{upcomingWorkshops.length}</span>
                   )}

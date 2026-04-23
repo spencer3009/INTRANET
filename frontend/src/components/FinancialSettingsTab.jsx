@@ -99,7 +99,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
-              Configuracion Financiera
+              Configuración Financiera
             </h2>
             <p className="text-xs text-slate-500">Parametros base de pensiones, descuentos e intereses</p>
           </div>
@@ -210,11 +210,11 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
 
             {/* Día de vencimiento */}
             <div>
-              <h4 className="text-sm font-bold text-slate-700 mb-3">Dia de generacion</h4>
+              <h4 className="text-sm font-bold text-slate-700 mb-3">Día de generacion</h4>
               <div className="max-w-xs">
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                   <CalendarDays className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
-                  Dia de vencimiento mensual
+                  Día de vencimiento mensual
                 </label>
                 <input
                   type="number"

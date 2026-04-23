@@ -1461,7 +1461,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <>
                   {renewModal.clientCode ? (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Codigo enviado por el cliente</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Código enviado por el cliente</label>
                       <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
                         {renewModal.clientCode}
                       </div>

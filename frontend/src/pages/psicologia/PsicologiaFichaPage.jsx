@@ -11,13 +11,13 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const REASON_CATEGORIES = [
-  "Conductual", "Emocional", "Academico", "Familiar",
+  "Conductual", "Emocional", "Académico", "Familiar",
   "Social", "Adaptacion", "Orientacion Vocacional", "Otro"
 ];
 
 const SESSION_TYPES = [
   "Individual", "Grupal", "Familiar", "Seguimiento",
-  "Evaluacion", "Intervencion", "Derivacion"
+  "Evaluación", "Intervencion", "Derivacion"
 ];
 
 const STATUS_OPTIONS = [
@@ -229,7 +229,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
                 <p className="text-sm text-slate-700">{record.reason || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-1">Categoria</p>
+                <p className="text-xs text-slate-500 mb-1">Categoría</p>
                 <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded-full">
                   {record.reason_category || "-"}
                 </span>
@@ -264,7 +264,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
                 data-testid="add-session-btn"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Nueva Sesion
+                Nueva Sesión
               </button>
             )}
           </div>
@@ -380,7 +380,7 @@ function RecordModal({ record, onSave, onClose }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Categoria</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Categoría</label>
             <select
               value={form.reason_category}
               onChange={(e) => setForm(f => ({ ...f, reason_category: e.target.value }))}
@@ -478,7 +478,7 @@ function SessionModal({ session, onSave, onClose }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Categoria</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Categoría</label>
               <select
                 value={form.reason_category}
                 onChange={(e) => setForm(f => ({ ...f, reason_category: e.target.value }))}

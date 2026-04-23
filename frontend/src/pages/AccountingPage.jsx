@@ -294,7 +294,7 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
         </div>
       </div>
 
-      {/* Chart 3: Evolución de Cobranza (Area) */}
+      {/* Chart 3: Evolución de Cobranza (Área) */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-testid="chart-evolucion">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
@@ -323,8 +323,8 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => `S/ ${formatNumber(v)}`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
-              <Area type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2.5} fill="url(#gradIngresos)" name="Ingresos" />
-              <Area type="monotone" dataKey="egresos" stroke="#f43f5e" strokeWidth={2.5} fill="url(#gradEgresos)" name="Egresos" />
+              <Área type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2.5} fill="url(#gradIngresos)" name="Ingresos" />
+              <Área type="monotone" dataKey="egresos" stroke="#f43f5e" strokeWidth={2.5} fill="url(#gradEgresos)" name="Egresos" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -809,7 +809,7 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
       {/* Header - Premium style */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-500">Categoria:</span>
+          <span className="text-sm font-medium text-gray-500">Categoría:</span>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -2088,7 +2088,7 @@ function StudentHistoryModal({ isOpen, onClose, studentId, token }) {
                 </div>
               </div>
 
-              {/* Matricula */}
+              {/* Matrícula */}
               {data.matriculas.length > 0 && (
                 <div className="mb-4">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Matrícula</h3>
@@ -2363,7 +2363,7 @@ function ConfigTab({ token, user, onGenerateBilling }) {
           }`}
           data-testid="subtab-financiero"
         >
-          Configuracion Financiera
+          Configuración Financiera
         </button>
         <button
           onClick={() => setSubTab("boletas")}
@@ -2964,7 +2964,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               data-testid="tab-config"
             >
               <Settings className="w-4 h-4" />
-              Configuracion
+              Configuración
             </button>
             <button
               onClick={() => setActiveTab("yape")}
@@ -3173,7 +3173,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
               {/* Operation Code Display */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Codigo de operacion ingresado por el padre</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Código de operacion ingresado por el padre</label>
                 <div className="bg-purple-50 border-2 border-purple-200 rounded-xl px-5 py-4 text-center">
                   <span className="text-3xl font-black text-purple-800 tracking-widest" data-testid="yape-op-code-display">
                     {selectedPayment.yape_operation_code || "—"}
@@ -3189,7 +3189,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
                   <textarea
                     value={yapeRejectReason}
                     onChange={(e) => setYapeRejectReason(e.target.value)}
-                    placeholder="Ej: Codigo no coincide, monto incorrecto..."
+                    placeholder="Ej: Código no coincide, monto incorrecto..."
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                     rows={2}
                     data-testid="yape-reject-reason"

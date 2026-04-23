@@ -24,7 +24,7 @@ const PRIO_BADGE = {
 
 const AREA_LABELS = {
   psicologia: "Psicologia",
-  direccion: "Direccion",
+  direccion: "Dirección",
   tutoria: "Tutoria",
   orientacion_familiar: "Orientacion familiar",
   externa: "Derivación externa",
@@ -283,7 +283,7 @@ export default function DerivacionesListPage({ token, subdomain, user, onLogout 
 
           {total > 25 && (
             <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium tabular-nums">Pagina {page} de {totalPages}</span>
+              <span className="text-xs text-slate-500 font-medium tabular-nums">Página {page} de {totalPages}</span>
               <div className="flex gap-2">
                 <button disabled={page <= 1} onClick={() => updateFilter("page", String(page - 1))}
                   className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition-colors" data-testid="prev-page">

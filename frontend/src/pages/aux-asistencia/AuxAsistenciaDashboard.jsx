@@ -294,7 +294,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
                     <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
                       Asistencia de Alumnos
                     </h3>
-                    <p className="text-xs text-slate-400">Ultimos 14 dias</p>
+                    <p className="text-xs text-slate-400">Últimos 14 dias</p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={280}>
@@ -324,7 +324,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
                     <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
                       Asistencia de Profesores
                     </h3>
-                    <p className="text-xs text-slate-400">Ultimos 14 dias</p>
+                    <p className="text-xs text-slate-400">Últimos 14 dias</p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={280}>

@@ -120,7 +120,7 @@ export default function AdditionalRolesManager({ token }) {
                 <th className="text-left py-2 px-2 text-xs font-semibold text-slate-500">Usuario</th>
                 <th className="text-left py-2 px-2 text-xs font-semibold text-slate-500">Rol principal</th>
                 <th className="text-left py-2 px-2 text-xs font-semibold text-slate-500">Roles auxiliares</th>
-                <th className="text-right py-2 px-2 text-xs font-semibold text-slate-500">Accion</th>
+                <th className="text-right py-2 px-2 text-xs font-semibold text-slate-500">Acción</th>
               </tr>
             </thead>
             <tbody>

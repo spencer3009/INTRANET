@@ -101,7 +101,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
             <div>
               <h2 className="text-sm font-bold flex items-center gap-1.5">
                 <ShieldAlert className="w-4 h-4" />
-                Suscripcion Vencida
+                Suscripción Vencida
               </h2>
               <p className="text-red-200 text-xs mt-0.5">
                 {sub.dias_vencido} dia{sub.dias_vencido !== 1 ? "s" : ""} vencido | S/ {sub.monto_plan?.toFixed(2)} pendiente

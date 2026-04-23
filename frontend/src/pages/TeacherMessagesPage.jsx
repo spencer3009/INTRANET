@@ -741,7 +741,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
             </div>
           </div>
           
-          {/* Main Content Area */}
+          {/* Main Content Área */}
           <div className="flex-1 flex gap-6 overflow-hidden min-h-0">
             {/* Folders Sidebar */}
             <aside className="hidden lg:flex flex-col w-72 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex-shrink-0">

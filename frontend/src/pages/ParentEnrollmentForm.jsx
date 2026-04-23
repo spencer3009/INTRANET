@@ -328,7 +328,7 @@ export default function ParentEnrollmentForm({ user, token }) {
           )}
         </div>
 
-        {/* Informacion Complementaria */}
+        {/* Información Complementaria */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Heart className="w-4 h-4 text-rose-500" /> Información Complementaria

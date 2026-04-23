@@ -59,7 +59,7 @@ export default function SubscriptionCard({ token }) {
                 <Icon className={`w-5 h-5 ${cfg.iconCls}`} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Suscripcion EDU.NET</h3>
+                <h3 className="text-sm font-bold text-slate-800">Suscripción EDU.NET</h3>
                 <p className="text-xs text-slate-400">{school_name}</p>
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function SubscriptionCard({ token }) {
             <div className="bg-slate-50 rounded-xl p-3">
               <div className="flex items-center gap-2 text-slate-400 mb-1">
                 <Clock className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-semibold uppercase">Dias vencido</span>
+                <span className="text-[10px] font-semibold uppercase">Días vencido</span>
               </div>
               <p className={`text-lg font-extrabold ${dias_vencido > 0 ? "text-red-600" : "text-emerald-600"}`} data-testid="sub-days-overdue">
                 {dias_vencido > 0 ? dias_vencido : "0"}

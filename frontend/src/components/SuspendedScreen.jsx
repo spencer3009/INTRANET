@@ -44,7 +44,7 @@ export default function SuspendedScreen({ token }) {
           <ShieldOff className="w-10 h-10 text-red-500" />
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-3">Suscripcion Suspendida</h1>
+        <h1 className="text-2xl font-bold text-white mb-3">Suscripción Suspendida</h1>
         <p className="text-slate-400 mb-2">
           Su suscripcion ha sido suspendida por falta de pago.
         </p>

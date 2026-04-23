@@ -5706,7 +5706,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Titulo del examen *
+              Título del examen *
             </label>
             <input
               data-testid="exam-title-input"
@@ -11534,7 +11534,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                   </aside>
                 )}
                 
-                {/* Main Content Area - Full width on selected tabs */}
+                {/* Main Content Área - Full width on selected tabs */}
                 <div className={isFullWidth ? "" : "lg:col-span-6"}>
                   {renderTabContent()}
                 </div>

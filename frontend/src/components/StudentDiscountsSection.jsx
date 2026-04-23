@@ -278,7 +278,7 @@ export default function StudentDiscountsSection({ token }) {
                 {/* Pension Calculation */}
                 {pensionData && (
                   <div className="mt-4 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl" data-testid="pension-calculation">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Calculo de Pension</h4>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cálculo de Pension</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Pension base</span>

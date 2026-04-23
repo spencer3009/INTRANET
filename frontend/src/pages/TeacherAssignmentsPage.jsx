@@ -1053,7 +1053,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
       const parts = [];
       if (created > 0) parts.push(`${created} asignacion${created !== 1 ? "es" : ""} creada${created !== 1 ? "s" : ""}`);
       if (skipped > 0) parts.push(`${skipped} ya existia${skipped !== 1 ? "n" : ""}`);
-      alert(parts.join(", ") || "Operacion completada");
+      alert(parts.join(", ") || "Operación completada");
       onSuccess();
       onClose();
     } catch (err) {
@@ -1074,7 +1074,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
             <div className="flex items-center gap-3">
               <Users className="w-8 h-8 text-white" />
               <div className="text-white">
-                <h2 className="text-xl font-bold">Asignacion Masiva</h2>
+                <h2 className="text-xl font-bold">Asignación Masiva</h2>
                 <p className="text-sm text-white/80">
                   {step === 1 ? "Selecciona profesor, grados, secciones y asignaturas" : `${previewItems.length} asignaciones por crear`}
                 </p>
@@ -1582,7 +1582,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                   data-testid="bulk-assignment-btn"
                 >
                   <Users className="w-5 h-5" />
-                  <span className="hidden sm:inline">Asignacion Masiva</span>
+                  <span className="hidden sm:inline">Asignación Masiva</span>
                 </button>
                 <button
                   onClick={() => { setEditingAssignment(null); setShowModal(true); }}
@@ -1590,7 +1590,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                   data-testid="new-assignment-btn"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Nueva Asignacion</span>
+                  <span className="hidden sm:inline">Nueva Asignación</span>
                 </button>
               </div>
             </div>
