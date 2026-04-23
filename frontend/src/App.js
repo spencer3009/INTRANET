@@ -3002,10 +3002,10 @@ function App() {
         </Routes>
         )}
           </SubscriptionProvider>
+        <BirthdayPopupCarousel token={token} user={user} />
       </BrowserRouter>
       </DemoModeProvider>
       <Toaster position="top-right" richColors closeButton />
-      <BirthdayPopupCarousel token={token} user={user} />
     </TenantContext.Provider>
     </ErrorBoundary>
   );

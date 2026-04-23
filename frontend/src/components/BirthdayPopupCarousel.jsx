@@ -1,10 +1,32 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { ChevronLeft, ChevronRight, X, PartyPopper } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SESSION_KEY = "birthdays_popup_shown";
+
+// Public (unauthenticated) routes where the popup MUST NOT appear even if a
+// stale token sits in localStorage. Any path matching these prefixes is
+// treated as outside the intranet.
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/register",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+  "/precios",
+  "/demo",
+  "/pay",
+  "/landing",
+];
+
+function isPublicRoute(pathname) {
+  if (!pathname || pathname === "/") return true; // landing page
+  return PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`));
+}
 
 /**
  * BirthdayPopupCarousel
@@ -17,6 +39,8 @@ const SESSION_KEY = "birthdays_popup_shown";
  * valid auth token — no-op for anonymous navigation.
  */
 export default function BirthdayPopupCarousel({ token, user }) {
+  const location = useLocation();
+  const onIntranet = !isPublicRoute(location.pathname);
   const [people, setPeople] = useState([]);
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -26,7 +50,7 @@ export default function BirthdayPopupCarousel({ token, user }) {
   // Fetch the school name so we can protagonize the school in the greeting
   // message instead of saying "EduNet" (the platform brand).
   useEffect(() => {
-    if (!token) { setSchoolName(""); return; }
+    if (!token || !onIntranet) { setSchoolName(""); return; }
     axios
       .get(`${API}/school/info`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
@@ -34,11 +58,11 @@ export default function BirthdayPopupCarousel({ token, user }) {
         setSchoolName(name);
       })
       .catch(() => setSchoolName(""));
-  }, [token]);
+  }, [token, onIntranet]);
 
   useEffect(() => {
-    // Reset when the user logs out or changes
-    if (!token || !user) {
+    // Reset when the user logs out, changes, or browses a public route
+    if (!token || !user || !onIntranet) {
       setVisible(false);
       setPeople([]);
       fetchedRef.current = false;
@@ -73,7 +97,7 @@ export default function BirthdayPopupCarousel({ token, user }) {
       .catch(() => {
         // Silent failure — this is a best-effort enhancement, not critical
       });
-  }, [token, user?.id]);
+  }, [token, user?.id, onIntranet]);
 
   const handleClose = () => {
     setVisible(false);
