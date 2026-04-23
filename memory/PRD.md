@@ -25,10 +25,14 @@ Ver `/app/memory/test_credentials.md`.
 ## Completed (latest session)
 - [2026-02] `student_portal.py`: `/api/student/tasks` y `/api/student/dashboard` migrados al array embebido `course_posts.submissions`. Eliminadas queries a la colección obsoleta `db.task_submissions`.
 - Validación E2E con curl: estados `pending`, `submitted`, `graded`, `late` funcionan correctamente.
+- [2026-04] **P1 Guard Global de Acceso para Alumnos** (core.py + auth.py + student_portal.py):
+  - Helper `enforce_student_active(user)` en `routes/core.py` bloquea alumnos con `enrollment_status in {"rejected"}` o `student_status in {"withdrawn","deleted","rejected"}`; los `pending` se bloquean salvo que el colegio active `permitir_acceso_estudiantes_pendientes`.
+  - Hook integrado en `require_role()` y en todos los endpoints manuales de `student_portal.py`.
+  - `/api/auth/login` ahora bloquea también `enrollment_status=rejected` y `student_status in ("rejected","deleted")`.
+  - Test suite: `/app/backend/tests/test_student_guard.py` (4/4 pass).
 
 ## Roadmap
 ### P1
-- Guard global para alumnos pending/rejected (bloquear asistencia, notas).
 - Psicología — Log de auditoría estricto.
 
 ### P2

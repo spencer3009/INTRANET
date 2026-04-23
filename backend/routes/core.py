@@ -175,6 +175,56 @@ async def get_academic_filter(school_id: str) -> dict:
     return ACADEMIC_STUDENT_FILTER
 
 # ══════════════════════════════════════════════════════════════════════════════
+# STUDENT ACCESS GUARD (P1)
+# Bloquea a alumnos pending/rejected/withdrawn/deleted en endpoints de servicios
+# (asistencia, notas, tareas, dashboard, etc.). El colegio puede permitir
+# a los estudiantes "pending" si activa el flag `permitir_acceso_estudiantes_pendientes`.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_BLOCKED_STUDENT_STATUS = {"withdrawn", "deleted", "rejected"}
+_BLOCKED_ENROLLMENT_STATUS = {"rejected"}
+
+async def enforce_student_active(user: dict, school: dict | None = None) -> None:
+    """Bloquea acceso a servicios si el estudiante no está activo.
+
+    - `student_status` in {withdrawn, deleted, rejected}  -> 403
+    - `enrollment_status` == "rejected"                    -> 403
+    - `student_status` == "pending" o `enrollment_status` == "pending":
+          -> 403 salvo que el colegio active `permitir_acceso_estudiantes_pendientes`.
+
+    No-op para roles distintos a "student".
+    """
+    if not user or user.get("role") != "student":
+        return
+
+    sstatus = (user.get("student_status") or "active").lower()
+    estatus = (user.get("enrollment_status") or "active").lower()
+
+    if sstatus in _BLOCKED_STUDENT_STATUS:
+        raise HTTPException(
+            status_code=403,
+            detail="Tu cuenta de estudiante está inactiva. Comunícate con la administración del colegio."
+        )
+    if estatus in _BLOCKED_ENROLLMENT_STATUS:
+        raise HTTPException(
+            status_code=403,
+            detail="Tu matrícula fue rechazada. Comunícate con la administración del colegio."
+        )
+    if sstatus == "pending" or estatus == "pending":
+        school_id = user.get("school_id")
+        if school is None and school_id:
+            school = await db.schools.find_one(
+                {"id": school_id},
+                {"_id": 0, "permitir_acceso_estudiantes_pendientes": 1}
+            )
+        allow_pending = bool(school.get("permitir_acceso_estudiantes_pendientes", False)) if school else False
+        if not allow_pending:
+            raise HTTPException(
+                status_code=403,
+                detail="Tu matrícula está pendiente de aprobación. Comunícate con la administración del colegio."
+            )
+
+# ══════════════════════════════════════════════════════════════════════════════
 # CLOUDINARY CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -518,6 +568,9 @@ def require_role(allowed_roles: list):
             if not any(ar in allowed_roles for ar in additional):
                 logger.error(f"DEMO_DEBUG require_role: DENIED role={role}, additional={additional}, is_demo={is_demo}, allowed={allowed_roles}")
                 raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta funcion")
+        # Guard global: bloquear alumnos pending/rejected/withdrawn en todos los servicios protegidos
+        if role == "student":
+            await enforce_student_active(user)
         return user
     return check_role
 

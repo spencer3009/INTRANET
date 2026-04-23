@@ -14,6 +14,7 @@ import logging
 from .core import (
     db, get_current_user, resolve_user_from_token, is_admin_user,
     require_role, require_admin, require_staff, require_section_access,
+    enforce_student_active,
     is_demo_user, check_demo_user_block, require_not_demo, is_real_owner,
     is_system_user, check_system_user_block, is_protected_user,
     has_role, is_student, is_parent, is_staff,
@@ -57,6 +58,7 @@ async def get_student_profile(current_user = Depends(get_current_user)):
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     
@@ -154,6 +156,7 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
@@ -251,6 +254,7 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
@@ -323,6 +327,7 @@ async def get_student_tasks(
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
@@ -470,6 +475,7 @@ async def get_student_schedule(current_user = Depends(get_current_user)):
     # SECURITY: Only students can access this endpoint
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
@@ -575,6 +581,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
@@ -771,6 +778,7 @@ async def get_student_attendance(
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     student_id = user["id"]
@@ -1229,6 +1237,7 @@ async def send_student_message(data: InternalMailCreate, course_id: str, current
     
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Solo estudiantes pueden usar este endpoint")
+    await enforce_student_active(user)
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")

@@ -369,7 +369,8 @@ async def login(creds: UserLogin):
                 # Student status login restriction
                 if user.get("role") == "student":
                     sstatus = user.get("student_status", "active")
-                    if sstatus == "pending":
+                    estatus = user.get("enrollment_status", "active")
+                    if sstatus == "pending" or estatus == "pending":
                         allow_pending = school.get("permitir_acceso_estudiantes_pendientes", False) if school else False
                         if not allow_pending:
                             raise HTTPException(
@@ -380,6 +381,11 @@ async def login(creds: UserLogin):
                         raise HTTPException(
                             status_code=403,
                             detail="Tu cuenta de estudiante está en estado retirado. Comunícate con la administración."
+                        )
+                    if estatus == "rejected" or sstatus in ("rejected", "deleted"):
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Tu matrícula fue rechazada o tu cuenta está inactiva. Comunícate con la administración del colegio."
                         )
             else:
                 school_id = None
