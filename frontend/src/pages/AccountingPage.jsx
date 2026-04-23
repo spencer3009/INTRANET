@@ -323,8 +323,8 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => `S/ ${formatNumber(v)}`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
-              <Área type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2.5} fill="url(#gradIngresos)" name="Ingresos" />
-              <Área type="monotone" dataKey="egresos" stroke="#f43f5e" strokeWidth={2.5} fill="url(#gradEgresos)" name="Egresos" />
+              <Area type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2.5} fill="url(#gradIngresos)" name="Ingresos" />
+              <Area type="monotone" dataKey="egresos" stroke="#f43f5e" strokeWidth={2.5} fill="url(#gradEgresos)" name="Egresos" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

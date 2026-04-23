@@ -723,13 +723,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
                     </div>
                     <div className={`rounded-xl p-3 text-center border ${
-                      paymentData.matrícula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
+                      paymentData.matricula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
                     }`}>
-                      <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
-                      <p className={`text-lg font-bold ${paymentData.matrícula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
+                      <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                         S/ {(paymentData.matricula.amount || 0).toLocaleString('es-PE')}
                       </p>
-                      <p className={`text-[10px] font-medium ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
+                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
                     </div>
                   </div>
 
