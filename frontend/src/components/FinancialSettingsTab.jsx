@@ -68,9 +68,9 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
       const activated = res.data.activated_students || 0;
       setForm(prev => ({ ...prev, ...res.data }));
       if (activated > 0) {
-        toast.success(`Configuracion guardada. Se activaron ${activated} alumno${activated !== 1 ? "s" : ""} pendiente${activated !== 1 ? "s" : ""}.`);
+        toast.success(`Configuración guardada. Se activaron ${activated} alumno${activated !== 1 ? "s" : ""} pendiente${activated !== 1 ? "s" : ""}.`);
       } else {
-        toast.success("Configuracion financiera guardada");
+        toast.success("Configuración financiera guardada");
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
@@ -266,7 +266,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
               </div>
             )}
 
-            <p className="text-xs text-slate-400">Use esta opcion solo si necesita forzar la generacion de cuotas manualmente. En condiciones normales el sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
+            <p className="text-xs text-slate-400">Use esta opción solo si necesita forzar la generacion de cuotas manualmente. En condiciones normales el sistema lo hace automaticamente en la fecha de vencimiento configurada.</p>
           </div>
         )}
       </div>
@@ -275,7 +275,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-2.5">
           <DollarSign className="w-5 h-5 text-emerald-500" />
-          <h3 className="text-sm font-bold text-slate-700">Configuracion de Pensiones y Matricula</h3>
+          <h3 className="text-sm font-bold text-slate-700">Configuración de Pensiones y Matrícula</h3>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -296,7 +296,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
             <p className="text-[11px] text-slate-400 mt-1.5">Monto base mensual cobrado a cada alumno</p>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-2">Monto de Matricula</label>
+            <label className="block text-sm font-semibold text-slate-600 mb-2">Monto de Matrícula</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
               <input
@@ -310,7 +310,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 data-testid="matricula-input"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1.5">Monto unico de matricula anual por alumno</p>
+            <p className="text-[11px] text-slate-400 mt-1.5">Monto unico de matrícula anual por alumno</p>
           </div>
         </div>
       </div>
@@ -565,8 +565,8 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
         <div className="p-5">
           <div className="space-y-3">
             {[
-              { value: "matricula", label: "Activar con matricula", desc: "El alumno se activa al registrar pago de matricula" },
-              { value: "matricula_pension", label: "Activar con matricula + primera pension", desc: "El alumno se activa al registrar matricula y primera mensualidad" },
+              { value: "matricula", label: "Activar con matrícula", desc: "El alumno se activa al registrar pago de matrícula" },
+              { value: "matricula_pension", label: "Activar con matrícula + primera pension", desc: "El alumno se activa al registrar matrícula y primera mensualidad" },
               { value: "on_create", label: "Activar al registrar alumno", desc: "El alumno se activa automaticamente al ser registrado, sin requerir ningun pago" }
             ].map(opt => (
               <label

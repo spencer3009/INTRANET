@@ -44,7 +44,7 @@ export default function BulkQRModal({ open, onClose, token }) {
 
   const handleDownload = async () => {
     if (!nivelId || !gradoId || !seccionId) {
-      toast.error("Selecciona nivel, grado y seccion");
+      toast.error("Selecciona nivel, grado y sección");
       return;
     }
     setGenerating(true);
@@ -132,7 +132,7 @@ export default function BulkQRModal({ open, onClose, token }) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Seccion *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Sección *</label>
                 <select value={seccionId} onChange={e => setSeccionId(e.target.value)} disabled={!gradoId} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm disabled:opacity-50 focus:ring-2 focus:ring-violet-500/30" data-testid="bulk-qr-section">
                   <option value="">Seleccionar...</option>
                   {sections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}

@@ -97,7 +97,7 @@ export default function ParentPsychologyMessages({ token, user, subdomain, onBac
         </button>
         <Brain className="w-5 h-5 text-violet-600" />
         <div>
-          <h2 className="text-base font-bold text-slate-800">Mensajes de Psicologia</h2>
+          <h2 className="text-base font-bold text-slate-800">Mensajes de Psicología</h2>
           <p className="text-xs text-slate-500">{conversations.length} conversaciones</p>
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function ParentPsychologyMessages({ token, user, subdomain, onBac
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center">
                 <Brain className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No hay mensajes del departamento de psicologia</p>
+                <p className="text-sm text-slate-500">No hay mensajes del departamento de psicología</p>
               </div>
             ) : conversations.map(convo => (
               <button key={convo.conversation_id} onClick={() => openConversation(convo)}

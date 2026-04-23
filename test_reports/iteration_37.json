@@ -66,7 +66,7 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "course_url": "https://gradebook-dynamic.preview.emergentagent.com/school/elroble/student/courses/a1eb013c-1682-4411-b525-334a55f588d5"
+    "course_url": "https://school-saas-fix.preview.emergentagent.com/school/elroble/student/courses/a1eb013c-1682-4411-b525-334a55f588d5"
   },
 
   "seed_data_creation": "None - used existing test data. Course: Historia, Teacher: Sonia Velasquez Romero, Students: Pepito P., Juan L.",

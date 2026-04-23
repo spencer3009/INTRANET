@@ -27,7 +27,7 @@ const AREA_LABELS = {
   direccion: "Direccion",
   tutoria: "Tutoria",
   orientacion_familiar: "Orientacion familiar",
-  externa: "Derivacion externa",
+  externa: "Derivación externa",
 };
 
 /* ─── KPI card config ─── */
@@ -211,7 +211,7 @@ export default function DerivacionesListPage({ token, subdomain, user, onLogout 
               <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Listado de derivaciones</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 {filterStatus ? TABS.find(t => t.val === filterStatus)?.label : "Mostrando todas"}
-                {total > 0 && ` · Pagina ${page} de ${totalPages}`}
+                {total > 0 && ` · Página ${page} de ${totalPages}`}
               </p>
             </div>
           </div>

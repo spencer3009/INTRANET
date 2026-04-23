@@ -77,7 +77,7 @@ export default function JustificationModal({ isOpen, onClose, onSave, studentNam
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, 500))}
               rows={4}
-              placeholder="Ej: Presenta certificado medico, los padres enviaron la solicitud por WhatsApp..."
+              placeholder="Ej: Presenta certificado médico, los padres enviaron la solicitud por WhatsApp..."
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 text-sm resize-none"
               data-testid="justification-note-input"
             />
@@ -101,7 +101,7 @@ export default function JustificationModal({ isOpen, onClose, onSave, studentNam
             data-testid="justification-save-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {saving ? "Guardando..." : "Guardar Justificacion"}
+            {saving ? "Guardando..." : "Guardar Justificación"}
           </button>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function JustificationInfoPopover({ data, onClose }) {
           </div>
           {data.justification_note && (
             <div>
-              <span className="font-semibold text-slate-600">Descripcion:</span>{" "}
+              <span className="font-semibold text-slate-600">Descripción:</span>{" "}
               <span className="text-slate-800">{data.justification_note}</span>
             </div>
           )}

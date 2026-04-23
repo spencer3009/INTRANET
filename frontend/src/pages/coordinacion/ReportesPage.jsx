@@ -121,7 +121,7 @@ function TabIncidenciasPorGrado({ token }) {
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
         <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
              style={{ background: "linear-gradient(180deg, #fafbfc 0%, white 100%)" }}>
-          <div className="col-span-3">Grado / Seccion</div>
+          <div className="col-span-3">Grado / Sección</div>
           <div className="col-span-1 text-center">Total</div>
           <div className="col-span-6">Distribucion</div>
           <div className="col-span-2 text-center">Por severidad</div>
@@ -385,7 +385,7 @@ export default function ReportesPage({ token, subdomain, user, onLogout }) {
         {/* ── Header ── */}
         <div>
           <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Reportes</h1>
-          <p className="text-sm text-slate-500 mt-1">Metricas y analisis del modulo de coordinacion</p>
+          <p className="text-sm text-slate-500 mt-1">Metricas y analisis del módulo de coordinación</p>
         </div>
 
         {/* ── Tabs ── */}

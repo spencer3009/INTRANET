@@ -56,7 +56,7 @@ export default function ReunionesListPage({ token, subdomain, user, onLogout }) 
 
   const [form, setForm] = useState({
     grade_id: "", section_id: "", student_id: "",
-    scheduled_at: "", location: "Oficina de Coordinacion",
+    scheduled_at: "", location: "Oficina de Coordinación",
     agenda: "", notes: "",
   });
 
@@ -149,7 +149,7 @@ export default function ReunionesListPage({ token, subdomain, user, onLogout }) 
       };
       await coordinacionApi.createReunion(token, payload);
       setShowCreateForm(false);
-      setForm({ grade_id: "", section_id: "", student_id: "", scheduled_at: "", location: "Oficina de Coordinacion", agenda: "", notes: "" });
+      setForm({ grade_id: "", section_id: "", student_id: "", scheduled_at: "", location: "Oficina de Coordinación", agenda: "", notes: "" });
       load();
     } catch (err) {
       console.error("Error creating reunion:", err);
@@ -248,10 +248,10 @@ export default function ReunionesListPage({ token, subdomain, user, onLogout }) 
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Seccion</label>
+                  <label className={labelCls}>Sección</label>
                   <select value={form.section_id} onChange={(e) => loadStudents(e.target.value)}
                     className={inputCls} data-testid="reunion-section">
-                    <option value="">Seleccionar seccion</option>
+                    <option value="">Seleccionar sección</option>
                     {sections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                   </select>
                 </div>
@@ -361,7 +361,7 @@ export default function ReunionesListPage({ token, subdomain, user, onLogout }) 
               <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Listado de reuniones</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 {filterStatus ? TABS.find(t => t.val === filterStatus)?.label : "Mostrando todas"}
-                {total > 0 && ` · Pagina ${page} de ${totalPages}`}
+                {total > 0 && ` · Página ${page} de ${totalPages}`}
               </p>
             </div>
           </div>

@@ -98,13 +98,13 @@ function DiscountTypeModal({ isOpen, onClose, onSave, editingType }) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Descripcion (opcional)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Descripción (opcional)</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 resize-none"
               rows={2}
-              placeholder="Descripcion opcional para el administrador"
+              placeholder="Descripción opcional para el administrador"
               data-testid="discount-description-input"
             />
           </div>

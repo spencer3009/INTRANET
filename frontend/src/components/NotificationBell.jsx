@@ -101,8 +101,8 @@ function ReminderDetailModal({ reminder, isOpen, onClose, onMarkViewed }) {
             </div>
           )}
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descripcion</h4>
-            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{reminder.description || "Sin descripcion adicional."}</p>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descripción</h4>
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{reminder.description || "Sin descripción adicional."}</p>
           </div>
           <div className="text-xs text-gray-400 mb-6">
             Fecha limite: {new Date(reminder.date).toLocaleDateString("es-PE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
@@ -404,7 +404,7 @@ export default function NotificationBell({ token, userRole }) {
     if (!token || isParent) return;
     const unsubscribe = onForegroundMessage((payload) => {
       const notif = payload.notification || {};
-      toast(notif.title || "Nueva notificacion", {
+      toast(notif.title || "Nueva notificación", {
         description: notif.body,
         duration: 5000,
         icon: <Bell className="w-4 h-4 text-violet-500" />,

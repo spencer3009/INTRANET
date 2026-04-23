@@ -27,7 +27,7 @@ const features = [
   { icon: DollarSign, title: "Zona de Finanzas", desc: "Gestiona matrículas, pensiones, control de pagos, historial financiero, morosidad y reportes económicos por estudiante.", color: "from-green-500 to-lime-400" },
   { icon: Ban, title: "Control de Acceso por Pagos", desc: "Si un alumno no ha pagado, el sistema limita su acceso. Al regularizar el pago, recupera acceso completo automáticamente.", color: "from-red-500 to-rose-400" },
   { icon: Calendar, title: "Calendario Escolar", desc: "Calendario centralizado con actividades, exámenes, eventos institucionales, reuniones y fechas importantes según el rol del usuario.", color: "from-orange-500 to-amber-400" },
-  { icon: Send, title: "Noticias y Comunicados", desc: "Publica anuncios institucionales, comunicados para padres, noticias del colegio e información sobre actividades.", color: "from-pink-500 to-fuchsia-400" },
+  { icon: Send, title: "Noticias y Comunicados", desc: "Pública anuncios institucionales, comunicados para padres, noticias del colegio e información sobre actividades.", color: "from-pink-500 to-fuchsia-400" },
   { icon: BarChart3, title: "Encuestas", desc: "Crea encuestas, recibe respuestas de padres y estudiantes, analiza resultados y mejora los procesos educativos.", color: "from-cyan-500 to-teal-400" },
   { icon: FolderOpen, title: "Biblioteca de Archivos", desc: "Los profesores comparten documentos, material de estudio, guías y recursos educativos para los estudiantes.", color: "from-purple-500 to-violet-400" },
   { icon: MessageSquare, title: "Comunicación Interna", desc: "Mensajes entre profesores y padres, comunicaciones institucionales y notificaciones automáticas.", color: "from-blue-500 to-sky-400" },

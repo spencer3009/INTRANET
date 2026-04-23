@@ -133,7 +133,7 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
             Instalar EduNet
           </h2>
           <p className="text-sm text-slate-500 mb-2 leading-relaxed">
-            Para instalar EduNet correctamente, debe abrir esta pagina en <strong className="text-slate-700">Chrome</strong>.
+            Para instalar EduNet correctamente, debe abrir esta página en <strong className="text-slate-700">Chrome</strong>.
           </p>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
             Algunos navegadores integrados como WhatsApp o Facebook no permiten la instalacion de aplicaciones.

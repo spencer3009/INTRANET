@@ -196,7 +196,7 @@ export default function YapePaymentModal({ isOpen, onClose, payment, yapeConfig,
                   autoFocus
                 />
                 <div className="flex justify-between mt-2">
-                  <p className="text-xs text-gray-400">Solo numeros</p>
+                  <p className="text-xs text-gray-400">Solo números</p>
                   <p className={`text-xs font-semibold ${operationCode.length === 8 ? "text-emerald-600" : "text-gray-400"}`}>
                     {operationCode.length}/8
                   </p>

@@ -21,7 +21,7 @@
   },
   "test_credentials": {
     "psychologist": "ana.garcia@elroble.edu / Psico123! (subdomain: elroble)",
-    "app_url": "https://gradebook-dynamic.preview.emergentagent.com"
+    "app_url": "https://school-saas-fix.preview.emergentagent.com"
   },
   "seed_data_creation": "Created test appointment and workshop during testing",
   "retest_needed": false,

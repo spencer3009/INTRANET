@@ -263,7 +263,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 <GraduationCap className="w-12 h-12 text-emerald-500" />
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-3">Bienvenido al Portal de Padres</h2>
-              <p className="text-slate-500 mb-8">{enrollmentEnabled ? "Registra a tu hijo/a para iniciar el proceso de matricula. El colegio revisara los datos y te notificara cuando sea aprobada." : "No tienes estudiantes vinculados a tu cuenta. Contacta al administrador del colegio para vincular a tu hijo/a."}</p>
+              <p className="text-slate-500 mb-8">{enrollmentEnabled ? "Registra a tu hijo/a para iniciar el proceso de matrícula. El colegio revisara los datos y te notificara cuando sea aprobada." : "No tienes estudiantes vinculados a tu cuenta. Contacta al administrador del colegio para vincular a tu hijo/a."}</p>
               {enrollmentEnabled && (
               <button
                 onClick={() => navigateTo("/parent/registrar-alumno")}
@@ -395,8 +395,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3" data-testid="enrollment-pending-banner">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Matricula pendiente de aprobacion</p>
-                <p className="text-xs text-amber-600">El colegio esta revisando la solicitud de matricula. Te notificaremos cuando sea aprobada.</p>
+                <p className="text-sm font-semibold text-amber-800">Matrícula pendiente de aprobacion</p>
+                <p className="text-xs text-amber-600">El colegio esta revisando la solicitud de matrícula. Te notificaremos cuando sea aprobada.</p>
               </div>
             </div>
           )}
@@ -404,7 +404,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3" data-testid="enrollment-rejected-banner">
               <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-red-800">Matricula no aprobada</p>
+                <p className="text-sm font-semibold text-red-800">Matrícula no aprobada</p>
                 {selectedChild.enrollment_rejection_reason && (
                   <p className="text-xs text-red-600 mt-1">Motivo: {selectedChild.enrollment_rejection_reason}</p>
                 )}
@@ -723,13 +723,13 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
                     </div>
                     <div className={`rounded-xl p-3 text-center border ${
-                      paymentData.matricula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
+                      paymentData.matrícula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
                     }`}>
-                      <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
-                      <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
+                      <p className={`text-lg font-bold ${paymentData.matrícula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
                         S/ {(paymentData.matricula.amount || 0).toLocaleString('es-PE')}
                       </p>
-                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matricula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
+                      <p className={`text-[10px] font-medium ${paymentData.matrícula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matricula {paymentData.matricula.paid ? '- Pagada' : '- Pendiente'}</p>
                     </div>
                   </div>
 

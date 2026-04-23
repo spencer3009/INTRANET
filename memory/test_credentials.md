@@ -1,7 +1,7 @@
 # Test Credentials
 
 ## School: El Roble
-- Login URL: https://gradebook-dynamic.preview.emergentagent.com/elroble/login
+- Login URL: https://school-saas-fix.preview.emergentagent.com/elroble/login
 
 ### Owner/Admin
 - Email: admin@elroble.edu

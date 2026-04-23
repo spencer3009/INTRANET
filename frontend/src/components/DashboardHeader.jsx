@@ -179,7 +179,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
                   )}
                   <button onClick={handleLogoutClick} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-3 transition-colors" data-testid="header-dropdown-logout">
                     <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center"><LogOut className="w-4 h-4 text-red-500" /></div>
-                    <span className="font-medium">Cerrar sesion</span>
+                    <span className="font-medium">Cerrar sesión</span>
                   </button>
                 </div>
               </div>

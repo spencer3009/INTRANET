@@ -98,7 +98,7 @@ export default function PsicologiaAgendaPage({ user, token, onLogout }) {
       setSelectedAppt(null);
       fetchAppointments();
       if (d.suggest_create_session && d.student_id) {
-        if (window.confirm("Cita completada. Deseas registrar una sesion clinica para este estudiante?")) {
+        if (window.confirm("Cita completada. Deseas registrar una sesión clinica para este estudiante?")) {
           navigate(getSchoolPath(`/psicologia/fichas/${d.student_id}`));
         }
       }
@@ -462,7 +462,7 @@ function AppointmentModal({ token, editing, onSaved, onClose, defaultDate }) {
               placeholder="Ej: Consultorio, Aula 3B" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" data-testid="appt-location" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Descripcion</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Descripción</label>
             <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20" rows={2} data-testid="appt-description" />
           </div>

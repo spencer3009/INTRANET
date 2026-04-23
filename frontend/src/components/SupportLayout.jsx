@@ -119,7 +119,7 @@ export default function SupportLayout({ user, token, onLogout }) {
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             <LogOut className="w-[18px] h-[18px]" />
-            <span>Cerrar Sesion</span>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>

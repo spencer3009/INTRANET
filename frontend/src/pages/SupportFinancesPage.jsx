@@ -208,7 +208,7 @@ export default function SupportFinancesPage({ token }) {
                 <tr className="bg-slate-50 text-left text-xs text-slate-500">
                   <th className="px-5 py-2.5 font-medium">Fecha</th>
                   <th className="px-5 py-2.5 font-medium">Colegio</th>
-                  <th className="px-5 py-2.5 font-medium">Descripcion</th>
+                  <th className="px-5 py-2.5 font-medium">Descripción</th>
                   <th className="px-5 py-2.5 font-medium">Metodo</th>
                   <th className="px-5 py-2.5 font-medium">Cod. Operacion</th>
                   <th className="px-5 py-2.5 font-medium">Confirmado por</th>

@@ -2707,7 +2707,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
             ) : !taskActivePeriod ? (
               <div className="p-3 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>No hay un periodo academico activo. Configure uno en <strong>Anos Academicos</strong> para poder vincular tareas al registro.</span>
+                <span>No hay un periodo académico activo. Configure uno en <strong>Anos Académicos</strong> para poder vincular tareas al registro.</span>
               </div>
             ) : (
               <>
@@ -5482,7 +5482,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   // Build confirmation text
   const buildConfirmationText = () => {
     if (!registerColumn) {
-      return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el modulo de examenes." };
+      return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el módulo de examenes." };
     }
     const periodName = activePeriod?.nombre || "Periodo activo";
     const col = columnasVinculables.find(c => (c.label_corto || c.id) === registerColumn);
@@ -5576,7 +5576,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
             ) : !activePeriod ? (
               <div className="p-3 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>No hay un periodo academico activo. Configure uno en <strong>Anos Academicos</strong> para poder vincular examenes al registro.</span>
+                <span>No hay un periodo académico activo. Configure uno en <strong>Anos Académicos</strong> para poder vincular examenes al registro.</span>
               </div>
             ) : (
               <>
@@ -6915,7 +6915,7 @@ function OmrSheetCard({ exam, token, onExamUpdate }) {
               </div>
             </div>
             <p className="text-xs text-gray-500">
-              Si modifica el numero de preguntas u opciones, debera regenerar la hoja.
+              Si modifica el número de preguntas u opciones, debera regenerar la hoja.
             </p>
           </div>
         )}

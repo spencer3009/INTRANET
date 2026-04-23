@@ -5480,7 +5480,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               <input type="date" value={editingPendingData.birthday} onChange={e => setEditingPendingData(p => ({...p, birthday: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Direccion</label>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Dirección</label>
                               <input value={editingPendingData.address} onChange={e => setEditingPendingData(p => ({...p, address: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                             </div>
                           </div>
@@ -5550,7 +5550,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <div className="space-y-3">
                   {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-1">
-                      <p className="text-xs font-semibold text-emerald-700 mb-1">Filtros academicos activos:</p>
+                      <p className="text-xs font-semibold text-emerald-700 mb-1">Filtros académicos activos:</p>
                       <div className="flex flex-wrap gap-2">
                         {studentFilterLevel && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span>}
                         {studentFilterGrade && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span>}
@@ -5562,7 +5562,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <button
                     onClick={() => {
                       if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection || !studentFilterShift) {
-                        toast.error("Debe seleccionar Nivel, Grado, Seccion y Turno antes de descargar la plantilla.");
+                        toast.error("Debe seleccionar Nivel, Grado, Sección y Turno antes de descargar la plantilla.");
                         return;
                       }
                       const params = new URLSearchParams();
@@ -5612,7 +5612,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {!(studentFilterLevel && studentFilterGrade && studentFilterSection && studentFilterShift) && (
                     <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">Debe seleccionar <span className="font-bold">Nivel, Grado, Seccion y Turno</span> en los filtros antes de descargar la plantilla.</p>
+                      <p className="text-xs text-amber-700">Debe seleccionar <span className="font-bold">Nivel, Grado, Sección y Turno</span> en los filtros antes de descargar la plantilla.</p>
                     </div>
                   )}
                 </div>
@@ -5627,7 +5627,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {!(studentFilterLevel && studentFilterGrade && studentFilterSection && studentFilterShift) && (
                     <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4">
                       <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">Seleccione <span className="font-bold">Nivel, Grado, Seccion y Turno</span> en los filtros para asignar los estudiantes correctamente.</p>
+                      <p className="text-xs text-amber-700">Seleccione <span className="font-bold">Nivel, Grado, Sección y Turno</span> en los filtros para asignar los estudiantes correctamente.</p>
                     </div>
                   )}
                   {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
@@ -5678,18 +5678,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <AlertTriangle className="w-5 h-5 text-amber-600" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800">Archivo generado para otra configuracion</p>
+                      <p className="font-bold text-slate-800">Archivo generado para otra configuración</p>
                       <p className="text-xs text-slate-500">La plantilla fue creada con filtros diferentes a los actuales</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                      <p className="text-xs font-bold text-amber-700 mb-2">Configuracion del archivo:</p>
+                      <p className="text-xs font-bold text-amber-700 mb-2">Configuración del archivo:</p>
                       <div className="space-y-1">
                         {importMismatchData.file_config.nivel_name && <p className="text-xs text-amber-600">Nivel: <span className="font-semibold">{importMismatchData.file_config.nivel_name}</span></p>}
                         {importMismatchData.file_config.grado_name && <p className="text-xs text-amber-600">Grado: <span className="font-semibold">{importMismatchData.file_config.grado_name}</span></p>}
-                        {importMismatchData.file_config.seccion_name && <p className="text-xs text-amber-600">Seccion: <span className="font-semibold">{importMismatchData.file_config.seccion_name}</span></p>}
+                        {importMismatchData.file_config.seccion_name && <p className="text-xs text-amber-600">Sección: <span className="font-semibold">{importMismatchData.file_config.seccion_name}</span></p>}
                         {importMismatchData.file_config.turno_name && <p className="text-xs text-amber-600">Turno: <span className="font-semibold">{importMismatchData.file_config.turno_name}</span></p>}
                         {importMismatchData.file_config.anio_escolar && <p className="text-xs text-amber-600">Ano escolar: <span className="font-semibold">{importMismatchData.file_config.anio_escolar}</span></p>}
                       </div>
@@ -5699,7 +5699,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <div className="space-y-1">
                         {studentFilterLevel && <p className="text-xs text-blue-600">Nivel: <span className="font-semibold">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span></p>}
                         {studentFilterGrade && <p className="text-xs text-blue-600">Grado: <span className="font-semibold">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span></p>}
-                        {studentFilterSection && <p className="text-xs text-blue-600">Seccion: <span className="font-semibold">{sections.find(s => s.id === studentFilterSection)?.nombre}</span></p>}
+                        {studentFilterSection && <p className="text-xs text-blue-600">Sección: <span className="font-semibold">{sections.find(s => s.id === studentFilterSection)?.nombre}</span></p>}
                         {studentFilterShift && <p className="text-xs text-blue-600">Turno: <span className="font-semibold">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span></p>}
                       </div>
                     </div>
@@ -5908,7 +5908,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     </button>
                   </div>
                   <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-xs text-blue-700">La importacion solo crea padres. La vinculacion con estudiantes se realiza desde el modulo de Estudiantes.</p>
+                    <p className="text-xs text-blue-700">La importacion solo crea padres. La vinculacion con estudiantes se realiza desde el módulo de Estudiantes.</p>
                   </div>
                 </div>
               )}
@@ -5948,7 +5948,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <div className="w-full bg-slate-200 rounded-full h-3 mt-4">
                     <div className="bg-blue-600 h-3 rounded-full transition-all duration-300" style={{ width: `${parentImportProgress}%` }} />
                   </div>
-                  <p className="text-xs text-slate-400 mt-3">No cierre esta pagina</p>
+                  <p className="text-xs text-slate-400 mt-3">No cierre esta página</p>
                 </div>
               )}
 
@@ -6068,7 +6068,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Numero de documento</label>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Número de documento</label>
                                   <input value={d.dni || ""}
                                     onChange={e => {
                                       const v = d.tipo_documento === "CE" ? e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 12) : e.target.value.replace(/\D/g, "").slice(0, 8);
@@ -6086,7 +6086,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                   {fieldErr("email") && <p className="text-[10px] text-rose-500 mt-1 font-medium">Formato de correo invalido</p>}
                                 </div>
                                 <div>
-                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Telefono</label>
+                                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono</label>
                                   <input value={d.phone || ""} onChange={e => setEditingParentPendingData(x => ({...x, phone: e.target.value.replace(/\D/g, "").slice(0, 9)}))}
                                     className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="9 digitos" maxLength={9} />
                                 </div>
@@ -6164,7 +6164,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <AlertTriangle className="w-7 h-7 text-rose-500" />
               </div>
               <h3 className="text-lg font-bold text-slate-800 mb-2">Filtros requeridos</h3>
-              <p className="text-sm text-slate-500 mb-4">Para exportar credenciales debe seleccionar todos los filtros: Nivel, Grado, Seccion y Turno.</p>
+              <p className="text-sm text-slate-500 mb-4">Para exportar credenciales debe seleccionar todos los filtros: Nivel, Grado, Sección y Turno.</p>
               <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 mb-5 text-left">
                 <p className="text-xs font-semibold text-rose-700 mb-1">Falta seleccionar:</p>
                 {missingExportFilters.map(f => (

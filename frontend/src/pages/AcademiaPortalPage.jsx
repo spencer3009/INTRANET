@@ -265,7 +265,7 @@ function AcademiaContent({ token }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-700">Asistente flotante</p>
-            <p className="text-xs text-slate-400">Muestra el avatar de ayuda en todas las paginas</p>
+            <p className="text-xs text-slate-400">Muestra el avatar de ayuda en todas las páginas</p>
           </div>
         </div>
         <button
@@ -289,7 +289,7 @@ function AcademiaContent({ token }) {
           type="text"
           value={searchText}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Buscar tutoriales por titulo, descripcion o categoria..."
+          placeholder="Buscar tutoriales por titulo, descripción o categoria..."
           className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FBBF24]/30 focus:border-[#FBBF24]/50 transition-all shadow-sm"
           data-testid="portal-search"
         />
@@ -478,7 +478,7 @@ function AcademiaContent({ token }) {
                   <Video className="w-7 h-7 text-slate-300" />
                 </div>
                 <p className="text-sm text-slate-500 font-semibold">
-                  {searchActive ? "Sin resultados" : "Sin videos en esta seccion"}
+                  {searchActive ? "Sin resultados" : "Sin videos en esta sección"}
                 </p>
                 <p className="text-xs text-slate-400 mt-1.5">
                   {searchActive

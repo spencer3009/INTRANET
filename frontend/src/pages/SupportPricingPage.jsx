@@ -41,7 +41,7 @@ export default function SupportPricingPage({ token }) {
           umbral_minimo_alumnos: r.data.umbral_minimo_alumnos ?? 80
         });
       })
-      .catch(() => toast.error("Error al cargar configuracion"))
+      .catch(() => toast.error("Error al cargar configuración"))
       .finally(() => setLoading(false));
 
     // Load QR config
@@ -58,7 +58,7 @@ export default function SupportPricingPage({ token }) {
     setSaving(true);
     try {
       await axios.put(`${API}/support/pricing`, form, { headers });
-      toast.success("Configuracion guardada");
+      toast.success("Configuración guardada");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
     } finally {
@@ -101,7 +101,7 @@ export default function SupportPricingPage({ token }) {
     setQrSaving(true);
     try {
       await axios.put(`${API}/subscription/qr-config`, { qr_pago_url: qrUrl, yape_number: yapeNumber }, { headers });
-      toast.success("Configuracion de pago guardada");
+      toast.success("Configuración de pago guardada");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
     } finally {
@@ -130,7 +130,7 @@ export default function SupportPricingPage({ token }) {
           <Settings2 className="w-5 h-5 text-slate-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800" style={{ fontFamily: 'Manrope, sans-serif' }}>Configuracion de Precios</h1>
+          <h1 className="text-xl font-bold text-slate-800" style={{ fontFamily: 'Manrope, sans-serif' }}>Configuración de Precios</h1>
           <p className="text-sm text-slate-500">Parametros globales de facturacion</p>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function SupportPricingPage({ token }) {
         {/* Header */}
         <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
           <h2 className="text-sm font-bold text-slate-700">Precio global (aplica a todos los colegios por defecto)</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Los colegios con precio personalizado usaran su propia configuracion</p>
+          <p className="text-xs text-slate-400 mt-0.5">Los colegios con precio personalizado usaran su propia configuración</p>
         </div>
 
         <div className="p-6 space-y-6">
@@ -388,7 +388,7 @@ export default function SupportPricingPage({ token }) {
                     data-testid="yape-number-input"
                   />
                 </div>
-                <p className="text-xs text-slate-400 mt-1.5">Este numero se mostrara junto al QR en el modal de pago</p>
+                <p className="text-xs text-slate-400 mt-1.5">Este número se mostrara junto al QR en el modal de pago</p>
               </div>
 
               <div>

@@ -162,7 +162,7 @@ export default function SubscriptionCard({ token }) {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Numero de operacion (8 digitos)</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Número de operacion (8 digitos)</label>
                     <input
                       type="text" inputMode="numeric" maxLength={8}
                       value={operationCode}

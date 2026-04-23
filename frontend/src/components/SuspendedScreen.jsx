@@ -92,7 +92,7 @@ export default function SuspendedScreen({ token }) {
               <p className="text-2xl font-bold text-white">S/ {sub.monto_plan?.toFixed(2)}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-white/70 mb-1">Numero de operacion (8 digitos)</label>
+              <label className="block text-sm font-semibold text-white/70 mb-1">Número de operacion (8 digitos)</label>
               <input
                 type="text"
                 inputMode="numeric"

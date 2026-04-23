@@ -55,7 +55,7 @@ export default function PaymentsChart({ data }) {
           <h3 className="text-base font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>
             Ingresos Mensuales
           </h3>
-          <p className="text-xs text-slate-500 mt-1">Cobros registrados durante el ano academico</p>
+          <p className="text-xs text-slate-500 mt-1">Cobros registrados durante el ano académico</p>
         </div>
         <div className="flex gap-3 flex-wrap">
           <div className="text-right">

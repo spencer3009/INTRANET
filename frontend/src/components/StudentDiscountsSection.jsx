@@ -327,7 +327,7 @@ export default function StudentDiscountsSection({ token }) {
         {!selectedStudent && (
           <div className="text-center py-8">
             <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">Busca un alumno por grado/seccion o nombre para ver y gestionar sus descuentos</p>
+            <p className="text-sm text-slate-400">Busca un alumno por grado/sección o nombre para ver y gestionar sus descuentos</p>
           </div>
         )}
       </div>

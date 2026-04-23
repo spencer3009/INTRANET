@@ -146,7 +146,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
 
   // ─── Load students + records ──────────────────────────────────────────────
   const handleLoad = async () => {
-    if (!selectedGrade || !selectedSection) { toast.error("Selecciona grado y seccion"); return; }
+    if (!selectedGrade || !selectedSection) { toast.error("Selecciona grado y sección"); return; }
     setLoading(true);
     setLoaded(false);
     try {
@@ -220,7 +220,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                 <Brain className="w-5 h-5 text-violet-600" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Psicologia</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Psicología</h1>
                 <p className="text-sm text-slate-400">Seguimiento Emocional y Conductual</p>
               </div>
             </div>
@@ -249,9 +249,9 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Seccion</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
                 <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} disabled={!selectedGrade} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50" data-testid="section-select">
-                  <option value="">Seleccionar seccion</option>
+                  <option value="">Seleccionar sección</option>
                   {sections.map((s) => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
                 </select>
               </div>
@@ -368,7 +368,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                   {loadingRecords ? (
                     <div className="p-10 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-violet-500" /></div>
                   ) : records.length === 0 ? (
-                    <div className="p-10 text-center text-slate-400">No hay registros para esta seccion</div>
+                    <div className="p-10 text-center text-slate-400">No hay registros para esta sección</div>
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {records.map((r) => {
@@ -495,7 +495,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
               </div>
             )}
             <div>
-              <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Sesion"}</h3>
+              <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Sesión"}</h3>
               <p className="text-sm text-slate-500 font-medium">{studentName}</p>
             </div>
           </div>
@@ -522,12 +522,12 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Motivo de la sesion *</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Motivo de la sesion..." className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="modal-reason" />
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Motivo de la sesión *</label>
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Motivo de la sesión..." className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="modal-reason" />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Observacion profesional</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Observación profesional</label>
             <textarea value={observation} onChange={(e) => setObservation(e.target.value)} rows={2} placeholder="Observaciones del profesional..." className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="modal-observation" />
           </div>
 
@@ -605,7 +605,7 @@ function DetailModal({ record, students, onClose }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Grado / Seccion</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Grado / Sección</p>
               <p className="text-sm text-slate-700">{record.grade_name} — {record.section_name}</p>
             </div>
             <div>
@@ -627,7 +627,7 @@ function DetailModal({ record, students, onClose }) {
           </div>
           {record.professional_observation && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Observacion Profesional</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Observación Profesional</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{record.professional_observation}</p>
             </div>
           )}

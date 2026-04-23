@@ -110,7 +110,7 @@ export default function MaterialTableContent({ subjectId, token, user }) {
   
   const handleSubmit = async () => {
     if (!description.trim()) {
-      setError("La descripcion es requerida");
+      setError("La descripción es requerida");
       return;
     }
     
@@ -402,7 +402,7 @@ export default function MaterialTableContent({ subjectId, token, user }) {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Escribe una descripcion del material..."
+                  placeholder="Escribe una descripción del material..."
                   rows={3}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-400 focus:bg-white transition-all resize-none"
                   data-testid="material-description"

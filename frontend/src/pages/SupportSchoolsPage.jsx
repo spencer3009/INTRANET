@@ -1259,7 +1259,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual</label>
                     <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold" data-testid="create-school-amount">
                       S/ {globalPrice !== null ? globalPrice.toFixed(2) : "..."}
-                      <span className="text-xs font-normal text-slate-400 ml-2">(segun configuracion de Precios)</span>
+                      <span className="text-xs font-normal text-slate-400 ml-2">(segun configuración de Precios)</span>
                     </div>
                   </div>
                 </div>
@@ -1469,7 +1469,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Numero de operacion <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Número de operacion <span className="text-red-500">*</span></label>
                       <p className="text-xs text-slate-400 mb-2">Ingresa el codigo de operacion del pago.</p>
                       <input
                         type="text" inputMode="numeric" maxLength={8} value={renewCode}
@@ -1529,7 +1529,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     const nombre = ownerData.name || "Cliente";
                     const email = ownerData.email || "No registrado";
                     const pwd = ownerData.plain_password || "[contraseña no disponible]";
-                    const text = `Estimado/a ${nombre},\nSu cuenta ha sido creada exitosamente. A continuacion le comparto sus datos de acceso:\n\nAcceso al sistema: https://edunet.pe/login\nUsuario: ${email}\nContrasena: ${pwd}\n\nPasos para ingresar:\n1. Abra el enlace en su navegador (recomendamos Google Chrome)\n2. Ingrese su usuario y contrasena\n3. Haga clic en "Iniciar Sesion"`;
+                    const text = `Estimado/a ${nombre},\nSu cuenta ha sido creada exitosamente. A continuacion le comparto sus datos de acceso:\n\nAcceso al sistema: https://edunet.pe/login\nUsuario: ${email}\nContrasena: ${pwd}\n\nPasos para ingresar:\n1. Abra el enlace en su navegador (recomendamos Google Chrome)\n2. Ingrese su usuario y contrasena\n3. Haga clic en "Iniciar Sesión"`;
                     if (navigator.share) {
                       try { await navigator.share({ title: "Datos de acceso EduNet", text }); } catch {}
                     } else {

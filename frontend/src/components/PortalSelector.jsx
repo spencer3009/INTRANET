@@ -4,7 +4,7 @@ const PORTAL_CONFIG = {
   teacher: { label: "Portal Docente", icon: Briefcase, color: "from-blue-500 to-blue-600" },
   admin: { label: "Portal Administrador", icon: Briefcase, color: "from-slate-600 to-slate-700" },
   coordinator: { label: "Portal Coordinador", icon: Briefcase, color: "from-emerald-500 to-emerald-600" },
-  psicologo: { label: "Portal Psicologia", icon: Briefcase, color: "from-pink-500 to-pink-600" },
+  psicologo: { label: "Portal Psicología", icon: Briefcase, color: "from-pink-500 to-pink-600" },
   director: { label: "Portal Director", icon: Briefcase, color: "from-indigo-500 to-indigo-600" },
   auxiliar_alimentacion: { label: "Portal Alimentacion", icon: UtensilsCrossed, color: "from-orange-500 to-orange-600" },
   auxiliar_movilidad: { label: "Portal Movilidad", icon: BusFront, color: "from-purple-500 to-purple-600" },

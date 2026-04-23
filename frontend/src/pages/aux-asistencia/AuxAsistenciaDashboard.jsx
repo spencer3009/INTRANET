@@ -150,7 +150,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
     },
     {
       title: "Asistencia Manual Alumnos",
-      description: "Marcar asistencia de estudiantes por grado y seccion",
+      description: "Marcar asistencia de estudiantes por grado y sección",
       icon: GraduationCap,
       color: "from-indigo-500 to-violet-600",
       borderColor: "border-indigo-200",
@@ -172,7 +172,7 @@ export default function AuxAsistenciaDashboard({ user, token, onLogout, onSwitch
     },
     {
       title: "Reportes Estudiantes",
-      description: "Reportes de asistencia por grado, seccion y fechas",
+      description: "Reportes de asistencia por grado, sección y fechas",
       icon: FileText,
       color: "from-amber-500 to-orange-600",
       borderColor: "border-amber-200",

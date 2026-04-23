@@ -21,7 +21,7 @@ const AREA_LABELS = {
   direccion: "Direccion",
   tutoria: "Tutoria",
   orientacion_familiar: "Orientacion familiar",
-  externa: "Derivacion externa",
+  externa: "Derivación externa",
 };
 
 const inputCls = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all outline-none";
@@ -52,8 +52,8 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
       const data = await coordinacionApi.getDerivacion(token, id);
       setDeriv(data);
     } catch (err) {
-      console.error("Error loading derivacion:", err);
-      toast.error("Error al cargar derivacion");
+      console.error("Error loading derivación:", err);
+      toast.error("Error al cargar derivación");
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
   );
   if (!deriv) return (
     <CoordinacionLayout user={currentUser} token={token} onLogout={onLogout} activeSection="derivaciones">
-      <div className="text-center py-20 text-slate-400">Derivacion no encontrada</div>
+      <div className="text-center py-20 text-slate-400">Derivación no encontrada</div>
     </CoordinacionLayout>
   );
 
@@ -197,7 +197,7 @@ export default function DerivacionDetailPage({ token, subdomain, user: currentUs
             <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 mb-3">
               <div className="flex items-center gap-2 mb-2">
                 <Pen className="w-3.5 h-3.5 text-slate-400" />
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Motivo de la derivacion</p>
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Motivo de la derivación</p>
               </div>
               <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{deriv.reason}</p>
             </div>

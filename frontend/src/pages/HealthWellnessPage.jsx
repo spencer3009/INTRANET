@@ -11,7 +11,7 @@ const modules = [
   {
     id: "topico",
     label: "Topico",
-    description: "Registro de atencion medica, incidencias y seguimiento fisico",
+    description: "Registro de atención médica, incidencias y seguimiento fisico",
     icon: Cross,
     path: "topico",
     color: "rose",
@@ -92,7 +92,7 @@ export default function HealthWellnessPage({ user, token, onLogout }) {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Salud y Bienestar</h1>
-                <p className="text-sm text-slate-400">Selecciona un modulo</p>
+                <p className="text-sm text-slate-400">Selecciona un módulo</p>
               </div>
             </div>
           </div>

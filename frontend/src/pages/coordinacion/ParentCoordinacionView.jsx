@@ -69,7 +69,7 @@ export default function ParentCoordinacionView({ token, user }) {
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto" data-testid="parent-coordinacion-view">
-      <h1 className="text-xl font-bold text-slate-800 mb-4">Coordinacion escolar</h1>
+      <h1 className="text-xl font-bold text-slate-800 mb-4">Coordinación escolar</h1>
 
       {students.length === 0 ? (
         <p className="text-sm text-slate-400">No hay estudiantes vinculados a tu cuenta.</p>

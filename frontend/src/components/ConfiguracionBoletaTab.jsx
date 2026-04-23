@@ -51,7 +51,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
       setCorrelativo(d.correlativo_actual || 0);
       setConfigured(d.configured || false);
     } catch {
-      toast.error("Error al cargar configuracion de boleta");
+      toast.error("Error al cargar configuración de boleta");
     } finally {
       setLoading(false);
     }
@@ -63,16 +63,16 @@ export default function ConfiguracionBoletaTab({ token, user }) {
     if (!form.razon_social.trim()) return toast.error("La razon social es obligatoria");
     if (!form.ruc.trim()) return toast.error("El RUC es obligatorio");
     if (!validateRuc(form.ruc)) return toast.error("RUC invalido. Debe tener 11 digitos y empezar con 10 o 20");
-    if (!form.direccion.trim()) return toast.error("La direccion es obligatoria");
+    if (!form.direccion.trim()) return toast.error("La dirección es obligatoria");
     if (!form.distrito.trim()) return toast.error("El distrito es obligatorio");
     if (!form.provincia.trim()) return toast.error("La provincia es obligatoria");
     if (!form.departamento.trim()) return toast.error("El departamento es obligatorio");
-    if (form.pie_pagina && form.pie_pagina.length > 200) return toast.error("Pie de pagina max 200 caracteres");
+    if (form.pie_pagina && form.pie_pagina.length > 200) return toast.error("Pie de página max 200 caracteres");
 
     setSaving(true);
     try {
       await axios.put(`${API}/contabilidad/boleta-config`, form, { headers });
-      toast.success("Configuracion de boleta guardada");
+      toast.success("Configuración de boleta guardada");
       setConfigured(true);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
@@ -98,7 +98,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
         <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50" data-testid="boleta-config-warning">
           <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Configuracion pendiente</p>
+            <p className="text-sm font-medium text-amber-800">Configuración pendiente</p>
             <p className="text-xs text-amber-600 mt-0.5">
               Completa los datos del emisor para emitir boletas automaticamente al registrar ingresos.
             </p>
@@ -179,7 +179,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
           {/* Direccion */}
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Direccion *</span>
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Dirección *</span>
             </label>
             <input
               value={form.direccion}
@@ -223,7 +223,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Telefono</span>
+              <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Teléfono</span>
             </label>
             <input
               value={form.telefono}
@@ -248,7 +248,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
 
           {/* Pie de pagina */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Pie de Pagina (opcional)</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Pie de Página (opcional)</label>
             <textarea
               value={form.pie_pagina}
               onChange={(e) => {
@@ -271,7 +271,7 @@ export default function ConfiguracionBoletaTab({ token, user }) {
             data-testid="boleta-config-save-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? "Guardando..." : "Guardar Configuracion"}
+            {saving ? "Guardando..." : "Guardar Configuración"}
           </button>
         </div>
       </div>

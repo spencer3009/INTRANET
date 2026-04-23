@@ -225,7 +225,7 @@ function StudentAttendanceTab({ token, schoolId }) {
         } : s
       ));
       setJustifyModal(null);
-      setSuccess("Justificacion registrada correctamente");
+      setSuccess("Justificación registrada correctamente");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al justificar");
@@ -541,7 +541,7 @@ function StudentAttendanceTab({ token, schoolId }) {
                       <button
                         onClick={() => setJustificationInfo(student)}
                         className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 flex items-center justify-center transition-colors flex-shrink-0"
-                        title="Ver detalle de justificacion"
+                        title="Ver detalle de justificación"
                         data-testid={`justification-info-${student.id}`}
                       >
                         <MessageSquareText className="w-3.5 h-3.5" />

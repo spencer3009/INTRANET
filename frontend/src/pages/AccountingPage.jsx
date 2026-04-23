@@ -1074,7 +1074,7 @@ function StudentAutocomplete({ students, grades, sections, selectedId, onSelect,
             <div className="max-h-60 overflow-y-auto">
               {filteredStudents.length === 0 ? (
                 <p className="text-center text-sm text-gray-400 py-6">
-                  {gradeId ? "Sin estudiantes en este grado/seccion" : "Selecciona un grado para ver estudiantes"}
+                  {gradeId ? "Sin estudiantes en este grado/sección" : "Selecciona un grado para ver estudiantes"}
                 </p>
               ) : (
                 filteredStudents.map(s => (
@@ -2604,7 +2604,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         const { toast } = await import("sonner");
         let msg = "Pago registrado.";
         if (deletedCount > 0) msg += ` ${deletedCount} cuota${deletedCount > 1 ? 's' : ''} pendiente${deletedCount > 1 ? 's' : ''} anterior${deletedCount > 1 ? 'es' : ''} fueron eliminada${deletedCount > 1 ? 's' : ''} automaticamente.`;
-        else msg += " Configura los datos del emisor en Configuracion > Datos para Boletas para emitir boletas.";
+        else msg += " Configura los datos del emisor en Configuración > Datos para Boletas para emitir boletas.";
         toast.info(msg, { duration: 6000 });
       }
     }

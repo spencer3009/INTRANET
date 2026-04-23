@@ -160,7 +160,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
             <button
               onClick={() => setActiveTab("topico")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                activeTab === "topico"
+                activeTab === "tópico"
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
               }`}
@@ -169,13 +169,13 @@ export default function ParentHealthPage({ user, token, onLogout }) {
               <Stethoscope className="w-4 h-4" />
               Tópico
               <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === "topico" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                activeTab === "tópico" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
               }`}>{topicoRecords.length}</span>
             </button>
             <button
               onClick={() => setActiveTab("psicologia")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                activeTab === "psicologia"
+                activeTab === "psicología"
                   ? "bg-purple-600 text-white shadow-md"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
               }`}
@@ -184,7 +184,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
               <Brain className="w-4 h-4" />
               Psicología
               <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === "psicologia" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                activeTab === "psicología" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
               }`}>{psicologiaRecords.length}</span>
             </button>
           </div>
@@ -219,7 +219,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      activeTab === "topico" ? "bg-blue-100" : "bg-purple-100"
+                      activeTab === "tópico" ? "bg-blue-100" : "bg-purple-100"
                     }`}>
                       {activeTab === "topico" ? (
                         <Stethoscope className="w-5 h-5 text-blue-600" />
@@ -268,7 +268,7 @@ export default function ParentHealthPage({ user, token, onLogout }) {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedRecord(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
             <div className={`px-6 py-4 flex items-center justify-between ${
-              activeTab === "topico"
+              activeTab === "tópico"
                 ? "bg-gradient-to-r from-blue-600 to-cyan-500"
                 : "bg-gradient-to-r from-purple-600 to-fuchsia-500"
             }`}>

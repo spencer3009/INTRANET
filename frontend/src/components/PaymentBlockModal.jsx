@@ -27,8 +27,8 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
   const headers = { Authorization: `Bearer ${token}` };
 
   const validateCode = (code) => {
-    if (!/^\d{8}$/.test(code)) return "El numero de operacion debe tener exactamente 8 digitos numericos.";
-    if (INVALID_OPERATION_PATTERNS.includes(code)) return "Este numero de operacion no es valido. Revisa tu comprobante de Yape.";
+    if (!/^\d{8}$/.test(code)) return "El número de operacion debe tener exactamente 8 digitos numericos.";
+    if (INVALID_OPERATION_PATTERNS.includes(code)) return "Este número de operacion no es valido. Revisa tu comprobante de Yape.";
     return "";
   };
 
@@ -64,9 +64,9 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
           detail = `Error del servidor (${res.status})`;
         }
         if (detail === "OPERATION_CODE_DUPLICATE") {
-          setCodeError("Este numero de operacion ya fue registrado previamente. Verifica tu comprobante de Yape e intentalo nuevamente.");
+          setCodeError("Este número de operacion ya fue registrado previamente. Verifica tu comprobante de Yape e intentalo nuevamente.");
         } else if (detail === "INVALID_OPERATION_PATTERN" || detail === "INVALID_OPERATION_FORMAT") {
-          setCodeError("Este numero de operacion no es valido. Revisa tu comprobante de Yape.");
+          setCodeError("Este número de operacion no es valido. Revisa tu comprobante de Yape.");
         } else if (detail.includes("Ya existe una solicitud")) {
           setCodeError("Ya tienes un pago en verificacion. Espera a que soporte lo confirme.");
         } else {
@@ -142,7 +142,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
                     )}
                     {sub.yape_number && (
                       <div className="text-center pb-2 pt-0.5">
-                        <p className="text-white/70 text-[8px]">Numero Yape</p>
+                        <p className="text-white/70 text-[8px]">Número Yape</p>
                         <p className="text-white font-bold text-[11px] tracking-wide">+51 {sub.yape_number}</p>
                       </div>
                     )}
@@ -194,7 +194,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Numero de operacion (8 digitos)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Número de operacion (8 digitos)</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -214,7 +214,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
                 )}
               </div>
 
-              <p className="text-[10px] text-slate-400 text-center">Encuentras este numero en el comprobante de Yape despues de realizar tu pago.</p>
+              <p className="text-[10px] text-slate-400 text-center">Encuentras este número en el comprobante de Yape despues de realizar tu pago.</p>
 
               <div className="flex gap-2">
                 <button onClick={() => setStep(1)}
@@ -245,7 +245,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
               <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Pago registrado correctamente</h3>
-                <p className="text-sm text-slate-500 mt-1">Nuestro equipo de soporte validara tu numero de operacion y reactivara tu suscripcion en breve.</p>
+                <p className="text-sm text-slate-500 mt-1">Nuestro equipo de soporte validara tu número de operacion y reactivara tu suscripcion en breve.</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-3 space-y-1">
                 <div className="flex justify-between text-xs">

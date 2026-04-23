@@ -114,9 +114,9 @@ export default function TeacherSidebar({
             <span className="flex items-center justify-center w-8 h-8"><User className="w-[22px] h-[22px]" /></span>
             {(expanded || isExpanded) && <span className="font-medium">Mi Perfil</span>}
           </button>
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesion">
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesión">
             <span className="flex items-center justify-center w-8 h-8"><LogOut className="w-[22px] h-[22px]" /></span>
-            {(expanded || isExpanded) && <span className="font-medium">Cerrar Sesion</span>}
+            {(expanded || isExpanded) && <span className="font-medium">Cerrar Sesión</span>}
           </button>
         </div>
       </aside>

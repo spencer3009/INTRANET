@@ -96,7 +96,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Plantillas de Registro Auxiliar</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Define la estructura de evaluacion que usaran tus docentes al registrar notas.</p>
+            <p className="text-sm text-slate-500 mt-0.5">Define la estructura de evaluación que usaran tus docentes al registrar notas.</p>
             <div className="flex items-center gap-4 mt-2">
               <span className="text-xs font-semibold text-slate-400">{propias.length} plantilla{propias.length !== 1 ? "s" : ""} creada{propias.length !== 1 ? "s" : ""}</span>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
@@ -127,7 +127,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
                     <h3 className="font-bold text-slate-800 text-base">{sistema.nombre}</h3>
                     <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold tracking-wide border border-slate-200">SOLO LECTURA</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 max-w-lg">{sistema.descripcion || "Estructura de evaluacion estandar de EduNet. Clonala para crear tu propia version personalizada."}</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-lg">{sistema.descripcion || "Estructura de evaluación estandar de EduNet. Clonala para crear tu propia version personalizada."}</p>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
@@ -191,7 +191,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
             <Sparkles className="w-8 h-8 text-indigo-400" />
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1">Crea tu primera plantilla</h3>
-          <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">Clona la plantilla del sistema o crea una desde cero para definir los criterios de evaluacion de tu colegio.</p>
+          <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">Clona la plantilla del sistema o crea una desde cero para definir los criterios de evaluación de tu colegio.</p>
           <div className="flex items-center justify-center gap-3">
             {sistema && (
               <button onClick={() => handleClone(sistema.id, sistema.nombre)}

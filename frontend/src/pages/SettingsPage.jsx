@@ -438,10 +438,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     setSavingAttendance(true);
     try {
       await axios.put(`${API}/settings/attendance`, attendanceConfig, { headers });
-      setSuccess("Configuracion de asistencia guardada");
+      setSuccess("Configuración de asistencia guardada");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar configuracion de asistencia");
+      setError(err.response?.data?.detail || "Error al guardar configuración de asistencia");
     } finally {
       setSavingAttendance(false);
     }
@@ -1308,7 +1308,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   <Clock className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800">Configuracion de Asistencia</h2>
+                  <h2 className="text-lg font-bold text-slate-800">Configuración de Asistencia</h2>
                   <p className="text-sm text-slate-500">Define horarios de ingreso por nivel y reglas de puntualidad</p>
                 </div>
               </div>
@@ -1341,7 +1341,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     <GraduationCap className="w-4 h-4 text-emerald-500" /> Horario Estudiantes por Nivel
                   </h3>
                   {academicLevels.length === 0 ? (
-                    <p className="text-sm text-slate-400 italic">No hay niveles academicos configurados</p>
+                    <p className="text-sm text-slate-400 italic">No hay niveles académicos configurados</p>
                   ) : (
                     <div className="space-y-2">
                       {academicLevels.map(level => {
@@ -1456,7 +1456,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   data-testid="save-attendance-config"
                 >
                   {savingAttendance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Guardar Configuracion de Asistencia
+                  Guardar Configuración de Asistencia
                 </button>
               </div>
             </section>
@@ -1478,8 +1478,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       <Image className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold">Fondo de Pagina de Login</h3>
-                      <p className="text-sm text-white/70">Personaliza la imagen de fondo de la pagina de inicio de sesion de tu colegio</p>
+                      <h3 className="text-lg font-bold">Fondo de Página de Login</h3>
+                      <p className="text-sm text-white/70">Personaliza la imagen de fondo de la página de inicio de sesión de tu colegio</p>
                     </div>
                   </div>
                 </div>

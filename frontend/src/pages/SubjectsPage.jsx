@@ -851,15 +851,15 @@ function ReplicateSubjectsModal({ isOpen, onClose, targetSection, sections, subj
                 <>
                   <p className="text-sm text-gray-600 mb-4">
                     {mode === "section"
-                      ? "Selecciona la seccion del mismo grado:"
-                      : "Selecciona la seccion de otro grado:"}
+                      ? "Selecciona la sección del mismo grado:"
+                      : "Selecciona la sección de otro grado:"}
                   </p>
 
                   {targetHasSubjects && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2" data-testid="replicate-warning-duplicates">
                       <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-semibold text-amber-700">Esta seccion ya tiene asignaturas</p>
+                        <p className="text-sm font-semibold text-amber-700">Esta sección ya tiene asignaturas</p>
                         <p className="text-xs text-amber-600">Las asignaturas con el mismo nombre seran omitidas automaticamente.</p>
                       </div>
                     </div>
@@ -1302,7 +1302,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm sm:text-lg ${currentTheme.accent} font-bold mb-1`}>{selectedLevel.nombre}</p>
                       <h2 className="text-2xl sm:text-4xl font-black text-gray-800 truncate">{selectedGrade.nombre}</h2>
-                      <p className="text-sm sm:text-base text-gray-500 mt-1">Selecciona una seccion para gestionar sus asignaturas</p>
+                      <p className="text-sm sm:text-base text-gray-500 mt-1">Selecciona una sección para gestionar sus asignaturas</p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
                       <p className={`text-3xl sm:text-5xl font-black ${currentTheme.accent}`}>{gradeSections.length}</p>
@@ -1387,7 +1387,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                       <BookOpen className="w-10 h-10 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-700 mb-3">Sin asignaturas</h3>
-                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Esta seccion aun no tiene materias configuradas</p>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Esta sección aun no tiene materias configuradas</p>
                     <div className="flex flex-wrap items-center justify-center gap-3">
                       <button
                         onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}

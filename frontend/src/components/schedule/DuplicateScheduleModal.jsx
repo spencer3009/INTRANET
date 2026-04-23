@@ -11,9 +11,9 @@ const DAYS = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "do
 const DAY_LABELS = { lunes: "Lun", martes: "Mar", miercoles: "Mie", jueves: "Jue", viernes: "Vie", sabado: "Sab", domingo: "Dom" };
 
 const MODES = [
-  { id: "section", label: "Copiar a otra seccion", desc: "Duplica todos los bloques de una seccion a otra(s)", icon: Users, color: "from-blue-500 to-indigo-600" },
+  { id: "section", label: "Copiar a otra sección", desc: "Duplica todos los bloques de una sección a otra(s)", icon: Users, color: "from-blue-500 to-indigo-600" },
   { id: "day", label: "Copiar un dia a otros dias", desc: "Replica los bloques de un dia en otros dias de la semana", icon: Calendar, color: "from-emerald-500 to-teal-600" },
-  { id: "year", label: "Copiar a otro ano academico", desc: "Duplica el horario completo hacia un ano academico diferente", icon: CalendarRange, color: "from-orange-500 to-amber-600" },
+  { id: "year", label: "Copiar a otro ano académico", desc: "Duplica el horario completo hacia un ano académico diferente", icon: CalendarRange, color: "from-orange-500 to-amber-600" },
 ];
 
 export default function DuplicateScheduleModal({
@@ -281,7 +281,7 @@ export default function DuplicateScheduleModal({
 
             {step === 2 && mode === "year" && (
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Ano academico destino</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Ano académico destino</label>
                 <select value={targetYear} onChange={(e) => setTargetYear(parseInt(e.target.value))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500" data-testid="dup-target-year">
                   {[2025, 2026, 2027, 2028].map((y) => (
                     <option key={y} value={y}>{y}</option>

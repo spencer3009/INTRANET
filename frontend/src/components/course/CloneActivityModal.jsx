@@ -75,7 +75,7 @@ export default function CloneActivityModal({ isOpen, onClose, activity, activity
                   }));
                 return {
                   key: `sec_${sec.id}`,
-                  label: `Seccion ${sec.nombre || sec.name}`,
+                  label: `Sección ${sec.nombre || sec.name}`,
                   type: "seccion",
                   children: secSubjects,
                 };

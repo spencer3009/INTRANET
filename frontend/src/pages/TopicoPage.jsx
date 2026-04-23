@@ -25,7 +25,7 @@ const INCIDENT_TYPES = [
 const STATUS_OPTIONS = [
   { value: "atendido", label: "Atendido", color: "bg-green-100 text-green-700" },
   { value: "derivado", label: "Derivado", color: "bg-amber-100 text-amber-700" },
-  { value: "en_observacion", label: "En Observacion", color: "bg-blue-100 text-blue-700" },
+  { value: "en_observacion", label: "En Observación", color: "bg-blue-100 text-blue-700" },
 ];
 
 const INCIDENT_COLORS = {
@@ -165,7 +165,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
   // ─── Load students + records ──────────────────────────────────────────────
   const handleLoad = async () => {
     if (!selectedGrade || !selectedSection) {
-      toast.error("Selecciona grado y seccion");
+      toast.error("Selecciona grado y sección");
       return;
     }
     setLoading(true);
@@ -288,8 +288,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                 <Cross className="w-5 h-5 text-rose-600" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Topico</h1>
-                <p className="text-sm text-slate-400">Registro de Atencion Medica</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Tópico</h1>
+                <p className="text-sm text-slate-400">Registro de Atención Médica</p>
               </div>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Seccion</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
                 <select
                   value={selectedSection}
                   onChange={(e) => setSelectedSection(e.target.value)}
@@ -335,7 +335,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
                   data-testid="section-select"
                 >
-                  <option value="">Seleccionar seccion</option>
+                  <option value="">Seleccionar sección</option>
                   {sections.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.nombre}
@@ -466,7 +466,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-rose-500" />
                     </div>
                   ) : records.length === 0 ? (
-                    <div className="p-10 text-center text-slate-400">No hay registros para esta seccion</div>
+                    <div className="p-10 text-center text-slate-400">No hay registros para esta sección</div>
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {records.map((r) => {
@@ -603,7 +603,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
       return;
     }
     if (!description.trim()) {
-      toast.error("La descripcion es obligatoria");
+      toast.error("La descripción es obligatoria");
       return;
     }
     if (!responsible.trim()) {
@@ -653,7 +653,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
               </div>
             )}
             <div>
-              <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Atencion"}</h3>
+              <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Atención"}</h3>
               <p className="text-sm text-slate-500 font-medium">{studentName}</p>
             </div>
           </div>
@@ -706,7 +706,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Descripcion *</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Descripción *</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               placeholder="Describe la situacion..."
               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -796,7 +796,7 @@ function DetailModal({ record, students, onClose }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Grado / Seccion</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Grado / Sección</p>
               <p className="text-sm text-slate-700">{record.grade_name} — {record.section_name}</p>
             </div>
             <div>
@@ -813,7 +813,7 @@ function DetailModal({ record, students, onClose }) {
             </span>
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Descripcion</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase">Descripción</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{record.description}</p>
           </div>
           {(record.weight != null || record.height != null) && (

@@ -243,7 +243,7 @@ export default function CharlaDetailPage({ token, subdomain, user: currentUser, 
 
             {/* Description */}
             <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100">
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Descripcion</p>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Descripción</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{charla.description}</p>
             </div>
 

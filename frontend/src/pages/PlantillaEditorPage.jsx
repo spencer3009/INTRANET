@@ -301,7 +301,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                   <ClipboardList className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Criterios de Evaluacion</h2>
+                  <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Criterios de Evaluación</h2>
                   <p className="text-xs text-slate-400">Define las categorias y su peso en la nota final.</p>
                 </div>
               </div>
@@ -413,7 +413,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
             <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
               <div className="h-1 w-full bg-gradient-to-r from-slate-300 to-slate-400" />
               <div className="p-5">
-                <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4">Configuracion General</h2>
+                <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4">Configuración General</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs text-slate-500 font-bold mb-1.5 block">Etiqueta promedio final</label>

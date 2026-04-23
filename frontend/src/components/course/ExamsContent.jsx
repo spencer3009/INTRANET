@@ -204,10 +204,10 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
               placeholder="Ej: Examen parcial" data-testid="exam-title-input" />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Descripcion</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 resize-none"
-              placeholder="Instrucciones o descripcion del examen..." data-testid="exam-description-input" />
+              placeholder="Instrucciones o descripción del examen..." data-testid="exam-description-input" />
           </div>
 
           {/* Digital-specific */}

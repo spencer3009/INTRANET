@@ -369,7 +369,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             <AlertTriangle size={18} style={{ color: "#D97706" }} />
           </div>
           <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>
-            <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#78350F" }}>No hay alumnos registrados en esta seccion.</strong>
+            <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#78350F" }}>No hay alumnos registrados en esta sección.</strong>
             El registro auxiliar se activara automaticamente cuando existan alumnos matriculados.
           </div>
         </div>

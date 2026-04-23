@@ -349,7 +349,7 @@ function WorkshopModal({ token, editing, onSaved, onClose }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Descripcion</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Descripción</label>
             <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm resize-none" rows={2} data-testid="ws-description" />
           </div>

@@ -74,7 +74,7 @@
     "email": "pepito@gmail.com",
     "password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://gradebook-dynamic.preview.emergentagent.com/school/elroble/login"
+    "login_url": "https://school-saas-fix.preview.emergentagent.com/school/elroble/login"
   },
 
   "seed_data_creation": "Updated existing data: 1) Added teacher_id to subject 'Histortia', 2) Added grade_id to student 'pepito@gmail.com'",

@@ -59,7 +59,7 @@ export default function PaeSettingsModal({ open, onClose, token, onLogout }) {
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-bold text-slate-800">Configuracion</h2>
+          <h2 className="text-lg font-bold text-slate-800">Configuración</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400" data-testid="pae-settings-close">
             <X className="w-5 h-5" />
           </button>

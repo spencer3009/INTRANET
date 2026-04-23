@@ -10,7 +10,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const modules = [
   {
     id: "topico", label: "Topico",
-    description: "Registro de atencion medica, incidencias y seguimiento fisico",
+    description: "Registro de atención médica, incidencias y seguimiento fisico",
     icon: Cross, path: "topico", bgIcon: "bg-rose-100", hoverBorder: "hover:border-rose-300",
     hoverBg: "group-hover:bg-rose-500", textIcon: "text-rose-600", bar: "bg-rose-500",
   },
@@ -84,7 +84,7 @@ export default function AdminHealthPage({ user, token, onLogout }) {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Salud y Bienestar</h1>
-                <p className="text-sm text-slate-400">Selecciona un modulo</p>
+                <p className="text-sm text-slate-400">Selecciona un módulo</p>
               </div>
             </div>
           </div>

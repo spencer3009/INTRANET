@@ -25,7 +25,7 @@ function StaticHero({ schoolName, title, description }) {
               {title || "Bienvenidos a la Intranet"}
             </h1>
             <p className="text-white/70 text-sm md:text-base">
-              {description || `${schoolName || "Sistema de gestion educativa"} — Plataforma integral para la comunidad educativa`}
+              {description || `${schoolName || "Sistema de gestión educativa"} — Plataforma integral para la comunidad educativa`}
             </p>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
               {validBanners[currentIndex]?.title || "Bienvenidos a la Intranet"}
             </h1>
             <p className="text-white/70 text-sm md:text-base">
-              {validBanners[currentIndex]?.description || `${schoolName || "Sistema de gestion educativa"} — Plataforma integral para la comunidad educativa`}
+              {validBanners[currentIndex]?.description || `${schoolName || "Sistema de gestión educativa"} — Plataforma integral para la comunidad educativa`}
             </p>
           </div>
         </div>

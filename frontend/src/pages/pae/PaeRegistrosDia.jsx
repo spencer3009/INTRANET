@@ -135,14 +135,14 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Seccion</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
             <select
               value={seccionId}
               onChange={e => setSeccionId(e.target.value)}
               className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none"
               data-testid="pae-filter-seccion"
             >
-              <option value="">Seleccionar seccion</option>
+              <option value="">Seleccionar sección</option>
               {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
           </div>
@@ -231,7 +231,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">#</th>
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">Estudiante</th>
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">Grado</th>
-                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Seccion</th>
+                      <th className="text-left px-5 py-3 font-semibold text-slate-600">Sección</th>
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">Turno</th>
                       <th className="text-left px-5 py-3 font-semibold text-slate-600">Hora</th>
                     </tr>

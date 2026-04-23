@@ -427,7 +427,7 @@ export default function ExamAttemptPage() {
                             }`}>{isSelected ? <CheckCircle className="w-4 h-4" /> : String.fromCharCode(65 + idx)}</div>
                             <div className="flex-1 pt-1">
                               <span className={`font-medium ${isSelected ? 'text-indigo-800' : 'text-slate-700'}`}>{option.text}</span>
-                              {option.image_url && <img src={option.image_url} alt={`Opcion ${idx + 1}`} className="mt-3 max-h-36 rounded-lg" />}
+                              {option.image_url && <img src={option.image_url} alt={`Opción ${idx + 1}`} className="mt-3 max-h-36 rounded-lg" />}
                             </div>
                           </button>
                         );

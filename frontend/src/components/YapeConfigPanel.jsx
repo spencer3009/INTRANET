@@ -90,12 +90,12 @@ export default function YapeConfigPanel({ token }) {
         headers: { ...headers, "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("Configuracion de Yape guardada");
+      toast.success("Configuración de Yape guardada");
       setNewQrFile(null);
       setQrPreview(null);
       await loadConfig();
     } catch (err) {
-      const msg = err.response?.data?.detail || "Error al guardar la configuracion";
+      const msg = err.response?.data?.detail || "Error al guardar la configuración";
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -108,7 +108,7 @@ export default function YapeConfigPanel({ token }) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="yape-config-loading">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500 text-sm">Cargando configuracion...</span>
+        <span className="ml-2 text-gray-500 text-sm">Cargando configuración...</span>
       </div>
     );
   }
@@ -257,7 +257,7 @@ export default function YapeConfigPanel({ token }) {
             data-testid="yape-save-config-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? "Guardando..." : "Guardar configuracion"}
+            {saving ? "Guardando..." : "Guardar configuración"}
           </button>
         </div>
       </div>

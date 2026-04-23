@@ -152,7 +152,7 @@ export default function PsicologiaPerfilPage({ user, token, onLogout }) {
               value={form.phone}
               onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-              placeholder="Numero de contacto"
+              placeholder="Número de contacto"
               data-testid="profile-phone"
             />
           </div>
@@ -180,7 +180,7 @@ export default function PsicologiaPerfilPage({ user, token, onLogout }) {
               onChange={(e) => setForm(f => ({ ...f, schedule_notes: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               rows={3}
-              placeholder="Horarios de atencion, disponibilidad..."
+              placeholder="Horarios de atención, disponibilidad..."
               data-testid="profile-schedule"
             />
           </div>

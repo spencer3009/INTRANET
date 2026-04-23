@@ -46,7 +46,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
   }, [gradoId]);
 
   const handleAnalyze = async () => {
-    if (!nivelId || !gradoId || !seccionId) { toast.error("Selecciona nivel, grado y seccion"); return; }
+    if (!nivelId || !gradoId || !seccionId) { toast.error("Selecciona nivel, grado y sección"); return; }
     if (reason.trim().length < 3) { toast.error("Escribe un motivo"); return; }
     setAnalyzing(true);
     try {
@@ -91,7 +91,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
             <Trash2 className="w-5 h-5 text-white" />
             <div>
               <h3 className="text-white font-bold text-base">Eliminacion inteligente</h3>
-              <p className="text-white/70 text-xs">Solo elimina alumnos sin actividad academica</p>
+              <p className="text-white/70 text-xs">Solo elimina alumnos sin actividad académica</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg">
@@ -119,7 +119,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Seccion *</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Sección *</label>
                     <select value={seccionId} onChange={e => setSeccionId(e.target.value)} disabled={!gradoId} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm disabled:opacity-50">
                       <option value="">Seleccionar...</option>
                       {sections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
@@ -200,7 +200,7 @@ export default function BulkDeleteModal({ open, onClose, token, onDone }) {
               ) : (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
                   <Check className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-emerald-700">Todos los alumnos tienen actividad academica</p>
+                  <p className="text-sm font-semibold text-emerald-700">Todos los alumnos tienen actividad académica</p>
                   <p className="text-xs text-emerald-600">No hay alumnos eliminables</p>
                 </div>
               )}

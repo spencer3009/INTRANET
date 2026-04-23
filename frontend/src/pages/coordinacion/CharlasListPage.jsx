@@ -149,7 +149,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
       setForm({ title: "", description: "", scheduled_at: "", duration_minutes: 60, location: "Auditorio", topics: "", notes: "" });
       setSelectedGrades([]);
       setSelectedSections([]);
-      navigate(`${subdomain ? `/${subdomain}` : ""}/coordinacion/charlas/${created.id}`);
+      navigate(`${subdomain ? `/${subdomain}` : ""}/coordinación/charlas/${created.id}`);
     } catch (err) {
       console.error("Error creating charla:", err);
     } finally {
@@ -166,7 +166,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
   };
 
   const goToDetail = (id) => {
-    navigate(`${subdomain ? `/${subdomain}` : ""}/coordinacion/charlas/${id}`);
+    navigate(`${subdomain ? `/${subdomain}` : ""}/coordinación/charlas/${id}`);
   };
 
   const canWrite = ["coordinator", "admin", "owner"].includes(user?.role);
@@ -252,11 +252,11 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
                   data-testid="charla-title" />
               </div>
               <div>
-                <label className={labelCls}>Descripcion *</label>
+                <label className={labelCls}>Descripción *</label>
                 <textarea rows={3} value={form.description}
                   onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
                   className={`${inputCls} resize-none`}
-                  placeholder="Descripcion de la charla..."
+                  placeholder="Descripción de la charla..."
                   data-testid="charla-description" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -391,7 +391,7 @@ export default function CharlasListPage({ token, subdomain, user, onLogout }) {
               <h2 className="text-[15px] font-semibold text-slate-900 tracking-tight">Listado de charlas</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 {filterStatus ? TABS.find(t => t.val === filterStatus)?.label : "Mostrando todas"}
-                {total > 0 && ` · Pagina ${page} de ${totalPages}`}
+                {total > 0 && ` · Página ${page} de ${totalPages}`}
               </p>
             </div>
           </div>

@@ -1280,7 +1280,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ano Academico</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ano Académico</label>
                     <select
                       value={form.academic_year_id}
                       onChange={(e) => setForm((prev) => ({ ...prev, academic_year_id: e.target.value }))}
@@ -1317,7 +1317,7 @@ function BulkAssignmentModal({ isOpen, onClose, token, onSuccess, academicData }
                       <tr>
                         <th className="text-left px-4 py-2 text-gray-600 font-medium">#</th>
                         <th className="text-left px-4 py-2 text-gray-600 font-medium">Grado</th>
-                        <th className="text-left px-4 py-2 text-gray-600 font-medium">Seccion</th>
+                        <th className="text-left px-4 py-2 text-gray-600 font-medium">Sección</th>
                         <th className="text-left px-4 py-2 text-gray-600 font-medium">Asignatura</th>
                       </tr>
                     </thead>

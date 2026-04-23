@@ -119,7 +119,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
   };
 
   const handleDeleteSession = async (sessionId) => {
-    if (!window.confirm("Eliminar esta sesion?")) return;
+    if (!window.confirm("Eliminar esta sesión?")) return;
     try {
       await fetch(`${API}/v1/psychology/sessions/${sessionId}`, {
         method: "DELETE",
@@ -179,7 +179,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
                 <p className="text-sm font-medium text-slate-800">{student?.name} {student?.last_name}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Grado / Seccion</p>
+                <p className="text-xs text-slate-500">Grado / Sección</p>
                 <p className="text-sm font-medium text-slate-800">{student?.grade || "-"} {student?.section || ""}</p>
               </div>
               <div>
@@ -187,7 +187,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
                 <p className="text-sm font-medium text-slate-800 truncate">{student?.email || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Telefono</p>
+                <p className="text-xs text-slate-500">Teléfono</p>
                 <p className="text-sm font-medium text-slate-800">{student?.phone || "-"}</p>
               </div>
             </div>
@@ -459,7 +459,7 @@ function SessionModal({ session, onSave, onClose }) {
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-auto shadow-xl" data-testid="session-modal">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
-          <h3 className="font-semibold text-slate-800">{session ? "Editar Sesion" : "Nueva Sesion"}</h3>
+          <h3 className="font-semibold text-slate-800">{session ? "Editar Sesión" : "Nueva Sesión"}</h3>
           <button type="button" onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg">
             <X className="w-4 h-4 text-slate-500" />
           </button>
@@ -467,7 +467,7 @@ function SessionModal({ session, onSave, onClose }) {
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de sesion</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de sesión</label>
               <select
                 value={form.session_type}
                 onChange={(e) => setForm(f => ({ ...f, session_type: e.target.value }))}
@@ -515,7 +515,7 @@ function SessionModal({ session, onSave, onClose }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Notas de la sesion</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Notas de la sesión</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -536,7 +536,7 @@ function SessionModal({ session, onSave, onClose }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Fecha proxima sesion (opcional)</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Fecha proxima sesión (opcional)</label>
             <input
               type="date"
               value={form.next_session_date}
@@ -550,7 +550,7 @@ function SessionModal({ session, onSave, onClose }) {
             className="w-full py-2.5 bg-violet-600 text-white text-sm font-medium rounded-xl hover:bg-violet-700 transition-colors"
             data-testid="save-session-btn"
           >
-            {session ? "Guardar Cambios" : "Registrar Sesion"}
+            {session ? "Guardar Cambios" : "Registrar Sesión"}
           </button>
         </form>
       </div>

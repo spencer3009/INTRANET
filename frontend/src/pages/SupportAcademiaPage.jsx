@@ -419,7 +419,7 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Descripcion (opcional)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Descripción (opcional)</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
               placeholder="Notas sobre el video..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
               data-testid="video-desc-input" />

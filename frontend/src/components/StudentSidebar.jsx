@@ -170,12 +170,12 @@ export default function StudentSidebar({
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
           data-testid="student-logout"
-          title="Cerrar Sesion"
+          title="Cerrar Sesión"
         >
           <span className="flex items-center justify-center w-8 h-8">
             <LogOut className="w-[22px] h-[22px]" />
           </span>
-          {isExpanded && <span className="font-medium" style={{ fontSize: '0.95rem' }}>Cerrar Sesion</span>}
+          {isExpanded && <span className="font-medium" style={{ fontSize: '0.95rem' }}>Cerrar Sesión</span>}
         </button>
       </div>
     </aside>

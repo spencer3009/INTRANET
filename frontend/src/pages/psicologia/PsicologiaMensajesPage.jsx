@@ -126,7 +126,7 @@ export default function PsicologiaMensajesPage({ user, token, onLogout }) {
       <div data-testid="psicologia-mensajes">
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-slate-800">Comunicacion con Padres</h1>
+          <h1 className="text-lg font-bold text-slate-800">Comunicación con Padres</h1>
           <p className="text-xs text-slate-500">{conversations.length} conversaciones</p>
         </div>
         <button onClick={() => setShowNewMsg(true)}
