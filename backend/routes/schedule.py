@@ -43,6 +43,19 @@ class ScheduleSettingsCreate(BaseModel):
     include_saturday: bool = False
     include_sunday: bool = False
     permitir_profesor_multiples_horarios: bool = False
+    # ── Time slots customization ──────────────────────────────────────
+    # Configurable tick interval for the left column of the horizontal grid.
+    # Valid values: 10, 15, 20, 30, 45, 60 minutes.
+    slot_interval_minutes: int = 60
+    # Manual ticks (HH:MM strings). When non-empty, these override the
+    # interval generator: the grid draws exactly these ticks and nothing else.
+    manual_ticks: List[str] = []
+    # Scope of the settings payload when saving: "global" (whole school) or
+    # "by_section" (per {school_id, grade_id, section_id}). Read-only field
+    # when returned to clients; only used during POST.
+    slot_scope: str = "global"
+    grade_id: Optional[str] = None
+    section_id: Optional[str] = None
 
 class ScheduleCreate(BaseModel):
     tipo: str  # "clases", "profesores", "examenes"
@@ -74,21 +87,34 @@ class ScheduleUpdate(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/schedule-settings")
-async def get_schedule_settings(current_user = Depends(get_current_user)):
-    """Get schedule settings for school"""
+async def get_schedule_settings(
+    grade_id: Optional[str] = Query(None),
+    section_id: Optional[str] = Query(None),
+    current_user = Depends(get_current_user),
+):
+    """Get schedule settings for school.
+
+    Resolution order when grade_id + section_id are provided:
+      1. Look up per-section override in `schedule_slot_overrides`.
+         If found, merge it on top of the global settings (override wins
+         for the slot-related fields only: start_hour, end_hour,
+         slot_interval_minutes, manual_ticks).
+      2. Fallback: return the global settings as usual.
+    """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
+
+    school_id = user["school_id"]
+
+    # Load global settings (or defaults)
     settings = await db.schedule_settings.find_one(
-        {"school_id": user["school_id"]}, 
-        {"_id": 0}
+        {"school_id": school_id},
+        {"_id": 0},
     )
-    
     if not settings:
-        # Return default settings
-        return {
-            "school_id": user["school_id"],
+        settings = {
+            "school_id": school_id,
             "start_hour": "07:00",
             "end_hour": "18:00",
             "time_format": "24h",
@@ -96,30 +122,110 @@ async def get_schedule_settings(current_user = Depends(get_current_user)):
             "view_mode": "horizontal",
             "include_saturday": False,
             "include_sunday": False,
-            "permitir_profesor_multiples_horarios": False
+            "permitir_profesor_multiples_horarios": False,
+            "slot_interval_minutes": 60,
+            "manual_ticks": [],
         }
-    
-    # Ensure new fields have defaults for existing settings
-    if "permitir_profesor_multiples_horarios" not in settings:
-        settings["permitir_profesor_multiples_horarios"] = False
-    
+
+    # Defaults for new fields on legacy documents
+    settings.setdefault("permitir_profesor_multiples_horarios", False)
+    settings.setdefault("slot_interval_minutes", 60)
+    settings.setdefault("manual_ticks", [])
+
+    # Default scope flag reported back to clients (UI reads this to show
+    # whether it is editing a global or section-level config).
+    settings["slot_scope"] = "global"
+    settings["grade_id"] = None
+    settings["section_id"] = None
+
+    # Per-section override resolution
+    if grade_id and section_id:
+        override = await db.schedule_slot_overrides.find_one(
+            {
+                "school_id": school_id,
+                "grade_id": grade_id,
+                "section_id": section_id,
+            },
+            {"_id": 0},
+        )
+        if override:
+            # Only the slot-related fields are overridden; everything else
+            # (view_mode, time_format, weekend flags, etc.) stays global.
+            for key in ("start_hour", "end_hour", "slot_interval_minutes", "manual_ticks"):
+                if key in override:
+                    settings[key] = override[key]
+            settings["slot_scope"] = "by_section"
+            settings["grade_id"] = grade_id
+            settings["section_id"] = section_id
+
     return settings
+
 
 @router.post("/schedule-settings")
 async def save_schedule_settings(
     data: ScheduleSettingsCreate,
     current_user = Depends(get_current_user)
 ):
-    """Save or update schedule settings for school"""
+    """Save or update schedule settings for the school.
+
+    - `slot_scope="global"`  → upsert in `schedule_settings`.
+    - `slot_scope="by_section"` → upsert in `schedule_slot_overrides`,
+      keyed by {school_id, grade_id, section_id}. Only slot fields are
+      persisted there; everything else stays global.
+    """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
+
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden modificar configuración")
-    
+
     school_id = user["school_id"]
-    
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    # Validate manual_ticks format (each must be "HH:MM")
+    if data.manual_ticks:
+        for tick in data.manual_ticks:
+            parts = tick.split(":")
+            if len(parts) != 2 or not parts[0].isdigit() or not parts[1].isdigit():
+                raise HTTPException(status_code=400, detail=f"Tick inválido: '{tick}'. Usa formato HH:MM.")
+            h, m = int(parts[0]), int(parts[1])
+            if not (0 <= h < 24 and 0 <= m < 60):
+                raise HTTPException(status_code=400, detail=f"Tick fuera de rango: '{tick}'.")
+
+    if data.slot_interval_minutes not in (10, 15, 20, 30, 45, 60):
+        raise HTTPException(status_code=400, detail="slot_interval_minutes debe ser 10, 15, 20, 30, 45 o 60")
+
+    # ── Per-section override path ────────────────────────────────────
+    if data.slot_scope == "by_section":
+        if not data.grade_id or not data.section_id:
+            raise HTTPException(status_code=400, detail="Para alcance por sección se requieren grade_id y section_id")
+        override_doc = {
+            "school_id": school_id,
+            "grade_id": data.grade_id,
+            "section_id": data.section_id,
+            "start_hour": data.start_hour,
+            "end_hour": data.end_hour,
+            "slot_interval_minutes": data.slot_interval_minutes,
+            "manual_ticks": data.manual_ticks,
+            "updated_at": timestamp,
+        }
+        await db.schedule_slot_overrides.update_one(
+            {
+                "school_id": school_id,
+                "grade_id": data.grade_id,
+                "section_id": data.section_id,
+            },
+            {"$set": override_doc},
+            upsert=True,
+        )
+        return {
+            "message": "Configuración guardada solo para esta sección",
+            "scope": "by_section",
+            "settings": override_doc,
+        }
+
+    # ── Global path (default) ────────────────────────────────────────
     settings_data = {
         "school_id": school_id,
         "start_hour": data.start_hour,
@@ -130,17 +236,18 @@ async def save_schedule_settings(
         "include_saturday": data.include_saturday,
         "include_sunday": data.include_sunday,
         "permitir_profesor_multiples_horarios": data.permitir_profesor_multiples_horarios,
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "slot_interval_minutes": data.slot_interval_minutes,
+        "manual_ticks": data.manual_ticks,
+        "updated_at": timestamp,
     }
-    
-    # Upsert - create if not exists, update if exists
+
     await db.schedule_settings.update_one(
         {"school_id": school_id},
         {"$set": settings_data},
-        upsert=True
+        upsert=True,
     )
-    
-    return {"message": "Configuración guardada correctamente", "settings": settings_data}
+
+    return {"message": "Configuración guardada correctamente", "scope": "global", "settings": settings_data}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SCHEDULE BREAKS (Recreo, Almuerzo, Eventos)

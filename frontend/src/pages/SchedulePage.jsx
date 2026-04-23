@@ -238,6 +238,25 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
 
   useEffect(() => { loadBreaks(); }, [loadBreaks]);
 
+  // Refetch schedule-settings when the grade+section filter changes to
+  // honor per-section overrides (falls back to global if no override exists).
+  useEffect(() => {
+    if (!token) return;
+    const loadScopedSettings = async () => {
+      try {
+        const params = (selectedGrade && selectedSection)
+          ? `?grade_id=${encodeURIComponent(selectedGrade)}&section_id=${encodeURIComponent(selectedSection)}`
+          : "";
+        const res = await axios.get(`${API}/schedule-settings${params}`, { headers });
+        if (res.data) setSettings(res.data);
+      } catch (err) {
+        console.error("Error loading scoped schedule settings:", err);
+      }
+    };
+    loadScopedSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, selectedGrade, selectedSection]);
+
   // Teacher: load sections where they have schedule blocks
   useEffect(() => {
     if (user?.role !== "teacher") return;
@@ -352,8 +371,10 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
   const handleSaveSettings = async (newSettings) => {
     setSavingSettings(true);
     try {
-      await axios.post(`${API}/schedule-settings`, newSettings, { headers });
-      setSettings(newSettings);
+      const res = await axios.post(`${API}/schedule-settings`, newSettings, { headers });
+      // Use the server's merged response so UI reflects exactly what was persisted.
+      const saved = res.data?.settings || newSettings;
+      setSettings((prev) => ({ ...(prev || {}), ...saved, slot_scope: res.data?.scope || newSettings.slot_scope || "global" }));
       setShowSettings(false);
     } catch (err) {
       console.error("Error saving settings:", err);
@@ -739,6 +760,8 @@ export default function SchedulePage({ user, token, onLogout, readOnly = false, 
             settings={settings}
             onSave={handleSaveSettings}
             loading={savingSettings}
+            selectedGrade={selectedGrade}
+            selectedSection={selectedSection}
           />
 
           <ScheduleEntryModal

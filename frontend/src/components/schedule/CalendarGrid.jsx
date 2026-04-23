@@ -53,25 +53,47 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     return time;
   }, [settings]);
 
-  // Horizontal mode: generate time slots as fixed rows
+  // ── TIME SLOTS (left column ticks) ─────────────────────────────
+  // Priority 1: manual_ticks (exact HH:MM list defined by the admin).
+  // Priority 2: slot_interval_minutes generator between start_hour/end_hour.
+  // Legacy fallback: hourly ticks starting at settings.start_hour.
   const timeSlots = useMemo(() => {
+    const ticks = Array.isArray(settings?.manual_ticks) ? settings.manual_ticks.filter(Boolean) : [];
+    if (ticks.length > 0) {
+      // Normalize to "HH:MM" and sort ascending
+      return [...ticks]
+        .map((t) => {
+          const [h, m = "0"] = String(t).split(":");
+          return `${String(parseInt(h)).padStart(2, "0")}:${String(parseInt(m || 0)).padStart(2, "0")}`;
+        })
+        .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    }
+    const intervalMin = parseInt(settings?.slot_interval_minutes || 60, 10);
+    const startTotal = timeToMinutes(settings?.start_hour || "07:00");
+    const endTotal = timeToMinutes(settings?.end_hour || "18:00");
     const slots = [];
-    const startH = parseInt(settings?.start_hour?.split(":")[0] || "7");
-    const endH = parseInt(settings?.end_hour?.split(":")[0] || "18");
-    for (let h = startH; h < endH; h++) {
-      slots.push(`${h.toString().padStart(2, "0")}:00`);
+    for (let m = startTotal; m < endTotal; m += intervalMin) {
+      slots.push(minutesToTime(m));
     }
     return slots;
   }, [settings]);
 
-  const formatSlotRange = useCallback((time) => {
-    const [h] = time.split(":"); const hour = parseInt(h); const next = hour + 1;
-    if (settings?.time_format === "12h") {
-      const f = (hr) => { const a = hr >= 12 ? "PM" : "AM"; return `${hr % 12 || 12}:00 ${a}`; };
-      return `${f(hour)} - ${f(next)}`;
+  // Next-tick lookup (minutes) — used by formatSlotRange and rowSpan calcs.
+  const nextTickMinutes = useCallback((time) => {
+    const currentMin = timeToMinutes(time);
+    const idx = timeSlots.findIndex((t) => t === time);
+    if (idx >= 0 && idx < timeSlots.length - 1) {
+      return timeToMinutes(timeSlots[idx + 1]);
     }
-    return `${time} - ${next.toString().padStart(2, "0")}:00`;
-  }, [settings]);
+    // Last tick: fall back to grid end (end_hour setting).
+    return Math.max(gridEnd, currentMin + 60);
+  }, [timeSlots, gridEnd]);
+
+  const formatSlotRange = useCallback((time) => {
+    const nextMin = nextTickMinutes(time);
+    const nextTime = minutesToTime(nextMin);
+    return `${formatTime(time)} - ${formatTime(nextTime)}`;
+  }, [nextTickMinutes, formatTime]);
 
   // Vertical mode: guide lines
   const guideLines = useMemo(() => {
@@ -171,45 +193,60 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   }[type] || { bg: "#F1F5F9", border: "border-slate-400", text: "text-slate-800", icon: "⏸️" });
 
   const isTimeBlocked = useCallback((timeSlot) => {
-    const [slotHour] = timeSlot.split(":").map(Number);
+    const slotStart = timeToMinutes(timeSlot);
+    const slotEnd = nextTickMinutes(timeSlot);
     return breaks?.find(b => {
-      const [sH] = b.start_time.split(":").map(Number);
-      const [eH] = b.end_time.split(":").map(Number);
-      return slotHour >= sH && slotHour < eH;
+      const bStart = timeToMinutes(b.start_time);
+      const bEnd = timeToMinutes(b.end_time);
+      // Block the slot if its time range overlaps the break (strictly between slot bounds).
+      return bStart <= slotStart && bEnd >= slotEnd;
     });
-  }, [breaks]);
+  }, [breaks, nextTickMinutes]);
 
   const getBreakForSlot = useCallback((timeSlot) => {
-    const [slotHour] = timeSlot.split(":").map(Number);
+    const slotStart = timeToMinutes(timeSlot);
+    const slotEnd = nextTickMinutes(timeSlot);
     return breaks?.find(b => {
-      const [sH] = b.start_time.split(":").map(Number);
-      return slotHour === sH;
+      const bStart = timeToMinutes(b.start_time);
+      // Attach the break visual to the first slot it starts in.
+      return bStart >= slotStart && bStart < slotEnd;
     });
-  }, [breaks]);
+  }, [breaks, nextTickMinutes]);
 
   // ═══════════════════════════════════════════════════════════════
   // HORIZONTAL MODE — Classic row-based layout
   // ═══════════════════════════════════════════════════════════════
   if (viewMode === "horizontal") {
     const getSchedulesForSlot = (day, timeSlot) => {
-      const [slotH] = timeSlot.split(":").map(Number);
+      const slotStart = timeToMinutes(timeSlot);
+      const slotEnd = nextTickMinutes(timeSlot);
       return schedulesByDay[day].filter(s => {
-        const [sH] = s.hora_inicio.split(":").map(Number);
-        const [eH] = s.hora_fin.split(":").map(Number);
-        return slotH >= sH && slotH < eH;
+        const sStart = timeToMinutes(s.hora_inicio);
+        const sEnd = timeToMinutes(s.hora_fin);
+        // Class occupies this slot iff its range overlaps the slot range.
+        return sStart < slotEnd && sEnd > slotStart;
       });
     };
     const startsAtSlot = (s, timeSlot) => {
-      const [slotH] = timeSlot.split(":").map(Number);
-      const [sH] = s.hora_inicio.split(":").map(Number);
-      return slotH === sH;
+      const slotStart = timeToMinutes(timeSlot);
+      const slotEnd = nextTickMinutes(timeSlot);
+      const sStart = timeToMinutes(s.hora_inicio);
+      return sStart >= slotStart && sStart < slotEnd;
     };
 
     const renderHorizBlock = (schedule) => {
       const { teacherFullName, teacherPhoto } = getTeacherInfo(schedule);
-      const [sH] = schedule.hora_inicio.split(":").map(Number);
-      const [eH] = schedule.hora_fin.split(":").map(Number);
-      const spanRows = Math.max(eH - sH, 1);
+      const sStart = timeToMinutes(schedule.hora_inicio);
+      const sEnd = timeToMinutes(schedule.hora_fin);
+      // Row-span is the number of ticks that the class covers.
+      const spanRows = Math.max(
+        timeSlots.filter((t) => {
+          const tStart = timeToMinutes(t);
+          const tEnd = nextTickMinutes(t);
+          return tStart < sEnd && tEnd > sStart;
+        }).length,
+        1
+      );
       const isHighlighted = highlightProfesorId && schedule.profesor_id === highlightProfesorId;
 
       return (

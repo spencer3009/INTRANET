@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Settings, Loader2, Check } from "lucide-react";
+import { Settings, Loader2, Check, Clock, Plus, X as XIcon } from "lucide-react";
 import { TimePicker } from "../ui/time-picker";
 
-export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
+export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading, selectedGrade = "", selectedSection = "" }) {
   const [form, setForm] = useState({
     start_hour: "07:00",
     end_hour: "18:00",
@@ -11,8 +11,13 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
     view_mode: "horizontal",
     include_saturday: false,
     include_sunday: false,
-    permitir_profesor_multiples_horarios: false
+    permitir_profesor_multiples_horarios: false,
+    slot_interval_minutes: 60,
+    manual_ticks: [],
+    slot_scope: "global",
   });
+  const [newTick, setNewTick] = useState("");
+  const [tickError, setTickError] = useState("");
 
   useEffect(() => {
     if (isOpen && settings) {
@@ -24,14 +29,61 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
         view_mode: settings.view_mode || "horizontal",
         include_saturday: settings.include_saturday || false,
         include_sunday: settings.include_sunday || false,
-        permitir_profesor_multiples_horarios: settings.permitir_profesor_multiples_horarios || false
+        permitir_profesor_multiples_horarios: settings.permitir_profesor_multiples_horarios || false,
+        slot_interval_minutes: parseInt(settings.slot_interval_minutes) || 60,
+        manual_ticks: Array.isArray(settings.manual_ticks) ? [...settings.manual_ticks] : [],
+        slot_scope: settings.slot_scope || "global",
       });
+      setNewTick("");
+      setTickError("");
     }
   }, [isOpen, settings]);
 
+  const canUseBySection = Boolean(selectedGrade && selectedSection);
+
+  const normalizeTick = (raw) => {
+    const parts = String(raw).trim().split(":");
+    if (parts.length !== 2) return null;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  const handleAddTick = () => {
+    setTickError("");
+    const normalized = normalizeTick(newTick);
+    if (!normalized) {
+      setTickError("Formato inválido. Usa HH:MM (ej. 08:20).");
+      return;
+    }
+    if (form.manual_ticks.includes(normalized)) {
+      setTickError("Ese tick ya está en la lista.");
+      return;
+    }
+    const next = [...form.manual_ticks, normalized].sort();
+    setForm((p) => ({ ...p, manual_ticks: next }));
+    setNewTick("");
+  };
+
+  const handleRemoveTick = (t) => {
+    setForm((p) => ({ ...p, manual_ticks: p.manual_ticks.filter((x) => x !== t) }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    // Build payload: include grade_id/section_id only when scope is by_section.
+    const payload = { ...form };
+    if (payload.slot_scope === "by_section" && canUseBySection) {
+      payload.grade_id = selectedGrade;
+      payload.section_id = selectedSection;
+    } else {
+      payload.slot_scope = "global";
+      payload.grade_id = null;
+      payload.section_id = null;
+    }
+    onSave(payload);
   };
 
   if (!isOpen) return null;
@@ -229,6 +281,120 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
                 </span>
               </div>
             </label>
+          </div>
+
+          {/* ── Time slot ticks ────────────────────────────────────── */}
+          <div className="p-4 rounded-xl border-2 border-slate-200 bg-blue-50/30" data-testid="settings-ticks-section">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-blue-600" />
+              <h4 className="text-sm font-bold text-slate-800">Ticks de tiempo</h4>
+            </div>
+
+            <label className="block text-xs font-semibold text-slate-600 mb-2">Intervalo entre ticks</label>
+            <select
+              data-testid="settings-slot-interval"
+              value={form.slot_interval_minutes}
+              onChange={(e) => setForm(p => ({ ...p, slot_interval_minutes: parseInt(e.target.value, 10) }))}
+              disabled={form.manual_ticks.length > 0}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {[10, 15, 20, 30, 45, 60].map((opt) => (
+                <option key={opt} value={opt}>{opt} minutos</option>
+              ))}
+            </select>
+
+            <label className="block text-xs font-semibold text-slate-600 mt-4 mb-2">O define ticks manualmente</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="08:20"
+                value={newTick}
+                onChange={(e) => { setNewTick(e.target.value); setTickError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTick(); } }}
+                data-testid="settings-tick-input"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddTick}
+                data-testid="settings-tick-add-btn"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Agregar
+              </button>
+            </div>
+            {tickError && (
+              <p className="text-xs text-red-600 mt-1" data-testid="settings-tick-error">{tickError}</p>
+            )}
+
+            {form.manual_ticks.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2" data-testid="settings-tick-chips">
+                {form.manual_ticks.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs font-medium">
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTick(t)}
+                      data-testid={`settings-tick-remove-${t.replace(":", "")}`}
+                      className="hover:bg-blue-100 rounded-full p-0.5"
+                      aria-label={`Quitar tick ${t}`}
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 mt-3 italic">
+              Si defines ticks manualmente, el intervalo se ignora.
+            </p>
+          </div>
+
+          {/* ── Scope of the change ─────────────────────────────────── */}
+          <div className="p-4 rounded-xl border-2 border-slate-200 bg-slate-50/50" data-testid="settings-scope-section">
+            <h4 className="text-sm font-bold text-slate-800 mb-3">Alcance del cambio</h4>
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="slot_scope"
+                  value="global"
+                  checked={form.slot_scope === "global"}
+                  onChange={() => setForm(p => ({ ...p, slot_scope: "global" }))}
+                  data-testid="settings-scope-global"
+                  className="mt-0.5 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-slate-700 block">Aplicar a todo el colegio</span>
+                  <span className="text-xs text-slate-500">Usado por todos los grados y secciones que no tengan una configuración propia.</span>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 ${canUseBySection ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                title={canUseBySection ? "" : "Selecciona un grado y sección primero."}
+              >
+                <input
+                  type="radio"
+                  name="slot_scope"
+                  value="by_section"
+                  checked={form.slot_scope === "by_section"}
+                  onChange={() => canUseBySection && setForm(p => ({ ...p, slot_scope: "by_section" }))}
+                  disabled={!canUseBySection}
+                  data-testid="settings-scope-by-section"
+                  className="mt-0.5 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-slate-700 block">Aplicar solo a la sección seleccionada actualmente</span>
+                  <span className="text-xs text-slate-500">
+                    {canUseBySection
+                      ? "Solo este grado+sección usará esta configuración. Otras secciones mantienen la global."
+                      : "Selecciona un grado y sección primero."}
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
 
           </div>
