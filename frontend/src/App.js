@@ -1363,6 +1363,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/parent/editar-hijo/:childId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentEnrollmentForm user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* ════════════════════════════════════════════════════════════════════
               PSYCHOLOGY PORTAL - Direct path (for subdomain mode)
@@ -2469,6 +2477,14 @@ function App() {
           />
           <Route
             path="/:subdomain/parent/registrar-alumno"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentEnrollmentForm user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/parent/editar-hijo/:childId"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentEnrollmentForm user={user} token={token} />

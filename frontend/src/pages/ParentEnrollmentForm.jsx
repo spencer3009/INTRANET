@@ -3,16 +3,27 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   ArrowLeft, GraduationCap, User, FileText, Heart,
-  Check, Loader2, AlertTriangle, Info, ChevronDown, Building2
+  Check, Loader2, AlertTriangle, Info, ChevronDown, Building2, Save
 } from "lucide-react";
-import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+const EMPTY_FORM = {
+  name: "", last_name: "", dni: "", birthday: "", gender: "",
+  phone: "", address: "", photo_url: "",
+  nivel_id: "", grado_id: "", seccion_id: "", turno_id: "",
+  colegio_anterior: "", codigo_modular: "", ultimo_grado_cursado: "", ano_lectivo_anterior: "",
+  condiciones_medicas: "", alergias: "",
+  doctor_nombre: "", doctor_telefono: "",
+  persona_autorizada: "", persona_autorizada_telefono: "",
+  notas: "",
+};
+
 export default function ParentEnrollmentForm({ user, token }) {
   const navigate = useNavigate();
-  const { subdomain } = useParams();
+  const { subdomain, childId } = useParams();
   const headers = { Authorization: `Bearer ${token}` };
+  const isEditMode = Boolean(childId);
 
   const [levels, setLevels] = useState([]);
   const [allGrades, setAllGrades] = useState([]);
@@ -25,38 +36,75 @@ export default function ParentEnrollmentForm({ user, token }) {
   const [configLoading, setConfigLoading] = useState(true);
   const [ageWarning, setAgeWarning] = useState("");
   const [showProcedencia, setShowProcedencia] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const [form, setForm] = useState({
-    name: "", last_name: "", dni: "", birthday: "", gender: "",
-    phone: "", address: "", photo_url: "",
-    nivel_id: "", grado_id: "", seccion_id: "", turno_id: "",
-    colegio_anterior: "", codigo_modular: "", ultimo_grado_cursado: "", ano_lectivo_anterior: "",
-    condiciones_medicas: "", alergias: "",
-    doctor_nombre: "", doctor_telefono: "",
-    persona_autorizada: "", persona_autorizada_telefono: "",
-    notas: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  // Load enrollment config + all academic data at once
+  // Load enrollment config + all academic data at once. If edit mode, also load the pending child.
   useEffect(() => {
     (async () => {
       try {
-        const [configRes, levelsRes, gradesRes, sectionsRes, shiftsRes] = await Promise.all([
+        const requests = [
           axios.get(`${API}/api/school/enrollment-config`, { headers }),
           axios.get(`${API}/api/academic/levels`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/academic/grades`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/academic/sections`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/academic/shifts`, { headers }).catch(() => ({ data: [] })),
-        ]);
+        ];
+        if (isEditMode) {
+          requests.push(
+            axios.get(`${API}/api/parent/children/pending/${childId}`, { headers })
+          );
+        }
+        const results = await Promise.all(requests);
+        const [configRes, levelsRes, gradesRes, sectionsRes, shiftsRes, childRes] = results;
         setAcademicEditable(configRes.data?.academic_info_editable || false);
         setLevels(levelsRes.data || []);
         setAllGrades(gradesRes.data || []);
         setAllSections(sectionsRes.data || []);
         setTurnos(shiftsRes.data || []);
-      } catch {}
+
+        if (isEditMode) {
+          const child = childRes?.data?.child;
+          if (!child) {
+            setLoadError("No se pudieron cargar los datos del hijo.");
+          } else {
+            setForm({
+              name: child.name || "",
+              last_name: child.last_name || "",
+              dni: child.dni || "",
+              birthday: (child.birthday || "").slice(0, 10),
+              gender: child.gender || "",
+              phone: child.phone || "",
+              address: child.address || "",
+              photo_url: child.photo_url || "",
+              nivel_id: child.nivel_id || "",
+              grado_id: child.grado_id || "",
+              seccion_id: child.seccion_id || "",
+              turno_id: child.turno_id || "",
+              colegio_anterior: child.colegio_anterior || "",
+              codigo_modular: child.codigo_modular || "",
+              ultimo_grado_cursado: child.ultimo_grado_cursado || "",
+              ano_lectivo_anterior: child.ano_lectivo_anterior || "",
+              condiciones_medicas: child.condiciones_medicas || "",
+              alergias: child.alergias || "",
+              doctor_nombre: child.doctor_nombre || "",
+              doctor_telefono: child.doctor_telefono || "",
+              persona_autorizada: child.persona_autorizada || "",
+              persona_autorizada_telefono: child.persona_autorizada_telefono || "",
+              notas: child.notas || "",
+            });
+          }
+        }
+      } catch (err) {
+        if (isEditMode) {
+          setLoadError(err.response?.data?.detail || "No se pudieron cargar los datos.");
+        }
+      }
       setConfigLoading(false);
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId]);
 
   // Filter grades by selected nivel
   const filteredGrades = form.nivel_id
@@ -132,12 +180,33 @@ export default function ParentEnrollmentForm({ user, token }) {
 
     setSaving(true);
     try {
-      await axios.post(`${API}/api/enrollment/self-register`, form, { headers });
+      if (isEditMode) {
+        await axios.patch(`${API}/api/parent/children/pending/${childId}`, form, { headers });
+      } else {
+        await axios.post(`${API}/api/enrollment/self-register`, form, { headers });
+      }
       setShowSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al enviar la solicitud");
+      setError(err.response?.data?.detail || (isEditMode ? "Error al guardar los cambios" : "Error al enviar la solicitud"));
     } finally { setSaving(false); }
   };
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 max-w-md w-full text-center" data-testid="enrollment-load-error">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">No se pudieron cargar los datos</h2>
+          <p className="text-slate-500 text-sm mb-6">{loadError}</p>
+          <button onClick={goBack} className="px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold transition-colors">
+            Volver
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (showSuccess) {
     return (
@@ -146,15 +215,27 @@ export default function ParentEnrollmentForm({ user, token }) {
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <Check className="w-10 h-10 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-3">Solicitud enviada correctamente</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">
+            {isEditMode ? "Datos actualizados correctamente" : "Solicitud enviada correctamente"}
+          </h2>
           <p className="text-slate-500 text-sm mb-6">
-            El colegio revisará los datos y te notificaremos cuando sea aprobada. El proceso puede tardar unos días hábiles.
+            {isEditMode
+              ? "Los cambios se guardaron. El colegio seguirá revisando la solicitud de matrícula."
+              : "El colegio revisará los datos y te notificaremos cuando sea aprobada. El proceso puede tardar unos días hábiles."}
           </p>
           <button onClick={goBack} data-testid="enrollment-success-accept"
             className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors">
             Aceptar
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
       </div>
     );
   }
@@ -171,12 +252,25 @@ export default function ParentEnrollmentForm({ user, token }) {
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-slate-800">Registrar a mi hijo</h1>
-          <p className="text-xs text-slate-500">Completa los datos para solicitar la matrícula</p>
+          <h1 className="text-base font-bold text-slate-800">
+            {isEditMode ? "Editar solicitud de matrícula" : "Registrar a mi hijo"}
+          </h1>
+          <p className="text-xs text-slate-500">
+            {isEditMode
+              ? "Actualiza los datos de tu hijo pendiente de aprobación"
+              : "Completa los datos para solicitar la matrícula"}
+          </p>
         </div>
       </header>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
+        {isEditMode && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 flex items-start gap-2" data-testid="enrollment-edit-banner">
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Estás editando una solicitud <strong>pendiente de aprobación</strong>. Los cambios se enviarán al colegio para su revisión.</span>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2" data-testid="enrollment-error">
             <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
@@ -376,8 +470,10 @@ export default function ParentEnrollmentForm({ user, token }) {
         {/* Submit */}
         <button type="submit" disabled={saving} data-testid="enrollment-submit"
           className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-          {saving ? "Enviando solicitud..." : "Enviar solicitud de matrícula"}
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : (isEditMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />)}
+          {saving
+            ? (isEditMode ? "Guardando cambios..." : "Enviando solicitud...")
+            : (isEditMode ? "Guardar cambios" : "Enviar solicitud de matrícula")}
         </button>
       </form>
     </div>

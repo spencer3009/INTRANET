@@ -30,6 +30,12 @@ Ver `/app/memory/test_credentials.md`.
   - Hook integrado en `require_role()` y en todos los endpoints manuales de `student_portal.py`.
   - `/api/auth/login` ahora bloquea también `enrollment_status=rejected` y `student_status in ("rejected","deleted")`.
   - Test suite: `/app/backend/tests/test_student_guard.py` (4/4 pass).
+- [2026-04] **P0 Edición/Eliminación de Hijos Pendientes y Rechazados en Portal de Padres** (`parent_portal.py` + `ParentEnrollmentForm.jsx` + `ParentDashboardPage.jsx` + `App.js`):
+  - Nuevo endpoint `GET /api/parent/children/pending/{child_id}` para cargar detalle completo de un hijo pendiente.
+  - `PATCH /api/parent/children/pending/{child_id}`: whitelist ampliado a todos los campos del auto-registro (DNI, nivel/grado/sección/turno, procedencia, condiciones médicas, doctor, persona autorizada, notas, photo_url).
+  - `DELETE /api/parent/children/pending/{child_id}`: ahora acepta tanto `pending` como `rejected` (hijos rechazados se pueden borrar para volver a intentar).
+  - `ParentEnrollmentForm.jsx` reutilizable: en modo `create` usa `POST /api/enrollment/self-register`; en modo `edit` (ruta `/parent/editar-hijo/:childId`) precarga datos y usa `PATCH`.
+  - Dashboard: botón editar solo si `pending`; botón eliminar si `pending` **o** `rejected`. Modal de confirmación con copy dinámico.
 
 ## Roadmap
 ### P1

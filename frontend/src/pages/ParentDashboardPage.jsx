@@ -35,7 +35,9 @@ import {
   Receipt,
   QrCode,
   Clock,
-  XCircle
+  XCircle,
+  Edit3,
+  Trash2
 } from "lucide-react";
 import YapePaymentModal from "../components/YapePaymentModal";
 
@@ -150,6 +152,10 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [parentProfile, setParentProfile] = useState(null);
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(null);
+  // Pending-child management (edit/delete flow)
+  const [pendingChildToDelete, setPendingChildToDelete] = useState(null);
+  const [deletingChild, setDeletingChild] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [paymentData, setPaymentData] = useState(null);
@@ -237,6 +243,35 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
     localStorage.setItem('selected_child_id', newChild.id);
     await loadChildDashboard(newChild.id);
     setLoading(false);
+  };
+
+  const handleDeletePendingChild = async () => {
+    if (!pendingChildToDelete) return;
+    setDeletingChild(true);
+    setDeleteError("");
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`${API}/api/parent/children/pending/${pendingChildToDelete.id}`, { headers });
+      const deletedId = pendingChildToDelete.id;
+      // Refresh children list + selected child
+      const remaining = children.filter(c => c.id !== deletedId);
+      setChildren(remaining);
+      if (selectedChild?.id === deletedId) {
+        const next = remaining[0] || null;
+        setSelectedChild(next);
+        if (next) {
+          localStorage.setItem('selected_child_id', next.id);
+          await loadChildDashboard(next.id);
+        } else {
+          localStorage.removeItem('selected_child_id');
+        }
+      }
+      setPendingChildToDelete(null);
+    } catch (err) {
+      setDeleteError(err.response?.data?.detail || "Error al eliminar el hijo pendiente");
+    } finally {
+      setDeletingChild(false);
+    }
   };
 
   const schoolName = settings?.system_name || user?.school_name || "Portal Padres";
@@ -357,33 +392,68 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   <span className="text-xs text-emerald-700 font-medium">Cambiar hijo</span>
                   <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-[200] min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
-                  {children.map((child) => (
-                    <button
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-[200] min-w-[260px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                  {children.map((child) => {
+                    const isPending = child.enrollment_status === "pending" || child.student_status === "pending";
+                    const isRejected = child.enrollment_status === "rejected";
+                    return (
+                    <div
                       key={child.id}
-                      onClick={() => handleChildChange(child)}
-                      className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                      className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
                         selectedChild?.id === child.id
                           ? "bg-emerald-50 text-emerald-700 font-semibold"
                           : "text-slate-700 hover:bg-slate-50"
                       }`}
-                      data-testid={`child-option-${child.id}`}
                     >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        selectedChild?.id === child.id ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
-                      }`}>
-                        {(child.name || "A")[0]}
-                      </div>
-                      <span className="flex-1">{child.name} {child.last_name || ""}</span>
-                      {child.enrollment_status === "pending" && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">Pendiente</span>
+                      <button
+                        onClick={() => handleChildChange(child)}
+                        className="flex-1 flex items-center gap-2 text-left"
+                        data-testid={`child-option-${child.id}`}
+                      >
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                          selectedChild?.id === child.id ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                        }`}>
+                          {(child.name || "A")[0]}
+                        </div>
+                        <span className="flex-1 truncate">{child.name} {child.last_name || ""}</span>
+                        {isPending && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">Pendiente</span>
+                        )}
+                        {isRejected && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">No aprobado</span>
+                        )}
+                        {selectedChild?.id === child.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
+                      </button>
+                      {/* Edit: only while pending. Delete: pending OR rejected. */}
+                      {(isPending || isRejected) && (
+                        <>
+                          {isPending && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigateTo(`/parent/editar-hijo/${child.id}`); }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                              title="Editar hijo pendiente"
+                              data-testid={`edit-pending-child-${child.id}`}
+                              aria-label="Editar hijo pendiente"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPendingChildToDelete(child); }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                            title={isRejected ? "Eliminar hijo no aprobado" : "Eliminar hijo pendiente"}
+                            data-testid={`delete-pending-child-${child.id}`}
+                            aria-label={isRejected ? "Eliminar hijo no aprobado" : "Eliminar hijo pendiente"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
-                      {child.enrollment_status === "rejected" && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">No aprobado</span>
-                      )}
-                      {selectedChild?.id === child.id && <CheckCircle className="w-3.5 h-3.5 ml-auto text-emerald-500" />}
-                    </button>
-                  ))}
+                    </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1324,6 +1394,63 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           if (selectedChild) loadChildDashboard(selectedChild.id);
         }}
       />
+
+      {/* Confirm: delete a pending child registered by this parent */}
+      {pendingChildToDelete && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          onClick={() => !deletingChild && setPendingChildToDelete(null)}
+          data-testid="delete-pending-child-modal"
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-red-500 to-rose-500 px-6 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-bold text-white text-lg">{pendingChildToDelete.enrollment_status === "rejected" ? "Eliminar hijo no aprobado" : "Eliminar hijo pendiente"}</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">
+                ¿Seguro que quieres eliminar a <span className="font-semibold">{pendingChildToDelete.name} {pendingChildToDelete.last_name || ""}</span>?
+              </p>
+              <p className="text-sm text-slate-500">
+                Se borrará el registro completo. {pendingChildToDelete.enrollment_status === "rejected"
+                  ? <>Este alumno fue <span className="font-semibold text-red-700">no aprobado</span> por el colegio.</>
+                  : <>Solo puedes eliminarlo mientras esté <span className="font-semibold text-amber-700">pendiente de aprobación</span>.</>} Esta acción no se puede deshacer.
+              </p>
+              {deleteError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700" data-testid="delete-pending-error">
+                  {deleteError}
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setPendingChildToDelete(null); setDeleteError(""); }}
+                  disabled={deletingChild}
+                  className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition disabled:opacity-50"
+                  data-testid="delete-pending-cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeletePendingChild}
+                  disabled={deletingChild}
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-medium hover:from-red-600 hover:to-rose-600 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  data-testid="delete-pending-confirm-btn"
+                >
+                  {deletingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  {deletingChild ? "Eliminando..." : "Sí, eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

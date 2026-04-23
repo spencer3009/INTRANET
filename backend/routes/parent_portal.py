@@ -1389,6 +1389,190 @@ async def get_parent_student_message_stats(
     }
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SELF-SERVICE: manage a PENDING child I registered (edit / delete before approval)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _is_parent_of_pending(parent_user: dict, child: dict) -> bool:
+    """Verify that the given child (pending) is linked to this parent."""
+    if not parent_user or not child:
+        return False
+    if parent_user.get("role") != "parent":
+        return False
+    if parent_user.get("school_id") != child.get("school_id"):
+        return False
+    pid = parent_user.get("id")
+    cid = child.get("id")
+    return (
+        child.get("padre_id") == pid
+        or child.get("parent_id") == pid
+        or cid in (parent_user.get("student_ids") or [])
+        or cid in (parent_user.get("children_ids") or [])
+    )
+
+
+@router.get("/parent/children/pending/{child_id}")
+async def parent_get_pending_child(child_id: str, current_user = Depends(get_current_user)):
+    """Fetch full details of a PENDING child so the parent can edit it."""
+    parent = await resolve_user_from_token(current_user)
+    if not parent or parent.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+
+    child = await db.users.find_one(
+        {"id": child_id, "role": "student"},
+        {"_id": 0, "password": 0, "plain_password": 0}
+    )
+    if not child:
+        raise HTTPException(status_code=404, detail="Hijo no encontrado")
+
+    if not _is_parent_of_pending(parent, child):
+        raise HTTPException(status_code=403, detail="No tienes permiso sobre este estudiante")
+
+    enrollment_status = (child.get("enrollment_status") or "").lower()
+    student_status = (child.get("student_status") or "").lower()
+    if enrollment_status != "pending" and student_status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Solo puedes consultar hijos que aún están pendientes de aprobación."
+        )
+
+    return {"child": child}
+
+
+@router.delete("/parent/children/pending/{child_id}")
+async def parent_delete_pending_child(child_id: str, current_user = Depends(get_current_user)):
+    """Delete a PENDING or REJECTED child that the authenticated parent created themselves.
+
+    Rules:
+      - The caller must be a `parent` linked to that child.
+      - The child must be `enrollment_status == "pending"` or `"rejected"`.
+      - The child is removed from `db.users` and unlinked from the parent.
+    """
+    parent = await resolve_user_from_token(current_user)
+    if not parent or parent.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+
+    child = await db.users.find_one(
+        {"id": child_id, "role": "student"},
+        {"_id": 0}
+    )
+    if not child:
+        raise HTTPException(status_code=404, detail="Hijo no encontrado")
+
+    if not _is_parent_of_pending(parent, child):
+        raise HTTPException(status_code=403, detail="No tienes permiso sobre este estudiante")
+
+    # Only pending or rejected children may be self-deleted by the parent.
+    enrollment_status = (child.get("enrollment_status") or "").lower()
+    student_status = (child.get("student_status") or "").lower()
+    is_pending = enrollment_status == "pending" or student_status == "pending"
+    is_rejected = enrollment_status == "rejected"
+    if not (is_pending or is_rejected):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo puedes eliminar hijos pendientes o no aprobados."
+        )
+
+    # Hard-delete the student doc
+    await db.users.delete_one({"id": child_id, "role": "student"})
+
+    # Unlink from the parent user doc (remove from list fields)
+    await db.users.update_one(
+        {"id": parent["id"]},
+        {"$pull": {"student_ids": child_id, "children_ids": child_id}}
+    )
+
+    # Audit log (best-effort)
+    try:
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "school_id": parent.get("school_id"),
+            "user_id": parent["id"],
+            "action": "parent_deleted_pending_child",
+            "resource_type": "student",
+            "resource_id": child_id,
+            "metadata": {"child_name": f"{child.get('name','')} {child.get('last_name','')}".strip()},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    return {"message": "Hijo eliminado correctamente"}
+
+
+@router.patch("/parent/children/pending/{child_id}")
+async def parent_edit_pending_child(child_id: str, request: Request, current_user = Depends(get_current_user)):
+    """Edit a PENDING child that the authenticated parent created themselves.
+
+    Allowed fields (whitelisted):
+      name, last_name, dni, birthday, gender, phone, email, address, notes,
+      grado_id, seccion_id, nivel_educativo_id.
+
+    Any other field is silently ignored.
+    """
+    parent = await resolve_user_from_token(current_user)
+    if not parent or parent.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+
+    child = await db.users.find_one({"id": child_id, "role": "student"}, {"_id": 0})
+    if not child:
+        raise HTTPException(status_code=404, detail="Hijo no encontrado")
+
+    if not _is_parent_of_pending(parent, child):
+        raise HTTPException(status_code=403, detail="No tienes permiso sobre este estudiante")
+
+    enrollment_status = (child.get("enrollment_status") or "").lower()
+    student_status = (child.get("student_status") or "").lower()
+    if enrollment_status != "pending" and student_status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Solo puedes editar hijos que aún están pendientes de aprobación."
+        )
+
+    body = await request.json()
+    allowed = {
+        "name", "last_name", "dni", "birthday", "gender",
+        "phone", "email", "address", "notes", "photo_url",
+        "nivel_id", "grado_id", "seccion_id", "turno_id",
+        "colegio_anterior", "codigo_modular", "ultimo_grado_cursado", "ano_lectivo_anterior",
+        "condiciones_medicas", "alergias",
+        "doctor_nombre", "doctor_telefono",
+        "persona_autorizada", "persona_autorizada_telefono",
+    }
+    updates = {k: v for k, v in (body or {}).items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Sin campos válidos para actualizar")
+
+    # Basic uniqueness check on DNI / email within the same school
+    school_id = parent.get("school_id")
+    if updates.get("dni"):
+        exists = await db.users.find_one(
+            {"school_id": school_id, "dni": updates["dni"], "id": {"$ne": child_id}},
+            {"_id": 0, "id": 1}
+        )
+        if exists:
+            raise HTTPException(status_code=400, detail=f"El DNI {updates['dni']} ya está en uso")
+    if updates.get("email"):
+        exists = await db.users.find_one(
+            {"school_id": school_id, "email": updates["email"], "id": {"$ne": child_id}},
+            {"_id": 0, "id": 1}
+        )
+        if exists:
+            raise HTTPException(status_code=400, detail=f"El correo {updates['email']} ya está en uso")
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.users.update_one(
+        {"id": child_id, "role": "student"},
+        {"$set": updates}
+    )
+
+    updated = await db.users.find_one(
+        {"id": child_id},
+        {"_id": 0, "password": 0}
+    )
+    return {"message": "Datos del hijo actualizados correctamente", "child": updated}
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 
