@@ -1246,8 +1246,21 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             if config_time_str:
                 try:
                     ch, cm = map(int, config_time_str.split(":"))
-                    tolerance = attendance_config.get("tolerance_minutes", 0)
-                    absent_limit = attendance_config.get("mark_absent_after_minutes", 0)
+                    # Teacher-specific rules override global when enabled
+                    teachers_cfg = attendance_config.get("teachers", {}) or {}
+                    teacher_rules_on = bool(teachers_cfg.get("reglas_propias_activo"))
+                    global_tol = attendance_config.get("tolerance_minutes", 0) or 0
+                    global_abs = attendance_config.get("mark_absent_after_minutes", 0) or 0
+                    if is_teacher_qr and teacher_rules_on:
+                        tolerance = teachers_cfg.get("tolerance_minutes")
+                        if tolerance is None:
+                            tolerance = global_tol
+                        absent_limit = teachers_cfg.get("mark_absent_after_minutes")
+                        if absent_limit is None:
+                            absent_limit = global_abs
+                    else:
+                        tolerance = global_tol
+                        absent_limit = global_abs
                     nh, nm = map(int, now_time.split(":"))
                     current_mins = nh * 60 + nm
                     limit_mins = ch * 60 + cm

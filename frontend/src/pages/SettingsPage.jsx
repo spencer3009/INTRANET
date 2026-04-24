@@ -82,6 +82,9 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       exit_time: "13:00",
       horario_por_nivel_activo: false,
       horario_por_nivel: {},
+      reglas_propias_activo: false,
+      tolerance_minutes: null,
+      mark_absent_after_minutes: null,
     },
     levels: [],
     tolerance_minutes: 5,
@@ -141,6 +144,9 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
               exit_time: (res.data.attendance_config.teachers || {}).exit_time || prev.teachers.exit_time,
               horario_por_nivel_activo: !!(res.data.attendance_config.teachers || {}).horario_por_nivel_activo,
               horario_por_nivel: (res.data.attendance_config.teachers || {}).horario_por_nivel || {},
+              reglas_propias_activo: !!(res.data.attendance_config.teachers || {}).reglas_propias_activo,
+              tolerance_minutes: (res.data.attendance_config.teachers || {}).tolerance_minutes ?? null,
+              mark_absent_after_minutes: (res.data.attendance_config.teachers || {}).mark_absent_after_minutes ?? null,
             },
             levels: res.data.attendance_config.levels || [],
             tolerance_minutes: res.data.attendance_config.tolerance_minutes ?? prev.tolerance_minutes,
@@ -1462,7 +1468,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                             setAttendanceConfig(p => {
                               const next = { ...(p.teachers.horario_por_nivel || {}) };
                               const cur = { ...(next[level.id] || {}) };
-                              // Empty string → null (inherit from global)
                               cur[field] = value && value.length > 0 ? value : null;
                               next[level.id] = cur;
                               return { ...p, teachers: { ...p.teachers, horario_por_nivel: next } };
@@ -1494,6 +1499,73 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                           );
                         })
                       )}
+                    </div>
+                  )}
+
+                  {/* Reglas específicas para docentes */}
+                  <div className="mt-5 flex items-start justify-between gap-4 p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">Reglas distintas para docentes</p>
+                      <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+                        Define tolerancia y tiempo para marcar falta distintos para docentes. Si está desactivado, se aplican las reglas generales (mas abajo).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceConfig(p => ({
+                        ...p,
+                        teachers: { ...p.teachers, reglas_propias_activo: !p.teachers.reglas_propias_activo }
+                      }))}
+                      className={`relative inline-flex h-6 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mt-0.5 ${
+                        attendanceConfig.teachers.reglas_propias_activo ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`}
+                      data-testid="teacher-rules-switch"
+                      aria-pressed={attendanceConfig.teachers.reglas_propias_activo}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        attendanceConfig.teachers.reglas_propias_activo ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {attendanceConfig.teachers.reglas_propias_activo && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in duration-300" data-testid="teacher-rules-block">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-600 mb-1 block">Tolerancia docentes (minutos)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={attendanceConfig.teachers.tolerance_minutes ?? ""}
+                          placeholder="Hereda de las reglas generales"
+                          onChange={(e) => setAttendanceConfig(p => ({
+                            ...p,
+                            teachers: {
+                              ...p.teachers,
+                              tolerance_minutes: e.target.value === "" ? null : parseInt(e.target.value, 10)
+                            }
+                          }))}
+                          data-testid="teacher-tolerance-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-600 mb-1 block">Marcar falta docentes después de (minutos)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={attendanceConfig.teachers.mark_absent_after_minutes ?? ""}
+                          placeholder="Hereda de las reglas generales"
+                          onChange={(e) => setAttendanceConfig(p => ({
+                            ...p,
+                            teachers: {
+                              ...p.teachers,
+                              mark_absent_after_minutes: e.target.value === "" ? null : parseInt(e.target.value, 10)
+                            }
+                          }))}
+                          data-testid="teacher-absent-input"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

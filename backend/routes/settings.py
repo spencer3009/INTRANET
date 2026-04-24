@@ -263,11 +263,13 @@ class TeacherLevelSchedule(BaseModel):
 class AttendanceTeacherConfig(BaseModel):
     entry_time: str
     exit_time: str
-    # New: per-level overrides for teachers
+    # Per-level overrides for teachers
     horario_por_nivel_activo: Optional[bool] = False
-    # Dict keyed by level_id (academic_levels.id). Each value may have None
-    # time fields to signal "inherit from global".
     horario_por_nivel: Optional[Dict[str, TeacherLevelSchedule]] = None
+    # Teacher-specific rules (override the global tolerance/absent-after)
+    reglas_propias_activo: Optional[bool] = False
+    tolerance_minutes: Optional[int] = None
+    mark_absent_after_minutes: Optional[int] = None
 
 class AttendanceConfigUpdate(BaseModel):
     teachers: Optional[AttendanceTeacherConfig] = None
