@@ -85,6 +85,7 @@ export default function AuxTopicoPage({ user, token, onLogout }) {
       token={token}
       onLogout={onLogout}
       canWrite={true}
+      hideBack={true}
       backPath={subdomain ? `/${subdomain}/topico` : "/topico"}
       renderSidebar={() => (
         <AuxTopicoSidebar

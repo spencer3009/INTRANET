@@ -55,7 +55,7 @@ function getIncidentLabel(type) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath, canWrite: canWriteProp }) {
+export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath, canWrite: canWriteProp, hideBack = false }) {
   const navigate = useNavigate();
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
@@ -276,13 +276,15 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={() => navigate(resolvedBackPath)}
-              className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-              data-testid="back-btn"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
+            {!hideBack && (
+              <button
+                onClick={() => navigate(resolvedBackPath)}
+                className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                data-testid="back-btn"
+              >
+                <ArrowLeft className="w-5 h-5 text-slate-600" />
+              </button>
+            )}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
                 <Cross className="w-5 h-5 text-rose-600" />
