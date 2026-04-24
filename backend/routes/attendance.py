@@ -1152,10 +1152,10 @@ async def get_monthly_attendance_pdf(
         body_rows.append(row)
 
     # ── Column widths ───────────────────────────────────────────────────────
-    col_widths = [8 * mm, 55 * mm]
+    col_widths = [7 * mm, 42 * mm]
     for wk_days in weeks_map:
         col_widths += [9 * mm] * len(wk_days)
-    col_widths += [14 * mm, 12 * mm, 16 * mm]
+    col_widths += [10 * mm, 10 * mm, 12 * mm]
 
     table_data = [row0, row1, row2] + body_rows
 
