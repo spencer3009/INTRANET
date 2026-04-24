@@ -136,6 +136,9 @@ class CreateUserRequest(BaseModel):
     ocupacion: Optional[str] = None
     lugar_trabajo: Optional[str] = None
     telefono_trabajo: Optional[str] = None
+    # Maintenance-specific fields
+    maintenance_role: Optional[str] = None
+    maintenance_role_custom: Optional[str] = None
 
 @router.get("/users/check-username/{username}")
 async def check_username(username: str, current_user = Depends(get_current_user)):
@@ -215,6 +218,14 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
 
     # Auto-generate credentials for personal_mantenimiento (no login required)
     if data.role == "personal_mantenimiento":
+        # Validate maintenance sub-role
+        if not data.maintenance_role or not data.maintenance_role.strip():
+            raise HTTPException(status_code=400, detail="Debes seleccionar un rol de mantenimiento")
+        allowed_roles = {"limpieza", "vigilancia", "guardianía", "porteria", "otro"}
+        if data.maintenance_role not in allowed_roles:
+            raise HTTPException(status_code=400, detail="Rol de mantenimiento no válido")
+        if data.maintenance_role == "otro" and (not data.maintenance_role_custom or not data.maintenance_role_custom.strip()):
+            raise HTTPException(status_code=400, detail="Debes especificar el rol")
         if not data.username or not data.username.strip():
             base = (data.dni or str(uuid.uuid4())[:8]).strip()
             data.username = f"mant_{base}"
@@ -321,6 +332,9 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["qr_id"] = qr_id
         new_user["qr_token"] = qr_token
         new_user["qr_version"] = 2
+        # Persist maintenance sub-role
+        new_user["maintenance_role"] = data.maintenance_role
+        new_user["maintenance_role_custom"] = data.maintenance_role_custom if data.maintenance_role == "otro" else None
     
     await db.users.insert_one(new_user)
     
@@ -369,6 +383,9 @@ class UpdateUserRequest(BaseModel):
     ocupacion: Optional[str] = None
     lugar_trabajo: Optional[str] = None
     telefono_trabajo: Optional[str] = None
+    # Maintenance-specific fields
+    maintenance_role: Optional[str] = None
+    maintenance_role_custom: Optional[str] = None
 
 @router.put("/users/{user_id}")
 async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depends(get_current_user)):
@@ -471,6 +488,25 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     if data.parent_id is not None:
         update_data["padre_id"] = data.parent_id if data.parent_id else None
         update_data["parent_id"] = data.parent_id if data.parent_id else None
+
+    # Handle maintenance sub-role (for personal_mantenimiento)
+    effective_role = data.role or target.get("role")
+    if effective_role == "personal_mantenimiento":
+        # If maintenance_role is explicitly provided, validate it
+        if data.maintenance_role is not None:
+            if not data.maintenance_role or not data.maintenance_role.strip():
+                raise HTTPException(status_code=400, detail="Debes seleccionar un rol de mantenimiento")
+            allowed_roles = {"limpieza", "vigilancia", "guardianía", "porteria", "otro"}
+            if data.maintenance_role not in allowed_roles:
+                raise HTTPException(status_code=400, detail="Rol de mantenimiento no válido")
+            if data.maintenance_role == "otro":
+                if not data.maintenance_role_custom or not data.maintenance_role_custom.strip():
+                    raise HTTPException(status_code=400, detail="Debes especificar el rol")
+                update_data["maintenance_role"] = data.maintenance_role
+                update_data["maintenance_role_custom"] = data.maintenance_role_custom
+            else:
+                update_data["maintenance_role"] = data.maintenance_role
+                update_data["maintenance_role_custom"] = None
     
     await db.users.update_one({"id": user_id}, {"$set": update_data})
     

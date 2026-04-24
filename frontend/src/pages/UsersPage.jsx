@@ -273,7 +273,10 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
     dni: "",
     ocupacion: "",
     lugar_trabajo: "",
-    telefono_trabajo: ""
+    telefono_trabajo: "",
+    // Maintenance-specific fields
+    maintenance_role: "",
+    maintenance_role_custom: ""
   });
 
   // Parent search state for students
@@ -574,6 +577,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         setError("El DNI es obligatorio y debe tener 8 dígitos");
         return;
       }
+      if (!form.maintenance_role) {
+        setError("Debes seleccionar un rol de mantenimiento");
+        return;
+      }
+      if (form.maintenance_role === "otro" && (!form.maintenance_role_custom || !form.maintenance_role_custom.trim())) {
+        setError("Debes especificar el rol");
+        return;
+      }
     } else {
       if (!form.name || !form.username || !form.password) {
         setError("Nombre, usuario y contraseña son obligatorios");
@@ -655,6 +666,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         delete submitData.username;
         delete submitData.password;
         delete submitData.email;
+        // Send null for maintenance_role_custom if not "otro"
+        submitData.maintenance_role_custom = form.maintenance_role === "otro"
+          ? (form.maintenance_role_custom || "").trim()
+          : null;
+      } else {
+        // Remove maintenance-specific fields for non-maintenance roles
+        delete submitData.maintenance_role;
+        delete submitData.maintenance_role_custom;
       }
       
       const res = await axios.post(`${API}/users`, submitData, { headers });
@@ -686,6 +705,9 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
       } else if (field === 'role' && value === 'student' && levels.length === 0) {
         // Load academic data when student role is selected
         loadAcademicData();
+      } else if (field === 'maintenance_role' && value !== 'otro') {
+        // Clear custom field when switching away from "otro"
+        updated.maintenance_role_custom = "";
       }
       
       return updated;
@@ -811,6 +833,45 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                     <AlertCircle className="w-3 h-3" />
                     Este usuario tendrá acceso visual completo pero no podrá crear, editar ni eliminar datos.
                   </p>
+                )}
+              </div>
+            )}
+
+            {/* Maintenance sub-role — first field for personal_mantenimiento */}
+            {(form.role === 'personal_mantenimiento' || roleId === 'personal_mantenimiento') && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Rol de Mantenimiento <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.maintenance_role || ""}
+                  onChange={(e) => handleChange('maintenance_role', e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                  data-testid="maintenance-role-select"
+                  required
+                >
+                  <option value="">Seleccionar rol...</option>
+                  <option value="limpieza">Limpieza</option>
+                  <option value="vigilancia">Vigilancia</option>
+                  <option value="guardianía">Guardianía</option>
+                  <option value="porteria">Portería</option>
+                  <option value="otro">Otro</option>
+                </select>
+                {form.maintenance_role === 'otro' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Especificar rol <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.maintenance_role_custom || ""}
+                      onChange={(e) => handleChange('maintenance_role_custom', e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      placeholder="Ej: Jardinero, Electricista..."
+                      data-testid="maintenance-role-custom-input"
+                      required
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -2468,6 +2529,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         // Parent fields
         dni: userToEdit.dni || "",
         ocupacion: userToEdit.ocupacion || "",
+        // Maintenance fields
+        maintenance_role: userToEdit.maintenance_role || "",
+        maintenance_role_custom: userToEdit.maintenance_role_custom || "",
       });
       // Reset extended states for students
       setShowPasswordSection(false);
@@ -2532,6 +2596,36 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     try {
       // Build payload with optional password and parent_id
       const payload = { ...editForm };
+
+      // Maintenance sub-role validation and payload cleaning
+      if (editingUser.role === 'personal_mantenimiento') {
+        if (!editForm.maintenance_role) {
+          setInfoModalContent({
+            title: "Rol requerido",
+            message: "Debes seleccionar un rol de mantenimiento",
+            type: "error"
+          });
+          setShowInfoModal(true);
+          setEditLoading(false);
+          return;
+        }
+        if (editForm.maintenance_role === 'otro' && (!editForm.maintenance_role_custom || !editForm.maintenance_role_custom.trim())) {
+          setInfoModalContent({
+            title: "Especificación requerida",
+            message: "Debes especificar el rol",
+            type: "error"
+          });
+          setShowInfoModal(true);
+          setEditLoading(false);
+          return;
+        }
+        payload.maintenance_role_custom = editForm.maintenance_role === 'otro'
+          ? editForm.maintenance_role_custom.trim()
+          : null;
+      } else {
+        delete payload.maintenance_role;
+        delete payload.maintenance_role_custom;
+      }
       
       // Add password if provided (non-student password section)
       if (showPasswordSection && editPassword) {
@@ -3992,7 +4086,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
               </button>
             )}
-            {selectedRole === 'teacher' && u.qr_token && (
+            {(selectedRole === 'teacher' || selectedRole === 'personal_mantenimiento') && u.qr_token && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -4001,7 +4095,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 }}
                 className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors group flex-shrink-0"
                 title="Ver código QR completo"
-                data-testid={`mini-teacher-qr-${u.id}`}
+                data-testid={`mini-staff-qr-${u.id}`}
               >
                 <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
                   <QRCodeSVG 
@@ -4443,6 +4537,51 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Maintenance sub-role — first field for personal_mantenimiento */}
+                {editingUser.role === 'personal_mantenimiento' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Rol de Mantenimiento <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={editForm.maintenance_role || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditForm(prev => ({
+                          ...prev,
+                          maintenance_role: value,
+                          maintenance_role_custom: value === 'otro' ? (prev.maintenance_role_custom || "") : ""
+                        }));
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+                      data-testid="edit-maintenance-role-select"
+                      required
+                    >
+                      <option value="">Seleccionar rol...</option>
+                      <option value="limpieza">Limpieza</option>
+                      <option value="vigilancia">Vigilancia</option>
+                      <option value="guardianía">Guardianía</option>
+                      <option value="porteria">Portería</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                    {editForm.maintenance_role === 'otro' && (
+                      <div className="mt-3">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                          Especificar rol <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.maintenance_role_custom || ""}
+                          onChange={(e) => setEditForm({ ...editForm, maintenance_role_custom: e.target.value })}
+                          placeholder="Ej: Jardinero, Electricista..."
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all"
+                          data-testid="edit-maintenance-role-custom-input"
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Nombre */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Nombre</label>

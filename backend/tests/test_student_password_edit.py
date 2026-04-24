@@ -5,7 +5,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://school-saas-fix-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://health-logs-school.preview.emergentagent.com')
 
 class TestStudentPasswordEdit:
     """Test student password edit feature"""

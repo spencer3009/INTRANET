@@ -36,6 +36,10 @@ Ver `/app/memory/test_credentials.md`.
   - `DELETE /api/parent/children/pending/{child_id}`: ahora acepta tanto `pending` como `rejected` (hijos rechazados se pueden borrar para volver a intentar).
   - `ParentEnrollmentForm.jsx` reutilizable: en modo `create` usa `POST /api/enrollment/self-register`; en modo `edit` (ruta `/parent/editar-hijo/:childId`) precarga datos y usa `PATCH`.
   - Dashboard: botón editar solo si `pending`; botón eliminar si `pending` **o** `rejected`. Modal de confirmación con copy dinámico.
+- [2026-02] **Sub-rol obligatorio para Personal de Mantenimiento** (`users.py` + `UsersPage.jsx`):
+  - Nuevos campos `maintenance_role` (enum: `limpieza`, `vigilancia`, `guardianía`, `porteria`, `otro`) y `maintenance_role_custom` (texto libre si `otro`).
+  - Backend valida en POST y PUT `/api/users` con error 400 si faltan.
+  - Frontend: dropdown como primer campo visible en modales de creación y edición; input libre condicional cuando selecciona "Otro"; limpia valor al cambiar a otra opción.
 
 ## Roadmap
 ### P1
