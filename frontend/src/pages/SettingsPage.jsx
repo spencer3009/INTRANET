@@ -77,7 +77,12 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   
   // Attendance config state (levels-based)
   const [attendanceConfig, setAttendanceConfig] = useState({
-    teachers: { entry_time: "07:15", exit_time: "13:00" },
+    teachers: {
+      entry_time: "07:15",
+      exit_time: "13:00",
+      horario_por_nivel_activo: false,
+      horario_por_nivel: {},
+    },
     levels: [],
     tolerance_minutes: 5,
     mark_absent_after_minutes: 30,
@@ -131,7 +136,12 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         if (res.data.attendance_config) {
           setAttendanceConfig(prev => ({
             ...prev,
-            teachers: res.data.attendance_config.teachers || prev.teachers,
+            teachers: {
+              entry_time: (res.data.attendance_config.teachers || {}).entry_time || prev.teachers.entry_time,
+              exit_time: (res.data.attendance_config.teachers || {}).exit_time || prev.teachers.exit_time,
+              horario_por_nivel_activo: !!(res.data.attendance_config.teachers || {}).horario_por_nivel_activo,
+              horario_por_nivel: (res.data.attendance_config.teachers || {}).horario_por_nivel || {},
+            },
             levels: res.data.attendance_config.levels || [],
             tolerance_minutes: res.data.attendance_config.tolerance_minutes ?? prev.tolerance_minutes,
             mark_absent_after_minutes: res.data.attendance_config.mark_absent_after_minutes ?? prev.mark_absent_after_minutes,
@@ -1385,20 +1395,101 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Users className="w-4 h-4 text-indigo-500" /> Horario Docentes
                   </h3>
+
+                  {/* Switch: horarios por nivel */}
+                  <div className="flex items-start justify-between gap-4 p-4 mb-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">Horarios diferentes por nivel</p>
+                      <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+                        Aplica horarios de ingreso/salida específicos por nivel educativo. Si está desactivado, se usara el horario general para todos los docentes.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceConfig(p => ({
+                        ...p,
+                        teachers: { ...p.teachers, horario_por_nivel_activo: !p.teachers.horario_por_nivel_activo }
+                      }))}
+                      className={`relative inline-flex h-6 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mt-0.5 ${
+                        attendanceConfig.teachers.horario_por_nivel_activo ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`}
+                      data-testid="teacher-per-level-switch"
+                      aria-pressed={attendanceConfig.teachers.horario_por_nivel_activo}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        attendanceConfig.teachers.horario_por_nivel_activo ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Horario general (siempre visible, fallback) */}
+                  {attendanceConfig.teachers.horario_por_nivel_activo && (
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Horario general</p>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <TimePicker
-                      label="Hora ingreso"
+                      label={attendanceConfig.teachers.horario_por_nivel_activo ? "Hora ingreso (general)" : "Hora ingreso"}
                       value={attendanceConfig.teachers.entry_time}
                       onChange={(v) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, entry_time: v } }))}
                       data-testid="teacher-entry-time"
                     />
                     <TimePicker
-                      label="Hora salida"
+                      label={attendanceConfig.teachers.horario_por_nivel_activo ? "Hora salida (general)" : "Hora salida"}
                       value={attendanceConfig.teachers.exit_time}
                       onChange={(v) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, exit_time: v } }))}
                       data-testid="teacher-exit-time"
                     />
                   </div>
+                  {attendanceConfig.teachers.horario_por_nivel_activo && (
+                    <p className="text-xs text-slate-400 mt-2">Se usara como valor predeterminado para niveles sin horario definido.</p>
+                  )}
+
+                  {/* Bloques por nivel (fade-in cuando switch ON) */}
+                  {attendanceConfig.teachers.horario_por_nivel_activo && (
+                    <div className="mt-5 space-y-3 animate-in fade-in duration-300" data-testid="teacher-per-level-blocks">
+                      {academicLevels.length === 0 ? (
+                        <p className="text-sm text-slate-400 italic">No hay niveles academicos configurados para este colegio.</p>
+                      ) : (
+                        academicLevels.map(level => {
+                          const override = attendanceConfig.teachers.horario_por_nivel?.[level.id] || {};
+                          const updateOverride = (field, value) => {
+                            setAttendanceConfig(p => {
+                              const next = { ...(p.teachers.horario_por_nivel || {}) };
+                              const cur = { ...(next[level.id] || {}) };
+                              // Empty string → null (inherit from global)
+                              cur[field] = value && value.length > 0 ? value : null;
+                              next[level.id] = cur;
+                              return { ...p, teachers: { ...p.teachers, horario_por_nivel: next } };
+                            });
+                          };
+                          return (
+                            <div key={level.id} className="border border-slate-200 rounded-xl p-4 bg-white" data-testid={`teacher-level-block-${level.id}`}>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Users className="w-4 h-4 text-indigo-500" />
+                                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Nivel {level.nombre || level.name}</h4>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <TimePicker
+                                  label="Hora ingreso"
+                                  value={override.entry_time || ""}
+                                  onChange={(v) => updateOverride("entry_time", v)}
+                                  placeholder="Hereda del general"
+                                  data-testid={`teacher-level-entry-${level.id}`}
+                                />
+                                <TimePicker
+                                  label="Hora salida"
+                                  value={override.exit_time || ""}
+                                  onChange={(v) => updateOverride("exit_time", v)}
+                                  placeholder="Hereda del general"
+                                  data-testid={`teacher-level-exit-${level.id}`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* ESTUDIANTES POR NIVEL */}

@@ -55,6 +55,85 @@ def flexible_id_filter(field: str, value: str) -> dict:
     except Exception:
         return {field: value}
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPER: Effective teacher schedule (per-level override or global)
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def get_horario_efectivo_docente(teacher_id: str, school_id: str) -> dict:
+    """Return the effective entry_time/exit_time for a teacher.
+
+    Resolution order:
+      1. Load `schools.attendance_config.teachers`.
+      2. If `horario_por_nivel_activo` is False → return the global times.
+      3. If True → pick the teacher's dominant nivel_id from
+         `academic_assignments` (the nivel with the most assignments;
+         ties broken alphabetically by nivel_id).
+         a. If the teacher has no assignments → fallback to global.
+         b. Look up `horario_por_nivel[nivel_id]`. If the override has an
+            `entry_time`/`exit_time` field it is used; otherwise that field
+            inherits the global value.
+
+    Returns:
+        {
+            "entry_time": "HH:MM",
+            "exit_time": "HH:MM",
+            "source": "global" | "level",
+            "nivel_id": Optional[str],
+        }
+    """
+    school = await db.schools.find_one(
+        {"id": school_id},
+        {"_id": 0, "attendance_config": 1}
+    )
+    attendance_config = (school or {}).get("attendance_config", {}) or {}
+    teachers_cfg = attendance_config.get("teachers", {}) or {}
+
+    global_entry = teachers_cfg.get("entry_time", "07:15")
+    global_exit = teachers_cfg.get("exit_time", "13:00")
+    default_result = {
+        "entry_time": global_entry,
+        "exit_time": global_exit,
+        "source": "global",
+        "nivel_id": None,
+    }
+
+    if not teachers_cfg.get("horario_por_nivel_activo"):
+        return default_result
+
+    overrides = teachers_cfg.get("horario_por_nivel") or {}
+    if not overrides:
+        return default_result
+
+    # Count assignments per nivel_id for this teacher
+    pipeline = [
+        {"$match": {"teacher_id": teacher_id, "school_id": school_id}},
+        {"$group": {"_id": "$nivel_id", "count": {"$sum": 1}}},
+    ]
+    try:
+        counts = await db.academic_assignments.aggregate(pipeline).to_list(50)
+    except Exception:
+        counts = []
+
+    counts = [c for c in counts if c.get("_id")]
+    if not counts:
+        return default_result
+
+    # Pick dominant nivel: most assignments, then lexicographic tie-break
+    counts.sort(key=lambda c: (-c["count"], str(c["_id"])))
+    dominant_nivel_id = counts[0]["_id"]
+
+    override = overrides.get(dominant_nivel_id) or {}
+    entry = override.get("entry_time") or global_entry
+    exit_ = override.get("exit_time") or global_exit
+    return {
+        "entry_time": entry,
+        "exit_time": exit_,
+        "source": "level" if (override.get("entry_time") or override.get("exit_time")) else "global",
+        "nivel_id": dominant_nivel_id,
+    }
+
+
 # ATTENDANCE MODULE
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -458,11 +537,14 @@ async def get_student_attendance_history(
 @router.get("/attendance/teachers")
 async def get_teachers_for_attendance(
     date: str,
+    include_schedule: bool = False,
     current_user = Depends(get_current_user)
 ):
     """
     Get all teachers with their attendance status for the given date.
     If no attendance exists, returns teachers with default status 'present'.
+    When `include_schedule=true`, also returns the effective entry/exit time
+    each teacher would use (global or per-level override).
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
@@ -490,12 +572,33 @@ async def get_teachers_for_attendance(
     
     # Build attendance map
     attendance_map = {a["user_id"]: a for a in attendance_records}
-    
+
+    # Preload level names if schedule is requested
+    level_name_by_id = {}
+    per_level_active = False
+    if include_schedule:
+        school_doc = await db.schools.find_one(
+            {"id": school_id},
+            {"_id": 0, "attendance_config.teachers": 1}
+        )
+        per_level_active = bool(
+            ((school_doc or {}).get("attendance_config", {}) or {})
+            .get("teachers", {})
+            .get("horario_por_nivel_activo", False)
+        )
+        if per_level_active:
+            levels = await db.academic_levels.find(
+                {"school_id": school_id},
+                {"_id": 0, "id": 1, "nombre": 1, "name": 1}
+            ).to_list(50)
+            for lv in levels:
+                level_name_by_id[lv["id"]] = lv.get("nombre") or lv.get("name") or ""
+
     # Build result
     result = []
     for t in teachers:
         attendance = attendance_map.get(t["id"])
-        result.append({
+        item = {
             "id": t["id"],
             "name": t.get("name", ""),
             "last_name": t.get("last_name", ""),
@@ -504,7 +607,17 @@ async def get_teachers_for_attendance(
             "email": t.get("email"),
             "status": attendance["status"] if attendance else "pending",  # Default to PENDING
             "has_record": attendance is not None
-        })
+        }
+        if include_schedule and per_level_active:
+            eff = await get_horario_efectivo_docente(t["id"], school_id)
+            item["effective_schedule"] = {
+                "entry_time": eff["entry_time"],
+                "exit_time": eff["exit_time"],
+                "source": eff["source"],
+                "nivel_id": eff["nivel_id"],
+                "nivel_name": level_name_by_id.get(eff["nivel_id"], "") if eff["nivel_id"] else "",
+            }
+        result.append(item)
     
     # Sort by name
     result.sort(key=lambda x: x["full_name"].lower())
@@ -513,7 +626,8 @@ async def get_teachers_for_attendance(
         "date": date,
         "teachers": result,
         "total": len(result),
-        "has_saved_records": len(attendance_records) > 0
+        "has_saved_records": len(attendance_records) > 0,
+        "per_level_schedule_active": per_level_active,
     }
 
 @router.post("/attendance/teachers/save")
@@ -1110,11 +1224,13 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
 
         auto_late = attendance_config.get("auto_late_enabled", False)
         if auto_late:
-            # Find the right schedule: teachers or student by level
+            # Find the right schedule: teachers (with optional per-level override) or student by level
             config_time_str = None
             if is_teacher_qr:
-                teachers_config = attendance_config.get("teachers", {})
-                config_time_str = teachers_config.get("entry_time")
+                effective = await get_horario_efectivo_docente(
+                    scanned_user.get("id"), school_id
+                )
+                config_time_str = effective.get("entry_time")
             else:
                 # Find student's level and match in levels config
                 student_level_id = scanned_user.get("nivel_id") or scanned_user.get("level_id")

@@ -4,7 +4,7 @@ Extracted from server.py during modularization.
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, Form, UploadFile, File, BackgroundTasks, Request
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import uuid
@@ -254,9 +254,20 @@ class AttendanceLevelConfig(BaseModel):
     entry_time: str
     exit_time: str
 
+class TeacherLevelSchedule(BaseModel):
+    """Schedule override for a specific academic level, applied to teachers.
+    A `None` value on a time field means "inherit from the global teacher schedule"."""
+    entry_time: Optional[str] = None
+    exit_time: Optional[str] = None
+
 class AttendanceTeacherConfig(BaseModel):
     entry_time: str
     exit_time: str
+    # New: per-level overrides for teachers
+    horario_por_nivel_activo: Optional[bool] = False
+    # Dict keyed by level_id (academic_levels.id). Each value may have None
+    # time fields to signal "inherit from global".
+    horario_por_nivel: Optional[Dict[str, TeacherLevelSchedule]] = None
 
 class AttendanceConfigUpdate(BaseModel):
     teachers: Optional[AttendanceTeacherConfig] = None

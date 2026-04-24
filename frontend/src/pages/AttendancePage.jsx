@@ -668,6 +668,7 @@ function TeacherAttendanceTab({ token, schoolId }) {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [hasSavedRecords, setHasSavedRecords] = useState(false);
+  const [perLevelActive, setPerLevelActive] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
@@ -680,10 +681,11 @@ function TeacherAttendanceTab({ token, schoolId }) {
     try {
       const res = await axios.get(`${API}/attendance/teachers`, {
         headers,
-        params: { date: selectedDate }
+        params: { date: selectedDate, include_schedule: true }
       });
       setTeachers(res.data.teachers);
       setHasSavedRecords(res.data.has_saved_records);
+      setPerLevelActive(!!res.data.per_level_schedule_active);
       setHasChanges(false);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al cargar asistencia");
@@ -841,6 +843,21 @@ function TeacherAttendanceTab({ token, schoolId }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-800">{teacher.full_name}</p>
                   <p className="text-sm text-slate-500">{teacher.email}</p>
+                  {perLevelActive && teacher.effective_schedule && (
+                    <span
+                      className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold border border-slate-200"
+                      data-testid={`teacher-schedule-badge-${teacher.id}`}
+                      title={teacher.effective_schedule.source === "level"
+                        ? `Horario del nivel ${teacher.effective_schedule.nivel_name || ""}`
+                        : "Sin nivel asignado · usa horario general"}
+                    >
+                      <Clock className="w-3 h-3" />
+                      {teacher.effective_schedule.nivel_name
+                        ? `${teacher.effective_schedule.nivel_name} · `
+                        : "General · "}
+                      {teacher.effective_schedule.entry_time} – {teacher.effective_schedule.exit_time}
+                    </span>
+                  )}
                 </div>
 
                 {/* Status buttons */}
