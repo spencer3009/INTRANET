@@ -18,9 +18,10 @@ function AuxTopicoSidebar({ expanded, onToggle, onLogout, schoolName, subdomain 
 
   return (
     <aside
-      className={`h-screen bg-gradient-to-b from-blue-600 to-blue-800 text-white transition-all duration-300 ${
+      className={`h-screen text-white transition-all duration-300 ${
         expanded ? "w-64" : "w-16"
       } flex flex-col shadow-xl shrink-0 sticky top-0`}
+      style={{ background: "#001f4b" }}
       data-testid="aux-topico-sidebar"
     >
       {/* Toggle / school header */}
