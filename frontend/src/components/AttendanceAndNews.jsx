@@ -229,16 +229,16 @@ export default function AttendanceAndNews({ news = [], token }) {
               <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
             </div>
           ) : (
-          <div className="flex items-center gap-6">
-            <div className="w-36 h-36 relative flex-shrink-0">
+          <div className="flex flex-col items-center gap-5">
+            <div className="w-56 h-56 relative flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={62}
+                    innerRadius={64}
+                    outerRadius={100}
                     paddingAngle={hasAttData ? 4 : 0}
                     dataKey="value"
                     strokeWidth={0}
@@ -250,14 +250,14 @@ export default function AttendanceAndNews({ news = [], token }) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope, sans-serif" }}>
+                <span className="text-4xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope, sans-serif" }}>
                   {hasAttData ? `${presentPct}%` : "—"}
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">asistencia</span>
+                <span className="text-xs text-slate-400 font-medium">asistencia</span>
               </div>
             </div>
 
-            <div className="flex-1 space-y-3">
+            <div className="w-full space-y-2.5 pt-2 border-t border-slate-100">
               {hasAttData ? legendItemsReal.map((item) => {
                 const Icon = item.icon;
                 return (
