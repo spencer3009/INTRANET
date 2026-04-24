@@ -2631,7 +2631,86 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                 </div>
               </div>
 
-              {/* SECTION 4: Reportes */}
+              {/* SECTION 4: Alimentación (PAE) - Solo owner/admin */}
+              {(user?.role === "owner" || user?.role === "admin") && (
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-alimentacion">
+                <div className="bg-gradient-to-r from-emerald-600 to-green-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <UtensilsCrossed className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Alimentacion</h2>
+                      <p className="text-emerald-200 text-sm">Control de comedor escolar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => setActiveView("alimentacion")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-emerald-50 border-2 border-slate-200 hover:border-emerald-300 rounded-xl transition-all group"
+                    data-testid="btn-alimentacion-registros"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 group-hover:bg-emerald-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
+                      <p className="text-xs text-slate-400">Ver asistencias de alimentacion</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                  </button>
+                  <button
+                    disabled
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed"
+                    data-testid="btn-alimentacion-reportes"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-500 text-sm">Reportes Alimentacion</p>
+                      <p className="text-xs text-slate-400">Proximamente</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              )}
+
+              {/* SECTION 5: Movilidad - Solo owner/admin */}
+              {(user?.role === "owner" || user?.role === "admin") && (
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-movilidad">
+                <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Bus className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Movilidad</h2>
+                      <p className="text-purple-200 text-sm">Control de transporte escolar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button onClick={() => setActiveView("movilidad")} className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-300 rounded-xl transition-all group" data-testid="btn-movilidad-registros">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 group-hover:bg-purple-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
+                      <p className="text-xs text-slate-400">Ver registros de movilidad</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
+                  </button>
+                  <button disabled className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed" data-testid="btn-movilidad-reportes">
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><FileText className="w-5 h-5 text-slate-400" /></div>
+                    <div className="text-left flex-1"><p className="font-semibold text-slate-500 text-sm">Reportes Movilidad</p><p className="text-xs text-slate-400">Proximamente</p></div>
+                  </button>
+                </div>
+              </div>
+              )}
+
+              {/* SECTION 6: Reportes */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-reports">
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
                   <div className="flex items-center gap-3">
@@ -2711,85 +2790,6 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                   </div>
                 </div>
               </div>
-
-              {/* SECTION 4: Alimentación (PAE) - Solo owner/admin */}
-              {(user?.role === "owner" || user?.role === "admin") && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-alimentacion">
-                <div className="bg-gradient-to-r from-emerald-600 to-green-500 px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                      <UtensilsCrossed className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Alimentacion</h2>
-                      <p className="text-emerald-200 text-sm">Control de comedor escolar</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-5 space-y-3">
-                  <button
-                    onClick={() => setActiveView("alimentacion")}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-emerald-50 border-2 border-slate-200 hover:border-emerald-300 rounded-xl transition-all group"
-                    data-testid="btn-alimentacion-registros"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-emerald-100 group-hover:bg-emerald-500 flex items-center justify-center transition-colors">
-                      <ClipboardCheck className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
-                      <p className="text-xs text-slate-400">Ver asistencias de alimentacion</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                  </button>
-                  <button
-                    disabled
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed"
-                    data-testid="btn-alimentacion-reportes"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-slate-400" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-500 text-sm">Reportes Alimentacion</p>
-                      <p className="text-xs text-slate-400">Proximamente</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-              )}
-
-              {/* SECTION 5: Movilidad - Solo owner/admin */}
-              {(user?.role === "owner" || user?.role === "admin") && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-movilidad">
-                <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Bus className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Movilidad</h2>
-                      <p className="text-purple-200 text-sm">Control de transporte escolar</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-5 space-y-3">
-                  <button onClick={() => setActiveView("movilidad")} className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-300 rounded-xl transition-all group" data-testid="btn-movilidad-registros">
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 group-hover:bg-purple-500 flex items-center justify-center transition-colors">
-                      <ClipboardCheck className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Registros del día</p>
-                      <p className="text-xs text-slate-400">Ver registros de movilidad</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
-                  </button>
-                  <button disabled className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl opacity-50 cursor-not-allowed" data-testid="btn-movilidad-reportes">
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><FileText className="w-5 h-5 text-slate-400" /></div>
-                    <div className="text-left flex-1"><p className="font-semibold text-slate-500 text-sm">Reportes Movilidad</p><p className="text-xs text-slate-400">Proximamente</p></div>
-                  </button>
-                </div>
-              </div>
-              )}
 
             </div>
           )}
