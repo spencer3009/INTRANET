@@ -476,7 +476,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                           if (sub.tipo === "promedio_auto") {
                             const avg = calcularPromedioCriterio(student, c);
                             return (
-                              <td key={sub.id} style={S.tdAvg}>{avg ?? ""}</td>
+                              <td key={sub.id} style={S.tdAvg}>{avg != null ? Math.round(avg) : ""}</td>
                             );
                           }
                           return (
@@ -515,7 +515,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     ))}
                     {/* Final grade */}
                     <td style={{ ...S.tdFinal, background: final !== null && final < 11 ? "#FECACA" : final !== null && final >= 14 ? "#BBF7D0" : "#D6E4F0", color: final !== null && final < 11 ? "#991B1B" : final !== null && final >= 14 ? "#166534" : "#1F3864" }}>
-                      {final ?? ""}
+                      {final != null ? Math.round(final) : ""}
                     </td>
                   </tr>
                 );
