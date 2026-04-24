@@ -53,7 +53,6 @@ export default function BirthdayMonthCarousel({ token, standalone = false }) {
     const params = {
       month: now.getMonth() + 1,
       year: now.getFullYear(),
-      from_day: now.getDate(),
     };
     setLoading(true);
     axios
