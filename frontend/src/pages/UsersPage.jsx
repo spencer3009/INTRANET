@@ -189,6 +189,19 @@ const ROLE_CARDS = [
     lightGradient: "from-purple-50 to-violet-50",
     image: "https://customer-assets.emergentagent.com/job_07dda940-ffba-401b-80ce-abc43257745f/artifacts/ntzw2yae_image.png"
   },
+  {
+    id: "auxiliar_topico",
+    label: "Tópico",
+    labelSingular: "Tópico (Enfermería)",
+    color: "from-pink-500 to-pink-600",
+    bgColor: "bg-pink-50",
+    iconBg: "bg-pink-100",
+    textColor: "text-pink-600",
+    borderColor: "border-pink-200",
+    gradientBg: "from-pink-500 to-rose-600",
+    lightGradient: "from-pink-50 to-rose-50",
+    image: "https://cdn-icons-png.flaticon.com/512/2785/2785482.png"
+  },
 ];
 
 // Add User Modal Component
@@ -1032,7 +1045,9 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'psicologo' ? 'Psicologo' : 
                    roleId === 'coordinator' ? 'Coordinador' :
                    roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' :
-                   roleId === 'auxiliar_asistencia' ? 'Auxiliar de Asistencia' : roleId}
+                   roleId === 'auxiliar_asistencia' ? 'Auxiliar de Asistencia' :
+                   roleId === 'auxiliar_movilidad' ? 'Auxiliar de Movilidad' :
+                   roleId === 'auxiliar_topico' ? 'Tópico (Enfermería)' : roleId}
                 </div>
               ) : (
                 // Selectable role
@@ -1052,6 +1067,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="auxiliar_alimentacion">Auxiliar de Alimentación</option>
                   <option value="auxiliar_movilidad">Auxiliar de Movilidad</option>
                   <option value="auxiliar_asistencia">Auxiliar de Asistencia</option>
+                  <option value="auxiliar_topico">Tópico (Enfermería)</option>
                 </select>
               )}
             </div>
