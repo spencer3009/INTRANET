@@ -2628,20 +2628,6 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
-                  <button
-                    onClick={() => setActiveView("reports-maintenance")}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
-                    data-testid="btn-reports-maintenance"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors">
-                      <Wrench className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Reportes Mantenimiento</p>
-                      <p className="text-xs text-slate-400">Asistencia del personal de mantenimiento</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
-                  </button>
                 </div>
 
                 {/* Status legend */}
@@ -2752,6 +2738,20 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                     <div className="text-left flex-1">
                       <p className="font-semibold text-slate-800 text-sm">Marcar Manual</p>
                       <p className="text-xs text-slate-400">Lista de personal con botones de estado</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("reports-maintenance")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-reports-maintenance"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 group-hover:bg-orange-500 flex items-center justify-center transition-colors">
+                      <FileText className="w-5 h-5 text-orange-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Reportes Mantenimiento</p>
+                      <p className="text-xs text-slate-400">Asistencia del personal de mantenimiento</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
