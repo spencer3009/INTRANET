@@ -1015,53 +1015,88 @@ async def get_monthly_attendance_pdf(
     from reportlab.lib import colors
     from reportlab.lib.units import mm
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf,
         pagesize=landscape(A4),
-        topMargin=12 * mm,
-        bottomMargin=10 * mm,
-        leftMargin=8 * mm,
-        rightMargin=8 * mm,
+        topMargin=10 * mm,
+        bottomMargin=8 * mm,
+        leftMargin=6 * mm,
+        rightMargin=6 * mm,
     )
 
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
-        "t", parent=styles["Title"], fontSize=13, alignment=TA_CENTER, textColor=colors.HexColor("#0f172a")
+        "t", parent=styles["Title"], fontSize=22, alignment=TA_LEFT,
+        textColor=colors.HexColor("#7C3AED"), fontName="Helvetica-Bold", leading=24,
     )
     subtitle_style = ParagraphStyle(
-        "s", parent=styles["Normal"], fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor("#475569")
+        "s", parent=styles["Normal"], fontSize=9, alignment=TA_LEFT, textColor=colors.HexColor("#475569")
     )
 
+    # Heading block
+    header_label = f"{SPANISH_MONTHS[month].upper()} {year}"
     elements = [
-        Paragraph(school_name, title_style),
-        Paragraph(
-            f"Registro de Asistencia — {SPANISH_MONTHS[month]} {year}", subtitle_style
-        ),
+        Paragraph(f'<font name="Helvetica-Bold" color="#7C3AED" size="20">{header_label}</font> '
+                  f'<font color="#475569" size="10">— {school_name}</font>', title_style),
     ]
     if grade_name or section_name:
         detail = " · ".join(x for x in [grade_name, f"Sección {section_name}" if section_name else ""] if x)
         elements.append(Paragraph(detail, subtitle_style))
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 4))
 
-    # Table header rows
-    header_row_1 = ["N°", "Apellidos y Nombres"]
-    header_row_2 = ["", ""]
+    # ── Group active days into ISO weeks to build colorful banners ──────────
+    # Each week (Mon-Sun) is a group. We only keep Mon-Fri that are in active_days.
+    week_colors = [
+        colors.HexColor("#C4B5FD"),  # Week 1 — violet
+        colors.HexColor("#FDBA74"),  # Week 2 — orange
+        colors.HexColor("#FDE68A"),  # Week 3 — yellow
+        colors.HexColor("#86EFAC"),  # Week 4 — green
+        colors.HexColor("#7DD3FC"),  # Week 5 — cyan
+        colors.HexColor("#F9A8D4"),  # Week 6 — pink (rare)
+    ]
+
+    # Group days by ISO-week number within the selected month
+    weeks_map: "list[list[int]]" = []  # list of [day, ...]
+    current_week = []
+    last_iso = None
     for day in active_days:
-        try:
-            wd = datetime(year, month, day).weekday()
-            wd_letter = WEEKDAY_LETTERS[wd] if wd < 5 else ""
-        except Exception:
-            wd_letter = ""
-        header_row_1.append(str(day))
-        header_row_2.append(wd_letter)
-    header_row_1 += ["Asistió", "Faltó", "Justificó"]
-    header_row_2 += ["", "", ""]
+        iso_wk = datetime(year, month, day).isocalendar()[1]
+        if last_iso is None or iso_wk == last_iso:
+            current_week.append(day)
+        else:
+            if current_week:
+                weeks_map.append(current_week)
+            current_week = [day]
+        last_iso = iso_wk
+    if current_week:
+        weeks_map.append(current_week)
 
-    # Body rows
+    # ── Build table header (3 rows) ─────────────────────────────────────────
+    # Row 0: [N° (span 3 rows)] [Apellidos y Nombres (span 3)] [Semana 1 (span N cols)] ... [ASISTIÓ (span 3)] [FALTÓ (span 3)] [JUSTIFICÓ (span 3)]
+    # Row 1: empty, empty, [L,M,M,J,V letters]
+    # Row 2: empty, empty, [day numbers]
+    row0 = ["N°", "Apellidos y Nombres"]
+    row1 = ["", ""]
+    row2 = ["", ""]
+    for i, wk_days in enumerate(weeks_map):
+        label = f"Semana {i + 1}" if len(wk_days) > 1 else f"S{i + 1}"
+        row0.append(label)
+        # pad to span
+        for _ in range(len(wk_days) - 1):
+            row0.append("")
+        for day in wk_days:
+            wd = datetime(year, month, day).weekday()
+            row1.append(WEEKDAY_LETTERS[wd] if wd < 5 else "")
+            row2.append(str(day))
+    row0 += ["ASISTIÓ", "FALTÓ", "JUSTIFICÓ"]
+    row1 += ["", "", ""]
+    row2 += ["", "", ""]
+
+    # ── Body rows ───────────────────────────────────────────────────────────
     body_rows = []
     for idx, stu in enumerate(students, start=1):
         full_name = f"{(stu.get('last_name') or '').strip()}, {(stu.get('name') or '').strip()}".strip(", ")
@@ -1070,98 +1105,126 @@ async def get_monthly_attendance_pdf(
         absent_count = 0
         justified_count = 0
         day_records = by_student_day.get(stu["id"], {})
-        for day in active_days:
-            rec = day_records.get(day)
-            if not rec:
-                # No record for this day → counts as "falta" only for days the section
-                # has at least one record (we already restrict active_days to those).
-                row.append("")
-                absent_count += 1
-                continue
-            status = (rec.get("status") or "").lower()
-            if status == "justified":
-                row.append("J")
-                justified_count += 1
-                continue
-            if status == "absent":
-                row.append("F")
-                absent_count += 1
-                continue
-            # present / late → show entry + exit times if available
-            present_count += 1
-            check_in = rec.get("check_in_time") or _fmt_time(rec.get("entry_time"))
-            check_out = rec.get("check_out_time") or _fmt_time(rec.get("exit_time"))
-            parts = []
-            if check_in:
-                parts.append(check_in)
-            if check_out:
-                parts.append(check_out)
-            cell_text = "\n".join(parts) if parts else "✓"
-            row.append(cell_text)
+        for wk_days in weeks_map:
+            for day in wk_days:
+                rec = day_records.get(day)
+                if not rec:
+                    row.append("")
+                    absent_count += 1
+                    continue
+                status = (rec.get("status") or "").lower()
+                if status == "justified":
+                    row.append("J")
+                    justified_count += 1
+                    continue
+                if status == "absent":
+                    row.append("F")
+                    absent_count += 1
+                    continue
+                present_count += 1
+                check_in = rec.get("check_in_time") or _fmt_time(rec.get("entry_time"))
+                check_out = rec.get("check_out_time") or _fmt_time(rec.get("exit_time"))
+                parts = []
+                if check_in:
+                    parts.append(check_in)
+                if check_out:
+                    parts.append(check_out)
+                row.append("\n".join(parts) if parts else "P")
         row += [str(present_count), str(absent_count), str(justified_count)]
         body_rows.append(row)
 
-    # Build final table
-    table_data = [header_row_1, header_row_2] + body_rows
-    col_widths = [9 * mm, 55 * mm]  # N° + name
-    col_widths += [9 * mm] * len(active_days)  # day columns
-    col_widths += [14 * mm, 12 * mm, 16 * mm]  # totals
+    # ── Column widths ───────────────────────────────────────────────────────
+    col_widths = [8 * mm, 55 * mm]
+    for wk_days in weeks_map:
+        col_widths += [9 * mm] * len(wk_days)
+    col_widths += [14 * mm, 12 * mm, 16 * mm]
 
-    t = Table(table_data, colWidths=col_widths, repeatRows=2)
+    table_data = [row0, row1, row2] + body_rows
+
+    # ── Table style ─────────────────────────────────────────────────────────
     purple = colors.HexColor("#7C3AED")
-    ts = TableStyle([
-        # Header rows (0 and 1)
-        ("BACKGROUND", (0, 0), (-1, 1), purple),
-        ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
-        ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 1), 7),
-        ("ALIGN", (0, 0), (-1, 1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, 1), "MIDDLE"),
-        # Body styles
-        ("FONTSIZE", (0, 2), (-1, -1), 6),
-        ("ALIGN", (0, 2), (0, -1), "CENTER"),  # N°
-        ("ALIGN", (1, 2), (1, -1), "LEFT"),  # Name
-        ("ALIGN", (2, 2), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 2), (-1, -1), "MIDDLE"),
+    ts_cmds = [
+        # Default header (rows 0-2): bold white on purple fallback
+        ("FONTNAME", (0, 0), (-1, 2), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 2), 7),
+        ("ALIGN", (0, 0), (-1, 2), "CENTER"),
+        ("VALIGN", (0, 0), (-1, 2), "MIDDLE"),
+        # N° + Name header (span 3 rows)
+        ("SPAN", (0, 0), (0, 2)),
+        ("SPAN", (1, 0), (1, 2)),
+        ("BACKGROUND", (0, 0), (0, 2), purple),
+        ("TEXTCOLOR", (0, 0), (0, 2), colors.white),
+        ("BACKGROUND", (1, 0), (1, 2), purple),
+        ("TEXTCOLOR", (1, 0), (1, 2), colors.white),
+        # Body text style
+        ("FONTNAME", (0, 3), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 3), (-1, -1), 6),
+        ("ALIGN", (0, 3), (0, -1), "CENTER"),
+        ("ALIGN", (1, 3), (1, -1), "LEFT"),
+        ("ALIGN", (2, 3), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 3), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (1, 3), (1, -1), 3),
         # Alternate row background
         *[
-            ("BACKGROUND", (0, 2 + i), (-1, 2 + i), colors.HexColor("#F8FAFC"))
+            ("BACKGROUND", (2, 3 + i), (-3 - 1 + 0 + 0, 3 + i), colors.HexColor("#F8FAFC"))
             for i in range(0, len(body_rows), 2)
         ],
-        # Borders
+        # Grid
         ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#CBD5E1")),
-        ("LINEABOVE", (0, 2), (-1, 2), 0.8, purple),
-    ])
-    # Merge N° and Name header cells vertically (span 2 rows)
-    ts.add("SPAN", (0, 0), (0, 1))
-    ts.add("SPAN", (1, 0), (1, 1))
-    ts.add("SPAN", (-3, 0), (-3, 1))
-    ts.add("SPAN", (-2, 0), (-2, 1))
-    ts.add("SPAN", (-1, 0), (-1, 1))
+        ("LINEBELOW", (0, 2), (-1, 2), 1.2, purple),
+    ]
 
-    # Thicker vertical line between weeks (group every 5 columns starting from col 2)
-    if active_days:
-        # Find column indexes where a new week starts (i.e., the day is a Monday)
-        col_for_day = {}
-        for i, day in enumerate(active_days):
-            col_for_day[day] = 2 + i
-        for day in active_days:
-            try:
-                wd = datetime(year, month, day).weekday()
-            except Exception:
-                continue
-            if wd == 0:  # Monday → thicker line before this column
-                col_idx = col_for_day[day]
-                ts.add("LINEBEFORE", (col_idx, 0), (col_idx, -1), 1.2, purple)
-    t.setStyle(ts)
+    # Color each week banner + span across its days
+    col_offset = 2  # first day column
+    for i, wk_days in enumerate(weeks_map):
+        c = week_colors[i % len(week_colors)]
+        first_col = col_offset
+        last_col = col_offset + len(wk_days) - 1
+        # Banner row 0 spans that week's columns
+        if last_col > first_col:
+            ts_cmds.append(("SPAN", (first_col, 0), (last_col, 0)))
+        ts_cmds.append(("BACKGROUND", (first_col, 0), (last_col, 0), c))
+        ts_cmds.append(("TEXTCOLOR", (first_col, 0), (last_col, 0), colors.HexColor("#0f172a")))
+        # Row 1 (weekday letters): softer tint
+        ts_cmds.append(("BACKGROUND", (first_col, 1), (last_col, 1), c))
+        ts_cmds.append(("TEXTCOLOR", (first_col, 1), (last_col, 1), colors.HexColor("#0f172a")))
+        # Row 2 (day numbers): white
+        ts_cmds.append(("BACKGROUND", (first_col, 2), (last_col, 2), colors.white))
+        ts_cmds.append(("TEXTCOLOR", (first_col, 2), (last_col, 2), colors.HexColor("#0f172a")))
+        # Thicker separator line after this week (unless last)
+        if i < len(weeks_map) - 1:
+            ts_cmds.append(("LINEAFTER", (last_col, 0), (last_col, -1), 1.4, colors.HexColor("#64748B")))
+        col_offset += len(wk_days)
 
+    # Total columns (last 3): colored headers + span 3 rows
+    asistio_col = len(col_widths) - 3
+    falto_col = len(col_widths) - 2
+    just_col = len(col_widths) - 1
+    totals = [
+        (asistio_col, colors.HexColor("#22C55E")),  # green
+        (falto_col, colors.HexColor("#EF4444")),  # red
+        (just_col, colors.HexColor("#EAB308")),  # yellow
+    ]
+    for c_idx, c_color in totals:
+        ts_cmds.append(("SPAN", (c_idx, 0), (c_idx, 2)))
+        ts_cmds.append(("BACKGROUND", (c_idx, 0), (c_idx, 2), c_color))
+        ts_cmds.append(("TEXTCOLOR", (c_idx, 0), (c_idx, 2), colors.white))
+        # Body cells in totals: slightly tinted background
+        ts_cmds.append(("BACKGROUND", (c_idx, 3), (c_idx, -1), colors.HexColor("#F1F5F9")))
+        ts_cmds.append(("FONTNAME", (c_idx, 3), (c_idx, -1), "Helvetica-Bold"))
+        ts_cmds.append(("FONTSIZE", (c_idx, 3), (c_idx, -1), 7))
+
+    t = Table(table_data, colWidths=col_widths, repeatRows=3)
+    t.setStyle(TableStyle(ts_cmds))
     elements.append(t)
 
     # Legend
     elements.append(Spacer(1, 6))
     legend = Paragraph(
-        '<font color="#64748B" size="7">Leyenda: <b>HH:MM</b> hora marcada · '
-        '<b>F</b> falta · <b>J</b> justificado · celda vacía = no hubo registro el día.</font>',
+        '<font color="#64748B" size="7">'
+        'Leyenda: <b>HH:MM</b> hora marcada (entrada/salida) · '
+        '<b>F</b> falta · <b>J</b> justificado · celda vacía = sin registro el día.'
+        '</font>',
         styles["Normal"],
     )
     elements.append(legend)
