@@ -1016,7 +1016,28 @@ async def get_monthly_attendance_pdf(
     from reportlab.lib.units import mm
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Flowable
+
+    class RotatedText(Flowable):
+        """Draw text rotated 90° (counter-clockwise) inside a table cell."""
+
+        def __init__(self, text, fontName="Helvetica-Bold", fontSize=8, color=colors.white):
+            super().__init__()
+            self.text = text
+            self.fontName = fontName
+            self.fontSize = fontSize
+            self.color = color
+            self.width = fontSize + 2
+            self.height = len(text) * (fontSize * 0.62) + 4
+
+        def draw(self):
+            c = self.canv
+            c.saveState()
+            c.setFillColor(self.color)
+            c.setFont(self.fontName, self.fontSize)
+            c.rotate(90)
+            c.drawString(2, -self.fontSize * 0.3, self.text)
+            c.restoreState()
 
     buf = BytesIO()
     doc = SimpleDocTemplate(
@@ -1092,7 +1113,8 @@ async def get_monthly_attendance_pdf(
             wd = datetime(year, month, day).weekday()
             row1.append(WEEKDAY_LETTERS[wd] if wd < 5 else "")
             row2.append(str(day))
-    row0 += ["ASISTIÓ", "FALTÓ", "JUSTIFICÓ"]
+    # Rotated headers for totals
+    row0 += [RotatedText("ASISTIÓ"), RotatedText("FALTÓ"), RotatedText("JUSTIFICÓ")]
     row1 += ["", "", ""]
     row2 += ["", "", ""]
 
@@ -1216,6 +1238,27 @@ async def get_monthly_attendance_pdf(
 
     t = Table(table_data, colWidths=col_widths, repeatRows=3)
     t.setStyle(TableStyle(ts_cmds))
+
+    # Rainbow N° column — alternating colored cells per student row
+    n_colors = [
+        colors.HexColor("#EC4899"),  # pink
+        colors.HexColor("#F97316"),  # orange
+        colors.HexColor("#EAB308"),  # yellow
+        colors.HexColor("#22C55E"),  # green
+        colors.HexColor("#06B6D4"),  # cyan
+        colors.HexColor("#8B5CF6"),  # violet
+    ]
+    extra_cmds = []
+    for i in range(len(body_rows)):
+        c = n_colors[i % len(n_colors)]
+        extra_cmds.append(("BACKGROUND", (0, 3 + i), (0, 3 + i), c))
+        extra_cmds.append(("TEXTCOLOR", (0, 3 + i), (0, 3 + i), colors.white))
+        extra_cmds.append(("FONTNAME", (0, 3 + i), (0, 3 + i), "Helvetica-Bold"))
+    # Apply extras
+    for cmd in extra_cmds:
+        t._cellStyles  # noqa: access to ensure styles resolved
+    t.setStyle(TableStyle(ts_cmds + extra_cmds))
+
     elements.append(t)
 
     # Legend
