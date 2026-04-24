@@ -5,7 +5,7 @@ Extracted from server.py during modularization.
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, Form, UploadFile, File, BackgroundTasks, Request
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Literal, Dict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from enum import Enum
 import uuid
 import re
@@ -958,16 +958,12 @@ async def get_monthly_attendance_pdf(
         query.update(flexible_id_filter("section_id", section_id))
     records = await db.attendances.find(query, {"_id": 0}).to_list(length=20000)
 
-    # 2) Determine the list of active weekdays (Mon-Fri, only days with ≥1 record)
-    days_with_records = set()
-    for r in records:
-        try:
-            d = datetime.strptime(r["date"], "%Y-%m-%d").date()
-            if d.weekday() < 5:  # Mon=0..Fri=4
-                days_with_records.add(d.day)
-        except Exception:
-            continue
-    active_days = sorted(days_with_records)
+    # 2) Determine ALL weekdays (Mon-Fri) of the month. Columns are fixed,
+    #    regardless of whether any attendance record exists.
+    active_days = [
+        day for day in range(1, last_day + 1)
+        if date(year, month, day).weekday() <= 4  # 0=Mon..4=Fri
+    ]
 
     # 3) Fetch students for the grade/section
     student_query: dict = {"school_id": school_id, "role": "student"}
