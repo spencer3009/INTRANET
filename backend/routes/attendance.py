@@ -168,6 +168,28 @@ class TeacherAttendanceSave(BaseModel):
     date: str
     records: List[AttendanceRecord]
 
+class MaintenanceAttendanceSave(BaseModel):
+    """Save maintenance personnel attendance"""
+    date: str
+    records: List[AttendanceRecord]
+
+# Labels for maintenance sub-roles (must match frontend UsersPage values)
+MAINTENANCE_ROLE_LABELS = {
+    "limpieza": "Limpieza",
+    "vigilancia": "Vigilancia",
+    "guardianía": "Guardianía",
+    "porteria": "Portería",
+    "otro": "Otro",
+}
+
+def _maintenance_role_display(user_doc: dict) -> str:
+    """Return the human-readable role for a maintenance user."""
+    role = (user_doc or {}).get("maintenance_role")
+    if role == "otro":
+        custom = (user_doc.get("maintenance_role_custom") or "").strip()
+        return custom or "Otro"
+    return MAINTENANCE_ROLE_LABELS.get(role, "")
+
 # ─────────────────────────────────────────────────────────────────────────────
 # STUDENT ATTENDANCE
 # ─────────────────────────────────────────────────────────────────────────────
@@ -687,7 +709,211 @@ async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = De
     }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ATTENDANCE REPORTS
+# MAINTENANCE PERSONNEL ATTENDANCE
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/attendance/maintenance")
+async def get_maintenance_for_attendance(
+    date: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get all maintenance personnel with their attendance status for the given date.
+    If no attendance exists, returns users with default status 'pending'.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school_id = user["school_id"]
+
+    # Get all maintenance personnel
+    users_cursor = db.users.find(
+        {"school_id": school_id, "role": "personal_mantenimiento"},
+        {"_id": 0, "password": 0, "verification_code": 0},
+    )
+    maintenance_users = await users_cursor.to_list(length=500)
+
+    # Get existing attendance records for this date
+    attendance_cursor = db.attendances.find(
+        {"school_id": school_id, "type": "maintenance", "date": date},
+        {"_id": 0},
+    )
+    attendance_records = await attendance_cursor.to_list(length=500)
+    attendance_map = {a["user_id"]: a for a in attendance_records}
+
+    result = []
+    for u in maintenance_users:
+        att = attendance_map.get(u["id"])
+        result.append({
+            "id": u["id"],
+            "name": u.get("name", ""),
+            "last_name": u.get("last_name", ""),
+            "full_name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(),
+            "photo_url": u.get("photo_url"),
+            "email": u.get("email"),
+            "maintenance_role": u.get("maintenance_role"),
+            "maintenance_role_custom": u.get("maintenance_role_custom"),
+            "role_label": _maintenance_role_display(u),
+            "status": att["status"] if att else "pending",
+            "has_record": att is not None,
+        })
+
+    # Sort alphabetically by full name
+    result.sort(key=lambda x: x["full_name"].lower())
+
+    return {
+        "date": date,
+        "maintenance": result,
+        "total": len(result),
+        "has_saved_records": len(attendance_records) > 0,
+    }
+
+
+@router.post("/attendance/maintenance/save")
+async def save_maintenance_attendance(
+    data: MaintenanceAttendanceSave,
+    current_user = Depends(get_current_user)
+):
+    """Save attendance records for maintenance personnel in batch."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Delete existing records for this date
+    await db.attendances.delete_many({
+        "school_id": school_id,
+        "type": "maintenance",
+        "date": data.date,
+    })
+
+    # Insert new records
+    records_to_insert = []
+    for record in data.records:
+        records_to_insert.append({
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "type": "maintenance",
+            "user_id": record.user_id,
+            "grade_id": None,
+            "section_id": None,
+            "date": data.date,
+            "status": record.status,
+            "recorded_by": current_user["sub"],
+            "created_at": now,
+        })
+
+    if records_to_insert:
+        await db.attendances.insert_many(records_to_insert)
+
+    summary = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+    for r in data.records:
+        if r.status in summary:
+            summary[r.status] += 1
+
+    logger.info(
+        f"Maintenance attendance saved for {data.date} by {current_user['sub']}: "
+        f"{len(data.records)} records"
+    )
+
+    return {
+        "message": "Asistencia de mantenimiento guardada correctamente",
+        "date": data.date,
+        "total_records": len(data.records),
+        "summary": summary,
+    }
+
+
+@router.get("/attendance/reports/maintenance")
+async def get_maintenance_attendance_report(
+    user_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get maintenance attendance report with summary statistics."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school_id = user["school_id"]
+
+    # Build query
+    query = {"school_id": school_id, "type": "maintenance"}
+    if user_id:
+        query["user_id"] = user_id
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+
+    records_cursor = db.attendances.find(query, {"_id": 0}).sort("date", -1)
+    records = await records_cursor.to_list(length=2000)
+
+    # Get user info for all referenced IDs
+    user_ids = list(set(r["user_id"] for r in records))
+    users_cursor = db.users.find(
+        {"id": {"$in": user_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1,
+         "maintenance_role": 1, "maintenance_role_custom": 1},
+    )
+    users_list = await users_cursor.to_list(length=500)
+    users_map = {u["id"]: u for u in users_list}
+
+    # Aggregate by user
+    report_by_user = {}
+    for r in records:
+        uid = r["user_id"]
+        if uid not in report_by_user:
+            u = users_map.get(uid, {})
+            report_by_user[uid] = {
+                "user_id": uid,
+                "full_name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(),
+                "photo_url": u.get("photo_url"),
+                "role_label": _maintenance_role_display(u),
+                "present": 0,
+                "late": 0,
+                "absent": 0,
+                "justified": 0,
+                "total_days": 0,
+                "attendance_rate": 0,
+            }
+        report_by_user[uid]["total_days"] += 1
+        if r["status"] in report_by_user[uid]:
+            report_by_user[uid][r["status"]] += 1
+
+    for _, data_item in report_by_user.items():
+        if data_item["total_days"] > 0:
+            attended = data_item["present"] + data_item["late"] + data_item["justified"]
+            data_item["attendance_rate"] = round((attended / data_item["total_days"]) * 100, 1)
+
+    report_list = list(report_by_user.values())
+    report_list.sort(key=lambda x: x["full_name"].lower())
+
+    overall_summary = {
+        "total_records": len(records),
+        "present": sum(1 for r in records if r["status"] == "present"),
+        "late": sum(1 for r in records if r["status"] == "late"),
+        "absent": sum(1 for r in records if r["status"] == "absent"),
+        "justified": sum(1 for r in records if r["status"] == "justified"),
+    }
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "user_id": user_id,
+        "report": report_list,
+        "summary": overall_summary,
+        "records": records[:100],
+    }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ATTENDANCE REPORTS (students)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/attendance/reports/teachers")

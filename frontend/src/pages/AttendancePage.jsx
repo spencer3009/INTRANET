@@ -14,7 +14,8 @@ import {
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
-  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText, Bus
+  Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText, Bus,
+  Wrench
 } from "lucide-react";
 import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 import { toast } from "sonner";
@@ -909,6 +910,210 @@ function TeacherAttendanceTab({ token, schoolId }) {
           <UserCheck className="w-16 h-16 mx-auto mb-4 text-slate-300" />
           <h3 className="text-xl font-bold text-slate-700 mb-2">Sin profesores</h3>
           <p className="text-slate-500">No hay profesores registrados en el sistema.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAINTENANCE ATTENDANCE TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function MaintenanceAttendanceTab({ token }) {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [people, setPeople] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [hasSavedRecords, setHasSavedRecords] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const loadAttendance = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.get(`${API}/attendance/maintenance`, {
+        headers,
+        params: { date: selectedDate },
+      });
+      setPeople(res.data.maintenance);
+      setHasSavedRecords(res.data.has_saved_records);
+      setHasChanges(false);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al cargar asistencia");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  const handleStatusChange = (userId, newStatus) => {
+    setPeople(prev => prev.map(p => p.id === userId ? { ...p, status: newStatus } : p));
+    setHasChanges(true);
+  };
+
+  const saveAttendance = async () => {
+    if (people.length === 0) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const records = people.map(p => ({ user_id: p.id, status: p.status }));
+      await axios.post(`${API}/attendance/maintenance/save`, {
+        date: selectedDate,
+        records,
+      }, { headers });
+      setSuccess("Asistencia de mantenimiento guardada correctamente");
+      setHasChanges(false);
+      setHasSavedRecords(true);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar asistencia");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const summary = {
+    present: people.filter(p => p.status === "present").length,
+    late: people.filter(p => p.status === "late").length,
+    absent: people.filter(p => p.status === "absent").length,
+    justified: people.filter(p => p.status === "justified").length,
+    total: people.length,
+  };
+
+  return (
+    <div className="space-y-6" data-testid="maintenance-attendance-tab">
+      {/* Date filter */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-6 h-6 text-amber-600" />
+            <span className="font-semibold text-slate-700">Fecha:</span>
+          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+            data-testid="maintenance-attendance-date"
+          />
+          <button
+            onClick={loadAttendance}
+            disabled={loading}
+            className="px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 disabled:opacity-50 flex items-center gap-2"
+            data-testid="maintenance-attendance-refresh"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" /> {error}
+        </div>
+      )}
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-3">
+          <Check className="w-5 h-5" /> {success}
+        </div>
+      )}
+
+      {people.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
+                <p className="text-amber-100">{summary.total} personas de mantenimiento</p>
+              </div>
+              <div className="flex gap-3 text-sm flex-wrap">
+                <div className="bg-white/20 px-3 py-2 rounded-lg"><span className="text-emerald-100">✓ {summary.present}</span></div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg"><span className="text-amber-100">⏰ {summary.late}</span></div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg"><span className="text-red-100">✗ {summary.absent}</span></div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg"><span className="text-blue-100">📝 {summary.justified}</span></div>
+              </div>
+            </div>
+            {hasChanges && (
+              <div className="mt-3 p-3 bg-white/20 rounded-lg flex items-center gap-2 text-amber-50">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Tienes cambios pendientes por guardar</span>
+              </div>
+            )}
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {people.map((person, idx) => (
+              <div key={person.id}
+                className={`p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}
+                data-testid={`maintenance-row-${person.id}`}
+              >
+                <div className="flex-shrink-0">
+                  {person.photo_url ? (
+                    <img src={person.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold">
+                      {person.name?.charAt(0) || "M"}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800">{person.full_name}</p>
+                  {person.role_label ? (
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-semibold border border-amber-200">
+                      <Wrench className="w-3 h-3" />
+                      {person.role_label}
+                    </span>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-1">Sin rol asignado</p>
+                  )}
+                </div>
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {TEACHER_STATUSES.map(status => (
+                    <StatusButton
+                      key={status.id}
+                      status={status}
+                      isActive={person.status === status.id}
+                      onClick={(newStatus) => handleStatusChange(person.id, newStatus)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-6 bg-slate-50 border-t border-slate-200">
+            <button
+              onClick={saveAttendance}
+              disabled={saving || !hasChanges}
+              data-testid="maintenance-attendance-save"
+              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                hasChanges
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              {saving ? (<><Loader2 className="w-6 h-6 animate-spin" />Guardando...</>) :
+                (<><Save className="w-6 h-6" />{hasSavedRecords ? "Actualizar Asistencia" : "Guardar Asistencia"}</>)}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!loading && people.length === 0 && (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <Wrench className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Sin personal de mantenimiento</h3>
+          <p className="text-slate-500">No hay personal de mantenimiento registrado en el sistema.</p>
         </div>
       )}
     </div>
@@ -1935,6 +2140,262 @@ function TeacherReportsTab({ token }) {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
+// MAINTENANCE REPORTS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function MaintenanceReportsTab({ token }) {
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const loadReport = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+      const res = await axios.get(`${API}/attendance/reports/maintenance?${params}`, { headers });
+      setReport(res.data);
+    } catch (err) {
+      console.error("Error loading maintenance report:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToPDF = () => {
+    if (!report) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(18);
+    doc.setTextColor(180, 83, 9); // amber-700
+    doc.text("Reporte de Asistencia — Personal de Mantenimiento", pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    const dateRange = `Período: ${new Date(startDate + 'T12:00:00').toLocaleDateString("es-PE")} - ${new Date(endDate + 'T12:00:00').toLocaleDateString("es-PE")}`;
+    doc.text(dateRange, pageWidth / 2, 28, { align: "center" });
+
+    if (report.report.length > 0) {
+      const tableData = report.report.map(item => [
+        item.full_name,
+        item.role_label || "—",
+        item.total_days,
+        item.present,
+        item.late,
+        item.absent,
+        item.justified,
+        `${item.attendance_rate}%`,
+      ]);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Personal', 'Rol', 'Días', 'Presente', 'Tardanza', 'Ausente', 'Justificado', '% Asist.']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [245, 158, 11], textColor: 255, fontSize: 10, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 42 },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 15, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 20, halign: 'center' },
+          5: { cellWidth: 20, halign: 'center' },
+          6: { cellWidth: 22, halign: 'center' },
+          7: { cellWidth: 18, halign: 'center' },
+        },
+        alternateRowStyles: { fillColor: [254, 252, 232] },
+      });
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.text(
+        `Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: "center" }
+      );
+    }
+
+    doc.save(`reporte_asistencia_mantenimiento_${startDate}_${endDate}.pdf`);
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      present: "bg-emerald-100 text-emerald-700",
+      late: "bg-amber-100 text-amber-700",
+      absent: "bg-red-100 text-red-700",
+      justified: "bg-blue-100 text-blue-700",
+    };
+    const labels = { present: "Presente", late: "Tardanza", absent: "Ausente", justified: "Justificado" };
+    return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status] || "bg-slate-100 text-slate-500"}`}>{labels[status] || status}</span>;
+  };
+
+  return (
+    <div className="space-y-6" data-testid="maintenance-reports-tab">
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Filter className="w-5 h-5 text-amber-600" />
+          Reporte de Asistencia — Personal de Mantenimiento
+        </h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+              data-testid="maintenance-report-start-date" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+              data-testid="maintenance-report-end-date" />
+          </div>
+          <div className="flex items-end">
+            <button onClick={loadReport} disabled={loading}
+              className="w-full px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              data-testid="maintenance-report-generate">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              Generar Reporte
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {report && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="maintenance-report-summary">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 text-center">
+              <p className="text-2xl font-bold text-slate-800">{report.summary.total_records}</p>
+              <p className="text-xs text-slate-500 font-medium">Total registros</p>
+            </div>
+            <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm border border-emerald-200 text-center">
+              <p className="text-2xl font-bold text-emerald-700">{report.summary.present}</p>
+              <p className="text-xs text-emerald-600 font-medium">Presentes</p>
+            </div>
+            <div className="bg-amber-50 rounded-2xl p-4 shadow-sm border border-amber-200 text-center">
+              <p className="text-2xl font-bold text-amber-700">{report.summary.late}</p>
+              <p className="text-xs text-amber-600 font-medium">Tardanzas</p>
+            </div>
+            <div className="bg-red-50 rounded-2xl p-4 shadow-sm border border-red-200 text-center">
+              <p className="text-2xl font-bold text-red-700">{report.summary.absent}</p>
+              <p className="text-xs text-red-600 font-medium">Ausentes</p>
+            </div>
+            <div className="bg-blue-50 rounded-2xl p-4 shadow-sm border border-blue-200 text-center">
+              <p className="text-2xl font-bold text-blue-700">{report.summary.justified}</p>
+              <p className="text-xs text-blue-600 font-medium">Justificados</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-amber-600" />
+                Detalle por Personal ({report.report.length})
+              </h3>
+              <button onClick={exportToPDF}
+                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl text-sm font-semibold hover:bg-amber-200 transition-colors flex items-center gap-2"
+                data-testid="maintenance-report-export-pdf">
+                <Download className="w-4 h-4" /> Exportar PDF
+              </button>
+            </div>
+
+            {report.report.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No hay registros de asistencia en este período</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Personal</th>
+                      <th className="text-left px-3 py-3 text-xs font-bold text-slate-500 uppercase">Rol</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase">Días</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-emerald-600 uppercase">Presente</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-amber-600 uppercase">Tardanza</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-red-600 uppercase">Ausente</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-blue-600 uppercase">Justificado</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase">% Asist.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {report.report.map((p) => (
+                      <tr key={p.user_id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            {p.photo_url ? (
+                              <img src={p.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs">
+                                {p.full_name?.charAt(0) || "M"}
+                              </div>
+                            )}
+                            <span className="font-medium text-slate-800 text-sm">{p.full_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-sm text-slate-600">{p.role_label || "—"}</td>
+                        <td className="text-center px-3 py-3 text-sm font-medium text-slate-600">{p.total_days}</td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-emerald-600">{p.present}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-amber-600">{p.late}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-red-600">{p.absent}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-blue-600">{p.justified}</span></td>
+                        <td className="text-center px-3 py-3">
+                          <span className={`text-sm font-bold ${p.attendance_rate >= 90 ? "text-emerald-600" : p.attendance_rate >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                            {p.attendance_rate}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {report.records && report.records.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h3 className="font-bold text-slate-800">Últimos Registros</h3>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                {report.records.slice(0, 20).map((r, idx) => {
+                  const person = report.report.find(p => p.user_id === r.user_id);
+                  return (
+                    <div key={idx} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs">
+                        {person?.full_name?.charAt(0) || "M"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 text-sm truncate">{person?.full_name || r.user_id}</p>
+                        <p className="text-xs text-slate-400">{r.date}{person?.role_label ? ` · ${person.role_label}` : ""}</p>
+                      </div>
+                      {getStatusBadge(r.status)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AttendancePage({ user, token, subdomain, onLogout, initialView }) {
@@ -2125,7 +2586,52 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                 </div>
               </div>
 
-              {/* SECTION 3: Reportes */}
+              {/* SECTION 3: Personal de Mantenimiento */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-maintenance">
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Wrench className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Personal de Mantenimiento</h2>
+                      <p className="text-amber-100 text-sm">Asistencia de mantenimiento</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => { setScanContext("personal_mantenimiento"); setActiveView("qr-scanner"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-maintenance-qr"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 group-hover:bg-violet-500 flex items-center justify-center transition-colors">
+                      <QrCode className="w-5 h-5 text-violet-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Escanear QR</p>
+                      <p className="text-xs text-slate-400">Registro automático con código QR</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("maintenance")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-maintenance-manual"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Marcar Manual</p>
+                      <p className="text-xs text-slate-400">Lista de personal con botones de estado</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 4: Reportes */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-reports">
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
                   <div className="flex items-center gap-3">
@@ -2164,6 +2670,20 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                     <div className="text-left flex-1">
                       <p className="font-semibold text-slate-800 text-sm">Reportes Profesores</p>
                       <p className="text-xs text-slate-400">Asistencia de docentes</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("reports-maintenance")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-reports-maintenance"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors">
+                      <Wrench className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Reportes Mantenimiento</p>
+                      <p className="text-xs text-slate-400">Asistencia del personal de mantenimiento</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
@@ -2283,6 +2803,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
             <TeacherAttendanceTab token={token} schoolId={user?.school_id} />
           )}
           
+          {activeView === "maintenance" && (
+            <MaintenanceAttendanceTab token={token} />
+          )}
+          
           {activeView === "qr-scanner" && (
             <QRScannerTab token={token} schoolId={user?.school_id} roleFilter={scanContext} user={user} />
           )}
@@ -2293,6 +2817,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
           
           {activeView === "reports-teachers" && (
             <TeacherReportsTab token={token} schoolId={user?.school_id} />
+          )}
+
+          {activeView === "reports-maintenance" && (
+            <MaintenanceReportsTab token={token} />
           )}
 
           {activeView === "alimentacion" && (

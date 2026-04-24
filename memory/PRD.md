@@ -40,6 +40,13 @@ Ver `/app/memory/test_credentials.md`.
   - Nuevos campos `maintenance_role` (enum: `limpieza`, `vigilancia`, `guardianía`, `porteria`, `otro`) y `maintenance_role_custom` (texto libre si `otro`).
   - Backend valida en POST y PUT `/api/users` con error 400 si faltan.
   - Frontend: dropdown como primer campo visible en modales de creación y edición; input libre condicional cuando selecciona "Otro"; limpia valor al cambiar a otra opción.
+- [2026-02] **Módulo de Asistencia de Personal de Mantenimiento** (`attendance.py` + `AttendancePage.jsx`):
+  - Backend: 3 endpoints nuevos siguiendo patrón de profesores (`type: "maintenance"` en `db.attendances`):
+    - `GET /api/attendance/maintenance?date=YYYY-MM-DD` → lista personal con estado del día.
+    - `POST /api/attendance/maintenance/save` → upsert batch por fecha (reemplaza registros).
+    - `GET /api/attendance/reports/maintenance?start_date&end_date` → resumen por persona con % asistencia.
+  - Helper `_maintenance_role_display()` devuelve label legible (maintenance_role mapeado o custom si es "otro").
+  - Frontend: tarjeta "Personal de Mantenimiento" en home, `MaintenanceAttendanceTab` (marcado manual con chip del rol), `MaintenanceReportsTab` (tabla + PDF con jsPDF) y botón "Reportes Mantenimiento" en sección Reportes.
 
 ## Roadmap
 ### P1
