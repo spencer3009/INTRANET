@@ -200,7 +200,7 @@ const ROLE_CARDS = [
     borderColor: "border-pink-200",
     gradientBg: "from-pink-500 to-rose-600",
     lightGradient: "from-pink-50 to-rose-50",
-    image: "https://cdn-icons-png.flaticon.com/512/2785/2785482.png"
+    image: "https://customer-assets.emergentagent.com/job_507dc7a6-b0ab-4711-a4c3-f8b8c96b2e2e/artifacts/ofv886sk_image.png"
   },
 ];
 
