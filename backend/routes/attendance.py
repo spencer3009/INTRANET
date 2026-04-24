@@ -4,7 +4,7 @@ Extracted from server.py during modularization.
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, Form, UploadFile, File, BackgroundTasks, Request
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import uuid
@@ -28,6 +28,9 @@ from .core import (
 
 import jwt
 from services.qr_service import generate_user_qr
+from io import BytesIO
+from calendar import monthrange
+from fastapi.responses import StreamingResponse
 
 try:
     from .notifications import send_attendance_notification
@@ -908,6 +911,291 @@ class MarkExitRequest(BaseModel):
     student_id: str
     date: Optional[str] = None
     method: Literal["manual", "qr"] = "manual"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MONTHLY ATTENDANCE SHEET — PDF
+# ══════════════════════════════════════════════════════════════════════════════
+
+SPANISH_MONTHS = [
+    "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+]
+WEEKDAY_LETTERS = ["L", "M", "M", "J", "V", "S", "D"]  # Mon..Sun
+
+
+@router.get("/attendance/reports/monthly-pdf")
+async def get_monthly_attendance_pdf(
+    month: int = Query(..., ge=1, le=12),
+    year: int = Query(..., ge=2000, le=2100),
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user = Depends(get_current_user),
+):
+    """Generate a monthly attendance sheet (landscape PDF) for a given grade/section.
+
+    Columns: N°, Apellidos y Nombres, [weekdays with records], Asistió, Faltó, Justificó.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    role = (user.get("role") or "").lower()
+    if role not in {"owner", "admin", "director", "coordinator"}:
+        raise HTTPException(status_code=403, detail="No tienes permiso para descargar esta planilla")
+
+    school_id = user["school_id"]
+
+    # Date range of the month
+    last_day = monthrange(year, month)[1]
+    month_start = f"{year:04d}-{month:02d}-01"
+    month_end = f"{year:04d}-{month:02d}-{last_day:02d}"
+
+    # 1) Fetch attendance records for the month
+    query = {"type": "student", "date": {"$gte": month_start, "$lte": month_end}}
+    query.update(flexible_id_filter("school_id", school_id))
+    if grade_id:
+        query.update(flexible_id_filter("grade_id", grade_id))
+    if section_id:
+        query.update(flexible_id_filter("section_id", section_id))
+    records = await db.attendances.find(query, {"_id": 0}).to_list(length=20000)
+
+    # 2) Determine the list of active weekdays (Mon-Fri, only days with ≥1 record)
+    days_with_records = set()
+    for r in records:
+        try:
+            d = datetime.strptime(r["date"], "%Y-%m-%d").date()
+            if d.weekday() < 5:  # Mon=0..Fri=4
+                days_with_records.add(d.day)
+        except Exception:
+            continue
+    active_days = sorted(days_with_records)
+
+    # 3) Fetch students for the grade/section
+    student_query: dict = {"school_id": school_id, "role": "student"}
+    if grade_id:
+        student_query["grado_id"] = grade_id
+    if section_id:
+        student_query["seccion_id"] = section_id
+    students_cursor = db.users.find(
+        student_query,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1},
+    )
+    students = await students_cursor.to_list(length=2000)
+    students.sort(key=lambda s: (s.get("last_name") or "").lower())
+
+    # 4) Build records map: student_id -> day (int) -> record
+    by_student_day: Dict[str, Dict[int, dict]] = {}
+    for r in records:
+        try:
+            d = datetime.strptime(r["date"], "%Y-%m-%d").date()
+        except Exception:
+            continue
+        day = d.day
+        sid = r.get("user_id")
+        if not sid:
+            continue
+        if sid not in by_student_day:
+            by_student_day[sid] = {}
+        by_student_day[sid][day] = r
+
+    # 5) Fetch school/grade/section names
+    school_doc = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "logo_url": 1})
+    school_name = (school_doc or {}).get("name") or "Colegio"
+
+    grade_name = ""
+    section_name = ""
+    if grade_id:
+        g = await db.grades.find_one({"id": grade_id}, {"_id": 0, "nombre": 1, "name": 1})
+        grade_name = (g or {}).get("nombre") or (g or {}).get("name") or ""
+    if section_id:
+        s = await db.sections.find_one({"id": section_id}, {"_id": 0, "nombre": 1, "name": 1})
+        section_name = (s or {}).get("nombre") or (s or {}).get("name") or ""
+
+    # ── Build PDF ────────────────────────────────────────────────────────────
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=landscape(A4),
+        topMargin=12 * mm,
+        bottomMargin=10 * mm,
+        leftMargin=8 * mm,
+        rightMargin=8 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "t", parent=styles["Title"], fontSize=13, alignment=TA_CENTER, textColor=colors.HexColor("#0f172a")
+    )
+    subtitle_style = ParagraphStyle(
+        "s", parent=styles["Normal"], fontSize=9, alignment=TA_CENTER, textColor=colors.HexColor("#475569")
+    )
+
+    elements = [
+        Paragraph(school_name, title_style),
+        Paragraph(
+            f"Registro de Asistencia — {SPANISH_MONTHS[month]} {year}", subtitle_style
+        ),
+    ]
+    if grade_name or section_name:
+        detail = " · ".join(x for x in [grade_name, f"Sección {section_name}" if section_name else ""] if x)
+        elements.append(Paragraph(detail, subtitle_style))
+    elements.append(Spacer(1, 6))
+
+    # Table header rows
+    header_row_1 = ["N°", "Apellidos y Nombres"]
+    header_row_2 = ["", ""]
+    for day in active_days:
+        try:
+            wd = datetime(year, month, day).weekday()
+            wd_letter = WEEKDAY_LETTERS[wd] if wd < 5 else ""
+        except Exception:
+            wd_letter = ""
+        header_row_1.append(str(day))
+        header_row_2.append(wd_letter)
+    header_row_1 += ["Asistió", "Faltó", "Justificó"]
+    header_row_2 += ["", "", ""]
+
+    # Body rows
+    body_rows = []
+    for idx, stu in enumerate(students, start=1):
+        full_name = f"{(stu.get('last_name') or '').strip()}, {(stu.get('name') or '').strip()}".strip(", ")
+        row = [str(idx), full_name]
+        present_count = 0
+        absent_count = 0
+        justified_count = 0
+        day_records = by_student_day.get(stu["id"], {})
+        for day in active_days:
+            rec = day_records.get(day)
+            if not rec:
+                # No record for this day → counts as "falta" only for days the section
+                # has at least one record (we already restrict active_days to those).
+                row.append("")
+                absent_count += 1
+                continue
+            status = (rec.get("status") or "").lower()
+            if status == "justified":
+                row.append("J")
+                justified_count += 1
+                continue
+            if status == "absent":
+                row.append("F")
+                absent_count += 1
+                continue
+            # present / late → show entry + exit times if available
+            present_count += 1
+            check_in = rec.get("check_in_time") or _fmt_time(rec.get("entry_time"))
+            check_out = rec.get("check_out_time") or _fmt_time(rec.get("exit_time"))
+            parts = []
+            if check_in:
+                parts.append(check_in)
+            if check_out:
+                parts.append(check_out)
+            cell_text = "\n".join(parts) if parts else "✓"
+            row.append(cell_text)
+        row += [str(present_count), str(absent_count), str(justified_count)]
+        body_rows.append(row)
+
+    # Build final table
+    table_data = [header_row_1, header_row_2] + body_rows
+    col_widths = [9 * mm, 55 * mm]  # N° + name
+    col_widths += [9 * mm] * len(active_days)  # day columns
+    col_widths += [14 * mm, 12 * mm, 16 * mm]  # totals
+
+    t = Table(table_data, colWidths=col_widths, repeatRows=2)
+    purple = colors.HexColor("#7C3AED")
+    ts = TableStyle([
+        # Header rows (0 and 1)
+        ("BACKGROUND", (0, 0), (-1, 1), purple),
+        ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
+        ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 1), 7),
+        ("ALIGN", (0, 0), (-1, 1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, 1), "MIDDLE"),
+        # Body styles
+        ("FONTSIZE", (0, 2), (-1, -1), 6),
+        ("ALIGN", (0, 2), (0, -1), "CENTER"),  # N°
+        ("ALIGN", (1, 2), (1, -1), "LEFT"),  # Name
+        ("ALIGN", (2, 2), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 2), (-1, -1), "MIDDLE"),
+        # Alternate row background
+        *[
+            ("BACKGROUND", (0, 2 + i), (-1, 2 + i), colors.HexColor("#F8FAFC"))
+            for i in range(0, len(body_rows), 2)
+        ],
+        # Borders
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#CBD5E1")),
+        ("LINEABOVE", (0, 2), (-1, 2), 0.8, purple),
+    ])
+    # Merge N° and Name header cells vertically (span 2 rows)
+    ts.add("SPAN", (0, 0), (0, 1))
+    ts.add("SPAN", (1, 0), (1, 1))
+    ts.add("SPAN", (-3, 0), (-3, 1))
+    ts.add("SPAN", (-2, 0), (-2, 1))
+    ts.add("SPAN", (-1, 0), (-1, 1))
+
+    # Thicker vertical line between weeks (group every 5 columns starting from col 2)
+    if active_days:
+        # Find column indexes where a new week starts (i.e., the day is a Monday)
+        col_for_day = {}
+        for i, day in enumerate(active_days):
+            col_for_day[day] = 2 + i
+        for day in active_days:
+            try:
+                wd = datetime(year, month, day).weekday()
+            except Exception:
+                continue
+            if wd == 0:  # Monday → thicker line before this column
+                col_idx = col_for_day[day]
+                ts.add("LINEBEFORE", (col_idx, 0), (col_idx, -1), 1.2, purple)
+    t.setStyle(ts)
+
+    elements.append(t)
+
+    # Legend
+    elements.append(Spacer(1, 6))
+    legend = Paragraph(
+        '<font color="#64748B" size="7">Leyenda: <b>HH:MM</b> hora marcada · '
+        '<b>F</b> falta · <b>J</b> justificado · celda vacía = no hubo registro el día.</font>',
+        styles["Normal"],
+    )
+    elements.append(legend)
+
+    doc.build(elements)
+    buf.seek(0)
+
+    safe_grade = (grade_name or "grado").replace(" ", "_")
+    safe_section = (section_name or "seccion").replace(" ", "_")
+    filename = f"planilla_asistencia_{safe_grade}_{safe_section}_{SPANISH_MONTHS[month]}_{year}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _fmt_time(iso_value):
+    """Parse an ISO timestamp or raw HH:MM and return "HH:MM" (Peru TZ) or None."""
+    if not iso_value:
+        return None
+    if isinstance(iso_value, str) and len(iso_value) == 5 and iso_value[2] == ":":
+        return iso_value  # already HH:MM
+    try:
+        if isinstance(iso_value, str):
+            dt = datetime.fromisoformat(iso_value.replace("Z", "+00:00"))
+        else:
+            dt = iso_value
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(PERU_TZ).strftime("%H:%M")
+    except Exception:
+        return None
+
 
 @router.post("/attendance/mark-entry")
 async def mark_attendance_entry(data: MarkEntryRequest, current_user=Depends(get_current_user)):
