@@ -4,7 +4,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import {
   Lock, Eye, Copy, Plus, Star, MoreVertical, Archive, Trash2,
-  CheckCircle2, FileEdit, Loader2, X, Layers, Sparkles, ChevronRight, Shield
+  CheckCircle2, FileEdit, Loader2, X, Layers, Sparkles, ChevronRight, Shield,
+  ClipboardList, BookOpen, GraduationCap
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -15,6 +16,9 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
   const [loading, setLoading] = useState(true);
   const [previewPlantilla, setPreviewPlantilla] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
+  const [usage, setUsage] = useState([]);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [showAllUsage, setShowAllUsage] = useState(false);
   const headers = { Authorization: `Bearer ${token}` };
 
   const loadPlantillas = async () => {
@@ -28,7 +32,22 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
     }
   };
 
-  useEffect(() => { loadPlantillas(); }, []);
+  const loadUsage = async () => {
+    try {
+      const { data } = await axios.get(`${API}/api/schools/${schoolId}/registro-auxiliar/usage`, { headers });
+      setUsage(data.usage || []);
+    } catch {
+      // silent — usage card will just not show
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPlantillas();
+    loadUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleClone = async (plantillaId, nombre) => {
     try {
@@ -121,6 +140,74 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
           <Plus className="w-4 h-4" /> Nueva plantilla
         </button>
       </div>
+
+      {/* Cursos con notas registradas */}
+      {!usageLoading && usage.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden" data-testid="ra-usage-card">
+          <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50/60 to-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">Cursos con notas registradas</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{usage.length} asignatura{usage.length !== 1 ? "s" : ""} con notas guardadas en este colegio.</p>
+              </div>
+            </div>
+            {usage.length > 4 && (
+              <button
+                type="button"
+                onClick={() => setShowAllUsage(v => !v)}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                data-testid="ra-usage-toggle"
+              >
+                {showAllUsage ? "Ver menos" : `Ver todos (${usage.length})`}
+              </button>
+            )}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {(showAllUsage ? usage : usage.slice(0, 4)).map((u) => (
+              <div
+                key={`${u.subject_id}-${u.section_id}`}
+                className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50/60 transition-colors"
+                data-testid={`ra-usage-row-${u.subject_id}-${u.section_id}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{u.subject_name}</p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
+                      <GraduationCap className="w-3 h-3 text-slate-400" />
+                      <span>{u.level_name}</span>
+                      <span className="text-slate-300">•</span>
+                      <span>{u.grade_name}</span>
+                      <span className="text-slate-300">•</span>
+                      <span>Sección {u.section_name}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">
+                    {u.records_count} alumno{u.records_count !== 1 ? "s" : ""}
+                  </span>
+                  {u.has_dynamic && (
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200" title="Usa columnas de plantilla personalizada">
+                      Personalizada
+                    </span>
+                  )}
+                  {!u.has_dynamic && u.has_static && (
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-slate-50 text-slate-600 font-bold border border-slate-200" title="Usa columnas de la plantilla del sistema">
+                      Sistema
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* System Template — Premium card */}
       {sistema && (

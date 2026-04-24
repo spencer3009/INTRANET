@@ -512,3 +512,84 @@ async def usar_plantilla_sistema(school_id: str, current_user=Depends(require_ro
         "message": "Ahora el colegio usa la plantilla del sistema.",
         "deactivated_count": result.modified_count,
     }
+
+
+# ══════════════════════════════════════════════════════════════════
+#  10. GET /usage — Resumen de cursos/secciones con notas registradas
+# ══════════════════════════════════════════════════════════════════
+
+STATIC_GRADE_FIELDS = [
+    "act_co", "act_re",
+    "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+    "comp_c1", "comp_c2",
+    "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+    "exam_mensual", "exam_bimestral",
+]
+
+
+@router.get("/schools/{school_id}/registro-auxiliar/usage")
+async def get_registro_auxiliar_usage(school_id: str, current_user=Depends(require_role(TEMPLATE_READ_ROLES))):
+    """Return distinct (subject, section) combinations where the school has
+    registered grades, with nivel/grado/sección/curso names and cell counts."""
+    user_school = current_user.get("school_id")
+    if user_school != school_id:
+        raise HTTPException(403, "No tienes acceso a este colegio")
+
+    # Query: records with at least one static field set OR any grades_dynamic key
+    has_value_clauses = [{f: {"$ne": None}} for f in STATIC_GRADE_FIELDS]
+    has_value_clauses.append({"grades_dynamic": {"$exists": True, "$ne": {}, "$not": {"$size": 0}}})
+
+    pipeline = [
+        {"$match": {"school_id": school_id, "$or": has_value_clauses}},
+        {"$group": {
+            "_id": {"subject_id": "$subject_id", "section_id": "$section_id"},
+            "records_count": {"$sum": 1},
+            "last_updated": {"$max": "$updated_at"},
+            "has_dynamic": {"$max": {"$cond": [{"$gt": [{"$size": {"$objectToArray": {"$ifNull": ["$grades_dynamic", {}]}}}, 0]}, 1, 0]}},
+            "has_static": {"$max": {"$cond": [
+                {"$or": [{"$ne": [f"${f}", None]} for f in STATIC_GRADE_FIELDS]},
+                1, 0,
+            ]}},
+        }},
+        {"$sort": {"last_updated": -1}},
+    ]
+
+    raw = await db.student_grades.aggregate(pipeline).to_list(2000)
+
+    # Enrich with names
+    out = []
+    subject_cache, section_cache, grade_cache, level_cache = {}, {}, {}, {}
+
+    async def _get(cache, coll, _id, fields):
+        if not _id:
+            return None
+        if _id in cache:
+            return cache[_id]
+        doc = await coll.find_one({"id": _id}, {"_id": 0, **{f: 1 for f in fields}})
+        cache[_id] = doc
+        return doc
+
+    for item in raw:
+        subj_id = item["_id"].get("subject_id")
+        sec_id = item["_id"].get("section_id")
+        subj = await _get(subject_cache, db.subjects, subj_id, ["name", "nombre", "code"])
+        sec = await _get(section_cache, db.sections, sec_id, ["name", "nombre", "grado_id"])
+        grado_id = sec.get("grado_id") if sec else None
+        grade = await _get(grade_cache, db.grades, grado_id, ["nombre", "name", "nivel_id"])
+        nivel_id = grade.get("nivel_id") if grade else None
+        level = await _get(level_cache, db.academic_levels, nivel_id, ["nombre", "name"])
+
+        out.append({
+            "subject_id": subj_id,
+            "section_id": sec_id,
+            "subject_name": (subj or {}).get("name") or (subj or {}).get("nombre") or "—",
+            "section_name": (sec or {}).get("name") or (sec or {}).get("nombre") or "—",
+            "grade_name": (grade or {}).get("nombre") or (grade or {}).get("name") or "—",
+            "level_name": (level or {}).get("nombre") or (level or {}).get("name") or "—",
+            "records_count": item.get("records_count", 0),
+            "last_updated": item.get("last_updated"),
+            "has_dynamic": bool(item.get("has_dynamic")),
+            "has_static": bool(item.get("has_static")),
+        })
+
+    return {"usage": out, "total": len(out)}
