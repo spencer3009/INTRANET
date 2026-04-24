@@ -976,7 +976,11 @@ async def get_monthly_attendance_pdf(
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1},
     )
     students = await students_cursor.to_list(length=2000)
-    students.sort(key=lambda s: (s.get("last_name") or "").lower())
+    # Sort alphabetically by last_name, then first name (case-insensitive, trimmed)
+    students.sort(key=lambda s: (
+        (s.get("last_name") or "").strip().lower(),
+        (s.get("name") or "").strip().lower(),
+    ))
 
     # 4) Build records map: student_id -> day (int) -> record
     by_student_day: Dict[str, Dict[int, dict]] = {}
