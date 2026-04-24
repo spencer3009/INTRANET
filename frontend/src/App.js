@@ -89,6 +89,7 @@ import ParentHealthPage from "@/pages/ParentHealthPage";
 import ParentPsychologyMessages from "@/components/ParentPsychologyMessages";
 import ParentPsychMessagesPage from "@/pages/ParentPsychMessagesPage";
 import TopicoPage from "@/pages/TopicoPage";
+import AuxTopicoPage from "@/pages/AuxTopicoPage";
 import PsicologiaPage from "@/pages/PsicologiaPage";
 import TeacherHealthPage from "@/pages/TeacherHealthPage";
 import TeacherTopicoPage from "@/pages/TeacherTopicoPage";
@@ -166,6 +167,7 @@ const isCoordinator = (user) => user?.role === "coordinator";
 const isAuxiliarAlimentacion = (user) => user?.role === "auxiliar_alimentacion";
 const isAuxiliarMovilidad = (user) => user?.role === "auxiliar_movilidad";
 const isAuxiliarAsistencia = (user) => user?.role === "auxiliar_asistencia";
+const isAuxiliarTopico = (user) => user?.role === "auxiliar_topico";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
 // Specific check for role="admin" only (for Admin Portal)
@@ -838,6 +840,14 @@ function App() {
       }
       return user?.subdomain ? `/${user.subdomain}/aux-asistencia` : '/aux-asistencia';
     }
+
+    // Auxiliar de Tópico (nurse) gets redirected to their dedicated dashboard
+    if (isAuxiliarTopico(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/topico';
+      }
+      return user?.subdomain ? `/${user.subdomain}/topico` : '/topico';
+    }
     
     // Coordinator gets redirected to Coordinacion dashboard
     if (isCoordinator(user)) {
@@ -980,6 +990,8 @@ function App() {
                   <Navigate to="/movilidad" replace />
                 ) : isAuxiliarAsistencia(user) ? (
                   <Navigate to="/aux-asistencia" replace />
+                ) : isAuxiliarTopico(user) ? (
+                  <Navigate to="/topico" replace />
                 ) : (
                   <DashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -1775,6 +1787,8 @@ function App() {
                   <Navigate to={`/${user?.subdomain}/pae`} replace />
                 ) : isAuxiliarAsistencia(user) ? (
                   <Navigate to={`/${user?.subdomain}/aux-asistencia`} replace />
+                ) : isAuxiliarTopico(user) ? (
+                  <Navigate to={`/${user?.subdomain}/topico`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -2793,6 +2807,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Tópico dedicated dashboard for auxiliar_topico (nurse) role */}
+          <Route
+            path="/:subdomain/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxTopicoPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AuxTopicoPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

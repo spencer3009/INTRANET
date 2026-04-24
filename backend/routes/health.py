@@ -98,6 +98,10 @@ async def _require_health_access(current_user, write=False):
     if is_owner:
         return user
 
+    # Auxiliar de Tópico: always full access (read + write) — dedicated health role
+    if role == "auxiliar_topico":
+        return user
+
     if role in ["admin", "director"]:
         if not write:
             return user
