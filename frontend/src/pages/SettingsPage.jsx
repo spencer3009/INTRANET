@@ -1426,7 +1426,13 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   {attendanceConfig.teachers.horario_por_nivel_activo && (
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Horario general</p>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div
+                    className={`grid grid-cols-1 sm:grid-cols-2 gap-4 transition-opacity duration-200 ${
+                      attendanceConfig.teachers.horario_por_nivel_activo ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                    aria-disabled={attendanceConfig.teachers.horario_por_nivel_activo || undefined}
+                    data-testid="teacher-global-block"
+                  >
                     <TimePicker
                       label={attendanceConfig.teachers.horario_por_nivel_activo ? "Hora ingreso (general)" : "Hora ingreso"}
                       value={attendanceConfig.teachers.entry_time}
@@ -1441,7 +1447,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     />
                   </div>
                   {attendanceConfig.teachers.horario_por_nivel_activo && (
-                    <p className="text-xs text-slate-400 mt-2">Se usara como valor predeterminado para niveles sin horario definido.</p>
+                    <p className="text-xs text-slate-400 mt-2 italic">Desactivado — se aplica solo como valor predeterminado para niveles sin horario definido.</p>
                   )}
 
                   {/* Bloques por nivel (fade-in cuando switch ON) */}
