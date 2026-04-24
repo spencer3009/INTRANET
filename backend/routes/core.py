@@ -518,12 +518,12 @@ ROLE_HIERARCHY = {
     "owner": 100, "admin": 90, "director": 80, "coordinator": 70,
     "teacher": 50, "psicologo": 45, "auxiliar": 40,
     "auxiliar_asistencia": 38, "auxiliar_alimentacion": 35, "auxiliar_movilidad": 34,
-    "auxiliar_topico": 33,
+    "auxiliar_topico": 33, "personal_mantenimiento": 30,
     "parent": 20, "student": 10
 }
 
 ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
-STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad", "auxiliar_topico"]
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad", "auxiliar_topico", "personal_mantenimiento"]
 
 def has_role(user: dict, allowed_roles: list) -> bool:
     if user.get("role") in allowed_roles:

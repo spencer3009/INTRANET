@@ -202,6 +202,19 @@ const ROLE_CARDS = [
     lightGradient: "from-pink-50 to-rose-50",
     image: "https://customer-assets.emergentagent.com/job_507dc7a6-b0ab-4711-a4c3-f8b8c96b2e2e/artifacts/ofv886sk_image.png"
   },
+  {
+    id: "personal_mantenimiento",
+    label: "Mantenimiento",
+    labelSingular: "Personal de Mantenimiento",
+    color: "from-amber-500 to-amber-600",
+    bgColor: "bg-amber-50",
+    iconBg: "bg-amber-100",
+    textColor: "text-amber-700",
+    borderColor: "border-amber-200",
+    gradientBg: "from-amber-500 to-orange-600",
+    lightGradient: "from-amber-50 to-orange-50",
+    image: "https://cdn-icons-png.flaticon.com/512/1995/1995450.png"
+  },
 ];
 
 // Add User Modal Component
@@ -550,26 +563,39 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!form.name || !form.username || !form.password) {
-      setError("Nombre, usuario y contraseña son obligatorios");
-      return;
-    }
+    const isMaintenance = form.role === 'personal_mantenimiento' || roleId === 'personal_mantenimiento';
 
-    // Validate password strength
-    if (passwordStrength.level <= 1) {
-      setError("La contraseña es muy débil. Usa al menos 6 caracteres con mayúsculas, minúsculas y números.");
-      return;
-    }
+    if (isMaintenance) {
+      if (!form.name || !form.last_name) {
+        setError("Nombre y apellidos son obligatorios");
+        return;
+      }
+      if (!form.dni || form.dni.length !== 8) {
+        setError("El DNI es obligatorio y debe tener 8 dígitos");
+        return;
+      }
+    } else {
+      if (!form.name || !form.username || !form.password) {
+        setError("Nombre, usuario y contraseña son obligatorios");
+        return;
+      }
 
-    // Validate password confirmation
-    if (!confirmPassword) {
-      setError("Debes confirmar la contraseña");
-      return;
-    }
+      // Validate password strength
+      if (passwordStrength.level <= 1) {
+        setError("La contraseña es muy débil. Usa al menos 6 caracteres con mayúsculas, minúsculas y números.");
+        return;
+      }
 
-    if (form.password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
+      // Validate password confirmation
+      if (!confirmPassword) {
+        setError("Debes confirmar la contraseña");
+        return;
+      }
+
+      if (form.password !== confirmPassword) {
+        setError("Las contraseñas no coinciden");
+        return;
+      }
     }
 
     if (!form.role) {
@@ -622,6 +648,13 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         delete submitData.ocupacion;
         delete submitData.lugar_trabajo;
         delete submitData.telefono_trabajo;
+      }
+
+      // For personal_mantenimiento, don't send username/password/email — backend auto-generates
+      if (isMaintenance) {
+        delete submitData.username;
+        delete submitData.password;
+        delete submitData.email;
       }
       
       const res = await axios.post(`${API}/users`, submitData, { headers });
@@ -810,6 +843,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
             </div>
 
             {/* Username */}
+            {form.role !== 'personal_mantenimiento' && roleId !== 'personal_mantenimiento' && (<>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Usuario <span className="text-red-500">*</span>
@@ -942,8 +976,10 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                 </div>
               </div>
             </div>
+            </>)}
 
             {/* Email */}
+            {form.role !== 'personal_mantenimiento' && roleId !== 'personal_mantenimiento' && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Correo</label>
               <input
@@ -954,6 +990,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                 placeholder="juan@correo.com"
               />
             </div>
+            )}
 
             {/* DNI */}
             <div>
@@ -1047,7 +1084,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' :
                    roleId === 'auxiliar_asistencia' ? 'Auxiliar de Asistencia' :
                    roleId === 'auxiliar_movilidad' ? 'Auxiliar de Movilidad' :
-                   roleId === 'auxiliar_topico' ? 'Tópico (Enfermería)' : roleId}
+                   roleId === 'auxiliar_topico' ? 'Tópico (Enfermería)' :
+                   roleId === 'personal_mantenimiento' ? 'Personal de Mantenimiento' : roleId}
                 </div>
               ) : (
                 // Selectable role
@@ -1068,6 +1106,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="auxiliar_movilidad">Auxiliar de Movilidad</option>
                   <option value="auxiliar_asistencia">Auxiliar de Asistencia</option>
                   <option value="auxiliar_topico">Tópico (Enfermería)</option>
+                  <option value="personal_mantenimiento">Personal de Mantenimiento</option>
                 </select>
               )}
             </div>

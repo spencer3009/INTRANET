@@ -104,8 +104,8 @@ async def get_user_by_id(user_id: str, current_user = Depends(get_current_user))
 
 class CreateUserRequest(BaseModel):
     """Request to create a new user"""
-    username: str
-    password: str
+    username: Optional[str] = None  # Auto-generated for `personal_mantenimiento`
+    password: Optional[str] = None  # Auto-generated for `personal_mantenimiento`
     name: str
     last_name: Optional[str] = None
     email: Optional[str] = None
@@ -212,7 +212,19 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
             raise HTTPException(status_code=403, detail="Solo el propietario puede crear usuarios demo")
     
     school_id = user["school_id"]
-    
+
+    # Auto-generate credentials for personal_mantenimiento (no login required)
+    if data.role == "personal_mantenimiento":
+        if not data.username or not data.username.strip():
+            base = (data.dni or str(uuid.uuid4())[:8]).strip()
+            data.username = f"mant_{base}"
+        if not data.password or not data.password.strip():
+            data.password = str(uuid.uuid4())[:12]
+    else:
+        # Other roles still require username + password
+        if not data.username or not data.password:
+            raise HTTPException(status_code=400, detail="Usuario y contraseña son obligatorios")
+
     # Check if username already exists in this school
     existing = await db.users.find_one({
         "username": data.username.lower(),
@@ -298,6 +310,13 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
     
     # Generate short QR for teachers (centralized service)
     if data.role == "teacher":
+        qr_id, qr_token = await generate_user_qr(db)
+        new_user["qr_id"] = qr_id
+        new_user["qr_token"] = qr_token
+        new_user["qr_version"] = 2
+
+    # Generate short QR for personal_mantenimiento (used for attendance)
+    if data.role == "personal_mantenimiento":
         qr_id, qr_token = await generate_user_qr(db)
         new_user["qr_id"] = qr_id
         new_user["qr_token"] = qr_token
