@@ -19,6 +19,7 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
   const [usage, setUsage] = useState([]);
   const [usageLoading, setUsageLoading] = useState(true);
   const [activeSubtab, setActiveSubtab] = useState("plantillas");
+  const [editTextsOpen, setEditTextsOpen] = useState(false);
   const headers = { Authorization: `Bearer ${token}` };
 
   const loadPlantillas = async () => {
@@ -206,6 +207,11 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
                   data-testid="ra-view-system">
                   <Eye className="w-3.5 h-3.5" /> Vista previa
                 </button>
+                <button onClick={() => setEditTextsOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors shadow-sm"
+                  data-testid="ra-edit-system-texts">
+                  <FileEdit className="w-3.5 h-3.5" /> Editar textos
+                </button>
                 {activas > 0 && (
                   <button onClick={handleUseSystem}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors shadow-sm"
@@ -363,6 +369,17 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
             </div>
           )}
         </div>
+      )}
+
+      {/* System Texts Editor Modal */}
+      {editTextsOpen && sistema && (
+        <SystemTextsEditorModal
+          sistema={sistema}
+          schoolId={schoolId}
+          token={token}
+          onClose={() => setEditTextsOpen(false)}
+          onSaved={() => { setEditTextsOpen(false); loadPlantillas(); }}
+        />
       )}
 
       {/* Preview Modal */}
@@ -539,6 +556,212 @@ function PreviewTable({ config }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+
+/* ── System Texts Editor Modal ── */
+function SystemTextsEditorModal({ sistema, schoolId, token, onClose, onSaved }) {
+  const [form, setForm] = useState(() => ({
+    nombre: sistema.nombre || "",
+    descripcion: sistema.descripcion || "",
+    label_promedio_final: sistema.label_promedio_final || "",
+    criterios: (sistema.criterios || []).map(c => ({
+      id: c.id,
+      nombre: c.nombre || "",
+      porcentaje: c.porcentaje,
+      color: c.color,
+      subcolumnas: (c.subcolumnas || []).map(s => ({
+        id: s.id, label: s.label || "", tipo: s.tipo,
+      })),
+    })),
+    columnas_finales: (sistema.columnas_finales || []).map(c => ({
+      id: c.id, label: c.label || "", label_corto: c.label_corto || "",
+      porcentaje: c.porcentaje,
+    })),
+  }));
+  const [saving, setSaving] = useState(false);
+
+  const updateCriterioNombre = (idx, value) => {
+    setForm(prev => {
+      const criterios = [...prev.criterios];
+      criterios[idx] = { ...criterios[idx], nombre: value };
+      return { ...prev, criterios };
+    });
+  };
+  const updateSubLabel = (cIdx, sIdx, value) => {
+    setForm(prev => {
+      const criterios = [...prev.criterios];
+      const subs = [...criterios[cIdx].subcolumnas];
+      subs[sIdx] = { ...subs[sIdx], label: value };
+      criterios[cIdx] = { ...criterios[cIdx], subcolumnas: subs };
+      return { ...prev, criterios };
+    });
+  };
+  const updateColumnaFinal = (idx, field, value) => {
+    setForm(prev => {
+      const columnas = [...prev.columnas_finales];
+      columnas[idx] = { ...columnas[idx], [field]: value };
+      return { ...prev, columnas_finales: columnas };
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        nombre: form.nombre,
+        descripcion: form.descripcion,
+        label_promedio_final: form.label_promedio_final,
+        criterios: form.criterios.map(c => ({
+          id: c.id,
+          nombre: c.nombre,
+          subcolumnas: c.subcolumnas.map(s => ({ id: s.id, label: s.label })),
+        })),
+        columnas_finales: form.columnas_finales.map(c => ({
+          id: c.id, label: c.label, label_corto: c.label_corto,
+        })),
+      };
+      await axios.patch(
+        `${API}/api/schools/${schoolId}/registro-auxiliar/plantillas/system/textos`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      toast.success("Textos actualizados correctamente");
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="ra-edit-system-texts-modal">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <FileEdit className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold">Editar textos de la plantilla del sistema</h2>
+              <p className="text-amber-50 text-xs">Solo puedes cambiar los nombres y labels. Los porcentajes y la estructura se mantienen.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/20" data-testid="ra-edit-system-texts-close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {/* General */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nombre de la plantilla</label>
+              <input type="text" value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                data-testid="ra-edit-system-nombre" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Label del promedio final</label>
+              <input type="text" value={form.label_promedio_final}
+                onChange={(e) => setForm({ ...form, label_promedio_final: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                data-testid="ra-edit-system-label-final" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Descripción</label>
+              <input type="text" value={form.descripcion}
+                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                data-testid="ra-edit-system-descripcion" />
+            </div>
+          </div>
+
+          {/* Criterios */}
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider mb-3">Criterios</h3>
+            <div className="space-y-4">
+              {form.criterios.map((c, cIdx) => (
+                <div key={c.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200" data-testid={`ra-edit-criterio-${c.id}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-[10px] px-2.5 py-1 rounded-lg font-bold text-white shadow-sm" style={{ backgroundColor: c.color || "#94a3b8" }}>
+                      {c.porcentaje}%
+                    </span>
+                    <input type="text" value={c.nombre}
+                      onChange={(e) => updateCriterioNombre(cIdx, e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                      placeholder="Nombre del criterio"
+                      data-testid={`ra-edit-criterio-nombre-${c.id}`} />
+                  </div>
+                  {c.subcolumnas.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {c.subcolumnas.map((s, sIdx) => (
+                        <div key={s.id} className="flex flex-col gap-1">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase">{s.tipo === "promedio_auto" ? "Promedio" : "Subcolumna"}</span>
+                          <input type="text" value={s.label}
+                            onChange={(e) => updateSubLabel(cIdx, sIdx, e.target.value)}
+                            className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                            data-testid={`ra-edit-sub-${s.id}`} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Columnas finales */}
+          {form.columnas_finales.length > 0 && (
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider mb-3">Columnas finales</h3>
+              <div className="space-y-3">
+                {form.columnas_finales.map((c, idx) => (
+                  <div key={c.id} className="bg-amber-50 rounded-xl p-4 border border-amber-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center" data-testid={`ra-edit-columna-${c.id}`}>
+                    <span className="text-[10px] px-2.5 py-1 rounded-lg font-bold bg-amber-200 text-amber-800 sm:col-span-1 text-center">{c.porcentaje}%</span>
+                    <div className="sm:col-span-7">
+                      <label className="block text-[10px] font-bold text-amber-700 uppercase mb-1">Label largo</label>
+                      <input type="text" value={c.label}
+                        onChange={(e) => updateColumnaFinal(idx, "label", e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                        data-testid={`ra-edit-col-label-${c.id}`} />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <label className="block text-[10px] font-bold text-amber-700 uppercase mb-1">Label corto</label>
+                      <input type="text" value={c.label_corto}
+                        onChange={(e) => updateColumnaFinal(idx, "label_corto", e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                        data-testid={`ra-edit-col-short-${c.id}`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
+          <button onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+            data-testid="ra-edit-system-cancel">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
+            data-testid="ra-edit-system-save">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            Guardar cambios
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

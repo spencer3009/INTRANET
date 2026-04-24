@@ -57,6 +57,30 @@ class EstadoUpdate(BaseModel):
 class CloneBody(BaseModel):
     nombre: Optional[str] = None
 
+# ── Models: editar solo textos de la plantilla del sistema ──────
+
+class SubcolumnaTextEdit(BaseModel):
+    id: str
+    label: str
+
+class CriterioTextEdit(BaseModel):
+    id: str
+    nombre: str
+    subcolumnas: List[SubcolumnaTextEdit] = []
+
+class ColumnaFinalTextEdit(BaseModel):
+    id: str
+    label: str
+    label_corto: str = ""
+
+class SystemTextsUpdate(BaseModel):
+    """Edición de textos de la plantilla del sistema (no toca porcentajes ni IDs)."""
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    label_promedio_final: Optional[str] = None
+    criterios: List[CriterioTextEdit] = []
+    columnas_finales: List[ColumnaFinalTextEdit] = []
+
 
 # ── Helpers ─────────────────────────────────────────────────────
 
@@ -593,3 +617,80 @@ async def get_registro_auxiliar_usage(school_id: str, current_user=Depends(requi
         })
 
     return {"usage": out, "total": len(out)}
+
+
+
+# ══════════════════════════════════════════════════════════════════
+#  PATCH /plantillas/system/textos — Editar SOLO los textos de la plantilla del sistema
+# ══════════════════════════════════════════════════════════════════
+
+@router.patch("/schools/{school_id}/registro-auxiliar/plantillas/system/textos")
+async def update_system_template_texts(
+    school_id: str,
+    data: SystemTextsUpdate,
+    current_user=Depends(require_role(TEMPLATE_WRITE_ROLES)),
+):
+    """Actualiza únicamente los textos (nombres y labels) de la plantilla del sistema.
+    No modifica IDs, orden, porcentajes ni colores. Solo owner/admin/director."""
+    user_school = current_user.get("school_id")
+    if user_school != school_id:
+        raise HTTPException(403, "No tienes acceso a este colegio")
+
+    existing = await db.registro_auxiliar_plantillas.find_one({"es_sistema": True}, {"_id": 0})
+    if not existing:
+        raise HTTPException(404, "Plantilla del sistema no encontrada")
+
+    # Index incoming edits by ID
+    crit_edits = {c.id: c for c in data.criterios}
+    col_edits = {c.id: c for c in data.columnas_finales}
+
+    # Apply text-only updates preserving structure
+    new_criterios = []
+    for c in existing.get("criterios", []):
+        edit = crit_edits.get(c.get("id"))
+        new_c = {**c}
+        if edit:
+            if edit.nombre and edit.nombre.strip():
+                new_c["nombre"] = edit.nombre.strip()
+            sub_edit_map = {s.id: s for s in edit.subcolumnas}
+            new_subs = []
+            for s in c.get("subcolumnas", []):
+                se = sub_edit_map.get(s.get("id"))
+                new_s = {**s}
+                if se and se.label and se.label.strip():
+                    new_s["label"] = se.label.strip()
+                new_subs.append(new_s)
+            new_c["subcolumnas"] = new_subs
+        new_criterios.append(new_c)
+
+    new_columnas = []
+    for col in existing.get("columnas_finales", []):
+        edit = col_edits.get(col.get("id"))
+        new_col = {**col}
+        if edit:
+            if edit.label and edit.label.strip():
+                new_col["label"] = edit.label.strip()
+            if edit.label_corto and edit.label_corto.strip():
+                new_col["label_corto"] = edit.label_corto.strip()
+        new_columnas.append(new_col)
+
+    update_doc = {
+        "criterios": new_criterios,
+        "columnas_finales": new_columnas,
+        "updated_at": now_iso(),
+        "updated_by": current_user.get("id") or current_user.get("sub"),
+    }
+    if data.nombre and data.nombre.strip():
+        update_doc["nombre"] = data.nombre.strip()
+    if data.descripcion is not None:
+        update_doc["descripcion"] = data.descripcion.strip()
+    if data.label_promedio_final and data.label_promedio_final.strip():
+        update_doc["label_promedio_final"] = data.label_promedio_final.strip()
+
+    await db.registro_auxiliar_plantillas.update_one(
+        {"es_sistema": True},
+        {"$set": update_doc},
+    )
+    updated = await db.registro_auxiliar_plantillas.find_one({"es_sistema": True}, {"_id": 0})
+    logger.info(f"[PLANTILLAS] System template texts updated by {current_user.get('id')}")
+    return updated
