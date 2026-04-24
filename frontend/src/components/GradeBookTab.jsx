@@ -22,9 +22,10 @@ const S = {
   thWeight: { background: "#FFD700", color: "#000", fontWeight: 800, textAlign: "center", border: "1px solid #C9A800", padding: "4px 2px", fontSize: "12px" },
   thGroup: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   thSub: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "6px 4px", fontSize: "10px", whiteSpace: "nowrap", verticalAlign: "middle", overflow: "hidden", textOverflow: "ellipsis" },
-  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "6px 4px", fontSize: "10px", whiteSpace: "nowrap", verticalAlign: "middle", overflow: "hidden", textOverflow: "ellipsis" },
+  thAvg: { background: "#E2EFDA", color: "#375623", fontWeight: 700, textAlign: "center", border: "1px solid #A9D18E", padding: "6px 2px", fontSize: "10px", whiteSpace: "nowrap", verticalAlign: "middle", writingMode: "vertical-rl", transform: "rotate(180deg)", height: "80px", letterSpacing: "0.5px" },
   thFinal: { background: "#4472C4", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #2F5496", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "middle" },
-  thColFinal: { background: "#F59E0B", color: "#fff", fontWeight: 800, textAlign: "center", border: "1px solid #D97706", padding: "8px 4px", fontSize: "10px", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", height: "80px", verticalAlign: "middle" },
+  thColFinal: { background: "#D9D9D9", color: "#000", fontWeight: 700, textAlign: "center", border: "1px solid #BFBFBF", padding: "4px 2px", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.15", verticalAlign: "middle" },
+  thColFinalShort: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "6px 4px", fontSize: "11px", whiteSpace: "nowrap", verticalAlign: "middle" },
   tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600 },
   tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
@@ -434,13 +435,13 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                   </th>
                 ))}
                 {columnas_finales.map(col => (
-                  <th key={col.id} rowSpan={2} style={S.thColFinal}>
-                    {col.label_corto || col.label}
+                  <th key={col.id} style={S.thColFinal}>
+                    {col.label || col.label_corto}
                   </th>
                 ))}
                 <th rowSpan={2} style={S.thFinal}>{plantilla.label_promedio_final || "PROM. BIMESTRAL"}</th>
               </tr>
-              {/* ROW 4: Sub-column headers (all vertical text) */}
+              {/* ROW 4: Sub-column headers */}
               <tr style={{ height: 80 }}>
                 {criterios.map(c => (
                   <React.Fragment key={c.id}>
@@ -450,6 +451,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                       </th>
                     ))}
                   </React.Fragment>
+                ))}
+                {columnas_finales.map(col => (
+                  <th key={`${col.id}_short`} style={S.thColFinalShort}>
+                    {col.label_corto || col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
