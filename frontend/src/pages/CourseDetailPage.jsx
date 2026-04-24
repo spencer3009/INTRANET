@@ -2442,7 +2442,8 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         const plantillas = res.data?.plantillas || [];
         const predeterminada = plantillas.find(p => p.es_predeterminada && !p.es_sistema);
         const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
-        const plantilla = activa || PLANTILLA_SISTEMA_FALLBACK;
+        const sistema = plantillas.find(p => p.es_sistema);
+        const plantilla = activa || sistema || PLANTILLA_SISTEMA_FALLBACK;
         setTaskSubcolumnasVinculables(extractSubcols(plantilla));
       } catch (err) {
         console.error("[EduNet] Error cargando plantilla para modal tarea:", err);
@@ -5297,7 +5298,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
         const plantillas = res.data?.plantillas || [];
         const predeterminada = plantillas.find(p => p.es_predeterminada && !p.es_sistema);
         const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
-        const plantilla = activa || PLANTILLA_SISTEMA_FALLBACK;
+        const sistema = plantillas.find(p => p.es_sistema);
+        const plantilla = activa || sistema || PLANTILLA_SISTEMA_FALLBACK;
         setColumnasVinculables(plantilla.columnas_finales || PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
       } catch (err) {
         console.error("[EduNet] Error cargando plantilla para vincular examen:", err);

@@ -80,6 +80,17 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
     }
   };
 
+  const handleUseSystem = async () => {
+    if (!window.confirm("¿Seguro que quieres desactivar tu plantilla y volver a usar la plantilla del sistema? Los docentes verán las columnas del sistema al registrar notas.")) return;
+    try {
+      const { data } = await axios.post(`${API}/api/schools/${schoolId}/registro-auxiliar/plantillas/usar-sistema`, {}, { headers });
+      toast.success(data.message || "Ahora se usa la plantilla del sistema");
+      loadPlantillas();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al cambiar a la plantilla del sistema");
+    }
+  };
+
   const sistema = plantillas.find(p => p.es_sistema);
   const propias = plantillas.filter(p => !p.es_sistema);
   const activas = propias.filter(p => p.estado === "activa").length;
@@ -126,6 +137,11 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-slate-800 text-base">{sistema.nombre}</h3>
                     <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold tracking-wide border border-slate-200">SOLO LECTURA</span>
+                    {activas === 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold tracking-wide border border-emerald-200" data-testid="ra-system-in-use-badge">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> EN USO
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 mt-1 max-w-lg">{sistema.descripcion || "Estructura de evaluación estandar de EduNet. Clonala para crear tu propia versión personalizada."}</p>
                 </div>
@@ -136,6 +152,14 @@ export default function RegistroAuxiliarPlantillasTab({ user, token, schoolId, s
                   data-testid="ra-view-system">
                   <Eye className="w-3.5 h-3.5" /> Vista previa
                 </button>
+                {activas > 0 && (
+                  <button onClick={handleUseSystem}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors shadow-sm"
+                    data-testid="ra-use-system-btn"
+                    title="Desactiva tu plantilla y vuelve a usar la plantilla del sistema">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Usar esta plantilla
+                  </button>
+                )}
                 <button onClick={() => handleClone(sistema.id, sistema.nombre)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20"
                   data-testid="ra-clone-system">

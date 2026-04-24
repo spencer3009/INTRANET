@@ -142,10 +142,14 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         const plantillas = res.data?.plantillas || [];
         const predeterminada = plantillas.find(p => p.es_predeterminada && !p.es_sistema);
         const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
+        const sistema = plantillas.find(p => p.es_sistema);
 
         if (activa) {
           setPlantilla(assignFieldKeys(activa));
           setPlantillaNombre(activa.nombre);
+        } else if (sistema) {
+          setPlantilla(assignFieldKeys(sistema));
+          setPlantillaNombre(sistema.nombre || "Plantilla del sistema");
         } else {
           setPlantilla(assignFieldKeys(PLANTILLA_SISTEMA_FALLBACK));
           setPlantillaNombre("Por defecto");

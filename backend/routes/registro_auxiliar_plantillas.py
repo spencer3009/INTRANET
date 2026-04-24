@@ -484,3 +484,31 @@ async def delete_plantilla(school_id: str, plantilla_id: str, current_user=Depen
     await db.registro_auxiliar_plantillas.delete_one({"id": plantilla_id})
     logger.info(f"[PLANTILLAS] Deleted template {plantilla_id} from school {school_id}")
     return {"message": "Plantilla eliminada"}
+
+
+# ══════════════════════════════════════════════════════════════════
+#  9. POST /usar-sistema — Desactiva todas las plantillas del colegio
+#     para que los docentes pasen a usar la plantilla del sistema.
+# ══════════════════════════════════════════════════════════════════
+
+@router.post("/schools/{school_id}/registro-auxiliar/plantillas/usar-sistema")
+async def usar_plantilla_sistema(school_id: str, current_user=Depends(require_role(TEMPLATE_WRITE_ROLES))):
+    user_school = current_user.get("school_id")
+    if user_school != school_id:
+        raise HTTPException(403, "No tienes acceso a este colegio")
+
+    user_id = current_user.get("id") or current_user.get("sub")
+    result = await db.registro_auxiliar_plantillas.update_many(
+        {"school_id": school_id, "estado": "activa"},
+        {"$set": {
+            "estado": "borrador",
+            "es_predeterminada": False,
+            "updated_at": now_iso(),
+            "updated_by": user_id,
+        }}
+    )
+    logger.info(f"[PLANTILLAS] School {school_id} switched to SYSTEM template. Deactivated {result.modified_count} custom templates.")
+    return {
+        "message": "Ahora el colegio usa la plantilla del sistema.",
+        "deactivated_count": result.modified_count,
+    }
