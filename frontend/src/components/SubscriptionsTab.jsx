@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Loader2, Search, User, Tag, RefreshCw, ShieldCheck, Unlock, Play } from "lucide-react";
+import { Loader2, Search, User, Tag, RefreshCw, Play, Info } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -39,6 +39,7 @@ export default function SubscriptionsTab({ token }) {
         axios.get(`${API}/accounting/students/${studentId}/concept-subscriptions`, { headers }),
       ]);
       const allConcepts = conceptsRes.data.concepts || [];
+      // All recurrent + active concepts (excluding is_default). The view splits them by apply_mode.
       const recurrent = allConcepts.filter(c => c.concept_type === "recurrente" && c.status === "active" && !c.is_default);
       setConcepts(recurrent);
       setSubscriptions(subsRes.data.subscriptions || []);
@@ -195,60 +196,87 @@ export default function SubscriptionsTab({ token }) {
               <Tag className="w-8 h-8 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500">No hay conceptos recurrentes configurados</p>
             </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-5 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Concepto</th>
-                  <th className="px-5 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Monto</th>
-                  <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Modalidad</th>
-                  <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Activado por</th>
-                  <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {concepts.map((c) => {
-                  const sub = getSubForConcept(c.id);
-                  const isActive = !!(sub && sub.is_active);
-                  const isOpen = c.enrollment_mode === "open";
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-50/50 transition-colors" data-testid={`sub-row-${c.id}`}>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-sm font-semibold text-slate-800">{c.name}</span>
+          ) : (() => {
+            const subscriptionConcepts = concepts.filter(c => (c.apply_mode || "none") === "subscription");
+            const allConcepts = concepts.filter(c => (c.apply_mode || "none") === "all");
+            const noneConcepts = concepts.filter(c => (c.apply_mode || "none") === "none");
+            return (
+              <div>
+                {subscriptionConcepts.length === 0 && (
+                  <div className="p-6 text-center text-sm text-slate-500">
+                    No hay conceptos en modo "Por suscripción". Crea uno desde Configuración.
+                  </div>
+                )}
+                {subscriptionConcepts.length > 0 && (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-5 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Concepto</th>
+                        <th className="px-5 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Monto</th>
+                        <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Activado por</th>
+                        <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {subscriptionConcepts.map((c) => {
+                        const sub = getSubForConcept(c.id);
+                        const isActive = !!(sub && sub.is_active);
+                        return (
+                          <tr key={c.id} className="hover:bg-slate-50/50 transition-colors" data-testid={`sub-row-${c.id}`}>
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
+                                <span className="text-sm font-semibold text-slate-800">{c.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <span className="text-sm font-bold text-emerald-700">S/ {Number(sub?.amount ?? c.amount).toFixed(2)}</span>
+                            </td>
+                            <td className="px-5 py-3.5 text-center text-xs text-slate-500">
+                              {sub?.activated_by ? (sub.activated_by === "admin" ? "Admin" : "Padre") : "—"}
+                            </td>
+                            <td className="px-5 py-3.5 text-center">
+                              <button
+                                onClick={() => handleToggle(c)}
+                                disabled={savingId === c.id}
+                                className={`relative w-12 h-7 rounded-full transition-colors duration-300 disabled:opacity-50 ${isActive ? "bg-emerald-500" : "bg-slate-300"}`}
+                                data-testid={`sub-toggle-${c.id}`}
+                              >
+                                <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${isActive ? "translate-x-5" : "translate-x-0"}`} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+
+                {(allConcepts.length > 0 || noneConcepts.length > 0) && (
+                  <div className="border-t border-slate-200 p-5 space-y-3 bg-slate-50/50">
+                    {allConcepts.map(c => (
+                      <div key={c.id} className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl" data-testid={`info-all-${c.id}`}>
+                        <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-emerald-800">{c.name}</p>
+                          <p className="text-xs text-emerald-700">Este concepto se aplica automáticamente a todos los alumnos activos. No requiere suscripción individual.</p>
                         </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <span className="text-sm font-bold text-emerald-700">S/ {Number(sub?.amount ?? c.amount).toFixed(2)}</span>
-                      </td>
-                      <td className="px-5 py-3.5 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          isOpen ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"
-                        }`}>
-                          {isOpen ? <Unlock className="w-3 h-3" /> : <ShieldCheck className="w-3 h-3" />}
-                          {isOpen ? "Abierto" : "Obligatorio"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-center text-xs text-slate-500">
-                        {sub?.activated_by ? (sub.activated_by === "admin" ? "Admin" : "Padre") : "—"}
-                      </td>
-                      <td className="px-5 py-3.5 text-center">
-                        <button
-                          onClick={() => handleToggle(c)}
-                          disabled={savingId === c.id}
-                          className={`relative w-12 h-7 rounded-full transition-colors duration-300 disabled:opacity-50 ${isActive ? "bg-emerald-500" : "bg-slate-300"}`}
-                          data-testid={`sub-toggle-${c.id}`}
-                        >
-                          <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${isActive ? "translate-x-5" : "translate-x-0"}`} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+                      </div>
+                    ))}
+                    {noneConcepts.map(c => (
+                      <div key={c.id} className="flex items-start gap-3 p-3 bg-slate-100 border border-slate-200 rounded-xl" data-testid={`info-none-${c.id}`}>
+                        <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-700">{c.name}</p>
+                          <p className="text-xs text-slate-500">Este concepto no genera cobros automáticos. Se usa para registro manual desde Ingresos.</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

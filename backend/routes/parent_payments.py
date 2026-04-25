@@ -315,7 +315,7 @@ async def get_parent_available_concepts(student_id: str, current_user=Depends(ge
             "school_id": school_id,
             "concept_type": "recurrente",
             "status": "active",
-            "enrollment_mode": "open",
+            "apply_mode": "subscription",
         },
         {"_id": 0},
     ).sort("name", 1).to_list(100)
@@ -338,7 +338,7 @@ async def get_parent_available_concepts(student_id: str, current_user=Depends(ge
             "name": c.get("name"),
             "amount": c.get("amount", 0),
             "concept_type": c.get("concept_type"),
-            "enrollment_mode": c.get("enrollment_mode", "open"),
+            "apply_mode": c.get("apply_mode", "subscription"),
             "is_subscribed": bool(s and s.get("is_active")),
             "activated_by": s.get("activated_by") if s else None,
             "subscription_id": s.get("id") if s else None,
@@ -366,7 +366,7 @@ async def parent_subscribe_to_concept(
         raise HTTPException(status_code=404, detail="Concepto no encontrado")
     if concept.get("status") != "active":
         raise HTTPException(status_code=400, detail="El concepto está inactivo")
-    if concept.get("enrollment_mode") != "open":
+    if concept.get("apply_mode") != "subscription":
         raise HTTPException(status_code=403, detail="Este concepto no se puede activar desde el portal del padre")
 
     now = datetime.now(timezone.utc).isoformat()
@@ -382,7 +382,7 @@ async def parent_subscribe_to_concept(
                 "is_active": True,
                 "amount": round(concept.get("amount", 0), 2),
                 "concept_name": concept.get("name"),
-                "enrollment_mode": "open",
+                "apply_mode": "subscription",
                 "activated_by": "parent",
                 "updated_at": now,
             }},
@@ -397,7 +397,7 @@ async def parent_subscribe_to_concept(
         "concept_id": concept_id,
         "concept_name": concept.get("name"),
         "amount": round(concept.get("amount", 0), 2),
-        "enrollment_mode": "open",
+        "apply_mode": "subscription",
         "activated_by": "parent",
         "is_active": True,
         "created_at": now,
@@ -426,7 +426,7 @@ async def parent_unsubscribe_from_concept(
     )
     if not concept:
         raise HTTPException(status_code=404, detail="Concepto no encontrado")
-    if concept.get("enrollment_mode") != "open":
+    if concept.get("apply_mode") != "subscription":
         raise HTTPException(status_code=403, detail="Este concepto no se puede desactivar desde el portal del padre")
 
     sub = await db.student_concept_subscriptions.find_one(

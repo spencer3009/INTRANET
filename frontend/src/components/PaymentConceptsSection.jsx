@@ -24,7 +24,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ name: "", amount: "", concept_type: "unico", status: "active", enrollment_mode: "mandatory" });
+  const [form, setForm] = useState({ name: "", amount: "", concept_type: "unico", status: "active", apply_mode: "none" });
 
   const loadConcepts = async () => {
     try {
@@ -42,13 +42,13 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", amount: "", concept_type: "unico", status: "active", enrollment_mode: "mandatory" });
+    setForm({ name: "", amount: "", concept_type: "unico", status: "active", apply_mode: "none" });
     setShowForm(true);
   };
 
   const openEdit = (c) => {
     setEditing(c);
-    setForm({ name: c.name, amount: c.amount.toString(), concept_type: c.concept_type, status: c.status, enrollment_mode: c.enrollment_mode || "mandatory" });
+    setForm({ name: c.name, amount: c.amount.toString(), concept_type: c.concept_type, status: c.status, apply_mode: c.apply_mode || "none" });
     setShowForm(true);
   };
 
@@ -189,11 +189,20 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      c.enrollment_mode === "open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"
-                    }`}>
-                      {c.enrollment_mode === "open" ? "Abierto" : "Obligatorio"}
-                    </span>
+                    {(() => {
+                      const m = c.apply_mode || "none";
+                      const map = {
+                        all: { label: "Todos", cls: "bg-emerald-50 text-emerald-700" },
+                        subscription: { label: "Por suscripción", cls: "bg-amber-50 text-amber-700" },
+                        none: { label: "Manual", cls: "bg-slate-100 text-slate-600" },
+                      };
+                      const cfg = map[m] || map.none;
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.cls}`}>
+                          {cfg.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-5 py-3.5 text-center">
                     {isOwnerOrAdmin ? (
@@ -322,21 +331,36 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Modalidad de inscripción</label>
-                <select
-                  value={form.enrollment_mode}
-                  onChange={(e) => setForm(prev => ({ ...prev, enrollment_mode: e.target.value }))}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                  data-testid="concept-enrollment-mode-select"
-                >
-                  <option value="mandatory">Obligatorio (asignado por el colegio)</option>
-                  <option value="open">Abierto (el padre puede activarlo)</option>
-                </select>
-                <p className="text-xs text-slate-500 mt-1">
-                  {form.enrollment_mode === "open"
-                    ? "Los padres podrán activarlo o desactivarlo desde su portal."
-                    : "Solo el administrador puede asignar este concepto a los alumnos."}
-                </p>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Aplicación mensual automática</label>
+                <div className="space-y-2">
+                  {[
+                    { value: "all", title: "Todos los alumnos", desc: "El cron generará un cobro mensual automáticamente para todos los alumnos activos del colegio." },
+                    { value: "subscription", title: "Por suscripción", desc: "Solo se cobran los alumnos que el administrador suscriba manualmente desde el tab Suscripciones." },
+                    { value: "none", title: "No aplicar automáticamente", desc: "No genera cobros automáticos. Disponible para registrarlo manualmente al emitir un recibo desde Ingresos." },
+                  ].map(opt => (
+                    <label key={opt.value}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        form.apply_mode === opt.value
+                          ? "border-emerald-500 bg-emerald-50/60 shadow-sm"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                      data-testid={`apply-mode-card-${opt.value}`}
+                    >
+                      <input
+                        type="radio"
+                        name="apply_mode"
+                        value={opt.value}
+                        checked={form.apply_mode === opt.value}
+                        onChange={() => setForm(prev => ({ ...prev, apply_mode: opt.value }))}
+                        className="mt-1 accent-emerald-600"
+                      />
+                      <div className="flex-1">
+                        <p className={`text-sm font-bold ${form.apply_mode === opt.value ? "text-emerald-800" : "text-slate-700"}`}>{opt.title}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-snug">{opt.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">

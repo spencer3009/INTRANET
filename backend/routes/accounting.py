@@ -1401,14 +1401,14 @@ class PaymentConceptCreate(BaseModel):
     amount: float = 0
     concept_type: str = "unico"  # recurrente / unico
     status: str = "active"  # active / inactive
-    enrollment_mode: Literal["mandatory", "open"] = "mandatory"
+    apply_mode: Literal["all", "subscription", "none"] = "none"
 
 class PaymentConceptUpdate(BaseModel):
     name: Optional[str] = None
     amount: Optional[float] = None
     concept_type: Optional[str] = None
     status: Optional[str] = None
-    enrollment_mode: Optional[Literal["mandatory", "open"]] = None
+    apply_mode: Optional[Literal["all", "subscription", "none"]] = None
 
 async def ensure_default_concepts(school_id: str):
     """Seed default concepts (Matrícula, Mensualidad) if none exist."""
@@ -1420,8 +1420,8 @@ async def ensure_default_concepts(school_id: str):
         mat_amount = fin.get("matricula", 0) if fin else 0
         pen_amount = fin.get("pension_mensual", 0) if fin else 0
         defaults = [
-            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Matricula", "amount": mat_amount, "concept_type": "unico", "status": "active", "enrollment_mode": "mandatory", "is_default": True, "created_at": now, "updated_at": now},
-            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Mensualidad", "amount": pen_amount, "concept_type": "recurrente", "status": "active", "enrollment_mode": "mandatory", "is_default": True, "created_at": now, "updated_at": now},
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Matricula", "amount": mat_amount, "concept_type": "unico", "status": "active", "apply_mode": "none", "is_default": True, "created_at": now, "updated_at": now},
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Mensualidad", "amount": pen_amount, "concept_type": "recurrente", "status": "active", "apply_mode": "none", "is_default": True, "created_at": now, "updated_at": now},
         ]
         await db.payment_concepts.insert_many(defaults)
 
@@ -1454,7 +1454,7 @@ async def create_payment_concept(data: PaymentConceptCreate, current_user=Depend
         "amount": round(data.amount, 2),
         "concept_type": data.concept_type,
         "status": data.status,
-        "enrollment_mode": data.enrollment_mode,
+        "apply_mode": data.apply_mode,
         "is_default": False,
         "created_at": now,
         "updated_at": now,
@@ -1529,7 +1529,8 @@ class StudentConceptSubscriptionPatch(BaseModel):
     is_active: bool
 
 async def ensure_subscription_index():
-    """Ensure unique compound index (school_id, student_id, concept_id)."""
+    """Ensure unique compound index (school_id, student_id, concept_id) and run
+    one-time migration of enrollment_mode → apply_mode."""
     try:
         await db.student_concept_subscriptions.create_index(
             [("school_id", 1), ("student_id", 1), ("concept_id", 1)],
@@ -1538,6 +1539,31 @@ async def ensure_subscription_index():
         )
     except Exception as e:
         logger.warning(f"[SUBS] Could not create index: {e}")
+
+    # Idempotent migration: enrollment_mode -> apply_mode
+    try:
+        # 1. Documents with enrollment_mode (mandatory|open) -> apply_mode: "subscription"
+        legacy = await db.payment_concepts.count_documents({"enrollment_mode": {"$exists": True}})
+        if legacy > 0:
+            res = await db.payment_concepts.update_many(
+                {"enrollment_mode": {"$exists": True}, "apply_mode": {"$exists": False}},
+                {"$set": {"apply_mode": "subscription"}},
+            )
+            await db.payment_concepts.update_many(
+                {"enrollment_mode": {"$exists": True}},
+                {"$unset": {"enrollment_mode": ""}},
+            )
+            logger.info(f"[MIGRATION] payment_concepts enrollment_mode -> apply_mode (matched={legacy} updated={res.modified_count})")
+
+        # 2. Documents missing apply_mode -> "none"
+        missing = await db.payment_concepts.update_many(
+            {"apply_mode": {"$exists": False}},
+            {"$set": {"apply_mode": "none"}},
+        )
+        if missing.modified_count:
+            logger.info(f"[MIGRATION] payment_concepts default apply_mode='none' applied to {missing.modified_count} docs")
+    except Exception as e:
+        logger.warning(f"[MIGRATION] enrollment_mode migration error: {e}")
 
 
 @router.get("/accounting/students/{student_id}/concept-subscriptions")
@@ -1581,7 +1607,7 @@ async def get_student_concept_subscriptions(
             "current_concept_name": c.get("name"),
             "current_concept_status": c.get("status"),
             "current_concept_type": c.get("concept_type"),
-            "enrollment_mode": c.get("enrollment_mode") or s.get("enrollment_mode") or "mandatory",
+            "apply_mode": c.get("apply_mode") or "none",
         })
 
     return {
@@ -1633,7 +1659,7 @@ async def admin_subscribe_student_to_concept(
                 "is_active": True,
                 "amount": round(amount, 2),
                 "concept_name": concept.get("name"),
-                "enrollment_mode": concept.get("enrollment_mode", "mandatory"),
+                "apply_mode": concept.get("apply_mode", "none"),
                 "activated_by": "admin",
                 "updated_at": now,
             }},
@@ -1648,7 +1674,7 @@ async def admin_subscribe_student_to_concept(
         "concept_id": data.concept_id,
         "concept_name": concept.get("name"),
         "amount": round(amount, 2),
-        "enrollment_mode": concept.get("enrollment_mode", "mandatory"),
+        "apply_mode": concept.get("apply_mode", "none"),
         "activated_by": "admin",
         "is_active": True,
         "created_at": now,
@@ -3042,8 +3068,8 @@ async def daily_billing_generation_cron():
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def generate_monthly_concept_payments():
-    """Generate pending payments for all active concept subscriptions.
-    Runs once per month (idempotent — won't duplicate if already created)."""
+    """Generate pending payments based on apply_mode of each recurrente concept.
+    Idempotent: won't duplicate within the same pension_month."""
     try:
         try:
             from zoneinfo import ZoneInfo
@@ -3051,90 +3077,130 @@ async def generate_monthly_concept_payments():
         except Exception:
             now_lima = datetime.now(timezone.utc) - timedelta(hours=5)
         pension_month = now_lima.strftime("%Y-%m")
-
-        subs_cursor = db.student_concept_subscriptions.find(
-            {"is_active": True}, {"_id": 0},
-        )
-        subs = await subs_cursor.to_list(10000)
-        logger.info(f"[CONCEPTS-CRON] Procesando {len(subs)} suscripciones activas para {pension_month}")
+        now_iso = datetime.now(timezone.utc).isoformat()
 
         generados = 0
         ya_existian = 0
         errores = 0
         skipped_default = 0
-        now_iso = datetime.now(timezone.utc).isoformat()
 
-        for sub in subs:
-            try:
-                concept = await db.payment_concepts.find_one(
-                    {"id": sub["concept_id"], "school_id": sub["school_id"]},
+        # Iterate per school × concept (recurrente, active, not is_default)
+        concepts_cur = db.payment_concepts.find(
+            {
+                "concept_type": "recurrente",
+                "status": "active",
+            },
+            {"_id": 0},
+        )
+        concepts = await concepts_cur.to_list(5000)
+        logger.info(f"[CONCEPTS-CRON] Procesando {len(concepts)} conceptos recurrentes activos para {pension_month}")
+
+        for concept in concepts:
+            if concept.get("is_default"):
+                skipped_default += 1
+                logger.info(f"[CONCEPTS-CRON] skipped_default_concept concept={concept.get('name')}")
+                continue
+
+            apply_mode = concept.get("apply_mode") or "none"
+            if apply_mode == "none":
+                continue
+
+            school_id = concept["school_id"]
+            concept_name = concept.get("name") or ""
+            concept_amount = round(float(concept.get("amount") or 0), 2)
+
+            # Build target student list per mode
+            target_students: list[dict] = []
+            if apply_mode == "all":
+                students_cur = db.users.find(
+                    {"school_id": school_id, "role": "student", "status": {"$ne": "retirado"}},
+                    {"_id": 0, "id": 1, "grade_id": 1, "section_id": 1, "grado_id": 1, "seccion_id": 1},
+                )
+                target_students = [
+                    {"student_id": s["id"], "amount": concept_amount, "subscription_id": None,
+                     "grade_id": s.get("grade_id") or s.get("grado_id"),
+                     "section_id": s.get("section_id") or s.get("seccion_id")}
+                    for s in await students_cur.to_list(10000)
+                ]
+            elif apply_mode == "subscription":
+                subs_cur = db.student_concept_subscriptions.find(
+                    {"school_id": school_id, "concept_id": concept["id"], "is_active": True},
                     {"_id": 0},
                 )
-                if not concept or concept.get("status") != "active" or concept.get("concept_type") != "recurrente":
-                    continue
-                if concept.get("is_default"):
-                    # Default concepts (Matrícula, Mensualidad) are managed manually from Ingresos
-                    skipped_default += 1
-                    logger.info(f"[CONCEPTS-CRON] skipped_default_concept sub={sub.get('id')} concept={concept.get('name')}")
-                    continue
+                subs = await subs_cur.to_list(10000)
+                # Resolve grade/section for each subscribed student
+                ids = [s["student_id"] for s in subs]
+                students_map = {}
+                if ids:
+                    cur = db.users.find(
+                        {"id": {"$in": ids}, "role": "student"},
+                        {"_id": 0, "id": 1, "grade_id": 1, "section_id": 1, "grado_id": 1, "seccion_id": 1},
+                    )
+                    for s in await cur.to_list(10000):
+                        students_map[s["id"]] = s
+                for sub in subs:
+                    s = students_map.get(sub["student_id"]) or {}
+                    target_students.append({
+                        "student_id": sub["student_id"],
+                        "amount": round(float(sub.get("amount") or concept_amount), 2),
+                        "subscription_id": sub.get("id"),
+                        "grade_id": s.get("grade_id") or s.get("grado_id"),
+                        "section_id": s.get("section_id") or s.get("seccion_id"),
+                    })
 
-                existing = await db.payments.find_one({
-                    "school_id": sub["school_id"],
-                    "student_id": sub["student_id"],
-                    "concept": sub["concept_name"],
-                    "pension_month": pension_month,
-                })
-                if existing:
-                    ya_existian += 1
-                    continue
-
-                student = await db.users.find_one(
-                    {"id": sub["student_id"], "role": "student"},
-                    {"_id": 0, "grado_id": 1, "seccion_id": 1, "grade_id": 1, "section_id": 1},
-                )
-                grade_id = (student or {}).get("grade_id") or (student or {}).get("grado_id")
-                section_id = (student or {}).get("section_id") or (student or {}).get("seccion_id")
-
-                payment_doc = {
-                    "id": str(uuid.uuid4()),
-                    "school_id": sub["school_id"],
-                    "student_id": sub["student_id"],
-                    "grade_id": grade_id,
-                    "section_id": section_id,
-                    "concept": sub["concept_name"],
-                    "conceptos": [{"name": sub["concept_name"], "amount": sub["amount"]}],
-                    "amount_base": sub["amount"],
-                    "igv_applicable": False,
-                    "igv_percentage": 0,
-                    "igv_amount": 0,
-                    "total_amount": sub["amount"],
-                    "discount_amount": 0,
-                    "interest_amount": 0,
-                    "payment_status": "pending",
-                    "payment_method": None,
-                    "payment_date": None,
-                    "pension_month": pension_month,
-                    "receipt_number": None,
-                    "notes": "Generado automáticamente por suscripción",
-                    "subscription_id": sub.get("id"),
-                    "created_by": "system_cron",
-                    "created_at": now_iso,
-                    "updated_at": now_iso,
-                }
-                await db.payments.insert_one(payment_doc)
-                generados += 1
-            except Exception as e:
-                errores += 1
-                logger.error(f"[CONCEPTS-CRON] Error en sub {sub.get('id')}: {e}")
+            # Insert per target with idempotency check
+            for tgt in target_students:
+                try:
+                    existing = await db.payments.find_one({
+                        "school_id": school_id,
+                        "student_id": tgt["student_id"],
+                        "concept": concept_name,
+                        "pension_month": pension_month,
+                    })
+                    if existing:
+                        ya_existian += 1
+                        continue
+                    payment_doc = {
+                        "id": str(uuid.uuid4()),
+                        "school_id": school_id,
+                        "student_id": tgt["student_id"],
+                        "grade_id": tgt["grade_id"],
+                        "section_id": tgt["section_id"],
+                        "concept": concept_name,
+                        "conceptos": [{"name": concept_name, "amount": tgt["amount"]}],
+                        "amount_base": tgt["amount"],
+                        "igv_applicable": False,
+                        "igv_percentage": 0,
+                        "igv_amount": 0,
+                        "total_amount": tgt["amount"],
+                        "discount_amount": 0,
+                        "interest_amount": 0,
+                        "payment_status": "pending",
+                        "payment_method": None,
+                        "payment_date": None,
+                        "pension_month": pension_month,
+                        "receipt_number": None,
+                        "notes": f"Generado automáticamente ({apply_mode})",
+                        "subscription_id": tgt.get("subscription_id"),
+                        "apply_mode": apply_mode,
+                        "created_by": "system_cron",
+                        "created_at": now_iso,
+                        "updated_at": now_iso,
+                    }
+                    await db.payments.insert_one(payment_doc)
+                    generados += 1
+                except Exception as e:
+                    errores += 1
+                    logger.error(f"[CONCEPTS-CRON] Error student={tgt.get('student_id')} concept={concept_name}: {e}")
 
         logger.info(
-            f"[CONCEPTS-CRON] mes={pension_month} total={len(subs)} "
+            f"[CONCEPTS-CRON] mes={pension_month} concepts={len(concepts)} "
             f"generados={generados} ya_existian={ya_existian} "
             f"skipped_default={skipped_default} errores={errores}"
         )
         return {
             "month": pension_month,
-            "total_subscriptions": len(subs),
+            "concepts_processed": len(concepts),
             "generated": generados,
             "already_existed": ya_existian,
             "skipped_default_concept": skipped_default,
