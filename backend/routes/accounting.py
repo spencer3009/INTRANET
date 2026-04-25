@@ -3061,6 +3061,7 @@ async def generate_monthly_concept_payments():
         generados = 0
         ya_existian = 0
         errores = 0
+        skipped_default = 0
         now_iso = datetime.now(timezone.utc).isoformat()
 
         for sub in subs:
@@ -3070,6 +3071,11 @@ async def generate_monthly_concept_payments():
                     {"_id": 0},
                 )
                 if not concept or concept.get("status") != "active" or concept.get("concept_type") != "recurrente":
+                    continue
+                if concept.get("is_default"):
+                    # Default concepts (Matrícula, Mensualidad) are managed manually from Ingresos
+                    skipped_default += 1
+                    logger.info(f"[CONCEPTS-CRON] skipped_default_concept sub={sub.get('id')} concept={concept.get('name')}")
                     continue
 
                 existing = await db.payments.find_one({
@@ -3123,13 +3129,15 @@ async def generate_monthly_concept_payments():
 
         logger.info(
             f"[CONCEPTS-CRON] mes={pension_month} total={len(subs)} "
-            f"generados={generados} ya_existian={ya_existian} errores={errores}"
+            f"generados={generados} ya_existian={ya_existian} "
+            f"skipped_default={skipped_default} errores={errores}"
         )
         return {
             "month": pension_month,
             "total_subscriptions": len(subs),
             "generated": generados,
             "already_existed": ya_existian,
+            "skipped_default_concept": skipped_default,
             "errors": errores,
         }
     except Exception as e:

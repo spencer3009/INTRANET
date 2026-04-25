@@ -39,7 +39,7 @@ export default function SubscriptionsTab({ token }) {
         axios.get(`${API}/accounting/students/${studentId}/concept-subscriptions`, { headers }),
       ]);
       const allConcepts = conceptsRes.data.concepts || [];
-      const recurrent = allConcepts.filter(c => c.concept_type === "recurrente" && c.status === "active");
+      const recurrent = allConcepts.filter(c => c.concept_type === "recurrente" && c.status === "active" && !c.is_default);
       setConcepts(recurrent);
       setSubscriptions(subsRes.data.subscriptions || []);
     } catch (e) {
