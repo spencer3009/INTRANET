@@ -295,3 +295,151 @@ async def get_parent_payment_history(
     ).sort("payment_date", -1).to_list(200)
 
     return {"payments": payments, "total": len(payments)}
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CONCEPT SUBSCRIPTIONS (Servicios opcionales open) — Parent endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/available-concepts/{student_id}")
+async def get_parent_available_concepts(student_id: str, current_user=Depends(get_current_user)):
+    """List recurrente + open concepts available for the child, with current
+    subscription state."""
+    parent = await _verify_parent(current_user)
+    await _verify_parent_child(parent, student_id)
+    school_id = parent["school_id"]
+
+    concepts = await db.payment_concepts.find(
+        {
+            "school_id": school_id,
+            "concept_type": "recurrente",
+            "status": "active",
+            "enrollment_mode": "open",
+        },
+        {"_id": 0},
+    ).sort("name", 1).to_list(100)
+
+    if not concepts:
+        return {"concepts": []}
+
+    concept_ids = [c["id"] for c in concepts]
+    subs = await db.student_concept_subscriptions.find(
+        {"school_id": school_id, "student_id": student_id, "concept_id": {"$in": concept_ids}},
+        {"_id": 0},
+    ).to_list(100)
+    subs_map = {s["concept_id"]: s for s in subs}
+
+    out = []
+    for c in concepts:
+        s = subs_map.get(c["id"])
+        out.append({
+            "concept_id": c["id"],
+            "name": c.get("name"),
+            "amount": c.get("amount", 0),
+            "concept_type": c.get("concept_type"),
+            "enrollment_mode": c.get("enrollment_mode", "open"),
+            "is_subscribed": bool(s and s.get("is_active")),
+            "activated_by": s.get("activated_by") if s else None,
+            "subscription_id": s.get("id") if s else None,
+        })
+
+    return {"concepts": out}
+
+
+@router.post("/concept-subscriptions/{student_id}/{concept_id}")
+async def parent_subscribe_to_concept(
+    student_id: str,
+    concept_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Parent activates a subscription to an open concept for their child."""
+    parent = await _verify_parent(current_user)
+    await _verify_parent_child(parent, student_id)
+    school_id = parent["school_id"]
+
+    concept = await db.payment_concepts.find_one(
+        {"id": concept_id, "school_id": school_id},
+        {"_id": 0},
+    )
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concepto no encontrado")
+    if concept.get("status") != "active":
+        raise HTTPException(status_code=400, detail="El concepto está inactivo")
+    if concept.get("enrollment_mode") != "open":
+        raise HTTPException(status_code=403, detail="Este concepto no se puede activar desde el portal del padre")
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    existing = await db.student_concept_subscriptions.find_one(
+        {"school_id": school_id, "student_id": student_id, "concept_id": concept_id},
+        {"_id": 0},
+    )
+    if existing:
+        await db.student_concept_subscriptions.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "is_active": True,
+                "amount": round(concept.get("amount", 0), 2),
+                "concept_name": concept.get("name"),
+                "enrollment_mode": "open",
+                "activated_by": "parent",
+                "updated_at": now,
+            }},
+        )
+        sub = await db.student_concept_subscriptions.find_one({"id": existing["id"]}, {"_id": 0})
+        return {"message": "Servicio activado", "subscription": sub}
+
+    sub = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "student_id": student_id,
+        "concept_id": concept_id,
+        "concept_name": concept.get("name"),
+        "amount": round(concept.get("amount", 0), 2),
+        "enrollment_mode": "open",
+        "activated_by": "parent",
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.student_concept_subscriptions.insert_one(sub)
+    sub.pop("_id", None)
+    logger.info(f"[SUBS] parent activated student={student_id} concept={concept_id}")
+    return {"message": "Servicio activado", "subscription": sub}
+
+
+@router.delete("/concept-subscriptions/{student_id}/{concept_id}")
+async def parent_unsubscribe_from_concept(
+    student_id: str,
+    concept_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Parent deactivates a subscription to an open concept."""
+    parent = await _verify_parent(current_user)
+    await _verify_parent_child(parent, student_id)
+    school_id = parent["school_id"]
+
+    concept = await db.payment_concepts.find_one(
+        {"id": concept_id, "school_id": school_id},
+        {"_id": 0},
+    )
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concepto no encontrado")
+    if concept.get("enrollment_mode") != "open":
+        raise HTTPException(status_code=403, detail="Este concepto no se puede desactivar desde el portal del padre")
+
+    sub = await db.student_concept_subscriptions.find_one(
+        {"school_id": school_id, "student_id": student_id, "concept_id": concept_id},
+        {"_id": 0},
+    )
+    if not sub:
+        return {"message": "No había suscripción activa"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.student_concept_subscriptions.update_one(
+        {"id": sub["id"]},
+        {"$set": {"is_active": False, "activated_by": "parent", "updated_at": now}},
+    )
+    logger.info(f"[SUBS] parent deactivated student={student_id} concept={concept_id}")
+    return {"message": "Servicio desactivado"}

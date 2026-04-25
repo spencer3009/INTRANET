@@ -11,6 +11,7 @@ import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import FinancialSettingsTab from "../components/FinancialSettingsTab";
 import ConfiguracionBoletaTab from "../components/ConfiguracionBoletaTab";
+import SubscriptionsTab from "../components/SubscriptionsTab";
 import YapeConfigPanel from "../components/YapeConfigPanel";
 import YapePaymentVerification from "../components/YapePaymentVerification";
 import GenerateBillingModal from "../components/GenerateBillingModal";
@@ -2955,6 +2956,17 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               )}
             </button>
             <button
+              onClick={() => setActiveTab("subscriptions")}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                activeTab === "subscriptions"
+                  ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+              data-testid="tab-subscriptions"
+            >
+              Suscripciones
+            </button>
+            <button
               onClick={() => setActiveTab("config")}
               className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
                 activeTab === "config"
@@ -3047,6 +3059,9 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               debtorsSummary={debtorsSummary}
               onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
             />
+          )}
+          {activeTab === "subscriptions" && (
+            <SubscriptionsTab token={token} />
           )}
           {activeTab === "config" && (
             <ConfigTab token={token} user={user} onGenerateBilling={() => setShowBillingModal(true)} />

@@ -4,6 +4,7 @@ import axios from "axios";
 import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
+import ParentOptionalServices from "../components/ParentOptionalServices";
 import {
   Wallet,
   Calendar,
@@ -368,6 +369,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   })}
                 </div>
               </div>
+
+              {/* Servicios opcionales */}
+              <ParentOptionalServices token={token} selectedChild={selectedChild} children={children} />
             </>
           )}
         </main>

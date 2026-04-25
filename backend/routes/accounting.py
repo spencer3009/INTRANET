@@ -1401,12 +1401,14 @@ class PaymentConceptCreate(BaseModel):
     amount: float = 0
     concept_type: str = "unico"  # recurrente / unico
     status: str = "active"  # active / inactive
+    enrollment_mode: Literal["mandatory", "open"] = "mandatory"
 
 class PaymentConceptUpdate(BaseModel):
     name: Optional[str] = None
     amount: Optional[float] = None
     concept_type: Optional[str] = None
     status: Optional[str] = None
+    enrollment_mode: Optional[Literal["mandatory", "open"]] = None
 
 async def ensure_default_concepts(school_id: str):
     """Seed default concepts (Matrícula, Mensualidad) if none exist."""
@@ -1418,8 +1420,8 @@ async def ensure_default_concepts(school_id: str):
         mat_amount = fin.get("matricula", 0) if fin else 0
         pen_amount = fin.get("pension_mensual", 0) if fin else 0
         defaults = [
-            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Matricula", "amount": mat_amount, "concept_type": "unico", "status": "active", "is_default": True, "created_at": now, "updated_at": now},
-            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Mensualidad", "amount": pen_amount, "concept_type": "recurrente", "status": "active", "is_default": True, "created_at": now, "updated_at": now},
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Matricula", "amount": mat_amount, "concept_type": "unico", "status": "active", "enrollment_mode": "mandatory", "is_default": True, "created_at": now, "updated_at": now},
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Mensualidad", "amount": pen_amount, "concept_type": "recurrente", "status": "active", "enrollment_mode": "mandatory", "is_default": True, "created_at": now, "updated_at": now},
         ]
         await db.payment_concepts.insert_many(defaults)
 
@@ -1452,6 +1454,7 @@ async def create_payment_concept(data: PaymentConceptCreate, current_user=Depend
         "amount": round(data.amount, 2),
         "concept_type": data.concept_type,
         "status": data.status,
+        "enrollment_mode": data.enrollment_mode,
         "is_default": False,
         "created_at": now,
         "updated_at": now,
@@ -1513,6 +1516,182 @@ async def delete_payment_concept(concept_id: str, current_user=Depends(require_s
         raise HTTPException(status_code=400, detail="No se puede eliminar un concepto predeterminado. Puedes desactivarlo.")
     await db.payment_concepts.delete_one({"id": concept_id, "school_id": school_id})
     return {"message": "Concepto eliminado"}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STUDENT CONCEPT SUBSCRIPTIONS (suscripciones por alumno)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class StudentConceptSubscribeRequest(BaseModel):
+    concept_id: str
+    amount_override: Optional[float] = None
+
+class StudentConceptSubscriptionPatch(BaseModel):
+    is_active: bool
+
+async def ensure_subscription_index():
+    """Ensure unique compound index (school_id, student_id, concept_id)."""
+    try:
+        await db.student_concept_subscriptions.create_index(
+            [("school_id", 1), ("student_id", 1), ("concept_id", 1)],
+            unique=True,
+            name="uq_school_student_concept",
+        )
+    except Exception as e:
+        logger.warning(f"[SUBS] Could not create index: {e}")
+
+
+@router.get("/accounting/students/{student_id}/concept-subscriptions")
+async def get_student_concept_subscriptions(
+    student_id: str,
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """List concept subscriptions (active and inactive) for a student."""
+    user = current_user
+    if not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1},
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    subs = await db.student_concept_subscriptions.find(
+        {"school_id": school_id, "student_id": student_id},
+        {"_id": 0},
+    ).to_list(200)
+
+    # Enrich with current concept info (in case concept was renamed/disabled)
+    concept_ids = list({s["concept_id"] for s in subs})
+    concepts_map = {}
+    if concept_ids:
+        concepts_cur = db.payment_concepts.find(
+            {"id": {"$in": concept_ids}, "school_id": school_id},
+            {"_id": 0},
+        )
+        concepts_map = {c["id"]: c for c in await concepts_cur.to_list(200)}
+
+    enriched = []
+    for s in subs:
+        c = concepts_map.get(s["concept_id"], {})
+        enriched.append({
+            **s,
+            "current_concept_name": c.get("name"),
+            "current_concept_status": c.get("status"),
+            "current_concept_type": c.get("concept_type"),
+            "enrollment_mode": c.get("enrollment_mode") or s.get("enrollment_mode") or "mandatory",
+        })
+
+    return {
+        "student_id": student_id,
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "subscriptions": enriched,
+    }
+
+
+@router.post("/accounting/students/{student_id}/concept-subscriptions")
+async def admin_subscribe_student_to_concept(
+    student_id: str,
+    data: StudentConceptSubscribeRequest,
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """Admin subscribes a student to a payment concept. Reactivates if already exists."""
+    user = current_user
+    if not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1},
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    concept = await db.payment_concepts.find_one(
+        {"id": data.concept_id, "school_id": school_id},
+        {"_id": 0},
+    )
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concepto no encontrado")
+    if concept.get("status") != "active":
+        raise HTTPException(status_code=400, detail="El concepto está inactivo")
+
+    now = datetime.now(timezone.utc).isoformat()
+    amount = data.amount_override if data.amount_override is not None else concept.get("amount", 0)
+
+    existing = await db.student_concept_subscriptions.find_one(
+        {"school_id": school_id, "student_id": student_id, "concept_id": data.concept_id},
+        {"_id": 0},
+    )
+    if existing:
+        await db.student_concept_subscriptions.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "is_active": True,
+                "amount": round(amount, 2),
+                "concept_name": concept.get("name"),
+                "enrollment_mode": concept.get("enrollment_mode", "mandatory"),
+                "activated_by": "admin",
+                "updated_at": now,
+            }},
+        )
+        sub = await db.student_concept_subscriptions.find_one({"id": existing["id"]}, {"_id": 0})
+        return {"message": "Suscripción reactivada", "subscription": sub}
+
+    sub = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "student_id": student_id,
+        "concept_id": data.concept_id,
+        "concept_name": concept.get("name"),
+        "amount": round(amount, 2),
+        "enrollment_mode": concept.get("enrollment_mode", "mandatory"),
+        "activated_by": "admin",
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.student_concept_subscriptions.insert_one(sub)
+    sub.pop("_id", None)
+    logger.info(f"[SUBS] admin subscribed student={student_id} concept={data.concept_id}")
+    return {"message": "Suscripción creada", "subscription": sub}
+
+
+@router.patch("/accounting/concept-subscriptions/{sub_id}")
+async def admin_patch_subscription(
+    sub_id: str,
+    data: StudentConceptSubscriptionPatch,
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """Admin toggles a subscription on/off."""
+    user = current_user
+    if not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    existing = await db.student_concept_subscriptions.find_one(
+        {"id": sub_id, "school_id": school_id},
+        {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Suscripción no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.student_concept_subscriptions.update_one(
+        {"id": sub_id},
+        {"$set": {
+            "is_active": data.is_active,
+            "activated_by": "admin",
+            "updated_at": now,
+        }},
+    )
+    sub = await db.student_concept_subscriptions.find_one({"id": sub_id}, {"_id": 0})
+    return {"message": "Suscripción actualizada", "subscription": sub}
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STUDENT STATUS MANAGEMENT (ESTADOS DE ESTUDIANTE)
@@ -2855,3 +3034,134 @@ async def daily_billing_generation_cron():
             logger.error(f"[BILLING-CRON] Error: {e}")
 
         await asyncio.sleep(86400)
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CRON: Generación mensual de cobros para suscripciones a conceptos opcionales
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def generate_monthly_concept_payments():
+    """Generate pending payments for all active concept subscriptions.
+    Runs once per month (idempotent — won't duplicate if already created)."""
+    try:
+        try:
+            from zoneinfo import ZoneInfo
+            now_lima = datetime.now(ZoneInfo("America/Lima"))
+        except Exception:
+            now_lima = datetime.now(timezone.utc) - timedelta(hours=5)
+        pension_month = now_lima.strftime("%Y-%m")
+
+        subs_cursor = db.student_concept_subscriptions.find(
+            {"is_active": True}, {"_id": 0},
+        )
+        subs = await subs_cursor.to_list(10000)
+        logger.info(f"[CONCEPTS-CRON] Procesando {len(subs)} suscripciones activas para {pension_month}")
+
+        generados = 0
+        ya_existian = 0
+        errores = 0
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        for sub in subs:
+            try:
+                concept = await db.payment_concepts.find_one(
+                    {"id": sub["concept_id"], "school_id": sub["school_id"]},
+                    {"_id": 0},
+                )
+                if not concept or concept.get("status") != "active" or concept.get("concept_type") != "recurrente":
+                    continue
+
+                existing = await db.payments.find_one({
+                    "school_id": sub["school_id"],
+                    "student_id": sub["student_id"],
+                    "concept": sub["concept_name"],
+                    "pension_month": pension_month,
+                })
+                if existing:
+                    ya_existian += 1
+                    continue
+
+                student = await db.users.find_one(
+                    {"id": sub["student_id"], "role": "student"},
+                    {"_id": 0, "grado_id": 1, "seccion_id": 1, "grade_id": 1, "section_id": 1},
+                )
+                grade_id = (student or {}).get("grade_id") or (student or {}).get("grado_id")
+                section_id = (student or {}).get("section_id") or (student or {}).get("seccion_id")
+
+                payment_doc = {
+                    "id": str(uuid.uuid4()),
+                    "school_id": sub["school_id"],
+                    "student_id": sub["student_id"],
+                    "grade_id": grade_id,
+                    "section_id": section_id,
+                    "concept": sub["concept_name"],
+                    "conceptos": [{"name": sub["concept_name"], "amount": sub["amount"]}],
+                    "amount_base": sub["amount"],
+                    "igv_applicable": False,
+                    "igv_percentage": 0,
+                    "igv_amount": 0,
+                    "total_amount": sub["amount"],
+                    "discount_amount": 0,
+                    "interest_amount": 0,
+                    "payment_status": "pending",
+                    "payment_method": None,
+                    "payment_date": None,
+                    "pension_month": pension_month,
+                    "receipt_number": None,
+                    "notes": "Generado automáticamente por suscripción",
+                    "subscription_id": sub.get("id"),
+                    "created_by": "system_cron",
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                }
+                await db.payments.insert_one(payment_doc)
+                generados += 1
+            except Exception as e:
+                errores += 1
+                logger.error(f"[CONCEPTS-CRON] Error en sub {sub.get('id')}: {e}")
+
+        logger.info(
+            f"[CONCEPTS-CRON] mes={pension_month} total={len(subs)} "
+            f"generados={generados} ya_existian={ya_existian} errores={errores}"
+        )
+        return {
+            "month": pension_month,
+            "total_subscriptions": len(subs),
+            "generated": generados,
+            "already_existed": ya_existian,
+            "errors": errores,
+        }
+    except Exception as e:
+        logger.error(f"[CONCEPTS-CRON] Fatal error: {e}")
+        return {"error": str(e)}
+
+
+async def monthly_concept_payments_cron():
+    """Loop that runs every day at 06:00 Lima. Only generates on day 1."""
+    import asyncio
+    while True:
+        try:
+            try:
+                from zoneinfo import ZoneInfo
+                now_lima = datetime.now(ZoneInfo("America/Lima"))
+            except Exception:
+                now_lima = datetime.now(timezone.utc) - timedelta(hours=5)
+
+            if now_lima.day == 1:
+                logger.info(f"[CONCEPTS-CRON] Ejecutando generación mensual ({now_lima.isoformat()})")
+                await generate_monthly_concept_payments()
+        except Exception as e:
+            logger.error(f"[CONCEPTS-CRON] Loop error: {e}")
+
+        await asyncio.sleep(86400)  # 24h
+
+
+# Manual trigger (admin-only) — útil para tests y para regenerar el mes en curso
+@router.post("/accounting/concept-subscriptions/run-cron")
+async def run_concept_subscriptions_cron(
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """Manually trigger the monthly concept payments generation (idempotent)."""
+    result = await generate_monthly_concept_payments()
+    return {"message": "Cron ejecutado", "result": result}

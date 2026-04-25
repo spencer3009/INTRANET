@@ -47,6 +47,13 @@ Ver `/app/memory/test_credentials.md`.
     - `GET /api/attendance/reports/maintenance?start_date&end_date` → resumen por persona con % asistencia.
   - Helper `_maintenance_role_display()` devuelve label legible (maintenance_role mapeado o custom si es "otro").
   - Frontend: tarjeta "Personal de Mantenimiento" en home, `MaintenanceAttendanceTab` (marcado manual con chip del rol), `MaintenanceReportsTab` (tabla + PDF con jsPDF) y botón "Reportes Mantenimiento" en sección Reportes.
+- [2026-02] **Conceptos de Pago Opcionales con Cron Mensual** (`accounting.py` + `parent_payments.py` + `SubscriptionsTab.jsx` + `ParentOptionalServices.jsx`):
+  - Campo `enrollment_mode` ("mandatory" | "open") en `payment_concepts`.
+  - Nueva colección `student_concept_subscriptions` con índice único (school_id, student_id, concept_id) — granularidad por alumno.
+  - Endpoints admin: GET/POST `/accounting/students/{id}/concept-subscriptions`, PATCH `/accounting/concept-subscriptions/{sub_id}`, POST `/accounting/concept-subscriptions/run-cron`.
+  - Endpoints padre: GET `/parent-payments/available-concepts/{student_id}`, POST/DELETE `/parent-payments/concept-subscriptions/{student_id}/{concept_id}`.
+  - Cron `monthly_concept_payments_cron` (loop daily, ejecuta solo día 1 a 06:00 Lima). Idempotente por `student_id + concept + pension_month`.
+  - Frontend: tab "Suscripciones" en AccountingPage + sección "Servicios Opcionales" en ParentPaymentsPage con modal de aplicación masiva entre hijos.
 
 ## Roadmap
 ### P1

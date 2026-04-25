@@ -37,7 +37,7 @@ from routes.birthdays import router as birthdays_router
 from routes.surveys import router as surveys_router
 from routes.discipline import router as discipline_router
 from routes.news import router as news_router
-from routes.accounting import router as accounting_router, daily_billing_generation_cron
+from routes.accounting import router as accounting_router, daily_billing_generation_cron, monthly_concept_payments_cron, ensure_subscription_index
 from routes.subjects import router as subjects_router
 from routes.health import router as health_router
 from routes.monitoring import router as monitoring_router
@@ -510,6 +510,9 @@ async def _run_startup_tasks():
         logger.info("Demo cleanup cron job started")
         _asyncio.create_task(daily_billing_generation_cron())
         logger.info("Daily billing generation cron job started")
+        _asyncio.create_task(monthly_concept_payments_cron())
+        logger.info("Monthly concept payments cron job started")
+        await ensure_subscription_index()
 
         # Sync profile_photo_url -> photo_url for demo users (streaming, no .to_list)
         synced = 0

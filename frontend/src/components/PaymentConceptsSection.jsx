@@ -24,7 +24,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ name: "", amount: "", concept_type: "unico", status: "active" });
+  const [form, setForm] = useState({ name: "", amount: "", concept_type: "unico", status: "active", enrollment_mode: "mandatory" });
 
   const loadConcepts = async () => {
     try {
@@ -42,13 +42,13 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", amount: "", concept_type: "unico", status: "active" });
+    setForm({ name: "", amount: "", concept_type: "unico", status: "active", enrollment_mode: "mandatory" });
     setShowForm(true);
   };
 
   const openEdit = (c) => {
     setEditing(c);
-    setForm({ name: c.name, amount: c.amount.toString(), concept_type: c.concept_type, status: c.status });
+    setForm({ name: c.name, amount: c.amount.toString(), concept_type: c.concept_type, status: c.status, enrollment_mode: c.enrollment_mode || "mandatory" });
     setShowForm(true);
   };
 
@@ -141,6 +141,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
               <th className="px-5 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Concepto</th>
               <th className="px-5 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Monto Base</th>
               <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+              <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Modalidad</th>
               <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
               {isOwnerOrAdmin && (
                 <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
@@ -150,7 +151,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
           <tbody className="divide-y divide-slate-100">
             {concepts.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-5 py-12 text-center">
+                <td colSpan={6} className="px-5 py-12 text-center">
                   <Tag className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 font-medium">No hay conceptos configurados</p>
                 </td>
@@ -178,6 +179,13 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                     }`}>
                       {c.concept_type === "recurrente" ? <RefreshCw className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                       {CONCEPT_TYPES[c.concept_type] || c.concept_type}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      c.enrollment_mode === "open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"
+                    }`}>
+                      {c.enrollment_mode === "open" ? "Abierto" : "Obligatorio"}
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-center">
@@ -305,6 +313,23 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                     <option value="inactive">Inactivo</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Modalidad de inscripción</label>
+                <select
+                  value={form.enrollment_mode}
+                  onChange={(e) => setForm(prev => ({ ...prev, enrollment_mode: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  data-testid="concept-enrollment-mode-select"
+                >
+                  <option value="mandatory">Obligatorio (asignado por el colegio)</option>
+                  <option value="open">Abierto (el padre puede activarlo)</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  {form.enrollment_mode === "open"
+                    ? "Los padres podrán activarlo o desactivarlo desde su portal."
+                    : "Solo el administrador puede asignar este concepto a los alumnos."}
+                </p>
               </div>
             </div>
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
