@@ -348,11 +348,22 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
     ? academicData.sections.filter(s => s.grado_id === form.grade_id)
     : [];
   
-  // Subjects filtered by Level + Grade AND excluding already assigned subjects in this section
+  // Subjects filtered by Level + Grade + Section AND excluding already assigned subjects in this section
   const filteredSubjects = (form.level_id && form.grade_id)
     ? academicData.subjects.filter(s => {
         // Must match level and grade
         if (s.level_id !== form.level_id || s.grade_id !== form.grade_id) return false;
+
+        // If a section is selected and the subject is tagged to a different section,
+        // exclude it UNLESS there's an existing assignment record for this section
+        // (this covers subjects shared across sections that already have a record here).
+        if (form.section_id && s.section_id && s.section_id !== form.section_id) {
+          const hasRecordInThisSection = existingAssignments.some(a =>
+            a.section_id === form.section_id &&
+            a.subject_id === s.id
+          );
+          if (!hasRecordInThisSection) return false;
+        }
 
         // If section is selected, check if this subject is already assigned in this section
         if (form.section_id) {
