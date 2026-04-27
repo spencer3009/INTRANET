@@ -831,7 +831,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       {monthMora > 0 && (
                         <p className="text-[9px] text-rose-500 font-medium">+S/ {monthMora.toFixed(2)} mora</p>
                       )}
-                      <p className={`text-[10px] font-medium ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda del Mes</p>
+                      <p className={`text-[10px] font-medium ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                        Deuda del Mes de {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][now.getMonth()]}
+                      </p>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
                       <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />

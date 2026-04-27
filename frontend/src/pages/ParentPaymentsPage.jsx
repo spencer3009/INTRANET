@@ -230,7 +230,9 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   {monthMora > 0 && (
                     <p className="text-[10px] text-rose-500 font-medium">incluye S/ {monthMora.toFixed(2)} mora</p>
                   )}
-                  <p className="text-xs text-slate-500 mt-1">Deuda del Mes</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Deuda del Mes de {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][now.getMonth()]}
+                  </p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
