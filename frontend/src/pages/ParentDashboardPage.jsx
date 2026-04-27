@@ -912,6 +912,67 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 // the full monthly bill instead of just the first row.
                 let extraItemsForMonth = [];
                 let monthTotal = 0;
+
+                // Special case: nextCuota is an extra (e.g. LIBROS) for the current
+                // month but the mensualidad has no DB record yet. Derive a pension
+                // cuota from financial_config so it leads the card and the desglose
+                // shows pension + extras.
+                const nowDt = new Date();
+                const ckMonth = `${nowDt.getFullYear()}-${String(nowDt.getMonth() + 1).padStart(2, '0')}`;
+                const isCurrentMonthCuota = nextCuota && (
+                  nextCuota.pension_month === ckMonth
+                  || (nextCuota.month && nextCuota.year
+                      && `${nextCuota.year}-${String(nextCuota.month).padStart(2, '0')}` === ckMonth)
+                );
+                const conceptLower = (nextCuota?.concept || '').toLowerCase();
+                const isMensualidad = conceptLower === 'mensualidad' || conceptLower.startsWith('pension');
+                const hasMensualidadInSchedule = (yapeSchedule || []).some(s =>
+                  (s.pension_month === ckMonth
+                    || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ckMonth))
+                  && ((s.concept || '').toLowerCase() === 'mensualidad'
+                      || (s.concept || '').toLowerCase().startsWith('pension'))
+                );
+                if (nextCuota && isCurrentMonthCuota && !isMensualidad && !hasMensualidadInSchedule
+                    && paymentData?.financial_config?.pension_mensual > 0) {
+                  const fc = paymentData.financial_config;
+                  const pension = fc.pension_mensual;
+                  const ppLimit = fc.pronto_pago_fecha_limite || 5;
+                  const pp = fc.pronto_pago_activo && (fc.pronto_pago_monto || 0) > 0
+                    && nowDt.getDate() <= ppLimit;
+                  let interesAmount = 0;
+                  let daysLate = 0;
+                  if (fc.interes_activo && (fc.interes_valor || 0) > 0 && !pp) {
+                    const deadline = new Date(nowDt.getFullYear(), nowDt.getMonth(), ppLimit, 12, 0, 0);
+                    daysLate = Math.max(0, Math.floor((nowDt - deadline) / 86400000));
+                    if (daysLate > 0) {
+                      interesAmount = fc.interes_tipo === 'porcentaje'
+                        ? Math.round(pension * (fc.interes_valor / 30 / 100) * daysLate * 100) / 100
+                        : Math.round((fc.interes_valor / 30) * daysLate * 100) / 100;
+                    }
+                  }
+                  const finalAmount = pp ? fc.pronto_pago_monto : (pension + interesAmount);
+                  const derivedPension = {
+                    concept: 'mensualidad',
+                    description: `Pension ${monthNames[nowDt.getMonth() + 1] || ''} ${nowDt.getFullYear()}`,
+                    amount: finalAmount,
+                    month: nowDt.getMonth() + 1,
+                    year: nowDt.getFullYear(),
+                    pension_month: ckMonth,
+                    status: 'pending',
+                    yape_status: null,
+                    _derived: true,
+                    _isProntoPago: pp,
+                    _prontoPagoFechaLimite: ppLimit,
+                    _pensionNormal: pension,
+                    _interesAmount: interesAmount,
+                    _daysLate: daysLate,
+                  };
+                  // Push the previous nextCuota (LIBROS, etc.) into pendingItems so
+                  // it becomes part of the desglose, and promote the derived pension.
+                  pendingItems.unshift(derivedPension);
+                  nextCuota = derivedPension;
+                }
+
                 if (nextCuota) {
                   const targetMonth = nextCuota.pension_month
                     || (nextCuota.month && nextCuota.year
@@ -922,7 +983,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       (p.pension_month === targetMonth)
                       || (p.month && p.year && `${p.year}-${String(p.month).padStart(2, '0')}` === targetMonth)
                     );
-                    extraItemsForMonth = sameMonth.filter(p => p.id !== nextCuota.id);
+                    extraItemsForMonth = sameMonth.filter(p =>
+                      p !== nextCuota && (p.id ? p.id !== nextCuota.id : true)
+                    );
                     monthTotal = (nextCuota.amount || 0)
                       + extraItemsForMonth.reduce((acc, p) => acc + (p.amount || 0), 0);
                   }
