@@ -3,7 +3,7 @@
 ## April 27, 2026 - Fork (Subscription Inline Payment Fix)
 
 ### Fix: Sincronización Estado Financiero ↔ Yape (eliminada contradicción AL DÍA / PENDIENTE) - COMPLETED
-- **Frontend** (`ParentDashboardPage.jsx` lines 658-720): "Estado Financiero" ahora computa la deuda del mes con la misma lógica que la tarjeta Yape: 
+- **Frontend** (`ParentDashboardPage.jsx` + `ParentPaymentsPage.jsx`): "Estado Financiero" en el dashboard Y en la página `Ver detalle de pagos` ahora computan la deuda del mes con la misma lógica que la tarjeta Yape: 
   1. Suma cuotas pendientes en `monthly_detail` para el mes en curso (mensualidades).
   2. Suma cargos extra del mismo `pension_month` desde el `yapeSchedule` (libros, talleres) que no estén verificados.
   3. Si NO hay registro en BD pero `pension_mensual > 0` y la mensualidad del mes no está pagada vía Yape, **deriva** la cuota del `financial_config` (con pronto pago e interés diario aplicados igual que la tarjeta Yape).

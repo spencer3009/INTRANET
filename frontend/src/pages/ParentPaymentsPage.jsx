@@ -168,12 +168,49 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
               {(() => {
                 const summary = paymentData.summary || {};
                 const now = new Date();
-                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                const currentMonthPayments = (paymentData.monthly_detail || []).filter(m =>
-                  m.payment_date && m.payment_date.startsWith(currentMonthKey) && m.payment_status === 'pending'
+                const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const mdCurrent = (paymentData.monthly_detail || []).filter(m =>
+                  m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending'
                 );
-                const monthDebtBase = currentMonthPayments.reduce((sum, m) => sum + (m.total_amount || 0), 0);
-                const monthMora = currentMonthPayments.reduce((sum, m) => sum + (m.interest_charge || 0), 0);
+                let monthDebtBase = mdCurrent.reduce((s, m) => s + (m.total_amount || 0), 0);
+                let monthMora = mdCurrent.reduce((s, m) => s + (m.interest_charge || 0), 0);
+
+                // Sum extra charges for the same month from yapeSchedule (e.g. LIBROS)
+                const scheduleSameMonth = (yapeSchedule || []).filter(s => {
+                  if (s.status !== 'pending' && s.status !== 'overdue') return false;
+                  if (s.yape_status === 'pendiente_verificacion' || s.yape_status === 'verificado') return false;
+                  if ((s.concept || '').toLowerCase() === 'matricula') return false;
+                  if ((s.concept || '').toLowerCase().startsWith('mensualidad')) return false;
+                  return s.pension_month === ck
+                    || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ck);
+                });
+                monthDebtBase += scheduleSameMonth.reduce((s, p) => s + (p.amount || 0), 0);
+
+                // Fallback to financial_config when no payment record exists
+                const fc = paymentData.financial_config || {};
+                const pension = fc.pension_mensual || 0;
+                if (mdCurrent.length === 0 && pension > 0) {
+                  const alreadyPaid = (yapeSchedule || []).some(s =>
+                    (s.pension_month === ck
+                      || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ck))
+                    && (s.status === 'paid' || s.yape_status === 'verificado' || s.yape_status === 'pendiente_verificacion')
+                  );
+                  if (!alreadyPaid) {
+                    const pp = fc.pronto_pago_activo && (fc.pronto_pago_monto || 0) > 0
+                      && now.getDate() <= (fc.pronto_pago_fecha_limite || 5);
+                    monthDebtBase += pp ? fc.pronto_pago_monto : pension;
+                    if (fc.interes_activo && (fc.interes_valor || 0) > 0 && !pp) {
+                      const deadline = new Date(now.getFullYear(), now.getMonth(), fc.pronto_pago_fecha_limite || 5);
+                      const daysLate = Math.max(0, Math.floor((now - deadline) / 86400000));
+                      if (daysLate > 0) {
+                        monthMora += fc.interes_tipo === 'porcentaje'
+                          ? Math.round(pension * (fc.interes_valor / 30 / 100) * daysLate * 100) / 100
+                          : Math.round((fc.interes_valor / 30) * daysLate * 100) / 100;
+                      }
+                    }
+                  }
+                }
+
                 const monthDebt = monthDebtBase + monthMora;
 
                 return (
@@ -214,27 +251,53 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
               })()}
 
               {/* Progress Bar Summary */}
+              {(() => {
+                const summary = paymentData.summary || {};
+                // Recompute effectiveStatus to mirror the Summary Cards block above
+                const now = new Date();
+                const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const mdCurrent = (paymentData.monthly_detail || []).filter(m =>
+                  m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending'
+                );
+                const fc = paymentData.financial_config || {};
+                const pension = fc.pension_mensual || 0;
+                let derived = 0;
+                if (mdCurrent.length === 0 && pension > 0) {
+                  const alreadyPaid = (yapeSchedule || []).some(s =>
+                    (s.pension_month === ck
+                      || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ck))
+                    && (s.status === 'paid' || s.yape_status === 'verificado' || s.yape_status === 'pendiente_verificacion')
+                  );
+                  if (!alreadyPaid) {
+                    const pp = fc.pronto_pago_activo && (fc.pronto_pago_monto || 0) > 0
+                      && now.getDate() <= (fc.pronto_pago_fecha_limite || 5);
+                    derived = pp ? fc.pronto_pago_monto : pension;
+                  }
+                }
+                const effectiveStatus = (summary.overall_status === 'al_dia' && (derived > 0 || mdCurrent.length > 0))
+                  ? 'pendiente' : summary.overall_status;
+                return (
               <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6" data-testid="payments-progress">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Wallet className={`w-6 h-6 ${
-                      summary.overall_status === 'moroso' ? 'text-red-500' :
-                      summary.overall_status === 'pendiente' ? 'text-amber-500' : 'text-emerald-500'
+                      effectiveStatus === 'moroso' ? 'text-red-500' :
+                      effectiveStatus === 'pendiente' ? 'text-amber-500' : 'text-emerald-500'
                     }`} />
                     <span className="font-bold text-slate-800 text-lg">Progreso de Pagos</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {summary.overall_status === 'moroso' && (
+                    {effectiveStatus === 'moroso' && (
                       <span className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-full px-3 py-1.5 text-xs font-bold text-red-700 animate-pulse">
                         <AlertTriangle className="w-3.5 h-3.5" /> MOROSO
                       </span>
                     )}
-                    {summary.overall_status === 'pendiente' && (
+                    {effectiveStatus === 'pendiente' && (
                       <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5 text-xs font-bold text-amber-700">
                         PENDIENTE
                       </span>
                     )}
-                    {summary.overall_status === 'al_dia' && (
+                    {effectiveStatus === 'al_dia' && (
                       <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5 text-xs font-bold text-emerald-700">
                         <CheckCircle className="w-3.5 h-3.5" /> AL DÍA
                       </span>
@@ -277,6 +340,8 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                   )}
                 </div>
               </div>
+                );
+              })()}
 
               {/* Monthly Detail Table */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-testid="payments-detail-table">
