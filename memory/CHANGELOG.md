@@ -2,6 +2,14 @@
 
 ## April 27, 2026 - Fork (Subscription Inline Payment Fix)
 
+### Fix: Sincronización Estado Financiero ↔ Yape (eliminada contradicción AL DÍA / PENDIENTE) - COMPLETED
+- **Frontend** (`ParentDashboardPage.jsx` lines 658-720): "Estado Financiero" ahora computa la deuda del mes con la misma lógica que la tarjeta Yape: 
+  1. Suma cuotas pendientes en `monthly_detail` para el mes en curso (mensualidades).
+  2. Suma cargos extra del mismo `pension_month` desde el `yapeSchedule` (libros, talleres) que no estén verificados.
+  3. Si NO hay registro en BD pero `pension_mensual > 0` y la mensualidad del mes no está pagada vía Yape, **deriva** la cuota del `financial_config` (con pronto pago e interés diario aplicados igual que la tarjeta Yape).
+- **Badge Status**: Ahora calcula `effectiveStatus` que degrada `al_dia` → `pendiente` cuando existe deuda derivada del mes en curso. Se agregó nuevo badge "PENDIENTE" (ámbar).
+- Verificación: con alumno fresh (sin payments registrados, pension_mensual=350, mora 22d), Estado Financiero ahora muestra **PENDIENTE / S/362.83 (+S/12.83 mora)** coincidiendo con la tarjeta Yape.
+
 ### Fix: Padre solo lectura en Servicios Opcionales - COMPLETED
 - **Frontend** (`ParentOptionalServices.jsx`): Eliminado el switch que permitía al padre activar/desactivar suscripciones. Componente convertido a solo lectura. Ahora solo lista las suscripciones ACTIVAS (informativo, para que el padre sepa qué cobros adicionales se le aplican). Si no hay activas, muestra mensaje guía para contactar a la administración. Removida toda la lógica de modal "aplicar a otros hijos".
 - **Backend** (`parent_payments.py`): Endpoints `POST` y `DELETE` `/api/parent-payments/concept-subscriptions/{student}/{concept}` ahora devuelven **HTTP 403** con mensaje claro. El control queda exclusivamente en el lado administrativo (`accounting.py`).

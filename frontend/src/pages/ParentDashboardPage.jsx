@@ -655,21 +655,80 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             {/* Left Column: Financial + Yape */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
               <div className={`grid gap-5 items-start ${yapeConfig?.enabled ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-              {paymentData ? (
+              {paymentData ? (() => {
+                // ── Compute current-month debt with fallbacks so this card stays
+                // consistent with the Yape card, which derives the cuota from
+                // financial_config when no payment record exists yet.
+                const now = new Date();
+                const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const mdCurrent = (paymentData.monthly_detail || []).filter(
+                  m => m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending'
+                );
+                let monthDebtBase = mdCurrent.reduce((s, m) => s + (m.total_amount || 0), 0);
+                let monthMora = mdCurrent.reduce((s, m) => s + (m.interest_charge || 0), 0);
+
+                // Sum any other pending charges of the same pension_month from the
+                // schedule (e.g. LIBROS, taller). These come from db.payments but
+                // are NOT in monthly_detail (which is filtered to mensualidad).
+                const scheduleSameMonth = (yapeSchedule || []).filter(s => {
+                  if (s.status !== 'pending' && s.status !== 'overdue') return false;
+                  if (s.yape_status === 'pendiente_verificacion' || s.yape_status === 'verificado') return false;
+                  if ((s.concept || '').toLowerCase() === 'matricula') return false;
+                  if ((s.concept || '').toLowerCase().startsWith('mensualidad')) return false;
+                  return s.pension_month === ck
+                    || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ck);
+                });
+                monthDebtBase += scheduleSameMonth.reduce((s, p) => s + (p.amount || 0), 0);
+
+                // Fallback: no mensualidad record for current month → derive from
+                // financial_config so Estado Financiero matches the Yape card.
+                const fc = paymentData.financial_config || {};
+                const pension = fc.pension_mensual || 0;
+                if (mdCurrent.length === 0 && pension > 0) {
+                  // Only derive if the current month is not already paid through yape
+                  const alreadyPaid = (yapeSchedule || []).some(s =>
+                    (s.pension_month === ck
+                      || (s.month && s.year && `${s.year}-${String(s.month).padStart(2, '0')}` === ck))
+                    && (s.status === 'paid' || s.yape_status === 'verificado' || s.yape_status === 'pendiente_verificacion')
+                  );
+                  if (!alreadyPaid) {
+                    // Apply pronto-pago discount if the parent is within the window
+                    const pp = fc.pronto_pago_activo && (fc.pronto_pago_monto || 0) > 0
+                      && now.getDate() <= (fc.pronto_pago_fecha_limite || 5);
+                    monthDebtBase += pp ? fc.pronto_pago_monto : pension;
+                    if (fc.interes_activo && (fc.interes_valor || 0) > 0 && !pp) {
+                      const deadline = new Date(now.getFullYear(), now.getMonth(), fc.pronto_pago_fecha_limite || 5);
+                      const daysLate = Math.max(0, Math.floor((now - deadline) / 86400000));
+                      if (daysLate > 0) {
+                        monthMora += fc.interes_tipo === 'porcentaje'
+                          ? Math.round(pension * (fc.interes_valor / 30 / 100) * daysLate * 100) / 100
+                          : Math.round((fc.interes_valor / 30) * daysLate * 100) / 100;
+                      }
+                    }
+                  }
+                }
+
+                const monthDebt = monthDebtBase + monthMora;
+                // Effective status: if backend says al_dia but we derived a debt for the
+                // current month, downgrade to "pendiente" so the badge reflects reality.
+                const backendStatus = paymentData.summary.overall_status;
+                const effectiveStatus = (backendStatus === 'al_dia' && monthDebt > 0)
+                  ? 'pendiente' : backendStatus;
+                return (
                 <div className="bg-white rounded-2xl border border-slate-200 p-5" data-testid="financial-status">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        paymentData.summary.overall_status === 'moroso' 
+                        effectiveStatus === 'moroso' 
                           ? 'bg-red-100' 
-                          : paymentData.summary.overall_status === 'pendiente' 
+                          : effectiveStatus === 'pendiente' 
                             ? 'bg-amber-100' 
                             : 'bg-emerald-100'
                       }`}>
                         <Wallet className={`w-5 h-5 ${
-                          paymentData.summary.overall_status === 'moroso' 
+                          effectiveStatus === 'moroso' 
                             ? 'text-red-600' 
-                            : paymentData.summary.overall_status === 'pendiente' 
+                            : effectiveStatus === 'pendiente' 
                               ? 'text-amber-600' 
                               : 'text-emerald-600'
                         }`} />
@@ -680,13 +739,19 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       </div>
                     </div>
                     
-                    {paymentData.summary.overall_status === 'moroso' && (
+                    {effectiveStatus === 'moroso' && (
                       <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 animate-pulse" data-testid="morosidad-alert">
                         <AlertTriangle className="w-4 h-4 text-red-600" />
                         <span className="text-xs font-bold text-red-700">MOROSIDAD DETECTADA</span>
                       </div>
                     )}
-                    {paymentData.summary.overall_status === 'al_dia' && (
+                    {effectiveStatus === 'pendiente' && (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-testid="pendiente-badge">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-bold text-amber-700">PENDIENTE</span>
+                      </div>
+                    )}
+                    {effectiveStatus === 'al_dia' && (
                       <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                         <CheckCircle className="w-4 h-4 text-emerald-600" />
                         <span className="text-xs font-bold text-emerald-700">AL DÍA</span>
@@ -757,33 +822,16 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
                     </div>
                     <div className={`rounded-xl p-3 text-center border ${
-                      (() => {
-                        const now = new Date();
-                        const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                        const md = (paymentData.monthly_detail || []).filter(m => m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending');
-                        return md.reduce((s, m) => s + (m.total_amount || 0), 0);
-                      })() > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
+                      monthDebt > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
                     }`}>
-                      {(() => {
-                        const now = new Date();
-                        const ck = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                        const md = (paymentData.monthly_detail || []).filter(m => m.payment_date && m.payment_date.startsWith(ck) && m.payment_status === 'pending');
-                        const monthDebtBase = md.reduce((s, m) => s + (m.total_amount || 0), 0);
-                        const monthMora = md.reduce((s, m) => s + (m.interest_charge || 0), 0);
-                        const monthDebt = monthDebtBase + monthMora;
-                        return (
-                          <>
-                            <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`} />
-                            <p className={`text-lg font-bold ${monthDebt > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                              S/ {monthDebt.toLocaleString('es-PE')}
-                            </p>
-                            {monthMora > 0 && (
-                              <p className="text-[9px] text-rose-500 font-medium">+S/ {monthMora.toFixed(2)} mora</p>
-                            )}
-                            <p className={`text-[10px] font-medium ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda del Mes</p>
-                          </>
-                        );
-                      })()}
+                      <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`} />
+                      <p className={`text-lg font-bold ${monthDebt > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        S/ {monthDebt.toLocaleString('es-PE')}
+                      </p>
+                      {monthMora > 0 && (
+                        <p className="text-[9px] text-rose-500 font-medium">+S/ {monthMora.toFixed(2)} mora</p>
+                      )}
+                      <p className={`text-[10px] font-medium ${monthDebt > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda del Mes</p>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
                       <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
@@ -814,7 +862,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-              ) : (
+                );
+              })() : (
                 <div className="bg-white rounded-2xl border border-slate-200 p-8 h-full flex items-center justify-center">
                   <div className="text-center text-slate-400">
                     <Wallet className="w-10 h-10 mx-auto mb-2 opacity-40" />
