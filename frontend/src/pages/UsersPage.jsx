@@ -204,8 +204,8 @@ const ROLE_CARDS = [
   },
   {
     id: "personal_mantenimiento",
-    label: "Mantenimiento",
-    labelSingular: "Personal de Mantenimiento",
+    label: "Administrativos",
+    labelSingular: "Personal Administrativo",
     color: "from-amber-500 to-amber-600",
     bgColor: "bg-amber-50",
     iconBg: "bg-amber-100",
@@ -578,7 +578,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         return;
       }
       if (!form.maintenance_role) {
-        setError("Debes seleccionar un rol de mantenimiento");
+        setError("Debes seleccionar un rol administrativo");
         return;
       }
       if (form.maintenance_role === "otro" && (!form.maintenance_role_custom || !form.maintenance_role_custom.trim())) {
@@ -841,7 +841,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
             {(form.role === 'personal_mantenimiento' || roleId === 'personal_mantenimiento') && (
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Rol de Mantenimiento <span className="text-red-500">*</span>
+                  Rol Administrativo <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={form.maintenance_role || ""}
@@ -1146,7 +1146,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'auxiliar_asistencia' ? 'Auxiliar de Asistencia' :
                    roleId === 'auxiliar_movilidad' ? 'Auxiliar de Movilidad' :
                    roleId === 'auxiliar_topico' ? 'Tópico (Enfermería)' :
-                   roleId === 'personal_mantenimiento' ? 'Personal de Mantenimiento' : roleId}
+                   roleId === 'personal_mantenimiento' ? 'Personal Administrativo' : roleId}
                 </div>
               ) : (
                 // Selectable role
@@ -1167,7 +1167,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="auxiliar_movilidad">Auxiliar de Movilidad</option>
                   <option value="auxiliar_asistencia">Auxiliar de Asistencia</option>
                   <option value="auxiliar_topico">Tópico (Enfermería)</option>
-                  <option value="personal_mantenimiento">Personal de Mantenimiento</option>
+                  <option value="personal_mantenimiento">Personal Administrativo</option>
                 </select>
               )}
             </div>
@@ -2602,7 +2602,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         if (!editForm.maintenance_role) {
           setInfoModalContent({
             title: "Rol requerido",
-            message: "Debes seleccionar un rol de mantenimiento",
+            message: "Debes seleccionar un rol administrativo",
             type: "error"
           });
           setShowInfoModal(true);
@@ -4541,7 +4541,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 {editingUser.role === 'personal_mantenimiento' && (
                   <div className="md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                      Rol de Mantenimiento <span className="text-red-500">*</span>
+                      Rol Administrativo <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={editForm.maintenance_role || ""}

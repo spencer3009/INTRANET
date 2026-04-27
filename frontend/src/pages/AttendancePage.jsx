@@ -970,7 +970,7 @@ function MaintenanceAttendanceTab({ token }) {
         date: selectedDate,
         records,
       }, { headers });
-      setSuccess("Asistencia de mantenimiento guardada correctamente");
+      setSuccess("Asistencia administrativa guardada correctamente");
       setHasChanges(false);
       setHasSavedRecords(true);
       setTimeout(() => setSuccess(""), 3000);
@@ -1034,7 +1034,7 @@ function MaintenanceAttendanceTab({ token }) {
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
-                <p className="text-amber-100">{summary.total} personas de mantenimiento</p>
+                <p className="text-amber-100">{summary.total} personas administrativas</p>
               </div>
               <div className="flex gap-3 text-sm flex-wrap">
                 <div className="bg-white/20 px-3 py-2 rounded-lg"><span className="text-emerald-100">✓ {summary.present}</span></div>
@@ -1112,8 +1112,8 @@ function MaintenanceAttendanceTab({ token }) {
       {!loading && people.length === 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
           <Wrench className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <h3 className="text-xl font-bold text-slate-700 mb-2">Sin personal de mantenimiento</h3>
-          <p className="text-slate-500">No hay personal de mantenimiento registrado en el sistema.</p>
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Sin personal administrativo</h3>
+          <p className="text-slate-500">No hay personal administrativo registrado en el sistema.</p>
         </div>
       )}
     </div>
@@ -2174,7 +2174,7 @@ function MaintenanceReportsTab({ token }) {
 
     doc.setFontSize(18);
     doc.setTextColor(180, 83, 9); // amber-700
-    doc.text("Reporte de Asistencia — Personal de Mantenimiento", pageWidth / 2, 20, { align: "center" });
+    doc.text("Reporte de Asistencia — Personal Administrativo", pageWidth / 2, 20, { align: "center" });
 
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
@@ -2227,7 +2227,7 @@ function MaintenanceReportsTab({ token }) {
       );
     }
 
-    doc.save(`reporte_asistencia_mantenimiento_${startDate}_${endDate}.pdf`);
+    doc.save(`reporte_asistencia_administrativos_${startDate}_${endDate}.pdf`);
   };
 
   const getStatusBadge = (status) => {
@@ -2246,7 +2246,7 @@ function MaintenanceReportsTab({ token }) {
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Filter className="w-5 h-5 text-amber-600" />
-          Reporte de Asistencia — Personal de Mantenimiento
+          Reporte de Asistencia — Personal Administrativo
         </h3>
         <div className="grid md:grid-cols-3 gap-4">
           <div>
@@ -2699,7 +2699,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
               </div>
               )}
 
-              {/* SECTION 5: Personal de Mantenimiento */}
+              {/* SECTION 5: Personal Administrativo */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-maintenance">
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
                   <div className="flex items-center gap-3">
@@ -2707,8 +2707,8 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                       <Wrench className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">Personal de Mantenimiento</h2>
-                      <p className="text-amber-100 text-sm">Asistencia de mantenimiento</p>
+                      <h2 className="text-xl font-bold text-white">Personal Administrativo</h2>
+                      <p className="text-amber-100 text-sm">Asistencia administrativa</p>
                     </div>
                   </div>
                 </div>
@@ -2750,8 +2750,8 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
                       <FileText className="w-5 h-5 text-orange-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Reportes Mantenimiento</p>
-                      <p className="text-xs text-slate-400">Asistencia del personal de mantenimiento</p>
+                      <p className="font-semibold text-slate-800 text-sm">Reportes Administrativos</p>
+                      <p className="text-xs text-slate-400">Asistencia del personal administrativo</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
