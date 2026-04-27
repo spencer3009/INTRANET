@@ -835,6 +835,26 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 );
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
+                // Group additional pending items belonging to the SAME pension_month
+                // (e.g. extra services charged via subscription) so the parent sees
+                // the full monthly bill instead of just the first row.
+                let extraItemsForMonth = [];
+                let monthTotal = 0;
+                if (nextCuota) {
+                  const targetMonth = nextCuota.pension_month
+                    || (nextCuota.month && nextCuota.year
+                        ? `${nextCuota.year}-${String(nextCuota.month).padStart(2, '0')}`
+                        : null);
+                  if (targetMonth) {
+                    const sameMonth = pendingItems.filter(p =>
+                      (p.pension_month === targetMonth)
+                      || (p.month && p.year && `${p.year}-${String(p.month).padStart(2, '0')}` === targetMonth)
+                    );
+                    monthTotal = sameMonth.reduce((acc, p) => acc + (p.amount || 0), 0);
+                    extraItemsForMonth = sameMonth.filter(p => p.id !== nextCuota.id);
+                  }
+                }
+
                 // Enrich nextCuota with mora data from paymentData.monthly_detail
                 if (nextCuota && paymentData?.monthly_detail) {
                   const matchDetail = paymentData.monthly_detail.find(m => {
@@ -1029,7 +1049,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                             </div>
                           )}
                           <p className="text-2xl font-black text-purple-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                            S/ {(nextCuota.amount || 0).toFixed(2)}
+                            S/ {(extraItemsForMonth.length > 0 ? monthTotal : (nextCuota.amount || 0)).toFixed(2)}
                           </p>
                           {nextCuota._isProntoPago ? (
                             <div>
@@ -1041,7 +1061,27 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                               <p className="text-xs text-slate-500 mt-0.5">Pension S/ {(nextCuota._pensionNormal || 0).toFixed(2)} + Mora S/ {nextCuota._interesAmount.toFixed(2)} ({nextCuota._daysLate || ''}d)</p>
                             </div>
                           ) : (
-                            <p className="text-xs text-purple-500 font-medium mt-0.5">Monto de la pension</p>
+                            <p className="text-xs text-purple-500 font-medium mt-0.5">
+                              {extraItemsForMonth.length > 0 ? "Total del mes" : "Monto de la pension"}
+                            </p>
+                          )}
+
+                          {extraItemsForMonth.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-purple-200/60 text-left">
+                              <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider mb-1.5">Desglose</p>
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-slate-600 truncate">{nextCuota.description || nextCuota.concept || "Pension"}</span>
+                                  <span className="font-semibold text-slate-800">S/ {(nextCuota.amount || 0).toFixed(2)}</span>
+                                </div>
+                                {extraItemsForMonth.map((it) => (
+                                  <div key={it.id} className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-600 truncate">{it.description || it.concept || "Concepto"}</span>
+                                    <span className="font-semibold text-slate-800">S/ {(it.amount || 0).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
 
