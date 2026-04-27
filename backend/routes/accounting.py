@@ -1463,6 +1463,104 @@ async def create_payment_concept(data: PaymentConceptCreate, current_user=Depend
     concept.pop("_id", None)
     return {"message": "Concepto creado", "concept": concept}
 
+async def _cancel_pending_subscription_payments(school_id: str, *, student_id: Optional[str] = None,
+                                                concept_id: Optional[str] = None,
+                                                concept_name: Optional[str] = None) -> int:
+    """Cancel pending (not paid, not yape-reported) payments tied to a subscription
+    concept from the current month onwards. Returns number of canceled docs.
+
+    Used when admin deactivates a concept globally, deletes the concept, or
+    deactivates an individual student subscription. Historical paid records
+    are never touched."""
+    try:
+        try:
+            from zoneinfo import ZoneInfo
+            now_lima = datetime.now(ZoneInfo("America/Lima"))
+        except Exception:
+            now_lima = datetime.now(timezone.utc) - timedelta(hours=5)
+        current_month = now_lima.strftime("%Y-%m")
+
+        query: dict = {
+            "school_id": school_id,
+            "payment_status": "pending",
+            "pension_month": {"$gte": current_month},
+        }
+        if student_id:
+            query["student_id"] = student_id
+        if concept_id:
+            # Match either by subscription_id or concept name (legacy)
+            or_clauses = [{"subscription_id": {"$exists": True}}]
+            if concept_name:
+                or_clauses.append({"concept": concept_name})
+            query["$or"] = or_clauses
+        elif concept_name:
+            query["concept"] = concept_name
+
+        # Pull candidates and filter out those that are already in yape verification flow
+        candidates = await db.payments.find(query, {"_id": 0, "id": 1, "student_id": 1, "pension_month": 1}).to_list(5000)
+        if not candidates:
+            return 0
+
+        # Exclude payments whose month+concept was reported via yape (avoid undermining a parent's report).
+        # Note: parent_payments.concept is usually "Pension <Month> <Year>" for mensualidad; for optional
+        # concepts (LIBROS, taller) the parent rarely reports via yape, so we match on student+month+concept-name.
+        def _norm(s: str) -> str:
+            return (s or "").strip().lower()
+
+        yape_blocks = []  # list of (student_id, pension_month, normalized_concept)
+        if candidates:
+            sids = list({c["student_id"] for c in candidates})
+            yp = await db.parent_payments.find(
+                {"school_id": school_id, "student_id": {"$in": sids},
+                 "status": {"$in": ["pendiente_verificacion", "verificado"]}},
+                {"_id": 0, "student_id": 1, "month": 1, "year": 1, "concept": 1}
+            ).to_list(5000)
+            for r in yp:
+                if r.get("month") and r.get("year"):
+                    pm = f"{r['year']}-{str(r['month']).zfill(2)}"
+                    yape_blocks.append((r["student_id"], pm, _norm(r.get("concept", ""))))
+
+        # Re-fetch full docs (with concept) so we can compare exclusion concept-aware
+        full_candidates = await db.payments.find(
+            {"id": {"$in": [c["id"] for c in candidates]}},
+            {"_id": 0, "id": 1, "student_id": 1, "pension_month": 1, "concept": 1}
+        ).to_list(5000)
+
+        def _is_blocked(payment) -> bool:
+            pm = payment.get("pension_month", "")
+            cname = _norm(payment.get("concept", ""))
+            for b_sid, b_pm, b_concept in yape_blocks:
+                if b_sid != payment["student_id"] or b_pm != pm:
+                    continue
+                # Concept-aware match: only block if the yape report likely covers the same concept.
+                # mensualidad/pension match each other; otherwise require name to appear in either.
+                is_mensualidad = (cname.startswith("pension") or cname == "mensualidad")
+                yape_is_mensualidad = (b_concept.startswith("pension") or "mensualidad" in b_concept)
+                if is_mensualidad and yape_is_mensualidad:
+                    return True
+                if cname and cname in b_concept:
+                    return True
+            return False
+
+        ids_to_cancel = [c["id"] for c in full_candidates if not _is_blocked(c)]
+        if not ids_to_cancel:
+            return 0
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        res = await db.payments.update_many(
+            {"id": {"$in": ids_to_cancel}},
+            {"$set": {"payment_status": "canceled", "canceled_at": now_iso, "updated_at": now_iso,
+                      "cancellation_reason": "subscription_deactivated"}},
+        )
+        if res.modified_count:
+            logger.info(f"[SUBS] canceled {res.modified_count} pending payments (school={school_id} "
+                        f"student={student_id} concept_id={concept_id} concept_name={concept_name})")
+        return res.modified_count
+    except Exception as e:
+        logger.warning(f"[SUBS] _cancel_pending_subscription_payments error: {e}")
+        return 0
+
+
 @router.put("/accounting/payment-concepts/{concept_id}")
 async def update_payment_concept(concept_id: str, data: PaymentConceptUpdate, current_user=Depends(require_section_access("accounting"))):
     """Update a payment concept."""
@@ -1483,6 +1581,27 @@ async def update_payment_concept(concept_id: str, data: PaymentConceptUpdate, cu
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.payment_concepts.update_one({"id": concept_id}, {"$set": update_data})
     updated = await db.payment_concepts.find_one({"id": concept_id}, {"_id": 0})
+
+    # If the concept was disabled (apply_mode->none or status->inactive),
+    # cancel any pending payments for the current month onwards across all
+    # students subscribed to it. Historical/paid records are kept intact.
+    became_inactive = (
+        ("apply_mode" in update_data and update_data.get("apply_mode") == "none"
+         and existing.get("apply_mode") != "none")
+        or ("status" in update_data and update_data.get("status") == "inactive"
+            and existing.get("status") != "inactive")
+    )
+    if became_inactive and not existing.get("is_default"):
+        await _cancel_pending_subscription_payments(
+            school_id, concept_id=concept_id, concept_name=existing.get("name")
+        )
+        # Also deactivate any active subscriptions of this concept so parents don't
+        # see "active" badges in their portal anymore.
+        await db.student_concept_subscriptions.update_many(
+            {"school_id": school_id, "concept_id": concept_id, "is_active": True},
+            {"$set": {"is_active": False, "activated_by": "admin",
+                      "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
     
     # Sync financial settings when default concepts are updated
     if updated and "amount" in update_data:
@@ -1514,6 +1633,15 @@ async def delete_payment_concept(concept_id: str, current_user=Depends(require_s
         raise HTTPException(status_code=404, detail="Concepto no encontrado")
     if existing.get("is_default"):
         raise HTTPException(status_code=400, detail="No se puede eliminar un concepto predeterminado. Puedes desactivarlo.")
+    # Cancel pending payments and deactivate subscriptions before removing the concept
+    await _cancel_pending_subscription_payments(
+        school_id, concept_id=concept_id, concept_name=existing.get("name")
+    )
+    await db.student_concept_subscriptions.update_many(
+        {"school_id": school_id, "concept_id": concept_id, "is_active": True},
+        {"$set": {"is_active": False, "activated_by": "admin",
+                  "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
     await db.payment_concepts.delete_one({"id": concept_id, "school_id": school_id})
     return {"message": "Concepto eliminado"}
 
@@ -1797,6 +1925,19 @@ async def admin_patch_subscription(
         )
         if concept:
             await _ensure_current_month_payment(school_id, existing["student_id"], concept, sub.get("amount", 0), sub_id)
+    else:
+        # When deactivating, cancel pending payments for this student+concept
+        # from the current month onwards.
+        concept = await db.payment_concepts.find_one(
+            {"id": existing["concept_id"], "school_id": school_id},
+            {"_id": 0},
+        )
+        await _cancel_pending_subscription_payments(
+            school_id,
+            student_id=existing["student_id"],
+            concept_id=existing["concept_id"],
+            concept_name=(concept or {}).get("name"),
+        )
 
     return {"message": "Suscripción actualizada", "subscription": sub}
 
