@@ -353,71 +353,13 @@ async def parent_subscribe_to_concept(
     concept_id: str,
     current_user=Depends(get_current_user),
 ):
-    """Parent activates a subscription to an open concept for their child."""
-    parent = await _verify_parent(current_user)
-    await _verify_parent_child(parent, student_id)
-    school_id = parent["school_id"]
-
-    concept = await db.payment_concepts.find_one(
-        {"id": concept_id, "school_id": school_id},
-        {"_id": 0},
+    """Disabled for parents: only the school administration may activate optional
+    concepts. The parent portal is informative only."""
+    await _verify_parent(current_user)
+    raise HTTPException(
+        status_code=403,
+        detail="Solo el colegio puede activar servicios opcionales. Comunícate con la administración.",
     )
-    if not concept:
-        raise HTTPException(status_code=404, detail="Concepto no encontrado")
-    if concept.get("status") != "active":
-        raise HTTPException(status_code=400, detail="El concepto está inactivo")
-    if concept.get("apply_mode") != "subscription":
-        raise HTTPException(status_code=403, detail="Este concepto no se puede activar desde el portal del padre")
-
-    now = datetime.now(timezone.utc).isoformat()
-
-    existing = await db.student_concept_subscriptions.find_one(
-        {"school_id": school_id, "student_id": student_id, "concept_id": concept_id},
-        {"_id": 0},
-    )
-    if existing:
-        await db.student_concept_subscriptions.update_one(
-            {"id": existing["id"]},
-            {"$set": {
-                "is_active": True,
-                "amount": round(concept.get("amount", 0), 2),
-                "concept_name": concept.get("name"),
-                "apply_mode": "subscription",
-                "activated_by": "parent",
-                "updated_at": now,
-            }},
-        )
-        sub = await db.student_concept_subscriptions.find_one({"id": existing["id"]}, {"_id": 0})
-        try:
-            from routes.accounting import _ensure_current_month_payment
-            await _ensure_current_month_payment(school_id, student_id, concept, sub.get("amount", 0), sub["id"])
-        except Exception as e:
-            logger.warning(f"[SUBS] parent auto-charge error: {e}")
-        return {"message": "Servicio activado", "subscription": sub}
-
-    sub = {
-        "id": str(uuid.uuid4()),
-        "school_id": school_id,
-        "student_id": student_id,
-        "concept_id": concept_id,
-        "concept_name": concept.get("name"),
-        "amount": round(concept.get("amount", 0), 2),
-        "apply_mode": "subscription",
-        "activated_by": "parent",
-        "is_active": True,
-        "created_at": now,
-        "updated_at": now,
-    }
-    await db.student_concept_subscriptions.insert_one(sub)
-    sub.pop("_id", None)
-    logger.info(f"[SUBS] parent activated student={student_id} concept={concept_id}")
-    # Auto-create current month payment so it appears immediately in parent dashboard
-    try:
-        from routes.accounting import _ensure_current_month_payment
-        await _ensure_current_month_payment(school_id, student_id, concept, sub["amount"], sub["id"])
-    except Exception as e:
-        logger.warning(f"[SUBS] parent auto-charge error: {e}")
-    return {"message": "Servicio activado", "subscription": sub}
 
 
 @router.delete("/concept-subscriptions/{student_id}/{concept_id}")
@@ -426,31 +368,10 @@ async def parent_unsubscribe_from_concept(
     concept_id: str,
     current_user=Depends(get_current_user),
 ):
-    """Parent deactivates a subscription to an open concept."""
-    parent = await _verify_parent(current_user)
-    await _verify_parent_child(parent, student_id)
-    school_id = parent["school_id"]
-
-    concept = await db.payment_concepts.find_one(
-        {"id": concept_id, "school_id": school_id},
-        {"_id": 0},
+    """Disabled for parents: only the school administration may deactivate optional
+    concepts."""
+    await _verify_parent(current_user)
+    raise HTTPException(
+        status_code=403,
+        detail="Solo el colegio puede desactivar servicios opcionales. Comunícate con la administración.",
     )
-    if not concept:
-        raise HTTPException(status_code=404, detail="Concepto no encontrado")
-    if concept.get("apply_mode") != "subscription":
-        raise HTTPException(status_code=403, detail="Este concepto no se puede desactivar desde el portal del padre")
-
-    sub = await db.student_concept_subscriptions.find_one(
-        {"school_id": school_id, "student_id": student_id, "concept_id": concept_id},
-        {"_id": 0},
-    )
-    if not sub:
-        return {"message": "No había suscripción activa"}
-
-    now = datetime.now(timezone.utc).isoformat()
-    await db.student_concept_subscriptions.update_one(
-        {"id": sub["id"]},
-        {"$set": {"is_active": False, "activated_by": "parent", "updated_at": now}},
-    )
-    logger.info(f"[SUBS] parent deactivated student={student_id} concept={concept_id}")
-    return {"message": "Servicio desactivado"}

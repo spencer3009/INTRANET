@@ -2,6 +2,11 @@
 
 ## April 27, 2026 - Fork (Subscription Inline Payment Fix)
 
+### Fix: Padre solo lectura en Servicios Opcionales - COMPLETED
+- **Frontend** (`ParentOptionalServices.jsx`): Eliminado el switch que permitía al padre activar/desactivar suscripciones. Componente convertido a solo lectura. Ahora solo lista las suscripciones ACTIVAS (informativo, para que el padre sepa qué cobros adicionales se le aplican). Si no hay activas, muestra mensaje guía para contactar a la administración. Removida toda la lógica de modal "aplicar a otros hijos".
+- **Backend** (`parent_payments.py`): Endpoints `POST` y `DELETE` `/api/parent-payments/concept-subscriptions/{student}/{concept}` ahora devuelven **HTTP 403** con mensaje claro. El control queda exclusivamente en el lado administrativo (`accounting.py`).
+- Verificado: Frontend sin toggles, backend retorna 403 en POST/DELETE para padres, GET de listado sigue funcionando.
+
 ### Fix: Parent Dashboard Yape Total Now Correctly Sums Optional Subscriptions - COMPLETED
 - **Backend** (`accounting.py` `_ensure_current_month_payment` + `parent_payments.py` POST `/concept-subscriptions/{student}/{concept}` + admin equivalents): When a parent (or admin) activates a subscription concept, the current-month payment is generated inline so it appears immediately without waiting for the monthly cron.
 - **Frontend** (`ParentDashboardPage.jsx` Yape card): Reordered logic so interest enrichment runs BEFORE grouping. Now `monthTotal` correctly sums `nextCuota.amount` (with mora) + extras of the same `pension_month`. Previously total = 290 but desglose summed 422.83 (mismatch).
