@@ -835,27 +835,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 );
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
-                // Group additional pending items belonging to the SAME pension_month
-                // (e.g. extra services charged via subscription) so the parent sees
-                // the full monthly bill instead of just the first row.
-                let extraItemsForMonth = [];
-                let monthTotal = 0;
-                if (nextCuota) {
-                  const targetMonth = nextCuota.pension_month
-                    || (nextCuota.month && nextCuota.year
-                        ? `${nextCuota.year}-${String(nextCuota.month).padStart(2, '0')}`
-                        : null);
-                  if (targetMonth) {
-                    const sameMonth = pendingItems.filter(p =>
-                      (p.pension_month === targetMonth)
-                      || (p.month && p.year && `${p.year}-${String(p.month).padStart(2, '0')}` === targetMonth)
-                    );
-                    monthTotal = sameMonth.reduce((acc, p) => acc + (p.amount || 0), 0);
-                    extraItemsForMonth = sameMonth.filter(p => p.id !== nextCuota.id);
-                  }
-                }
-
                 // Enrich nextCuota with mora data from paymentData.monthly_detail
+                // (must happen BEFORE grouping so the monthTotal reflects interest)
                 if (nextCuota && paymentData?.monthly_detail) {
                   const matchDetail = paymentData.monthly_detail.find(m => {
                     if (nextCuota.id && m.id === nextCuota.id) return true;
@@ -872,6 +853,27 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     nextCuota._daysLate = matchDetail.days_late || 0;
                     nextCuota._pensionNormal = matchDetail.total_amount || nextCuota.amount;
                     nextCuota.amount = (matchDetail.total_amount || nextCuota.amount) + matchDetail.interest_charge;
+                  }
+                }
+
+                // Group additional pending items belonging to the SAME pension_month
+                // (e.g. extra services charged via subscription) so the parent sees
+                // the full monthly bill instead of just the first row.
+                let extraItemsForMonth = [];
+                let monthTotal = 0;
+                if (nextCuota) {
+                  const targetMonth = nextCuota.pension_month
+                    || (nextCuota.month && nextCuota.year
+                        ? `${nextCuota.year}-${String(nextCuota.month).padStart(2, '0')}`
+                        : null);
+                  if (targetMonth) {
+                    const sameMonth = pendingItems.filter(p =>
+                      (p.pension_month === targetMonth)
+                      || (p.month && p.year && `${p.year}-${String(p.month).padStart(2, '0')}` === targetMonth)
+                    );
+                    extraItemsForMonth = sameMonth.filter(p => p.id !== nextCuota.id);
+                    monthTotal = (nextCuota.amount || 0)
+                      + extraItemsForMonth.reduce((acc, p) => acc + (p.amount || 0), 0);
                   }
                 }
 

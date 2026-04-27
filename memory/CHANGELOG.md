@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## April 27, 2026 - Fork (Subscription Inline Payment Fix)
+
+### Fix: Parent Dashboard Yape Total Now Correctly Sums Optional Subscriptions - COMPLETED
+- **Backend** (`accounting.py` `_ensure_current_month_payment` + `parent_payments.py` POST `/concept-subscriptions/{student}/{concept}` + admin equivalents): When a parent (or admin) activates a subscription concept, the current-month payment is generated inline so it appears immediately without waiting for the monthly cron.
+- **Frontend** (`ParentDashboardPage.jsx` Yape card): Reordered logic so interest enrichment runs BEFORE grouping. Now `monthTotal` correctly sums `nextCuota.amount` (with mora) + extras of the same `pension_month`. Previously total = 290 but desglose summed 422.83 (mismatch).
+- Verified: After activating LIBROS (S/60), parent dashboard shows headline S/422.83 = Mensualidad (S/350 + Mora S/12.83) + LIBROS (S/60). Desglose now matches the headline.
+- Testing: Manual end-to-end via curl + screenshot (login parent → activate concept → schedule reflects new charge → dashboard sums correctly).
+
+
 ## April 2, 2026 - Fork 10
 
 ### Fix: School Logo Visible in All Health & Wellness Portals - COMPLETED

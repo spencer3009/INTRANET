@@ -47,6 +47,10 @@ Ver `/app/memory/test_credentials.md`.
     - `GET /api/attendance/reports/maintenance?start_date&end_date` → resumen por persona con % asistencia.
   - Helper `_maintenance_role_display()` devuelve label legible (maintenance_role mapeado o custom si es "otro").
   - Frontend: tarjeta "Personal de Mantenimiento" en home, `MaintenanceAttendanceTab` (marcado manual con chip del rol), `MaintenanceReportsTab` (tabla + PDF con jsPDF) y botón "Reportes Mantenimiento" en sección Reportes.
+- [2026-04] **Inline Payment Generation al Activar Suscripción Opcional** (`accounting.py` `_ensure_current_month_payment` + `parent_payments.py` + `ParentDashboardPage.jsx`):
+  - Cuando padre/admin activa una suscripción a un concepto opcional, se genera el cobro del mes en curso al instante (idempotente por student+concept+pension_month) sin esperar al cron mensual.
+  - Frontend: dashboard del padre agrupa todos los pendientes del mismo `pension_month` y muestra desglose. Bug fix: `monthTotal` ahora se computa DESPUÉS de aplicar mora a `nextCuota.amount`, evitando inconsistencias entre headline y desglose.
+  - Verificación E2E: Mensualidad S/350 + Mora S/12.83 + LIBROS S/60 = headline S/422.83 ✓ desglose suma 422.83 ✓.
 - [2026-02] **Conceptos de Pago Opcionales con Cron Mensual** (`accounting.py` + `parent_payments.py` + `SubscriptionsTab.jsx` + `ParentOptionalServices.jsx`):
   - Campo `enrollment_mode` ("mandatory" | "open") en `payment_concepts`.
   - Nueva colección `student_concept_subscriptions` con índice único (school_id, student_id, concept_id) — granularidad por alumno.

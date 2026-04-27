@@ -388,6 +388,11 @@ async def parent_subscribe_to_concept(
             }},
         )
         sub = await db.student_concept_subscriptions.find_one({"id": existing["id"]}, {"_id": 0})
+        try:
+            from routes.accounting import _ensure_current_month_payment
+            await _ensure_current_month_payment(school_id, student_id, concept, sub.get("amount", 0), sub["id"])
+        except Exception as e:
+            logger.warning(f"[SUBS] parent auto-charge error: {e}")
         return {"message": "Servicio activado", "subscription": sub}
 
     sub = {
@@ -406,6 +411,12 @@ async def parent_subscribe_to_concept(
     await db.student_concept_subscriptions.insert_one(sub)
     sub.pop("_id", None)
     logger.info(f"[SUBS] parent activated student={student_id} concept={concept_id}")
+    # Auto-create current month payment so it appears immediately in parent dashboard
+    try:
+        from routes.accounting import _ensure_current_month_payment
+        await _ensure_current_month_payment(school_id, student_id, concept, sub["amount"], sub["id"])
+    except Exception as e:
+        logger.warning(f"[SUBS] parent auto-charge error: {e}")
     return {"message": "Servicio activado", "subscription": sub}
 
 

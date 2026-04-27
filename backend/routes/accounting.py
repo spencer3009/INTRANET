@@ -1566,6 +1566,77 @@ async def ensure_subscription_index():
         logger.warning(f"[MIGRATION] enrollment_mode migration error: {e}")
 
 
+async def _ensure_current_month_payment(school_id: str, student_id: str, concept: dict, amount: float, subscription_id: Optional[str] = None):
+    """Idempotently insert the current-month payment for a subscription concept,
+    so the parent sees the new charge immediately without waiting for the cron."""
+    if (concept or {}).get("concept_type") != "recurrente":
+        return False
+    if (concept or {}).get("is_default"):
+        return False
+    if (concept or {}).get("apply_mode") not in ("subscription", "all"):
+        return False
+    try:
+        try:
+            from zoneinfo import ZoneInfo
+            now_lima = datetime.now(ZoneInfo("America/Lima"))
+        except Exception:
+            now_lima = datetime.now(timezone.utc) - timedelta(hours=5)
+        pension_month = now_lima.strftime("%Y-%m")
+        concept_name = concept.get("name") or ""
+
+        existing = await db.payments.find_one({
+            "school_id": school_id,
+            "student_id": student_id,
+            "concept": concept_name,
+            "pension_month": pension_month,
+        })
+        if existing:
+            return False
+
+        student = await db.users.find_one(
+            {"id": student_id, "role": "student"},
+            {"_id": 0, "grade_id": 1, "section_id": 1, "grado_id": 1, "seccion_id": 1},
+        )
+        grade_id = (student or {}).get("grade_id") or (student or {}).get("grado_id")
+        section_id = (student or {}).get("section_id") or (student or {}).get("seccion_id")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        amt = round(float(amount or concept.get("amount") or 0), 2)
+        payment_doc = {
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "student_id": student_id,
+            "grade_id": grade_id,
+            "section_id": section_id,
+            "concept": concept_name,
+            "conceptos": [{"name": concept_name, "amount": amt}],
+            "amount_base": amt,
+            "igv_applicable": False,
+            "igv_percentage": 0,
+            "igv_amount": 0,
+            "total_amount": amt,
+            "discount_amount": 0,
+            "interest_amount": 0,
+            "payment_status": "pending",
+            "payment_method": None,
+            "payment_date": None,
+            "pension_month": pension_month,
+            "receipt_number": None,
+            "notes": "Generado al activar suscripcion",
+            "subscription_id": subscription_id,
+            "apply_mode": concept.get("apply_mode"),
+            "created_by": "subscription_activation",
+            "created_at": now_iso,
+            "updated_at": now_iso,
+        }
+        await db.payments.insert_one(payment_doc)
+        logger.info(f"[SUBS] auto-generated payment student={student_id} concept={concept_name} month={pension_month}")
+        return True
+    except Exception as e:
+        logger.warning(f"[SUBS] _ensure_current_month_payment error: {e}")
+        return False
+
+
 @router.get("/accounting/students/{student_id}/concept-subscriptions")
 async def get_student_concept_subscriptions(
     student_id: str,
@@ -1665,6 +1736,7 @@ async def admin_subscribe_student_to_concept(
             }},
         )
         sub = await db.student_concept_subscriptions.find_one({"id": existing["id"]}, {"_id": 0})
+        await _ensure_current_month_payment(school_id, student_id, concept, sub["amount"], sub["id"])
         return {"message": "Suscripción reactivada", "subscription": sub}
 
     sub = {
@@ -1683,6 +1755,7 @@ async def admin_subscribe_student_to_concept(
     await db.student_concept_subscriptions.insert_one(sub)
     sub.pop("_id", None)
     logger.info(f"[SUBS] admin subscribed student={student_id} concept={data.concept_id}")
+    await _ensure_current_month_payment(school_id, student_id, concept, sub["amount"], sub["id"])
     return {"message": "Suscripción creada", "subscription": sub}
 
 
@@ -1715,6 +1788,16 @@ async def admin_patch_subscription(
         }},
     )
     sub = await db.student_concept_subscriptions.find_one({"id": sub_id}, {"_id": 0})
+
+    # If activating, ensure current-month payment exists
+    if data.is_active:
+        concept = await db.payment_concepts.find_one(
+            {"id": existing["concept_id"], "school_id": school_id},
+            {"_id": 0},
+        )
+        if concept:
+            await _ensure_current_month_payment(school_id, existing["student_id"], concept, sub.get("amount", 0), sub_id)
+
     return {"message": "Suscripción actualizada", "subscription": sub}
 
 

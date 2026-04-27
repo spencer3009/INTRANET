@@ -10,7 +10,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://health-logs-school.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://yape-total-verify.preview.emergentagent.com')
 
 # Test credentials from review request
 SUPPORT_EMAIL = "spencer3009@gmail.com"
