@@ -832,17 +832,25 @@ async def get_parent_student_courses(
 @router.get("/parent/tasks")
 async def get_parent_student_tasks(
     student_id: str = Query(..., description="ID del estudiante"),
-    status: Optional[str] = Query(None, description="Filter by status: pending, submitted, graded"),
+    status: Optional[str] = Query(None, description="Filter by status: pending, submitted, graded, late"),
     current_user = Depends(get_current_user)
 ):
-    """Get tasks for a specific child."""
+    """Get tasks for a specific child.
+
+    Aligned with the student portal logic so the parent sees the EXACT same
+    counts (pending / submitted / graded / late) that the student sees:
+      - reads submissions from the embedded `course_posts.submissions` array
+        (the legacy `db.task_submissions` collection is NOT populated by the
+        submit flow — it always returned empty, making every task look pending).
+      - computes "late" for tasks past due_date with no submission.
+    """
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
+
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
-    
+
     # Get student's subjects from subjects collection (source of truth: section_id)
     subject_ids = []
     if student.get("seccion_id"):
@@ -852,72 +860,92 @@ async def get_parent_student_tasks(
             "status": "active"
         }, {"_id": 0, "id": 1}).to_list(100)
         subject_ids = [s["id"] for s in section_subjects]
-    
+
+    empty_stats = {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}
     if not subject_ids:
-        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0}}
-    
+        return {"tasks": [], "stats": empty_stats}
+
     # Get subjects map
     subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0}).to_list(50)
     subjects_map = {s["id"]: s for s in subjects}
-    
-    # Get all tasks
-    tasks_cursor = db.course_posts.find({
+
+    # Get all tasks (include `submissions` embedded array — single source of truth)
+    raw_tasks = await db.course_posts.find({
         "school_id": school_id,
         "subject_id": {"$in": subject_ids},
-        "$or": [{"post_type": "task"}, {"type": "task"}]
-    }, {"_id": 0}).sort("due_date", -1)
-    
-    tasks = await tasks_cursor.to_list(200)
-    
-    # Get submissions for this student
-    task_ids = [t["id"] for t in tasks]
-    submissions = await db.task_submissions.find({
-        "task_id": {"$in": task_ids},
-        "student_id": student_id
-    }, {"_id": 0}).to_list(200)
-    submissions_map = {s["task_id"]: s for s in submissions}
-    
+        "$or": [{"post_type": "task"}, {"type": "task"}],
+        "deleted_at": {"$exists": False},
+        "status": {"$ne": "archived"}
+    }, {
+        "_id": 0, "id": 1, "title": 1, "content": 1, "description": 1,
+        "due_date": 1, "created_at": 1, "subject_id": 1, "metadata": 1,
+        "submissions": 1,
+    }).to_list(500)
+
+    # Build map {task_id -> this student's submission} from the embedded array
+    submissions_map = {}
+    for t in raw_tasks:
+        for sub in (t.get("submissions") or []):
+            if sub.get("student_id") == student_id:
+                submissions_map[t.get("id")] = {
+                    "id": sub.get("id"),
+                    "submitted_at": sub.get("submitted_at"),
+                    "grade": sub.get("grade"),
+                    "feedback": sub.get("feedback"),
+                }
+                break
+
     # Build response
+    now = datetime.now(timezone.utc)
     result = []
-    stats = {"total": 0, "pending": 0, "submitted": 0, "graded": 0}
-    
-    for task in tasks:
-        submission = submissions_map.get(task["id"])
+    stats = {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}
+
+    for task in raw_tasks:
+        task_id = task.get("id")
         subject = subjects_map.get(task.get("subject_id"), {})
-        
-        # Determine task status
-        task_status = "pending"
+        submission = submissions_map.get(task_id)
+
+        due_date = task.get("due_date") or (task.get("metadata") or {}).get("due_date")
+        is_past_due = False
+        if due_date:
+            try:
+                due_dt = datetime.fromisoformat(due_date.replace("Z", "+00:00")) if isinstance(due_date, str) else due_date
+                is_past_due = due_dt < now
+            except Exception:
+                pass
+
+        # Determine task status (mirrors student endpoint)
         if submission:
-            if submission.get("grade") is not None:
-                task_status = "graded"
-            else:
-                task_status = "submitted"
-        
+            task_status = "graded" if submission.get("grade") is not None else "submitted"
+        elif is_past_due:
+            task_status = "late"
+        else:
+            task_status = "pending"
+
         stats["total"] += 1
         stats[task_status] += 1
-        
+
         # Filter by status if provided
         if status and task_status != status:
             continue
-        
+
         result.append({
-            "id": task["id"],
+            "id": task_id,
             "title": task.get("title"),
-            "description": task.get("content", "")[:200],
-            "due_date": task.get("due_date"),
+            "description": (task.get("content") or task.get("description") or "")[:200],
+            "due_date": due_date,
             "created_at": task.get("created_at"),
             "subject_id": task.get("subject_id"),
             "subject_name": subject.get("name", ""),
             "subject_color": subject.get("color", "#3B82F6"),
             "status": task_status,
-            "submission": {
-                "id": submission.get("id"),
-                "submitted_at": submission.get("submitted_at"),
-                "grade": submission.get("grade"),
-                "feedback": submission.get("feedback")
-            } if submission else None
+            "submission": submission,
         })
-    
+
+    # Sort: pending first, then late, then submitted, graded
+    status_order = {"pending": 0, "late": 1, "submitted": 2, "graded": 3}
+    result.sort(key=lambda t: (status_order.get(t.get("status"), 4), t.get("due_date") or "9999"))
+
     return {"tasks": result, "stats": stats}
 
 @router.get("/parent/grades")

@@ -178,7 +178,7 @@ export default function ParentTasksPage({ user, token, onLogout }) {
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center gap-2 text-red-600 mb-1"><AlertCircle className="w-4 h-4" /><span className="text-sm font-medium">Vencidos</span></div>
-              <p className="text-2xl font-bold text-slate-800">{stats.overdue}</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.late || stats.overdue || 0}</p>
             </div>
           </div>
 
