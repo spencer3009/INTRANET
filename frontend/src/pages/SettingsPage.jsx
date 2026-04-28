@@ -80,6 +80,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   // School anthem state
   const [anthem, setAnthem] = useState({ url: null, enabled: false, autoplay: false, filename: null });
   const [uploadingAnthem, setUploadingAnthem] = useState(false);
+  const [anthemUploadProgress, setAnthemUploadProgress] = useState(0);
   const anthemInputRef = useRef(null);
   
   // Attendance config state (levels-based)
@@ -749,18 +750,54 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   ) : (
                     <div
                       onClick={() => !uploadingAnthem && anthemInputRef.current?.click()}
-                      className="border-2 border-dashed border-violet-200 rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/40 transition-all"
+                      className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-all ${
+                        uploadingAnthem
+                          ? "border-violet-300 bg-violet-50/40 cursor-default"
+                          : "border-violet-200 hover:border-violet-400 hover:bg-violet-50/40 cursor-pointer"
+                      }`}
                       data-testid="anthem-dropzone"
                     >
                       {uploadingAnthem ? (
-                        <Loader2 className="w-10 h-10 text-violet-400 animate-spin mb-3" />
+                        <>
+                          <div className="flex items-center gap-3 mb-4">
+                            <Loader2 className="w-7 h-7 text-violet-500 animate-spin" />
+                            <span className="text-base font-semibold text-slate-700">
+                              Subiendo audio...
+                            </span>
+                          </div>
+                          <div className="w-full max-w-md">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-medium text-slate-500">Progreso</span>
+                              <span
+                                className="text-sm font-bold text-violet-700 tabular-nums"
+                                data-testid="anthem-upload-progress-pct"
+                              >
+                                {anthemUploadProgress}%
+                              </span>
+                            </div>
+                            <div className="w-full h-3 bg-violet-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full transition-all duration-200 ease-out"
+                                style={{ width: `${anthemUploadProgress}%` }}
+                                data-testid="anthem-upload-progress-bar"
+                              />
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-2 text-center">
+                              {anthemUploadProgress < 100
+                                ? "No cierres esta pestaña hasta que la carga termine"
+                                : "Procesando archivo..."}
+                            </p>
+                          </div>
+                        </>
                       ) : (
-                        <Music className="w-10 h-10 text-violet-400 mb-3" />
+                        <>
+                          <Music className="w-10 h-10 text-violet-400 mb-3" />
+                          <p className="text-sm font-medium text-slate-600">
+                            Haz clic para seleccionar el himno (MP3)
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">Solo se permite MP3 · máx. 15 MB</p>
+                        </>
                       )}
-                      <p className="text-sm font-medium text-slate-600">
-                        {uploadingAnthem ? "Subiendo audio..." : "Haz clic para seleccionar el himno (MP3)"}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">Solo se permite MP3 · máx. 15 MB</p>
                     </div>
                   )}
 
@@ -831,11 +868,18 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         return;
                       }
                       setUploadingAnthem(true);
+                      setAnthemUploadProgress(0);
                       try {
                         const formData = new FormData();
                         formData.append("file", file);
                         await axios.put(`${API}/settings/anthem/upload`, formData, {
                           headers: { ...headers, "Content-Type": "multipart/form-data" },
+                          onUploadProgress: (progressEvent) => {
+                            if (progressEvent.total) {
+                              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                              setAnthemUploadProgress(percent);
+                            }
+                          },
                         });
                         // Refetch full state
                         const fresh = await axios.get(`${API}/settings/anthem`, { headers });
