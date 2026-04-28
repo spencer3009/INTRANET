@@ -503,6 +503,12 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = None
     phone: Optional[str] = None
     photo_url: Optional[str] = None
+    email: Optional[str] = None
+    dni: Optional[str] = None
+    birth_date: Optional[str] = None
+    gender: Optional[str] = None
+    occupation: Optional[str] = None
+    address: Optional[str] = None
     
 class PasswordChange(BaseModel):
     current_password: str
@@ -543,6 +549,27 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
             update_data["username"] = None
     if data.phone is not None:
         update_data["phone"] = data.phone.strip()
+    if data.email is not None:
+        new_email = data.email.strip().lower()
+        if new_email and new_email != (user.get("email") or "").lower():
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", new_email):
+                raise HTTPException(status_code=400, detail="Formato de correo inválido")
+            existing = await db.users.find_one({"email": new_email, "id": {"$ne": user["id"]}})
+            if existing:
+                raise HTTPException(status_code=400, detail="Este correo ya está en uso por otro usuario")
+            update_data["email"] = new_email
+    if data.dni is not None:
+        update_data["dni"] = data.dni.strip()
+    if data.birth_date is not None:
+        # System uses "birthday" as canonical field
+        update_data["birthday"] = data.birth_date.strip() or None
+    if data.gender is not None:
+        update_data["gender"] = data.gender.strip() or None
+    if data.occupation is not None:
+        # System uses "ocupacion" as canonical field
+        update_data["ocupacion"] = data.occupation.strip()
+    if data.address is not None:
+        update_data["address"] = data.address.strip()
     if data.photo_url is not None:
         # Delete old photo from Cloudinary if changing to new one
         if user.get("photo_url") and user["photo_url"] != data.photo_url:

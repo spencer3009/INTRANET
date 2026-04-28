@@ -163,6 +163,11 @@ async def get_parent_profile(current_user = Depends(get_current_user)):
             "email": user.get("email"),
             "photo_url": user.get("photo_url"),
             "phone": user.get("phone"),
+            "dni": user.get("dni"),
+            "birth_date": user.get("birthday") or user.get("birth_date"),
+            "gender": user.get("gender"),
+            "occupation": user.get("ocupacion") or user.get("occupation"),
+            "address": user.get("address"),
             "role": "parent"
         },
         "children": children,

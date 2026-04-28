@@ -18,7 +18,13 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
-  Users
+  Users,
+  IdCard,
+  Calendar,
+  Briefcase,
+  MapPin,
+  Pencil,
+  X
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -44,6 +50,18 @@ export default function ParentProfilePage({ user, token, onLogout, onUserUpdate 
   const [message, setMessage] = useState(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [localPhotoUrl, setLocalPhotoUrl] = useState(user?.photo_url);
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    dni: "",
+    birth_date: "",
+    gender: "",
+    occupation: "",
+    address: "",
+  });
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -59,11 +77,58 @@ export default function ParentProfilePage({ user, token, onLogout, onUserUpdate 
         axios.get(`${API}/api/settings/public/${subdomain || user?.subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       setProfile(profileRes.data);
+      const u = profileRes.data?.user || {};
+      setForm({
+        name: u.name || "",
+        last_name: u.last_name || "",
+        email: u.email || "",
+        phone: u.phone || "",
+        dni: u.dni || "",
+        birth_date: u.birth_date ? String(u.birth_date).slice(0, 10) : "",
+        gender: u.gender || "",
+        occupation: u.occupation || "",
+        address: u.address || "",
+      });
       if (settingsRes.data) setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading parent profile:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSavePersonal = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.last_name.trim()) {
+      setMessage({ type: "error", text: "Nombre y apellidos son obligatorios" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name,
+        last_name: form.last_name,
+        email: form.email,
+        phone: form.phone,
+        dni: form.dni,
+        birth_date: form.birth_date || null,
+        gender: form.gender,
+        occupation: form.occupation,
+        address: form.address,
+      };
+      const res = await axios.put(`${API}/api/auth/profile`, payload, { headers });
+      setMessage({ type: "success", text: "Datos actualizados correctamente" });
+      setEditingPersonal(false);
+      // refresh local user info
+      if (onUserUpdate && res.data?.user) {
+        onUserUpdate({ ...user, ...res.data.user });
+      }
+      loadProfile();
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.detail || "Error al guardar datos" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -212,36 +277,98 @@ export default function ParentProfilePage({ user, token, onLogout, onUserUpdate 
                 </div>
               )}
 
-              {/* Contact Info */}
+              {/* Datos Personales — editable */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-violet-500" />
-                  Datos de Contacto
-                </h3>
-                <div className="space-y-4">
-                  {user?.email && (
-                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                      <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-violet-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-slate-500">Correo electrónico</p>
-                        <p className="font-medium text-slate-800">{user.email}</p>
-                      </div>
-                    </div>
-                  )}
-                  {user?.phone && (
-                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                      <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
-                        <Phone className="w-5 h-5 text-violet-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-slate-500">Teléfono</p>
-                        <p className="font-medium text-slate-800">{user.phone}</p>
-                      </div>
-                    </div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <User className="w-5 h-5 text-violet-500" />
+                    Datos Personales
+                  </h3>
+                  {!editingPersonal ? (
+                    <button
+                      onClick={() => setEditingPersonal(true)}
+                      data-testid="parent-edit-profile-btn"
+                      className="px-4 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Editar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setEditingPersonal(false); loadProfile(); }}
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancelar
+                    </button>
                   )}
                 </div>
+
+                {!editingPersonal ? (
+                  // Read-only view
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { icon: User, label: "Nombres", value: form.name },
+                      { icon: User, label: "Apellidos", value: form.last_name },
+                      { icon: Mail, label: "Correo electrónico", value: form.email },
+                      { icon: Phone, label: "Teléfono", value: form.phone },
+                      { icon: IdCard, label: "DNI", value: form.dni },
+                      { icon: Calendar, label: "Fecha de nacimiento", value: form.birth_date },
+                      { icon: User, label: "Género", value: form.gender === "M" ? "Masculino" : form.gender === "F" ? "Femenino" : form.gender },
+                      { icon: Briefcase, label: "Ocupación", value: form.occupation },
+                      { icon: MapPin, label: "Dirección", value: form.address, full: true },
+                    ].map(({ icon: Icon, label, value, full }) => (
+                      <div key={label} className={`flex items-center gap-3 p-3 bg-slate-50 rounded-xl ${full ? "md:col-span-2" : ""}`}>
+                        <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-violet-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-500">{label}</p>
+                          <p className="font-medium text-slate-800 text-sm truncate">{value || <span className="text-slate-400 italic">No registrado</span>}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Edit form
+                  <form onSubmit={handleSavePersonal} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Nombres *" name="name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} testId="profile-name" />
+                    <Field label="Apellidos *" name="last_name" value={form.last_name} onChange={(v) => setForm({ ...form, last_name: v })} testId="profile-last-name" />
+                    <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} testId="profile-email" />
+                    <Field label="Teléfono" name="phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} testId="profile-phone" />
+                    <Field label="DNI" name="dni" value={form.dni} onChange={(v) => setForm({ ...form, dni: v })} testId="profile-dni" />
+                    <Field label="Fecha de nacimiento" name="birth_date" type="date" value={form.birth_date} onChange={(v) => setForm({ ...form, birth_date: v })} testId="profile-birth-date" />
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Género</label>
+                      <select
+                        value={form.gender}
+                        onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-violet-400 transition-colors bg-white"
+                        data-testid="profile-gender"
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                        <option value="Otro">Otro</option>
+                      </select>
+                    </div>
+                    <Field label="Ocupación" name="occupation" value={form.occupation} onChange={(v) => setForm({ ...form, occupation: v })} testId="profile-occupation" />
+                    <div className="md:col-span-2">
+                      <Field label="Dirección" name="address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} testId="profile-address" />
+                    </div>
+                    <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        data-testid="parent-save-profile-btn"
+                        className="px-6 py-3 bg-violet-500 hover:bg-violet-600 disabled:bg-slate-300 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+                      >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Guardar cambios
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
 
               {/* Change Password */}
@@ -346,6 +473,22 @@ export default function ParentProfilePage({ user, token, onLogout, onUserUpdate 
           setProfile(prev => prev ? { ...prev, photo_url: photoUrl } : prev);
           if (onUserUpdate) onUserUpdate({ ...user, photo_url: photoUrl });
         }}
+      />
+    </div>
+  );
+}
+
+function Field({ label, name, value, onChange, type = "text", testId }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        data-testid={testId}
+        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-violet-400 transition-colors"
       />
     </div>
   );
