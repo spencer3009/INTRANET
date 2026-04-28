@@ -3012,13 +3012,27 @@ async def generate_pending_payments_for_school(
     if not students:
         return result
 
-    # Get existing payments for this school+month+concept to deduplicate
+    # Get existing payments for this school+month+concept to deduplicate.
+    # Match concept variants in a case-insensitive way so legacy/seeded payments
+    # like "Mensualidad", "mensualidad" or "Pension Abril 2026" don't slip past
+    # the dedupe check and produce duplicate rows for the same student+month.
+    concept_norm = (concepto or "").strip().lower()
+    is_pension_concept = concept_norm == "mensualidad" or concept_norm.startswith("pension")
+    if is_pension_concept:
+        # Treat all pension-like concepts as equivalent for the same pension_month
+        concept_query = {"$or": [
+            {"concept": {"$regex": "^mensualidad$", "$options": "i"}},
+            {"concept": {"$regex": "^pension\\b", "$options": "i"}},
+        ]}
+    else:
+        concept_query = {"concept": {"$regex": f"^{re.escape(concepto)}$", "$options": "i"}}
+
     existing_payments = await db.payments.find(
         {
             "school_id": school_id,
             "pension_month": mes,
-            "concept": concepto,
             "payment_status": {"$ne": "canceled"},
+            **concept_query,
         },
         {"_id": 0, "student_id": 1}
     ).to_list(10000)
@@ -3463,3 +3477,112 @@ async def run_concept_subscriptions_cron(
     """Manually trigger the monthly concept payments generation (idempotent)."""
     result = await generate_monthly_concept_payments()
     return {"message": "Cron ejecutado", "result": result}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAINTENANCE: Consolidate duplicate pension payments
+# ══════════════════════════════════════════════════════════════════════════════
+@router.post("/accounting/maintenance/dedupe-pension-payments")
+async def dedupe_pension_payments(
+    student_id: Optional[str] = None,
+    dry_run: bool = True,
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """Consolidate duplicate pension payments produced by case-sensitive matching.
+
+    Detects multiple payments for the same (student_id, pension_month) whose
+    concept is any pension variant (`mensualidad`, `Mensualidad`, `Pension <Mes> <Año>`)
+    and merges them following these rules:
+
+    - If at least one is `paid`/`verificado` → keep the FIRST paid, mark the
+      remaining (paid duplicates AND any pending) as `canceled` with
+      cancellation_reason="dedup_consolidation".
+    - If all are pending → keep the oldest, cancel the rest.
+    - Concept of the surviving doc is normalized to "mensualidad" (lowercase).
+
+    Pass `dry_run=true` (default) to preview what would change without writing.
+    Use `student_id` to limit the operation to a single student.
+    """
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    query: dict = {
+        "school_id": school_id,
+        "$or": [
+            {"concept": {"$regex": "^mensualidad$", "$options": "i"}},
+            {"concept": {"$regex": "^pension\\b", "$options": "i"}},
+        ],
+        "payment_status": {"$ne": "canceled"},
+    }
+    if student_id:
+        query["student_id"] = student_id
+
+    docs = await db.payments.find(query, {
+        "_id": 0, "id": 1, "student_id": 1, "pension_month": 1, "concept": 1,
+        "payment_status": 1, "created_at": 1, "total_amount": 1
+    }).to_list(50000)
+
+    # Group by (student_id, pension_month)
+    groups: dict = {}
+    for d in docs:
+        key = (d["student_id"], d.get("pension_month") or "")
+        groups.setdefault(key, []).append(d)
+
+    changes = []  # list of {student_id, pension_month, kept_id, canceled_ids[]}
+    PAID_STATUSES = {"paid", "pagado", "verificado"}
+
+    for (sid, pm), items in groups.items():
+        if len(items) <= 1:
+            continue
+        # Sort: paid first, then by created_at asc
+        items_sorted = sorted(items, key=lambda x: (
+            0 if (x.get("payment_status") in PAID_STATUSES) else 1,
+            x.get("created_at") or "",
+        ))
+        keep = items_sorted[0]
+        cancel = items_sorted[1:]
+        changes.append({
+            "student_id": sid,
+            "pension_month": pm,
+            "kept_id": keep["id"],
+            "kept_concept": keep.get("concept"),
+            "kept_status": keep.get("payment_status"),
+            "canceled": [{"id": c["id"], "concept": c.get("concept"),
+                          "status": c.get("payment_status"),
+                          "amount": c.get("total_amount")} for c in cancel],
+        })
+
+    canceled_count = 0
+    normalized_count = 0
+    if not dry_run and changes:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for ch in changes:
+            ids = [c["id"] for c in ch["canceled"]]
+            res = await db.payments.update_many(
+                {"id": {"$in": ids}},
+                {"$set": {
+                    "payment_status": "canceled",
+                    "cancellation_reason": "dedup_consolidation",
+                    "canceled_at": now_iso,
+                    "updated_at": now_iso,
+                }}
+            )
+            canceled_count += res.modified_count
+            # Normalize the surviving concept
+            if (ch.get("kept_concept") or "").lower() != "mensualidad":
+                await db.payments.update_one(
+                    {"id": ch["kept_id"]},
+                    {"$set": {"concept": "mensualidad", "updated_at": now_iso}}
+                )
+                normalized_count += 1
+
+    return {
+        "dry_run": dry_run,
+        "groups_checked": len(groups),
+        "duplicates_found": len(changes),
+        "would_cancel": sum(len(c["canceled"]) for c in changes),
+        "canceled": canceled_count,
+        "normalized": normalized_count,
+        "details": changes[:200],  # cap response size
+    }
