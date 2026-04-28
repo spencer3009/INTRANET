@@ -8,6 +8,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import CarouselManager from "@/components/CarouselManager";
 import AccessDenied from "@/components/AccessDenied";
 import AdditionalRolesManager from "@/components/AdditionalRolesManager";
+import { Switch } from "@/components/ui/switch";
 import { canAccessSection } from "@/lib/permissions";
 import { 
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
@@ -765,15 +766,17 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
                   {/* Switches */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    <div className={`flex items-start justify-between gap-4 p-4 rounded-xl border transition-colors ${
                       anthem.enabled ? "border-violet-200 bg-violet-50/50" : "border-slate-200 bg-slate-50"
-                    } ${!anthem.url ? "opacity-50 cursor-not-allowed" : ""}`}>
-                      <input
-                        type="checkbox"
+                    } ${!anthem.url ? "opacity-50" : ""}`}>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-800">Mostrar reproductor en el Dashboard</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Aparece un botón de play y ecualizador en la parte superior</p>
+                      </div>
+                      <Switch
                         checked={anthem.enabled}
                         disabled={!anthem.url || uploadingAnthem}
-                        onChange={async (e) => {
-                          const v = e.target.checked;
+                        onCheckedChange={async (v) => {
                           try {
                             const res = await axios.put(`${API}/settings/anthem`, { enabled: v }, { headers });
                             setAnthem(prev => ({ ...prev, enabled: !!res.data.anthem_enabled }));
@@ -782,24 +785,22 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                             setTimeout(() => setError(""), 3000);
                           }
                         }}
-                        className="mt-1 w-5 h-5 accent-violet-600 cursor-pointer"
+                        className="data-[state=checked]:bg-violet-600"
                         data-testid="anthem-enabled-switch"
                       />
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Mostrar reproductor en el Dashboard</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Aparece un botón de play y ecualizador en la parte superior</p>
-                      </div>
-                    </label>
+                    </div>
 
-                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    <div className={`flex items-start justify-between gap-4 p-4 rounded-xl border transition-colors ${
                       anthem.autoplay ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-slate-50"
-                    } ${(!anthem.url || !anthem.enabled) ? "opacity-50 cursor-not-allowed" : ""}`}>
-                      <input
-                        type="checkbox"
+                    } ${(!anthem.url || !anthem.enabled) ? "opacity-50" : ""}`}>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-800">Reproducción automática</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Suena solo al abrir el dashboard (algunos navegadores requieren un primer click)</p>
+                      </div>
+                      <Switch
                         checked={anthem.autoplay}
                         disabled={!anthem.url || !anthem.enabled || uploadingAnthem}
-                        onChange={async (e) => {
-                          const v = e.target.checked;
+                        onCheckedChange={async (v) => {
                           try {
                             const res = await axios.put(`${API}/settings/anthem`, { autoplay: v }, { headers });
                             setAnthem(prev => ({ ...prev, autoplay: !!res.data.anthem_autoplay }));
@@ -808,14 +809,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                             setTimeout(() => setError(""), 3000);
                           }
                         }}
-                        className="mt-1 w-5 h-5 accent-emerald-600 cursor-pointer"
+                        className="data-[state=checked]:bg-emerald-600"
                         data-testid="anthem-autoplay-switch"
                       />
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Reproducción automática</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Suena solo al abrir el dashboard (algunos navegadores requieren un primer click)</p>
-                      </div>
-                    </label>
+                    </div>
                   </div>
 
                   <input
