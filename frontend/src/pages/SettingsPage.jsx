@@ -855,14 +855,27 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   <input
                     ref={anthemInputRef}
                     type="file"
-                    accept="audio/mpeg,audio/mp3,.mp3"
+                    accept="audio/mpeg,audio/mp3,.mp3,.mpeg,.mpg"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files[0];
                       if (!file) return;
-                      const isMp3 = (file.type === "audio/mpeg" || file.type === "audio/mp3" || file.name.toLowerCase().endsWith(".mp3"));
+                      const fname = (file.name || "").toLowerCase();
+                      const isMp3 = (
+                        file.type === "audio/mpeg"
+                        || file.type === "audio/mp3"
+                        || fname.endsWith(".mp3")
+                        || fname.endsWith(".mpeg")
+                        || fname.endsWith(".mpg")
+                      );
                       if (!isMp3) {
-                        setError("Solo se permiten archivos MP3");
+                        setError("Solo se permiten archivos MP3 (.mp3 o .mpeg)");
+                        setTimeout(() => setError(""), 3000);
+                        e.target.value = "";
+                        return;
+                      }
+                      if (file.size > 15 * 1024 * 1024) {
+                        setError("El archivo excede 15 MB");
                         setTimeout(() => setError(""), 3000);
                         e.target.value = "";
                         return;

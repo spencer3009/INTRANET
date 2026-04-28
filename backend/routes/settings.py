@@ -492,15 +492,31 @@ async def upload_anthem(
     if not school_id:
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
 
-    # Validate MP3
-    allowed = {"audio/mpeg", "audio/mp3", "application/octet-stream"}
-    if file.content_type not in allowed and not (file.filename or "").lower().endswith(".mp3"):
+    # Validate MP3 — accept both .mp3 and .mpeg + verify magic bytes for robustness
+    fname_lower = (file.filename or "").lower()
+    allowed_ct = {"audio/mpeg", "audio/mp3", "application/octet-stream", "audio/mpeg3", "audio/x-mpeg-3"}
+    ext_ok = fname_lower.endswith(".mp3") or fname_lower.endswith(".mpeg") or fname_lower.endswith(".mpg")
+    if file.content_type not in allowed_ct and not ext_ok:
         raise HTTPException(status_code=400, detail="Formato no soportado. Solo se permite MP3.")
 
     contents = await file.read()
     # Hard-cap at 15 MB
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="El archivo excede 15 MB")
+
+    # Verify it's actually an MP3 by checking magic bytes:
+    # - ID3 tag header ("ID3")
+    # - or MPEG frame sync (0xFF followed by 0xE0..0xFF)
+    is_mp3 = False
+    if contents[:3] == b"ID3":
+        is_mp3 = True
+    else:
+        for i in range(min(2048, max(0, len(contents) - 1))):
+            if contents[i] == 0xFF and (contents[i + 1] & 0xE0) == 0xE0:
+                is_mp3 = True
+                break
+    if not is_mp3:
+        raise HTTPException(status_code=400, detail="El archivo no parece ser un MP3 válido")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "anthem_public_id": 1})
     if not school:
