@@ -21,24 +21,31 @@ const STATUS_CONFIG = {
 };
 
 function getTaskStatus(task) {
-  if (task.submission?.grade != null || task.status === "graded") return "graded";
-  if (task.submission || task.status === "submitted") return "submitted";
+  // Trust the backend's calculated status (pending|submitted|graded|late)
+  // which now mirrors the student portal logic exactly.
+  if (task.status && STATUS_CONFIG[task.status]) return task.status;
+  // Fallback for older payloads
+  if (task.submission?.grade != null) return "graded";
+  if (task.submission) return "submitted";
   if (task.due_date) {
-    const now = new Date();
-    const due = new Date(task.due_date + "T23:59:59");
-    if (now > due) return "overdue";
+    try {
+      const due = new Date(task.due_date);
+      if (!isNaN(due) && new Date() > due) return "late";
+    } catch {}
   }
   return "pending";
 }
 
 function formatDueDate(dateStr) {
   if (!dateStr) return "";
-  const date = new Date(dateStr + "T12:00:00");
+  // Handle both ISO ("2026-04-23T23:59:59Z") and plain "YYYY-MM-DD"
+  const date = /T/.test(dateStr) ? new Date(dateStr) : new Date(dateStr + "T23:59:59");
+  if (isNaN(date)) return "";
   const today = new Date(); today.setHours(0,0,0,0);
   const due = new Date(date); due.setHours(0,0,0,0);
   const diff = Math.ceil((due - today) / (1000*60*60*24));
   if (diff === 0) return "Hoy";
-  if (diff === 1) return "Manana";
+  if (diff === 1) return "Mañana";
   if (diff === -1) return "Ayer";
   if (diff > 0 && diff <= 7) return `En ${diff} días`;
   if (diff < 0) return `Hace ${Math.abs(diff)} días`;
