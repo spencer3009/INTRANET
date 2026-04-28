@@ -34,6 +34,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     : [
         { id: "general", label: "General", icon: Settings },
         { id: "registro_auxiliar", label: "Registro Auxiliar", icon: ClipboardList },
+        { id: "himno", label: "Himno del Colegio", icon: Music },
       ];
   const [activeSettingsTab, setActiveSettingsTab] = useState(availableTabs[0].id);
   
@@ -669,6 +670,199 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
               })}
             </div>
           )}
+
+          {/* Tab Content: Himno del Colegio */}
+
+            {/* ══════════════════════════════════════════════════════════════════
+                HIMNO DEL COLEGIO - Owner only
+            ══════════════════════════════════════════════════════════════════ */}
+            {activeSettingsTab === "himno" && (user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
+              <section className="mt-8" data-testid="anthem-section">
+                <div className="bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl p-6 flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
+                      <Music className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Himno del Colegio</h3>
+                      <p className="text-sm text-white/80">Sube un archivo MP3 y elige cómo se reproduce en el dashboard</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                  {anthem.url ? (
+                    <div className="flex flex-wrap items-center gap-4 bg-violet-50/60 border border-violet-100 rounded-xl p-4">
+                      <div className="w-12 h-12 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0">
+                        <Volume2 className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {anthem.filename || "Himno cargado"}
+                        </p>
+                        <p className="text-xs text-slate-500">Listo para reproducirse</p>
+                      </div>
+                      <audio
+                        controls
+                        src={anthem.url}
+                        className="w-full sm:w-72"
+                        data-testid="anthem-preview"
+                      />
+                      <div className="flex items-center gap-2 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => anthemInputRef.current?.click()}
+                          disabled={uploadingAnthem}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
+                          data-testid="anthem-replace-btn"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          Reemplazar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("¿Eliminar el himno del colegio?")) return;
+                            setUploadingAnthem(true);
+                            try {
+                              await axios.delete(`${API}/settings/anthem`, { headers });
+                              setAnthem({ url: null, enabled: false, autoplay: false, filename: null });
+                              setSuccess("Himno eliminado");
+                              setTimeout(() => setSuccess(""), 3000);
+                            } catch (err) {
+                              setError(err.response?.data?.detail || "Error al eliminar");
+                              setTimeout(() => setError(""), 3000);
+                            } finally {
+                              setUploadingAnthem(false);
+                            }
+                          }}
+                          disabled={uploadingAnthem}
+                          className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
+                          data-testid="anthem-delete-btn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => !uploadingAnthem && anthemInputRef.current?.click()}
+                      className="border-2 border-dashed border-violet-200 rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/40 transition-all"
+                      data-testid="anthem-dropzone"
+                    >
+                      {uploadingAnthem ? (
+                        <Loader2 className="w-10 h-10 text-violet-400 animate-spin mb-3" />
+                      ) : (
+                        <Music className="w-10 h-10 text-violet-400 mb-3" />
+                      )}
+                      <p className="text-sm font-medium text-slate-600">
+                        {uploadingAnthem ? "Subiendo audio..." : "Haz clic para seleccionar el himno (MP3)"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">Solo se permite MP3 · máx. 15 MB</p>
+                    </div>
+                  )}
+
+                  {/* Switches */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      anthem.enabled ? "border-violet-200 bg-violet-50/50" : "border-slate-200 bg-slate-50"
+                    } ${!anthem.url ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={anthem.enabled}
+                        disabled={!anthem.url || uploadingAnthem}
+                        onChange={async (e) => {
+                          const v = e.target.checked;
+                          try {
+                            const res = await axios.put(`${API}/settings/anthem`, { enabled: v }, { headers });
+                            setAnthem(prev => ({ ...prev, enabled: !!res.data.anthem_enabled }));
+                          } catch (err) {
+                            setError("No se pudo actualizar la configuración");
+                            setTimeout(() => setError(""), 3000);
+                          }
+                        }}
+                        className="mt-1 w-5 h-5 accent-violet-600 cursor-pointer"
+                        data-testid="anthem-enabled-switch"
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Mostrar reproductor en el Dashboard</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Aparece un botón de play y ecualizador en la parte superior</p>
+                      </div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      anthem.autoplay ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-slate-50"
+                    } ${(!anthem.url || !anthem.enabled) ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={anthem.autoplay}
+                        disabled={!anthem.url || !anthem.enabled || uploadingAnthem}
+                        onChange={async (e) => {
+                          const v = e.target.checked;
+                          try {
+                            const res = await axios.put(`${API}/settings/anthem`, { autoplay: v }, { headers });
+                            setAnthem(prev => ({ ...prev, autoplay: !!res.data.anthem_autoplay }));
+                          } catch (err) {
+                            setError("No se pudo actualizar la configuración");
+                            setTimeout(() => setError(""), 3000);
+                          }
+                        }}
+                        className="mt-1 w-5 h-5 accent-emerald-600 cursor-pointer"
+                        data-testid="anthem-autoplay-switch"
+                      />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Reproducción automática</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Suena solo al abrir el dashboard (algunos navegadores requieren un primer click)</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <input
+                    ref={anthemInputRef}
+                    type="file"
+                    accept="audio/mpeg,audio/mp3,.mp3"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const isMp3 = (file.type === "audio/mpeg" || file.type === "audio/mp3" || file.name.toLowerCase().endsWith(".mp3"));
+                      if (!isMp3) {
+                        setError("Solo se permiten archivos MP3");
+                        setTimeout(() => setError(""), 3000);
+                        e.target.value = "";
+                        return;
+                      }
+                      setUploadingAnthem(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        await axios.put(`${API}/settings/anthem/upload`, formData, {
+                          headers: { ...headers, "Content-Type": "multipart/form-data" },
+                        });
+                        // Refetch full state
+                        const fresh = await axios.get(`${API}/settings/anthem`, { headers });
+                        setAnthem({
+                          url: fresh.data.anthem_url,
+                          enabled: !!fresh.data.anthem_enabled,
+                          autoplay: !!fresh.data.anthem_autoplay,
+                          filename: fresh.data.anthem_filename,
+                        });
+                        setSuccess("Himno cargado correctamente");
+                        setTimeout(() => setSuccess(""), 3000);
+                      } catch (err) {
+                        setError(err.response?.data?.detail || "Error al subir el audio");
+                        setTimeout(() => setError(""), 4000);
+                      } finally {
+                        setUploadingAnthem(false);
+                        e.target.value = "";
+                      }
+                    }}
+                    data-testid="anthem-file-input"
+                  />
+                </div>
+              </section>
+            )}
 
           {/* Tab Content: Registro Auxiliar */}
           {activeSettingsTab === "registro_auxiliar" && (
@@ -1866,197 +2060,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       }
                     }}
                     data-testid="login-bg-file-input"
-                  />
-                </div>
-              </section>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════════
-                HIMNO DEL COLEGIO - Owner only
-            ══════════════════════════════════════════════════════════════════ */}
-            {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
-              <section className="mt-8" data-testid="anthem-section">
-                <div className="bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-2xl p-6 flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                      <Music className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Himno del Colegio</h3>
-                      <p className="text-sm text-white/80">Sube un archivo MP3 y elige cómo se reproduce en el dashboard</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-                  {anthem.url ? (
-                    <div className="flex flex-wrap items-center gap-4 bg-violet-50/60 border border-violet-100 rounded-xl p-4">
-                      <div className="w-12 h-12 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0">
-                        <Volume2 className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">
-                          {anthem.filename || "Himno cargado"}
-                        </p>
-                        <p className="text-xs text-slate-500">Listo para reproducirse</p>
-                      </div>
-                      <audio
-                        controls
-                        src={anthem.url}
-                        className="w-full sm:w-72"
-                        data-testid="anthem-preview"
-                      />
-                      <div className="flex items-center gap-2 ml-auto">
-                        <button
-                          type="button"
-                          onClick={() => anthemInputRef.current?.click()}
-                          disabled={uploadingAnthem}
-                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
-                          data-testid="anthem-replace-btn"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          Reemplazar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!window.confirm("¿Eliminar el himno del colegio?")) return;
-                            setUploadingAnthem(true);
-                            try {
-                              await axios.delete(`${API}/settings/anthem`, { headers });
-                              setAnthem({ url: null, enabled: false, autoplay: false, filename: null });
-                              setSuccess("Himno eliminado");
-                              setTimeout(() => setSuccess(""), 3000);
-                            } catch (err) {
-                              setError(err.response?.data?.detail || "Error al eliminar");
-                              setTimeout(() => setError(""), 3000);
-                            } finally {
-                              setUploadingAnthem(false);
-                            }
-                          }}
-                          disabled={uploadingAnthem}
-                          className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
-                          data-testid="anthem-delete-btn"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => !uploadingAnthem && anthemInputRef.current?.click()}
-                      className="border-2 border-dashed border-violet-200 rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/40 transition-all"
-                      data-testid="anthem-dropzone"
-                    >
-                      {uploadingAnthem ? (
-                        <Loader2 className="w-10 h-10 text-violet-400 animate-spin mb-3" />
-                      ) : (
-                        <Music className="w-10 h-10 text-violet-400 mb-3" />
-                      )}
-                      <p className="text-sm font-medium text-slate-600">
-                        {uploadingAnthem ? "Subiendo audio..." : "Haz clic para seleccionar el himno (MP3)"}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">Solo se permite MP3 · máx. 15 MB</p>
-                    </div>
-                  )}
-
-                  {/* Switches */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                      anthem.enabled ? "border-violet-200 bg-violet-50/50" : "border-slate-200 bg-slate-50"
-                    } ${!anthem.url ? "opacity-50 cursor-not-allowed" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={anthem.enabled}
-                        disabled={!anthem.url || uploadingAnthem}
-                        onChange={async (e) => {
-                          const v = e.target.checked;
-                          try {
-                            const res = await axios.put(`${API}/settings/anthem`, { enabled: v }, { headers });
-                            setAnthem(prev => ({ ...prev, enabled: !!res.data.anthem_enabled }));
-                          } catch (err) {
-                            setError("No se pudo actualizar la configuración");
-                            setTimeout(() => setError(""), 3000);
-                          }
-                        }}
-                        className="mt-1 w-5 h-5 accent-violet-600 cursor-pointer"
-                        data-testid="anthem-enabled-switch"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Mostrar reproductor en el Dashboard</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Aparece un botón de play y ecualizador en la parte superior</p>
-                      </div>
-                    </label>
-
-                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                      anthem.autoplay ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-slate-50"
-                    } ${(!anthem.url || !anthem.enabled) ? "opacity-50 cursor-not-allowed" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={anthem.autoplay}
-                        disabled={!anthem.url || !anthem.enabled || uploadingAnthem}
-                        onChange={async (e) => {
-                          const v = e.target.checked;
-                          try {
-                            const res = await axios.put(`${API}/settings/anthem`, { autoplay: v }, { headers });
-                            setAnthem(prev => ({ ...prev, autoplay: !!res.data.anthem_autoplay }));
-                          } catch (err) {
-                            setError("No se pudo actualizar la configuración");
-                            setTimeout(() => setError(""), 3000);
-                          }
-                        }}
-                        className="mt-1 w-5 h-5 accent-emerald-600 cursor-pointer"
-                        data-testid="anthem-autoplay-switch"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Reproducción automática</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Suena solo al abrir el dashboard (algunos navegadores requieren un primer click)</p>
-                      </div>
-                    </label>
-                  </div>
-
-                  <input
-                    ref={anthemInputRef}
-                    type="file"
-                    accept="audio/mpeg,audio/mp3,.mp3"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      const isMp3 = (file.type === "audio/mpeg" || file.type === "audio/mp3" || file.name.toLowerCase().endsWith(".mp3"));
-                      if (!isMp3) {
-                        setError("Solo se permiten archivos MP3");
-                        setTimeout(() => setError(""), 3000);
-                        e.target.value = "";
-                        return;
-                      }
-                      setUploadingAnthem(true);
-                      try {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        await axios.put(`${API}/settings/anthem/upload`, formData, {
-                          headers: { ...headers, "Content-Type": "multipart/form-data" },
-                        });
-                        // Refetch full state
-                        const fresh = await axios.get(`${API}/settings/anthem`, { headers });
-                        setAnthem({
-                          url: fresh.data.anthem_url,
-                          enabled: !!fresh.data.anthem_enabled,
-                          autoplay: !!fresh.data.anthem_autoplay,
-                          filename: fresh.data.anthem_filename,
-                        });
-                        setSuccess("Himno cargado correctamente");
-                        setTimeout(() => setSuccess(""), 3000);
-                      } catch (err) {
-                        setError(err.response?.data?.detail || "Error al subir el audio");
-                        setTimeout(() => setError(""), 4000);
-                      } finally {
-                        setUploadingAnthem(false);
-                        e.target.value = "";
-                      }
-                    }}
-                    data-testid="anthem-file-input"
                   />
                 </div>
               </section>
