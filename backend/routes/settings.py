@@ -130,6 +130,10 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     # Feature flag: birthday module (popup + slider + calendar events).
     # Default True for new/legacy schools without the field.
     settings["birthday_module_enabled"] = bool(school.get("birthday_module_enabled", True))
+    # School anthem (mp3) fields
+    settings["anthem_url"] = school.get("anthem_url")
+    settings["anthem_enabled"] = bool(school.get("anthem_enabled", False))
+    settings["anthem_autoplay"] = bool(school.get("anthem_autoplay", False))
     
     # Include attendance config (new structure with levels)
     default_config = {
@@ -346,6 +350,9 @@ async def get_public_settings(subdomain: str):
         "primary_color": school.get("primary_color", "#001f4b"),
         "secondary_color": school.get("secondary_color", "#e1b82c"),
         "login_background_url": school.get("login_background_url"),
+        "anthem_url": school.get("anthem_url"),
+        "anthem_enabled": bool(school.get("anthem_enabled", False)),
+        "anthem_autoplay": bool(school.get("anthem_autoplay", False)),
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -453,3 +460,133 @@ async def get_login_background(
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "login_background_url": 1})
     return {"login_background_url": school.get("login_background_url") if school else None}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCHOOL ANTHEM (MP3) — Owner-only
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/settings/anthem")
+async def get_anthem(current_user = Depends(require_section_access("settings"))):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school = await db.schools.find_one(
+        {"id": school_id},
+        {"_id": 0, "anthem_url": 1, "anthem_enabled": 1, "anthem_autoplay": 1, "anthem_filename": 1}
+    ) or {}
+    return {
+        "anthem_url": school.get("anthem_url"),
+        "anthem_enabled": bool(school.get("anthem_enabled", False)),
+        "anthem_autoplay": bool(school.get("anthem_autoplay", False)),
+        "anthem_filename": school.get("anthem_filename"),
+    }
+
+
+@router.put("/settings/anthem/upload")
+async def upload_anthem(
+    file: UploadFile = File(...),
+    current_user = Depends(require_section_access("settings"))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    # Validate MP3
+    allowed = {"audio/mpeg", "audio/mp3", "application/octet-stream"}
+    if file.content_type not in allowed and not (file.filename or "").lower().endswith(".mp3"):
+        raise HTTPException(status_code=400, detail="Formato no soportado. Solo se permite MP3.")
+
+    contents = await file.read()
+    # Hard-cap at 15 MB
+    if len(contents) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo excede 15 MB")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "anthem_public_id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    # Delete old anthem from Cloudinary if exists
+    old_public_id = school.get("anthem_public_id")
+    if old_public_id:
+        try:
+            cloudinary.uploader.destroy(old_public_id, resource_type="video")
+        except Exception as e:
+            logger.warning(f"Failed to delete old anthem: {e}")
+
+    try:
+        result = cloudinary.uploader.upload(
+            contents,
+            folder=f"schools/{school_id}/anthem",
+            resource_type="video",  # Cloudinary serves audio under "video" resource type
+        )
+    except Exception as e:
+        logger.error(f"Cloudinary anthem upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir el audio")
+
+    anthem_url = result.get("secure_url")
+    anthem_public_id = result.get("public_id")
+
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "anthem_url": anthem_url,
+            "anthem_public_id": anthem_public_id,
+            "anthem_filename": file.filename,
+            "anthem_enabled": True,  # auto-enable on first upload
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Himno subido correctamente", "anthem_url": anthem_url}
+
+
+class AnthemSettings(BaseModel):
+    enabled: Optional[bool] = None
+    autoplay: Optional[bool] = None
+
+
+@router.put("/settings/anthem")
+async def update_anthem_settings(
+    data: AnthemSettings,
+    current_user = Depends(require_section_access("settings"))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    update: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.enabled is not None:
+        update["anthem_enabled"] = bool(data.enabled)
+    if data.autoplay is not None:
+        update["anthem_autoplay"] = bool(data.autoplay)
+    await db.schools.update_one({"id": school_id}, {"$set": update})
+    school = await db.schools.find_one(
+        {"id": school_id},
+        {"_id": 0, "anthem_url": 1, "anthem_enabled": 1, "anthem_autoplay": 1}
+    ) or {}
+    return {
+        "anthem_url": school.get("anthem_url"),
+        "anthem_enabled": bool(school.get("anthem_enabled", False)),
+        "anthem_autoplay": bool(school.get("anthem_autoplay", False)),
+    }
+
+
+@router.delete("/settings/anthem")
+async def delete_anthem(current_user = Depends(require_section_access("settings"))):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "anthem_public_id": 1})
+    if school and school.get("anthem_public_id"):
+        try:
+            cloudinary.uploader.destroy(school["anthem_public_id"], resource_type="video")
+        except Exception as e:
+            logger.warning(f"Failed to delete anthem: {e}")
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "anthem_url": None, "anthem_public_id": None, "anthem_filename": None,
+            "anthem_enabled": False, "anthem_autoplay": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Himno eliminado"}

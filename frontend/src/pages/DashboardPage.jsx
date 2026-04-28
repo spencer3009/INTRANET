@@ -20,6 +20,7 @@ import BroadcastPopup from "@/components/BroadcastPopup";
 import MessageCenter from "@/components/MessageCenter";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
+import SchoolAnthemPlayer from "@/components/SchoolAnthemPlayer";
 // Subscription handled globally by App.js GlobalSubscriptionOverlay
 import PaymentBlockModal from "@/components/PaymentBlockModal";
 import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight, Video, HelpCircle, HeartPulse } from "lucide-react";
@@ -250,6 +251,15 @@ function DashboardInner({
           schoolName={schoolName}
           subdomain={subdomain}
           token={token}
+          extraActions={
+            settings?.anthem_enabled && settings?.anthem_url ? (
+              <SchoolAnthemPlayer
+                src={settings.anthem_url}
+                autoplay={!!settings.anthem_autoplay}
+                schoolName={schoolName}
+              />
+            ) : null
+          }
         />
 
         {/* Intelligent Reminder Popup - shows important/urgent reminders */}

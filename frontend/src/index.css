@@ -175,3 +175,25 @@
 .quill-task-editor .ql-toolbar .ql-picker-item.ql-selected {
   color: #f59e0b;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   School Anthem Equalizer Bars
+───────────────────────────────────────────────────────────── */
+.anthem-eq-bar {
+  display: inline-block;
+  width: 3px;
+  height: 20%;
+  background: linear-gradient(to top, #7c3aed, #a78bfa);
+  border-radius: 2px;
+  transform-origin: bottom;
+}
+.anthem-eq-bar[data-active="true"] {
+  animation: anthem-bounce 0.8s ease-in-out infinite;
+}
+@keyframes anthem-bounce {
+  0%, 100% { height: 18%; }
+  20% { height: 90%; }
+  40% { height: 35%; }
+  60% { height: 75%; }
+  80% { height: 55%; }
+}
