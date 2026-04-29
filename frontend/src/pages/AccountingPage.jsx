@@ -18,6 +18,7 @@ import GenerateBillingModal from "../components/GenerateBillingModal";
 import BoletaPreviewModal from "../components/BoletaPreviewModal";
 import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
 import AccountingSummaryCards from "../components/AccountingSummaryCards";
+import DedupePensionsPanel from "../components/DedupePensionsPanel";
 import { 
   Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
@@ -3064,7 +3065,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             <SubscriptionsTab token={token} />
           )}
           {activeTab === "config" && (
-            <ConfigTab token={token} user={user} onGenerateBilling={() => setShowBillingModal(true)} />
+            <>
+              <ConfigTab token={token} user={user} onGenerateBilling={() => setShowBillingModal(true)} />
+              <DedupePensionsPanel token={token} />
+            </>
           )}
           {activeTab === "yape" && (
             <div data-testid="yape-tab-content">
