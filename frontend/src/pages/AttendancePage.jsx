@@ -1270,6 +1270,133 @@ function ReportsTab({ token, schoolId }) {
     }
   };
 
+  // Individual student PDF report (mirrors the modal calendar view)
+  const exportIndividualPDF = () => {
+    if (!detailModal) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(88, 28, 135);
+    doc.text("Reporte Individual de Asistencia", pageWidth / 2, 20, { align: "center" });
+
+    // Student name
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
+    doc.text(detailModal.studentName || "", pageWidth / 2, 30, { align: "center" });
+
+    // Month label
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    const monthLabelRaw = detailMonth.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
+    const monthLabel = monthLabelRaw.charAt(0).toUpperCase() + monthLabelRaw.slice(1);
+    doc.text(monthLabel, pageWidth / 2, 38, { align: "center" });
+
+    // Stats
+    const st = { present: 0, absent: 0, late: 0, justified: 0, total: detailRecords.length };
+    detailRecords.forEach(a => { if (st[a.status] !== undefined) st[a.status]++; });
+    const pct = st.total > 0 ? Math.round(((st.present + st.justified) / st.total) * 100) : 0;
+
+    // Summary boxes (5 cards)
+    const summaryY = 48;
+    const boxWidth = 34;
+    const boxHeight = 18;
+    const startX = 14;
+    const drawBox = (idx, fillColor, textColor, value, label) => {
+      const x = startX + (boxWidth + 4) * idx;
+      doc.setFillColor(...fillColor);
+      doc.roundedRect(x, summaryY, boxWidth, boxHeight, 2, 2, "F");
+      doc.setFontSize(13);
+      doc.setTextColor(...textColor);
+      doc.text(String(value), x + boxWidth / 2, summaryY + 8, { align: "center" });
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, x + boxWidth / 2, summaryY + 14, { align: "center" });
+    };
+    drawBox(0, [16, 185, 129], [255, 255, 255], `${pct}%`, "Asistencia");
+    drawBox(1, [209, 250, 229], [4, 120, 87], st.present, "Asistencias");
+    drawBox(2, [254, 243, 199], [180, 83, 9], st.late, "Tardanzas");
+    drawBox(3, [254, 226, 226], [185, 28, 28], st.absent, "Faltas");
+    drawBox(4, [219, 234, 254], [29, 78, 216], st.justified, "Justificadas");
+
+    // Daily detail table
+    const monthStart = new Date(detailMonth.getFullYear(), detailMonth.getMonth(), 1);
+    const monthEnd = new Date(detailMonth.getFullYear(), detailMonth.getMonth() + 1, 0);
+    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const statusLabel = {
+      present: "Presente",
+      late: "Tardanza",
+      absent: "Falta",
+      justified: "Justificado",
+    };
+    const formatTime = (iso) => {
+      if (!iso) return "—";
+      try {
+        return new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+      } catch { return "—"; }
+    };
+    const tableData = [];
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const rec = detailRecords.find(a => a.date === dateStr);
+      const isWeekend = [0, 6].includes(d.getDay());
+      tableData.push([
+        d.getDate(),
+        dayNames[d.getDay()],
+        rec ? (statusLabel[rec.status] || rec.status) : (isWeekend ? "—" : "Sin registro"),
+        rec ? formatTime(rec.entry_time) : "—",
+        rec ? formatTime(rec.exit_time) : "—",
+        (rec && rec.justification_reason) ? rec.justification_reason : "",
+      ]);
+    }
+    autoTable(doc, {
+      startY: summaryY + boxHeight + 8,
+      head: [["Día", "Semana", "Estado", "Entrada", "Salida", "Observación"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontSize: 9, fontStyle: "bold" },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 14, halign: "center" },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 24, halign: "center" },
+        4: { cellWidth: 24, halign: "center" },
+        5: { cellWidth: "auto" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 2) {
+          const v = String(data.cell.raw || "");
+          if (v === "Presente") data.cell.styles.textColor = [4, 120, 87];
+          else if (v === "Tardanza") data.cell.styles.textColor = [180, 83, 9];
+          else if (v === "Falta") data.cell.styles.textColor = [185, 28, 28];
+          else if (v === "Justificado") data.cell.styles.textColor = [29, 78, 216];
+        }
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.text(
+        `Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      );
+    }
+
+    const safeName = (detailModal.studentName || "alumno").replace(/\s+/g, "_");
+    const safeMonth = `${detailMonth.getFullYear()}-${String(detailMonth.getMonth() + 1).padStart(2, "0")}`;
+    doc.save(`reporte_individual_${safeName}_${safeMonth}.pdf`);
+  };
+
   // Download monthly attendance sheet (PDF generated by backend)
   const downloadMonthlySheet = async () => {
     if (!monthlyGrade || !monthlySection) {
@@ -1874,6 +2001,19 @@ function ReportsTab({ token, schoolId }) {
                 </div>
               </div>
               <button onClick={() => setDetailModal(null)} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X className="w-4 h-4" /></button>
+            </div>
+
+            {/* Action bar */}
+            <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-end">
+              <button
+                onClick={exportIndividualPDF}
+                disabled={detailLoading}
+                data-testid="export-individual-pdf-btn"
+                className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center gap-2 transition-colors text-sm font-semibold disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                Reporte individual PDF
+              </button>
             </div>
 
             {/* Month Navigation */}
