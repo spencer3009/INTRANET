@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Loader2, Search, User, Tag, RefreshCw, Play, Info } from "lucide-react";
+import { Loader2, Search, User, Tag, RefreshCw, Play, Info, Users } from "lucide-react";
+import BulkSubscriptionsPanel from "./BulkSubscriptionsPanel";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -15,6 +16,23 @@ export default function SubscriptionsTab({ token }) {
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
   const [runningCron, setRunningCron] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [allConceptsList, setAllConceptsList] = useState([]);
+
+  // Load all recurrent concepts once for bulk panel (independent of student selection)
+  useEffect(() => {
+    const loadConcepts = async () => {
+      try {
+        const res = await axios.get(`${API}/accounting/payment-concepts?include_inactive=true`, { headers });
+        const all = res.data.concepts || [];
+        setAllConceptsList(all.filter(c => c.concept_type === "recurrente" && c.status === "active" && !c.is_default));
+      } catch (e) {
+        // silent
+      }
+    };
+    loadConcepts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load all students once
   useEffect(() => {
@@ -134,34 +152,48 @@ export default function SubscriptionsTab({ token }) {
         </div>
 
         {/* Student search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar alumno por nombre o DNI..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            data-testid="subscriptions-student-search"
-          />
-          {filteredStudents.length > 0 && search && !selectedStudent && (
-            <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
-              {filteredStudents.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => { setSelectedStudent(s); setSearch(""); }}
-                  className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors flex items-center gap-3"
-                  data-testid={`subscriptions-pick-${s.id}`}
-                >
-                  <User className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{s.name} {s.last_name}</p>
-                    <p className="text-xs text-slate-500">DNI: {s.dni || "—"}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar alumno por nombre o DNI..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              data-testid="subscriptions-student-search"
+            />
+            {filteredStudents.length > 0 && search && !selectedStudent && (
+              <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
+                {filteredStudents.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSelectedStudent(s); setSearch(""); }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors flex items-center gap-3"
+                    data-testid={`subscriptions-pick-${s.id}`}
+                  >
+                    <User className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{s.name} {s.last_name}</p>
+                      <p className="text-xs text-slate-500">DNI: {s.dni || "—"}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => { setBulkMode(v => !v); setSelectedStudent(null); }}
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors whitespace-nowrap ${
+              bulkMode
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
+            }`}
+            data-testid="bulk-mode-toggle-btn"
+          >
+            <Users className="w-4 h-4" />
+            {bulkMode ? "Cerrar modo masivo" : "Gestionar todos los alumnos"}
+          </button>
         </div>
 
         {selectedStudent && (
@@ -184,8 +216,18 @@ export default function SubscriptionsTab({ token }) {
         )}
       </div>
 
+      {/* Bulk panel */}
+      {bulkMode && (
+        <BulkSubscriptionsPanel
+          token={token}
+          concepts={allConceptsList}
+          onClose={() => setBulkMode(false)}
+          onSaved={() => { /* nothing extra needed; panel reloads its own subs */ }}
+        />
+      )}
+
       {/* Subscriptions table */}
-      {selectedStudent && (
+      {!bulkMode && selectedStudent && (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-8 flex items-center justify-center">
@@ -280,7 +322,7 @@ export default function SubscriptionsTab({ token }) {
         </div>
       )}
 
-      {!selectedStudent && (
+      {!bulkMode && !selectedStudent && (
         <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center">
           <User className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 font-medium">Selecciona un alumno para gestionar sus suscripciones</p>

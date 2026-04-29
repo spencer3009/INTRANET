@@ -30,6 +30,7 @@ Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del serv
 - Conteo de "Tareas Atrasadas" sincronizado entre portal padre/alumno.
 - Panel de deduplicación de pagos (`DedupePensionsPanel.jsx`) para Owner.
 - **2026-04-29: Fix bug visual** — Etiquetas de mes en `/api/parent/payments` ahora se derivan de `pension_month` (fuente de verdad) y no de `payment_date`, eliminando la confusión donde un pago de Enero realizado en Abril aparecía como "Abril".
+- **2026-04-29: Modo masivo de Suscripciones** — Nuevo botón "Gestionar todos los alumnos" en Contabilidad → Suscripciones. Despliega listado agrupado por sección con checkboxes, acciones "Marcar todos / Desmarcar todos", contador de pendientes y guardado en lote vía `POST /api/accounting/concept-subscriptions/bulk`. Endpoint adicional `GET /api/accounting/concept-subscriptions/all` para precarga de estado por colegio. Componente: `BulkSubscriptionsPanel.jsx`.
 
 ## Backlog / Roadmap
 

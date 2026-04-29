@@ -1765,6 +1765,25 @@ async def _ensure_current_month_payment(school_id: str, student_id: str, concept
         return False
 
 
+@router.get("/accounting/concept-subscriptions/all")
+async def list_all_school_subscriptions(
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """List ALL concept subscriptions (active and inactive) for the school.
+    Used by the bulk subscription panel to compute initial states for every
+    student in a single round-trip."""
+    user = current_user
+    if not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    subs = await db.student_concept_subscriptions.find(
+        {"school_id": school_id},
+        {"_id": 0, "id": 1, "student_id": 1, "concept_id": 1, "is_active": 1, "amount": 1, "concept_name": 1, "apply_mode": 1},
+    ).to_list(20000)
+    return {"subscriptions": subs}
+
+
 @router.get("/accounting/students/{student_id}/concept-subscriptions")
 async def get_student_concept_subscriptions(
     student_id: str,
@@ -1941,6 +1960,172 @@ async def admin_patch_subscription(
 
     return {"message": "Suscripción actualizada", "subscription": sub}
 
+
+class BulkSubscriptionChange(BaseModel):
+    student_id: str
+    concept_id: str
+    is_active: bool
+
+class BulkSubscriptionRequest(BaseModel):
+    changes: List[BulkSubscriptionChange] = Field(default_factory=list)
+
+
+@router.post("/accounting/concept-subscriptions/bulk")
+async def admin_bulk_update_subscriptions(
+    data: BulkSubscriptionRequest,
+    current_user=Depends(require_role(["owner", "admin", "director"])),
+):
+    """Apply multiple subscription changes in a single batch.
+
+    Each change is { student_id, concept_id, is_active }:
+      - If is_active=True and the subscription does not exist → create it.
+      - If is_active=True and exists but inactive → reactivate.
+      - If is_active=False and exists active → deactivate (and cancel pending).
+      - If is_active=False and does not exist → no-op.
+
+    Returns a summary with counts and per-item results.
+    """
+    user = current_user
+    if not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    if not data.changes:
+        return {"message": "Sin cambios", "updated": 0, "created": 0, "deactivated": 0, "errors": 0, "results": []}
+
+    # Cap to avoid runaway ops
+    if len(data.changes) > 2000:
+        raise HTTPException(status_code=400, detail="Demasiados cambios en un solo lote (máximo 2000)")
+
+    # Pre-load concepts referenced (avoid one DB hit per change)
+    concept_ids = list({c.concept_id for c in data.changes})
+    concepts_cur = db.payment_concepts.find(
+        {"id": {"$in": concept_ids}, "school_id": school_id},
+        {"_id": 0},
+    )
+    concepts_map = {c["id"]: c for c in await concepts_cur.to_list(500)}
+
+    # Pre-load existing subscriptions for these student/concept pairs
+    student_ids = list({c.student_id for c in data.changes})
+    existing_cur = db.student_concept_subscriptions.find(
+        {
+            "school_id": school_id,
+            "student_id": {"$in": student_ids},
+            "concept_id": {"$in": concept_ids},
+        },
+        {"_id": 0},
+    )
+    existing_list = await existing_cur.to_list(5000)
+    existing_map = {(s["student_id"], s["concept_id"]): s for s in existing_list}
+
+    # Verify students belong to this school (single query)
+    valid_students_cur = db.users.find(
+        {"id": {"$in": student_ids}, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1},
+    )
+    valid_student_ids = {s["id"] for s in await valid_students_cur.to_list(5000)}
+
+    now = datetime.now(timezone.utc).isoformat()
+    counts = {"created": 0, "updated": 0, "deactivated": 0, "errors": 0, "noop": 0}
+    results = []
+
+    for ch in data.changes:
+        try:
+            if ch.student_id not in valid_student_ids:
+                counts["errors"] += 1
+                results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "error", "detail": "Estudiante no encontrado"})
+                continue
+
+            concept = concepts_map.get(ch.concept_id)
+            if not concept:
+                counts["errors"] += 1
+                results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "error", "detail": "Concepto no encontrado"})
+                continue
+            if concept.get("status") != "active":
+                counts["errors"] += 1
+                results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "error", "detail": "Concepto inactivo"})
+                continue
+
+            existing = existing_map.get((ch.student_id, ch.concept_id))
+
+            if ch.is_active:
+                amount = float(concept.get("amount", 0) or 0)
+                if existing:
+                    # Reactivate or refresh
+                    was_active = bool(existing.get("is_active"))
+                    await db.student_concept_subscriptions.update_one(
+                        {"id": existing["id"]},
+                        {"$set": {
+                            "is_active": True,
+                            "amount": round(amount, 2),
+                            "concept_name": concept.get("name"),
+                            "apply_mode": concept.get("apply_mode", "none"),
+                            "activated_by": "admin",
+                            "updated_at": now,
+                        }},
+                    )
+                    sub_id = existing["id"]
+                    counts["updated" if was_active else "created"] += 1
+                else:
+                    sub = {
+                        "id": str(uuid.uuid4()),
+                        "school_id": school_id,
+                        "student_id": ch.student_id,
+                        "concept_id": ch.concept_id,
+                        "concept_name": concept.get("name"),
+                        "amount": round(amount, 2),
+                        "apply_mode": concept.get("apply_mode", "none"),
+                        "activated_by": "admin",
+                        "is_active": True,
+                        "created_at": now,
+                        "updated_at": now,
+                    }
+                    await db.student_concept_subscriptions.insert_one(sub)
+                    sub_id = sub["id"]
+                    counts["created"] += 1
+
+                # Ensure current-month payment exists
+                await _ensure_current_month_payment(school_id, ch.student_id, concept, amount, sub_id)
+                results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "active"})
+            else:
+                # Deactivate
+                if not existing:
+                    counts["noop"] += 1
+                    results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "noop"})
+                    continue
+                if not existing.get("is_active"):
+                    counts["noop"] += 1
+                    results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "already_inactive"})
+                    continue
+                await db.student_concept_subscriptions.update_one(
+                    {"id": existing["id"]},
+                    {"$set": {
+                        "is_active": False,
+                        "activated_by": "admin",
+                        "updated_at": now,
+                    }},
+                )
+                counts["deactivated"] += 1
+                # Cancel pending payments for this student+concept (current month onwards)
+                await _cancel_pending_subscription_payments(
+                    school_id,
+                    student_id=ch.student_id,
+                    concept_id=ch.concept_id,
+                    concept_name=concept.get("name"),
+                )
+                results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "inactive"})
+        except Exception as e:
+            logger.warning(f"[SUBS-BULK] error {ch.student_id}/{ch.concept_id}: {e}")
+            counts["errors"] += 1
+            results.append({"student_id": ch.student_id, "concept_id": ch.concept_id, "status": "error", "detail": str(e)})
+
+    logger.info(f"[SUBS-BULK] school={school_id} counts={counts} total={len(data.changes)}")
+    return {
+        "message": "Lote procesado",
+        "total": len(data.changes),
+        **counts,
+        "results": results,
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
