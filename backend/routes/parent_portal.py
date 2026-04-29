@@ -342,8 +342,20 @@ async def get_parent_payments(
         is_pronto_pago = (pronto_pago_activo and p.get("payment_status") == "paid" 
                           and p.get("total_amount", 0) <= pronto_pago_monto and pronto_pago_monto > 0)
         
-        # Build display label: prefer description > month_name > generated from date
-        label = p.get("description") or p.get("month_name") or ""
+        # Build display label: ALWAYS derive from pension_month (source of truth) to avoid
+        # mislabeling when payment_date corresponds to a different month than the billed period.
+        label = ""
+        pension_month_raw = p.get("pension_month", "")
+        if pension_month_raw and isinstance(pension_month_raw, str) and "-" in pension_month_raw:
+            try:
+                year = pension_month_raw.split("-")[0]
+                month_num = int(pension_month_raw.split("-")[1])
+                label = f"Mensualidad {month_names_es.get(month_num, '')} {year}".strip()
+            except Exception:
+                label = ""
+        # Fallbacks only if pension_month is missing/invalid
+        if not label:
+            label = p.get("description") or p.get("month_name") or ""
         if not label:
             pdate = p.get("payment_date", "")
             if pdate:
