@@ -172,10 +172,18 @@ function StudentAttendanceTab({ token, schoolId }) {
         }
       });
       // If no saved records, set all students to "pending" status
-      const studentsData = res.data.students.map(s => ({
-        ...s,
-        status: res.data.has_saved_records ? s.status : "pending"
-      }));
+      const studentsData = res.data.students
+        .map(s => ({
+          ...s,
+          status: res.data.has_saved_records ? s.status : "pending"
+        }))
+        .sort((a, b) => {
+          const aKey = (a.last_name || a.full_name || a.name || "").trim();
+          const bKey = (b.last_name || b.full_name || b.name || "").trim();
+          const cmp = aKey.localeCompare(bKey, "es", { sensitivity: "base" });
+          if (cmp !== 0) return cmp;
+          return (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" });
+        });
       setStudents(studentsData);
       setHasSavedRecords(res.data.has_saved_records);
       setHasChanges(false);
@@ -685,7 +693,14 @@ function TeacherAttendanceTab({ token, schoolId }) {
         headers,
         params: { date: selectedDate, include_schedule: true }
       });
-      setTeachers(res.data.teachers);
+      const teachersSorted = (res.data.teachers || []).slice().sort((a, b) => {
+        const aKey = (a.last_name || a.full_name || a.name || "").trim();
+        const bKey = (b.last_name || b.full_name || b.name || "").trim();
+        const cmp = aKey.localeCompare(bKey, "es", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" });
+      });
+      setTeachers(teachersSorted);
       setHasSavedRecords(res.data.has_saved_records);
       setPerLevelActive(!!res.data.per_level_schedule_active);
       setHasChanges(false);
@@ -939,7 +954,14 @@ function MaintenanceAttendanceTab({ token }) {
         headers,
         params: { date: selectedDate },
       });
-      setPeople(res.data.maintenance);
+      const peopleSorted = (res.data.maintenance || []).slice().sort((a, b) => {
+        const aKey = (a.last_name || a.full_name || a.name || "").trim();
+        const bKey = (b.last_name || b.full_name || b.name || "").trim();
+        const cmp = aKey.localeCompare(bKey, "es", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" });
+      });
+      setPeople(peopleSorted);
       setHasSavedRecords(res.data.has_saved_records);
       setHasChanges(false);
     } catch (err) {
