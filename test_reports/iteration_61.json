@@ -60,10 +60,10 @@
   },
 
   "test_credentials": {
-    "login_url": "https://yape-total-verify.preview.emergentagent.com/school/demosettings/login",
+    "login_url": "https://pension-month-sync.preview.emergentagent.com/school/demosettings/login",
     "email": "admin.settings@test.pe",
     "password": "1234abc8",
-    "users_page_url": "https://yape-total-verify.preview.emergentagent.com/demosettings/users"
+    "users_page_url": "https://pension-month-sync.preview.emergentagent.com/demosettings/users"
   },
 
   "seed_data_creation": "",
