@@ -488,7 +488,7 @@ function StudentAttendanceTab({ token, schoolId }) {
                     )}
                   </div>
                   <div className="min-w-0 md:w-40">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{student.full_name}</p>
+                    <p className="font-semibold text-slate-800 text-sm truncate">{((student.last_name || "") + " " + (student.name || "")).trim() || student.full_name}</p>
                   </div>
                 </div>
 
@@ -858,7 +858,7 @@ function TeacherAttendanceTab({ token, schoolId }) {
 
                 {/* Name */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800">{teacher.full_name}</p>
+                  <p className="font-semibold text-slate-800">{((teacher.last_name || "") + " " + (teacher.name || "")).trim() || teacher.full_name}</p>
                   <p className="text-sm text-slate-500">{teacher.email}</p>
                   {perLevelActive && teacher.effective_schedule && (
                     <span
@@ -1089,7 +1089,7 @@ function MaintenanceAttendanceTab({ token }) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800">{person.full_name}</p>
+                  <p className="font-semibold text-slate-800">{((person.last_name || "") + " " + (person.name || "")).trim() || person.full_name}</p>
                   {person.role_label ? (
                     <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-semibold border border-amber-200">
                       <Wrench className="w-3 h-3" />
