@@ -26,6 +26,7 @@ import BulkQRModal from "@/components/BulkQRModal";
 import QRTemplateDrawer from "@/components/students/QRTemplateDrawer";
 import BulkDeleteModal from "@/components/BulkDeleteModal";
 import PendingEnrollmentsTab from "@/components/PendingEnrollmentsTab";
+import TeacherBulkImportPanel from "@/components/TeacherBulkImportPanel";
 import EnrollmentConfigModal from "@/components/EnrollmentConfigModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -3217,6 +3218,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            TEACHER BULK IMPORT CARD
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'teacher' && (
+          <TeacherBulkImportPanel token={token} onImported={loadUsers} />
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════════════════

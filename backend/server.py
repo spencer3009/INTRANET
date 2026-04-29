@@ -55,6 +55,7 @@ from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
 from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
 from routes.parents import router as parents_router
+from routes.teachers_import import router as teachers_import_router
 from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
@@ -221,6 +222,7 @@ app.include_router(demo_router)
 app.include_router(support_router)
 app.include_router(academia_router)
 app.include_router(parents_router)
+app.include_router(teachers_import_router)
 app.include_router(psychology_router)
 app.include_router(psychology_messages_router)
 app.include_router(psychology_agenda_router)
