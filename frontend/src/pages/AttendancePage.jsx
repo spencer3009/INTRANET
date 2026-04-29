@@ -10,6 +10,7 @@ import PaeRegistrosDia from "./pae/PaeRegistrosDia";
 import MovilidadRegistrosDia from "./movilidad/MovilidadRegistrosDia";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import {
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
@@ -1455,6 +1456,61 @@ function ReportsTab({ token, schoolId }) {
     doc.save(fileName);
   };
 
+  // Export to Excel function (mismo contenido que el PDF)
+  const exportToExcel = () => {
+    if (!report) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Resumen
+    const summaryRows = [
+      ["Reporte de Asistencia de Estudiantes"],
+      [],
+      ["Grado", gradeName || ""],
+      ["Sección", sectionName || ""],
+      ["Desde", startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString("es-PE") : ""],
+      ["Hasta", endDate ? new Date(endDate + 'T12:00:00').toLocaleDateString("es-PE") : ""],
+      [],
+      ["Resumen General"],
+      ["Total registros", report.summary.total_records || 0],
+      ["Asistencias", report.summary.present || 0],
+      ["Tardanzas", report.summary.late || 0],
+      ["Inasistencias", report.summary.absent || 0],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary["!cols"] = [{ wch: 22 }, { wch: 32 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
+
+    // Hoja 2: Detalle por estudiante
+    const detailHeader = ["Estudiante", "Días", "Asistencias", "Tardanzas", "Inasistencias", "% Asistencia"];
+    const detailRows = (report.report || []).map(item => [
+      item.student_name,
+      item.total_days,
+      item.present,
+      item.late,
+      item.absent,
+      typeof item.attendance_rate === "number" ? item.attendance_rate / 100 : item.attendance_rate,
+    ]);
+    const wsDetail = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
+    wsDetail["!cols"] = [
+      { wch: 38 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 },
+    ];
+    // Format the % column as percentage
+    const range = XLSX.utils.decode_range(wsDetail["!ref"]);
+    for (let R = 1; R <= range.e.r; ++R) {
+      const cellRef = XLSX.utils.encode_cell({ r: R, c: 5 });
+      const cell = wsDetail[cellRef];
+      if (cell && typeof cell.v === "number") {
+        cell.t = "n";
+        cell.z = "0%";
+      }
+    }
+    XLSX.utils.book_append_sheet(wb, wsDetail, "Detalle");
+
+    const fileName = `reporte_asistencia_${(gradeName || "").replace(/\s+/g, '_')}_${sectionName || ""}_${startDate}_${endDate}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="space-y-6" data-testid="attendance-reports-tab">
       {/* Subtabs */}
@@ -1663,6 +1719,14 @@ function ReportsTab({ token, schoolId }) {
                 >
                   <Download className="w-5 h-5" />
                   Exportar PDF
+                </button>
+                <button
+                  onClick={exportToExcel}
+                  data-testid="report-export-excel-btn"
+                  className="px-4 py-2 bg-emerald-500/90 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-2 transition-colors font-semibold"
+                >
+                  <Download className="w-5 h-5" />
+                  Exportar Excel
                 </button>
               </div>
             </div>
