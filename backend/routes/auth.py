@@ -348,6 +348,43 @@ async def login(creds: UserLogin):
                 except Exception as debt_err:
                     logger.error(f"[LOGIN] Error checking debt restrictions: {debt_err}")
 
+                # Parent-specific: block login if ANY linked student has pending payments
+                # (admin toggle from Contabilidad → Morosos)
+                try:
+                    if school.get("restrict_parent_login_if_debt", False) and user.get("role") == "parent":
+                        # Find all students linked to this parent (legacy schemas use both
+                        # `parent_id` and the Spanish `padre_id`).
+                        linked_ids = set()
+                        async for s in db.users.find(
+                            {"school_id": school_id, "role": "student",
+                             "$or": [{"parent_id": user["id"]}, {"padre_id": user["id"]}]},
+                            {"_id": 0, "id": 1}
+                        ):
+                            linked_ids.add(s["id"])
+                        if not linked_ids and user.get("email"):
+                            async for s in db.users.find(
+                                {"school_id": school_id, "role": "student", "parent_email": user.get("email")},
+                                {"_id": 0, "id": 1}
+                            ):
+                                linked_ids.add(s["id"])
+
+                        if linked_ids:
+                            pending_total = await db.payments.count_documents({
+                                "school_id": school_id,
+                                "student_id": {"$in": list(linked_ids)},
+                                "payment_status": {"$in": ["pending", "overdue"]},
+                            })
+                            if pending_total > 0:
+                                logger.info(f"[LOGIN] Parent '{identifier}' blocked by restrict_parent_login_if_debt ({pending_total} pending)")
+                                raise HTTPException(
+                                    status_code=403,
+                                    detail="Acceso restringido por falta de pago"
+                                )
+                except HTTPException:
+                    raise
+                except Exception as pdbt_err:
+                    logger.error(f"[LOGIN] Error checking parent debt restriction: {pdbt_err}")
+
                 # Block login based on subscription state (calculate in real-time)
                 try:
                     from .subscription import calculate_plan_state

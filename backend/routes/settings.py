@@ -125,6 +125,7 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     # Include school-level role settings
     settings["allow_admin_accounting"] = school.get("allow_admin_accounting", False)
     settings["restrict_grades_if_debt"] = school.get("restrict_grades_if_debt", False)
+    settings["restrict_parent_login_if_debt"] = school.get("restrict_parent_login_if_debt", False)
     settings["permitir_acceso_estudiantes_pendientes"] = school.get("permitir_acceso_estudiantes_pendientes", False)
     settings["allow_admin_broadcast"] = school.get("allow_admin_broadcast", False)
     # Feature flag: birthday module (popup + slider + calendar events).
@@ -225,7 +226,7 @@ async def update_role_settings(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Update allowed fields only
-    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt", "permitir_acceso_estudiantes_pendientes", "allow_admin_broadcast", "birthday_module_enabled"]
+    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt", "restrict_parent_login_if_debt", "permitir_acceso_estudiantes_pendientes", "allow_admin_broadcast", "birthday_module_enabled"]
     update_data = {}
     for field in allowed_fields:
         if field in data:
@@ -239,7 +240,7 @@ async def update_role_settings(
         )
     
     # Get updated school
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1, "permitir_acceso_estudiantes_pendientes": 1, "allow_admin_broadcast": 1, "birthday_module_enabled": 1})
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1, "restrict_parent_login_if_debt": 1, "permitir_acceso_estudiantes_pendientes": 1, "allow_admin_broadcast": 1, "birthday_module_enabled": 1})
     
     logger.info(f"Role settings updated for school {school_id}: {update_data}")
     
@@ -247,6 +248,7 @@ async def update_role_settings(
         "message": "Configuración de roles actualizada",
         "allow_admin_accounting": school.get("allow_admin_accounting", False),
         "restrict_grades_if_debt": school.get("restrict_grades_if_debt", False),
+        "restrict_parent_login_if_debt": school.get("restrict_parent_login_if_debt", False),
         "permitir_acceso_estudiantes_pendientes": school.get("permitir_acceso_estudiantes_pendientes", False),
         "allow_admin_broadcast": school.get("allow_admin_broadcast", False),
         "birthday_module_enabled": bool(school.get("birthday_module_enabled", True)),

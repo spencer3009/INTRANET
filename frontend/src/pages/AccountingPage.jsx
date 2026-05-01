@@ -29,7 +29,7 @@ import {
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
   Eye, History, UserX, UserCheck, Settings, Tag, Zap, Download,
-  QrCode, Search
+  QrCode, Search, Lock
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -2221,13 +2221,79 @@ function getInitials(name) {
   return (parts[0]?.[0] || "?").toUpperCase();
 }
 
-function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
+function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, token }) {
   const [filter, setFilter] = useState("all");
+  const [restrictEnabled, setRestrictEnabled] = useState(false);
+  const [togglingRestrict, setTogglingRestrict] = useState(false);
   const filtered = filter === "all" ? debtors : debtors.filter(d => d.status === filter);
   const avgDebt = debtorsSummary?.morosos_count > 0 ? (debtorsSummary.total_debt / debtorsSummary.morosos_count) : 0;
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/settings`, { headers });
+        if (active) setRestrictEnabled(!!res.data?.restrict_parent_login_if_debt);
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleToggleRestrict = async () => {
+    const newVal = !restrictEnabled;
+    setTogglingRestrict(true);
+    setRestrictEnabled(newVal); // optimistic
+    try {
+      await axios.put(
+        `${API}/settings/roles`,
+        { restrict_parent_login_if_debt: newVal },
+        { headers }
+      );
+      const { toast } = await import("sonner");
+      toast.success(newVal
+        ? "Acceso restringido para padres morosos activado"
+        : "Acceso de padres morosos reestablecido"
+      );
+    } catch (e) {
+      setRestrictEnabled(!newVal); // rollback
+      const { toast } = await import("sonner");
+      toast.error(e.response?.data?.detail || "Error al actualizar configuración");
+    } finally {
+      setTogglingRestrict(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
+      {/* Switch: restrict login for parents in debt */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border-2 border-red-100 flex items-start sm:items-center gap-4 flex-col sm:flex-row" data-testid="restrict-parent-login-card">
+        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Lock className="w-6 h-6 text-red-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-800">Restringir acceso a padres morosos</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Si se activa, los padres con pagos pendientes no podrán iniciar sesión. Verán el mensaje: <span className="italic font-semibold">"Acceso restringido por falta de pago"</span>.
+          </p>
+        </div>
+        <button
+          onClick={handleToggleRestrict}
+          disabled={togglingRestrict}
+          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors disabled:opacity-50 ${restrictEnabled ? "bg-red-500" : "bg-slate-300"}`}
+          role="switch"
+          aria-checked={restrictEnabled}
+          data-testid="restrict-parent-login-switch"
+        >
+          <span
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${restrictEnabled ? "translate-x-6" : "translate-x-1"}`}
+          />
+        </button>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div
@@ -3084,6 +3150,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               debtors={debtors}
               debtorsSummary={debtorsSummary}
               onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
+              token={token}
             />
           )}
           {activeTab === "subscriptions" && (
