@@ -63,6 +63,7 @@ PAYMENT_STATUSES = {
 EXPENSE_CATEGORIES = {
     "servicios": "Servicios (luz, agua, internet)",
     "personal": "Personal y planilla",
+    "planilla_docente": "Planilla Docente",
     "mantenimiento": "Mantenimiento",
     "materiales": "Materiales y suministros",
     "otros": "Otros gastos"

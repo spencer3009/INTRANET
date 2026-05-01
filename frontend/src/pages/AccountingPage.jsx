@@ -19,6 +19,7 @@ import BoletaPreviewModal from "../components/BoletaPreviewModal";
 import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
 import AccountingSummaryCards from "../components/AccountingSummaryCards";
 import DedupePensionsPanel from "../components/DedupePensionsPanel";
+import TeacherPayrollModal from "../components/TeacherPayrollModal";
 import { 
   Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
@@ -65,6 +66,7 @@ const PAYMENT_STATUSES = {
 const EXPENSE_CATEGORIES = {
   servicios: "Servicios",
   personal: "Personal",
+  planilla_docente: "Planilla Docente",
   mantenimiento: "Mantenimiento",
   materiales: "Materiales",
   otros: "Otros"
@@ -792,7 +794,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
 // ══════════════════════════════════════════════════════════════════════════════
 // EXPENSES TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onDelete, filterCategory, setFilterCategory, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading }) {
+function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onDelete, filterCategory, setFilterCategory, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, onOpenTeacherPayroll }) {
   return (
     <div className="space-y-5">
       {/* Date filter */}
@@ -824,14 +826,24 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
             ))}
           </select>
         </div>
-        <button
-          onClick={onCreateNew}
-          className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
-          data-testid="create-expense-btn"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Egreso
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={onOpenTeacherPayroll}
+            className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
+            data-testid="open-teacher-payroll-btn"
+          >
+            <Users className="w-4 h-4" />
+            Pagar Profesores
+          </button>
+          <button
+            onClick={onCreateNew}
+            className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
+            data-testid="create-expense-btn"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo Egreso
+          </button>
+        </div>
       </div>
       
       {/* Table - Premium design */}
@@ -868,7 +880,18 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
                       <span className="text-sm text-gray-500 font-medium">{expense.expense_date}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                        {expense.teacher_payment_id && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded-full uppercase tracking-wide"
+                            title="Egreso generado desde Planilla Docente"
+                            data-testid={`expense-planilla-badge-${expense.id}`}
+                          >
+                            <Users className="w-3 h-3" /> Planilla
+                          </span>
+                        )}
+                      </div>
                       {expense.description && (
                         <p className="text-xs text-gray-400 truncate max-w-[200px]">{expense.description}</p>
                       )}
@@ -2422,6 +2445,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showTeacherPayroll, setShowTeacherPayroll] = useState(false);
   const [searchStudentId, setSearchStudentId] = useState("");
   
   // Confirmation modal states
@@ -3051,6 +3075,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onDateClear={handleDateClear}
               periodSummary={periodSummary}
               summaryLoading={summaryLoading}
+              onOpenTeacherPayroll={() => setShowTeacherPayroll(true)}
             />
           )}
           {activeTab === "morosos" && (
@@ -3254,6 +3279,13 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         token={token}
         onSuccess={() => { loadDebtors(); loadPayments(); loadSummary(); }}
       />
+      {showTeacherPayroll && (
+        <TeacherPayrollModal
+          token={token}
+          onClose={() => setShowTeacherPayroll(false)}
+          onPaymentConfirmed={() => { loadExpenses(); loadPeriodSummary(dateFrom, dateTo); }}
+        />
+      )}
     </div>
   );
 }

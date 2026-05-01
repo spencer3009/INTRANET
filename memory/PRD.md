@@ -31,6 +31,7 @@ Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del serv
 - Panel de deduplicación de pagos (`DedupePensionsPanel.jsx`) para Owner.
 - **2026-04-29: Fix bug visual** — Etiquetas de mes en `/api/parent/payments` ahora se derivan de `pension_month` (fuente de verdad) y no de `payment_date`, eliminando la confusión donde un pago de Enero realizado en Abril aparecía como "Abril".
 - **2026-04-29: Modo masivo de Suscripciones** — Nuevo botón "Gestionar todos los alumnos" en Contabilidad → Suscripciones. Despliega listado agrupado por sección con checkboxes, acciones "Marcar todos / Desmarcar todos", contador de pendientes y guardado en lote vía `POST /api/accounting/concept-subscriptions/bulk`. Endpoint adicional `GET /api/accounting/concept-subscriptions/all` para precarga de estado por colegio. Componente: `BulkSubscriptionsPanel.jsx`.
+- **2026-05-01: Planilla Docente** — Nueva colección `teacher_payments` + 5 endpoints (`GET /contabilidad/teacher-payments/planilla`, `POST /contabilidad/teacher-payments`, `/bulk-create`, `/{id}/confirm`, `DELETE /{id}`, `PATCH /users/teachers/{id}/salary`). Botón "Pagar Profesores" en pestaña Egresos que abre un modal con selector mes/año/tipo (Sueldo/Bono/Gratificación/CTS/Otro), tabla editable, sub-modal para configurar sueldos base, y acción "Pagar todos los pendientes". Al confirmar se genera automáticamente un egreso espejo con categoría `planilla_docente`, link `teacher_payment_id` y badge "Planilla" en la tabla de Egresos. Componente: `TeacherPayrollModal.jsx`.
 
 ## Backlog / Roadmap
 
