@@ -415,23 +415,28 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                           </div>
                         </div>
 
-                        {/* Breakdown: pension + optional services + total */}
-                        {hasBreakdown ? (
+                        {/* Breakdown card: ALWAYS show "Pago total" with the single Yape button.
+                            Sub-lines (pensión, libros, etc.) appear above when there's a breakdown. */}
+                        {(isPending || isOverdue || isPaid) && (
                           <div className="mt-3 ml-7 bg-slate-50/70 rounded-xl p-3 space-y-1" data-testid={`payment-breakdown-${idx}`}>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600">Pago pensión</span>
-                              <span className="font-semibold text-slate-700">S/ {pensionAmount.toFixed(2)}</span>
-                            </div>
-                            {pendingSubs.map((sc, i) => (
-                              <div key={sc.id || i} className="flex items-center justify-between text-sm" data-testid={`payment-subline-${idx}-${i}`}>
-                                <span className="text-slate-600">Pago {sc.concept.toLowerCase()}</span>
-                                <span className="font-semibold text-slate-700">S/ {Number(sc.amount).toFixed(2)}</span>
-                              </div>
-                            ))}
+                            {hasBreakdown && (
+                              <>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-slate-600">Pago pensión</span>
+                                  <span className="font-semibold text-slate-700">S/ {pensionAmount.toFixed(2)}</span>
+                                </div>
+                                {pendingSubs.map((sc, i) => (
+                                  <div key={sc.id || i} className="flex items-center justify-between text-sm" data-testid={`payment-subline-${idx}-${i}`}>
+                                    <span className="text-slate-600">Pago {sc.concept.toLowerCase()}</span>
+                                    <span className="font-semibold text-slate-700">S/ {Number(sc.amount).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </>
+                            )}
                             {month.interest_charge > 0 && (
                               <p className="text-[11px] text-rose-500 font-medium pl-1">+ S/ {month.interest_charge.toFixed(2)} de mora ({month.days_late || 0} d)</p>
                             )}
-                            <div className="border-t border-slate-200 pt-2 mt-2 flex items-center justify-between gap-3">
+                            <div className={`flex items-center justify-between gap-3 ${hasBreakdown ? "border-t border-slate-200 pt-2 mt-2" : ""}`}>
                               <span className="text-sm font-bold text-slate-800">Pago total</span>
                               <div className="flex items-center gap-2">
                                 <span className="text-base font-bold text-slate-900" data-testid={`payment-total-${idx}`}>S/ {grandTotal.toFixed(2)}</span>
@@ -447,11 +452,11 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                                         month: m,
                                         year: y,
                                         amount: grandTotal,
-                                        breakdown: {
+                                        breakdown: hasBreakdown ? {
                                           pension: pensionAmount,
                                           subscriptions: pendingSubs.map(s => ({ concept: s.concept, amount: s.amount, payment_id: s.id })),
                                           total: grandTotal,
-                                        },
+                                        } : undefined,
                                       });
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors shadow-sm"
@@ -462,36 +467,6 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                                 )}
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          /* Single-line view when no extra subscription charges */
-                          <div className="mt-2 ml-7 flex items-center justify-end gap-3">
-                            <div className="text-right">
-                              <span className="text-base font-bold text-slate-800">S/ {pensionAmount.toFixed(2)}</span>
-                              {month.interest_charge > 0 && (
-                                <p className="text-[10px] text-rose-500 font-medium">+S/ {month.interest_charge.toFixed(2)} mora ({month.days_late || 0}d)</p>
-                              )}
-                            </div>
-                            {canPayYape && (
-                              <button
-                                onClick={() => {
-                                  let m = month.payment_date ? parseInt(month.payment_date.split("-")[1]) : null;
-                                  let y = month.payment_date ? parseInt(month.payment_date.split("-")[0]) : null;
-                                  setYapeModalPayment({
-                                    ...month,
-                                    student_id: selectedChild?.id,
-                                    student_name: `${selectedChild?.name || ''} ${selectedChild?.last_name || ''}`.trim(),
-                                    month: m,
-                                    year: y,
-                                    amount: pensionAmount,
-                                  });
-                                }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors shadow-sm"
-                                data-testid={`yape-pay-btn-${idx}`}
-                              >
-                                <QrCode className="w-3.5 h-3.5" /> Pagar con Yape
-                              </button>
-                            )}
                           </div>
                         )}
                       </div>
