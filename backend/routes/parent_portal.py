@@ -333,6 +333,32 @@ async def get_parent_payments(
     monthly_detail = []
     month_names_es = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
                       7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
+
+    # Pre-fetch subscription-generated charges (libros, talleres, etc.) for this student.
+    # Indexed by pension_month so we can attach them to each monthly_detail row.
+    subs_by_month = {}
+    sub_payments_cur = db.payments.find(
+        {
+            "school_id": school_id,
+            "student_id": student_id,
+            "subscription_id": {"$ne": None},
+            "pension_month": {"$ne": None},
+        },
+        {"_id": 0, "id": 1, "concept": 1, "description": 1, "total_amount": 1,
+         "pension_month": 1, "payment_status": 1, "payment_method": 1, "subscription_id": 1},
+    )
+    async for sp in sub_payments_cur:
+        pm_key = sp.get("pension_month")
+        if not pm_key:
+            continue
+        subs_by_month.setdefault(pm_key, []).append({
+            "id": sp.get("id"),
+            "concept": (sp.get("concept") or sp.get("description") or "Servicio adicional").strip(),
+            "amount": round(float(sp.get("total_amount", 0) or 0), 2),
+            "payment_status": sp.get("payment_status"),
+            "payment_method": sp.get("payment_method"),
+        })
+
     for p in payments:
         pid = p.get("id")
         mora_info = mora_per_payment.get(pid, {})
@@ -374,11 +400,15 @@ async def get_parent_payments(
         
         # For pending mensualidad: use pension_mensual as base (stored amount may already include mora)
         display_amount = pension_mensual if p.get("payment_status") in ("pending", "overdue") else p.get("_mensualidad_amount", p.get("total_amount", 0))
-        
+
+        # Attach subscription charges for the same pension_month (e.g., Pago libros)
+        sub_charges = subs_by_month.get(pension_month_raw, []) if pension_month_raw else []
+
         monthly_detail.append({
             "id": p.get("id"),
             "month_name": label,
             "payment_date": p.get("payment_date"),
+            "pension_month": pension_month_raw,
             "total_amount": display_amount,
             "payment_status": p.get("payment_status"),
             "payment_method": p.get("payment_method"),
@@ -386,6 +416,7 @@ async def get_parent_payments(
             "interest_charge": round(interest_charge, 2),
             "days_late": days_late,
             "is_pronto_pago": is_pronto_pago,
+            "subscription_charges": sub_charges,
         })
     
     return {
