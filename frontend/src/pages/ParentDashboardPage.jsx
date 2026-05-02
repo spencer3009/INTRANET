@@ -886,8 +886,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 );
                 let nextCuota = pendingItems[0] || verifyingItems[0] || null;
 
-                // Enrich nextCuota with mora data from paymentData.monthly_detail
-                // (must happen BEFORE grouping so the monthTotal reflects interest)
+                // Enrich nextCuota with mora and pronto-pago data from paymentData.monthly_detail
+                // (must happen BEFORE grouping so the monthTotal reflects interest/discount)
                 if (nextCuota && paymentData?.monthly_detail) {
                   const matchDetail = paymentData.monthly_detail.find(m => {
                     if (nextCuota.id && m.id === nextCuota.id) return true;
@@ -898,12 +898,20 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     }
                     return false;
                   });
-                  if (matchDetail && matchDetail.interest_charge > 0) {
-                    nextCuota = { ...nextCuota };
-                    nextCuota._interesAmount = matchDetail.interest_charge;
-                    nextCuota._daysLate = matchDetail.days_late || 0;
-                    nextCuota._pensionNormal = matchDetail.total_amount || nextCuota.amount;
-                    nextCuota.amount = (matchDetail.total_amount || nextCuota.amount) + matchDetail.interest_charge;
+                  if (matchDetail) {
+                    if (matchDetail.applies_pronto_pago && matchDetail.total_amount < (matchDetail.pension_mensual_full || nextCuota.amount || 0)) {
+                      nextCuota = { ...nextCuota };
+                      nextCuota._isProntoPago = true;
+                      nextCuota._pensionNormal = matchDetail.pension_mensual_full || nextCuota.amount;
+                      nextCuota._prontoPagoFechaLimite = paymentData?.financial_config?.pronto_pago_fecha_limite;
+                      nextCuota.amount = matchDetail.total_amount;
+                    } else if (matchDetail.interest_charge > 0) {
+                      nextCuota = { ...nextCuota };
+                      nextCuota._interesAmount = matchDetail.interest_charge;
+                      nextCuota._daysLate = matchDetail.days_late || 0;
+                      nextCuota._pensionNormal = matchDetail.total_amount || nextCuota.amount;
+                      nextCuota.amount = (matchDetail.total_amount || nextCuota.amount) + matchDetail.interest_charge;
+                    }
                   }
                 }
 
