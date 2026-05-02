@@ -884,11 +884,25 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 const verifyingItems = yapeSchedule.filter(s => s.yape_status === 'pendiente_verificacion'
                   && (s.concept || '').toLowerCase() !== 'matricula'
                 );
-                let nextCuota = pendingItems[0] || verifyingItems[0] || null;
+                // Prefer a "mensualidad" / "pension" cuota as nextCuota over subscription
+                // items (LIBROS, talleres, etc.) so the headline always shows the pension
+                // amount and the desglose lists the extras.
+                const _isMensualidadConcept = (c) => {
+                  const cl = (c || '').toLowerCase();
+                  return cl === 'mensualidad' || cl.startsWith('pension');
+                };
+                let nextCuota = pendingItems.find(p => _isMensualidadConcept(p.concept))
+                  || verifyingItems.find(p => _isMensualidadConcept(p.concept))
+                  || pendingItems[0]
+                  || verifyingItems[0]
+                  || null;
 
                 // Enrich nextCuota with mora and pronto-pago data from paymentData.monthly_detail
-                // (must happen BEFORE grouping so the monthTotal reflects interest/discount)
-                if (nextCuota && paymentData?.monthly_detail) {
+                // (must happen BEFORE grouping so the monthTotal reflects interest/discount).
+                // IMPORTANT: only enrich if nextCuota is actually a mensualidad/pension row.
+                // Subscription-generated cuotas (LIBROS, talleres, etc.) keep their own amount.
+                const nextIsMensualidad = _isMensualidadConcept(nextCuota?.concept);
+                if (nextCuota && nextIsMensualidad && paymentData?.monthly_detail) {
                   const matchDetail = paymentData.monthly_detail.find(m => {
                     if (nextCuota.id && m.id === nextCuota.id) return true;
                     if (nextCuota.pension_month && m.payment_date?.startsWith(nextCuota.pension_month)) return true;
