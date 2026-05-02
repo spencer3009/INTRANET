@@ -422,8 +422,18 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                             {hasBreakdown && (
                               <>
                                 <div className="flex items-center justify-between text-sm">
-                                  <span className="text-slate-600">Pago pensión</span>
-                                  <span className="font-semibold text-slate-700">S/ {pensionAmount.toFixed(2)}</span>
+                                  <span className="text-slate-600 flex items-center gap-2">
+                                    Pago pensión
+                                    {month.applies_pronto_pago && (
+                                      <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded uppercase tracking-wide" data-testid={`pronto-pago-badge-${idx}`}>Pronto pago</span>
+                                    )}
+                                  </span>
+                                  <span className="font-semibold text-slate-700">
+                                    {month.applies_pronto_pago && month.pension_mensual_full > pensionAmount && (
+                                      <span className="text-slate-400 line-through text-xs mr-1.5">S/ {Number(month.pension_mensual_full).toFixed(2)}</span>
+                                    )}
+                                    S/ {pensionAmount.toFixed(2)}
+                                  </span>
                                 </div>
                                 {pendingSubs.map((sc, i) => (
                                   <div key={sc.id || i} className="flex items-center justify-between text-sm" data-testid={`payment-subline-${idx}-${i}`}>
@@ -432,6 +442,12 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                                   </div>
                                 ))}
                               </>
+                            )}
+                            {!hasBreakdown && month.applies_pronto_pago && month.pension_mensual_full > pensionAmount && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold rounded uppercase tracking-wide" data-testid={`pronto-pago-badge-${idx}`}>Pronto pago aplicado</span>
+                                <span className="text-slate-400 line-through">S/ {Number(month.pension_mensual_full).toFixed(2)}</span>
+                              </div>
                             )}
                             {month.interest_charge > 0 && (
                               <p className="text-[11px] text-rose-500 font-medium pl-1">+ S/ {month.interest_charge.toFixed(2)} de mora ({month.days_late || 0} d)</p>

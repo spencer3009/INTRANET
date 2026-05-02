@@ -399,7 +399,22 @@ async def get_parent_payments(
                 label = "Mensualidad"
         
         # For pending mensualidad: use pension_mensual as base (stored amount may already include mora)
-        display_amount = pension_mensual if p.get("payment_status") in ("pending", "overdue") else p.get("_mensualidad_amount", p.get("total_amount", 0))
+        # PRONTO PAGO: applies if today is within day "pronto_pago_fecha_limite" of the
+        # current month. The discount applies to ALL pending mensualidades (incentivizes
+        # the parent to clear the debt during the early-payment window).
+        is_pending_status = p.get("payment_status") in ("pending", "overdue")
+        applies_pronto = False
+        if is_pending_status and pronto_pago_activo and pronto_pago_monto > 0:
+            try:
+                today_dt = datetime.now(timezone.utc)
+                applies_pronto = today_dt.day <= int(pronto_pago_fecha_limite)
+            except Exception:
+                applies_pronto = False
+
+        if is_pending_status:
+            display_amount = pronto_pago_monto if applies_pronto else pension_mensual
+        else:
+            display_amount = p.get("_mensualidad_amount", p.get("total_amount", 0))
 
         # Attach subscription charges for the same pension_month (e.g., Pago libros)
         sub_charges = subs_by_month.get(pension_month_raw, []) if pension_month_raw else []
@@ -410,6 +425,8 @@ async def get_parent_payments(
             "payment_date": p.get("payment_date"),
             "pension_month": pension_month_raw,
             "total_amount": display_amount,
+            "applies_pronto_pago": applies_pronto,
+            "pension_mensual_full": pension_mensual,
             "payment_status": p.get("payment_status"),
             "payment_method": p.get("payment_method"),
             "receipt_number": p.get("receipt_number"),
