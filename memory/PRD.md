@@ -1,57 +1,64 @@
-# SaaS Escolar - Product Requirements Document
+# PRD — SaaS Escolar (EduNet)
 
 ## Original Problem Statement
-Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del servidor en producción evitando OOM crashes. Implementar monitoreo de salud y tracking de sesiones activas en tiempo real. Adicionalmente, corregir errores críticos en PWA, ajustar la visibilidad de componentes por roles y corregir masivamente la ortografía (tildes) en los textos del frontend.
+Replicar y expandir módulos del SaaS escolar. Optimizar rendimiento del servidor en producción evitando OOM crashes. Implementar monitoreo de salud y tracking de sesiones activas en tiempo real.
 
-## Architecture
-- **Backend**: FastAPI (Python) en `/app/backend`, rutas en `/app/backend/routes/`
-- **Frontend**: React en `/app/frontend`
-- **DB**: MongoDB
-- **Almacenamiento**: Cloudinary (himno MP3 / imágenes)
+Lenguaje del usuario: **Español** (responder siempre en Español).
 
-## Roles soportados
-- Owner / Admin
-- Profesor
-- Padre (Apoderado)
-- Alumno
-- Tópico (rol médico/enfermería)
-- Mantenimiento / Personal Administrativo
-- Psicología
+## Personas
+- **Admin / Owner**: gestiona toda la operación del colegio, contabilidad, pagos, planilla docente.
+- **Padre (Apoderado)**: revisa pensiones, paga con Yape, ve estado de hijos.
+- **Profesor**: registra asistencia, cursos, calificaciones.
+- **Alumno**: consulta tareas, calificaciones.
+- **Auxiliar / Tópico / Psicología**: módulos administrativos especializados.
 
-## Recently Implemented (2026-Q1 → 2026-Q2)
-- Dashboard del Padre con suscripciones opcionales y cálculo correcto de mensualidad.
-- Padres en modo lectura para servicios opcionales.
-- Sincronización completa de "Deuda del Mes" entre Yape y Estado Financiero.
-- Cancelación automática de pagos pendientes al desactivar suscripciones.
-- Renombrado superficial "Mantenimiento" → "Administrativos".
-- Perfil del Padre 100% editable (`ParentProfilePage.jsx` + `auth.py`).
-- Subida y reproducción de Himno del Colegio (MP3, autoplay, progreso).
-- Validación de archivos `.mpeg` para MP3.
-- Conteo de "Tareas Atrasadas" sincronizado entre portal padre/alumno.
-- Panel de deduplicación de pagos (`DedupePensionsPanel.jsx`) para Owner.
-- **2026-04-29: Fix bug visual** — Etiquetas de mes en `/api/parent/payments` ahora se derivan de `pension_month` (fuente de verdad) y no de `payment_date`, eliminando la confusión donde un pago de Enero realizado en Abril aparecía como "Abril".
-- **2026-04-29: Modo masivo de Suscripciones** — Nuevo botón "Gestionar todos los alumnos" en Contabilidad → Suscripciones. Despliega listado agrupado por sección con checkboxes, acciones "Marcar todos / Desmarcar todos", contador de pendientes y guardado en lote vía `POST /api/accounting/concept-subscriptions/bulk`. Endpoint adicional `GET /api/accounting/concept-subscriptions/all` para precarga de estado por colegio. Componente: `BulkSubscriptionsPanel.jsx`.
-- **2026-05-01: Planilla Docente** — Nueva colección `teacher_payments` + 5 endpoints (`GET /contabilidad/teacher-payments/planilla`, `POST /contabilidad/teacher-payments`, `/bulk-create`, `/{id}/confirm`, `DELETE /{id}`, `PATCH /users/teachers/{id}/salary`). Botón "Pagar Profesores" en pestaña Egresos que abre un modal con selector mes/año/tipo (Sueldo/Bono/Gratificación/CTS/Otro), tabla editable, sub-modal para configurar sueldos base, y acción "Pagar todos los pendientes". Al confirmar se genera automáticamente un egreso espejo con categoría `planilla_docente`, link `teacher_payment_id` y badge "Planilla" en la tabla de Egresos. Componente: `TeacherPayrollModal.jsx`.
+## Stack
+- Backend: FastAPI + MongoDB
+- Frontend: React + Tailwind + shadcn/ui
+- Librerías clave: jsPDF, xlsx (SheetJS)
 
-## Backlog / Roadmap
+## Last Implemented (Feb 2026)
+- [Bugfix] Modal de Yape — el monto se mantenía fijo en pensión (S/200) en pasos 2 y 3 cuando había suscripciones extras (libros). FIX: `ParentDashboardPage.jsx` ahora pasa `amount = monthTotal` y `total_amount = monthTotal` cuando hay extras del mes, además del `breakdown`. Validado por testing agent (frontend, 100%) — iteración 135.
+- [Bugfix] Pronto Pago no se respetaba en detalle de "Pago Pensión".
+- [Bugfix] Dashboard del Padre tampoco respetaba el pronto pago.
+- [Feature] Modo masivo de asignación de Suscripciones en Contabilidad.
+- [UI/UX] Asistencia manual ordenada por apellido con formato "Apellido Nombre".
+- [Feature] Exportar Reporte de Asistencia a Excel y PDF individual.
+- [Feature] Importación masiva de Profesores vía Excel.
+- [Feature] Módulo de Pago a Profesores / Planilla Docente con egresos automáticos.
+- [Feature] Switch para bloquear login de padres morosos.
+
+## Backlog (priorizado)
 
 ### P1
-- Psicología — Log de auditoría estricto.
+- Psicología: log de auditoría estricto.
 
 ### P2
-- Módulo de "Encuestas".
-- Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-- Refactor de `CourseDetailPage.jsx` (>11k líneas) y `UsersPage.jsx` (>6k líneas).
+- Crear módulo de "Encuestas".
+- Optimización servidor en exámenes masivos (3000 estudiantes).
+- Refactorizar `CourseDetailPage.jsx` (>11.000 líneas) y `UsersPage.jsx` (>6.000 líneas).
 - Plantilla "Adventista" para carnets QR.
 
 ### P3
-- Gráfica de evolución de IMC en historial del alumno (Tópico).
-- Botón "Bloquear plantilla" a nivel colegio (solo admin).
+- Gráfica de evolución (IMC) en historial Tópico.
+- Botón "Bloquear plantilla" a nivel colegio (admin).
 - Papelera de reciclaje para profesor (soft-delete 30 días).
 - Banner amarillo de tareas atrasadas en dashboard del alumno.
 
-## Known Issues
-- Error `insertBefore en Node` al escanear QR desde Android con traductor de Google.
+## Recurring Issues
+- Usuario olvida hacer "Save to Github" — recordar al final de cada cambio.
+- `insertBefore en Node` al escanear QR desde Android con traductor de Google (pendiente).
+
+## Key APIs
+- `POST /api/auth/login`
+- `GET /api/parent/dashboard`
+- `GET /api/parent/payments`
+- `POST /api/parent-payments/report`
+
+## Key DB Schema
+- `teacher_payments`: {school_id, teacher_id, period_year, period_month, payment_type, amount, status, egreso_id}
+- `schools`: {..., restrict_parent_login_if_debt}
+- `payments`: {school_id, student_id, pension_month, concept, payment_status, total_amount, ...}
 
 ## Test Credentials
-Ver `/app/memory/test_credentials.md`
+Ver `/app/memory/test_credentials.md`.
