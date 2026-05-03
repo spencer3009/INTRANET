@@ -1238,6 +1238,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                                 m = parseInt(nextCuota.payment_date.split("-")[1]);
                                 y = parseInt(nextCuota.payment_date.split("-")[0]);
                               }
+                              const finalAmount = extraItemsForMonth.length > 0 ? monthTotal : (nextCuota.amount || 0);
                               setYapeModalPayment({
                                 ...nextCuota,
                                 student_id: selectedChild?.id,
@@ -1245,6 +1246,17 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                                 month: m,
                                 year: y,
                                 month_name: nextCuota.description || nextCuota.concept,
+                                amount: finalAmount,
+                                total_amount: finalAmount,
+                                breakdown: extraItemsForMonth.length > 0 ? {
+                                  pension: nextCuota.amount || 0,
+                                  subscriptions: extraItemsForMonth.map(it => ({
+                                    concept: it.description || it.concept || "Concepto",
+                                    amount: it.amount || 0,
+                                    payment_id: it.id,
+                                  })),
+                                  total: monthTotal,
+                                } : undefined,
                               });
                             }}
                             className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 shadow-md"

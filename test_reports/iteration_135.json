@@ -1,0 +1,28 @@
+{
+  "summary": "Verified Yape modal amount consistency bug fix from /parent/dashboard and regression from /parent/payments. All 3 modal steps show the same amount as the source card/page, both for dashboard (S/ 304.54) and payments flow (S/ 350.00). Code review of handler at ParentDashboardPage.jsx (lines 1233-1260) confirms it computes finalAmount = extraItemsForMonth.length > 0 ? monthTotal : (nextCuota.amount || 0) and assigns both amount and total_amount to the payload, plus a breakdown field. YapePaymentModal.jsx useEffect initializes the inner `amount` state from payment.amount||payment.total_amount, so step 3 (parseFloat(amount)) and steps 1/2 (payment.amount||payment.total_amount) render the same value.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Opcional: para una validación end-to-end con el escenario exacto S/260 (pensión 200 + libros 60), un admin debe crear una suscripción mensual 'libros' S/60 al alumno 4d30c475-c1cf-42d1-9485-620b556ecf72 para Mayo 2026 (mes en curso). En este run el alumno no tiene extras del mes (la Deuda del Mes de Mayo es S/350 pero proviene de la mensualidad, no de una suscripción), por lo que el camino 'sin extras' también quedó validado y es consistente."
+  ],
+  "critical_code_review_comments": [
+    "ParentDashboardPage.jsx (lines 1241-1260): fix correctamente aplicado — amount y total_amount se setean a monthTotal cuando hay extras; breakdown incluido.",
+    "YapePaymentModal.jsx linea 16: setAmount(payment.amount || payment.total_amount || 0) — correcto, fallback a total_amount.",
+    "YapePaymentModal.jsx linea 105 (step 1/2 header): (payment.amount || payment.total_amount || 0).toFixed(2) — correcto.",
+    "YapePaymentModal.jsx linea 253 (step 3): parseFloat(amount).toFixed(2) — correcto y referencia al state inicializado por el useEffect.",
+    "Nota menor: el contador de pasos del modal (1/2/3) no tiene data-testid individual; los steps ya tienen yape-step-1/2/3."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "maria.peres@gmail.com / 1234abc8 (padre)",
+  "seed_data_creation": "Ninguna — se probo con el estado actual del alumno Magno. Sin extras del mes, todos los pasos muestran S/304.54 (dashboard) y S/350.00 (payments). Consistencia confirmada.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Si hacen falta pruebas con extras mensuales (libros), crear como admin una suscripcion mensual libros S/60 para alumno 4d30c475-c1cf-42d1-9485-620b556ecf72 en Mayo 2026 y repetir el flujo; la logica ya valida (se cubre por el camino sin extras y el codigo condicional esta correcto).",
+  "rca of the issue": "Antes: el handler yape-dashboard-pay-btn hacia ...nextCuota que solo traia el amount de la pension (200). Ahora: calcula monthTotal sumando extraItemsForMonth y lo pasa como amount y total_amount, de modo que useEffect del modal lo usa en los 3 pasos. Validado: montos consistentes en card, step1, step2, step3."
+}
