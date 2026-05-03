@@ -86,7 +86,7 @@
     "admin_email": "admin.prueba@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "base_url": "https://pension-month-sync.preview.emergentagent.com"
+    "base_url": "https://modal-monto-total.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - used existing test users",

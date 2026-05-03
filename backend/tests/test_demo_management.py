@@ -10,7 +10,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://pension-month-sync.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://modal-monto-total.preview.emergentagent.com')
 
 # Test credentials from review request
 SUPPORT_EMAIL = "spencer3009@gmail.com"
