@@ -18,6 +18,7 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 - Librerías clave: jsPDF, xlsx (SheetJS)
 
 ## Last Implemented (Feb 2026)
+- [Bugfix] Justificación de asistencia manual no persistía en producción cuando los registros nuevos quedaban con `grade_id: null` (porque la API derivaba el grado del usuario y este podía estar vacío). FIX: `JustifyAttendanceRequest` ahora acepta `grade_id` y `section_id` explícitos desde el frontend; `AttendancePage.jsx` y `TeacherAttendancePage.jsx` los envían. Endpoint nuevo `POST /api/attendance/backfill-grade-section` (admin) para reparar registros antiguos huérfanos. Validado por curl end-to-end (justify → GET students retorna status=justified con motivo y nota).
 - [Bugfix] Modal de Yape — el monto se mantenía fijo en pensión (S/200) en pasos 2 y 3 cuando había suscripciones extras (libros). FIX: `ParentDashboardPage.jsx` ahora pasa `amount = monthTotal` y `total_amount = monthTotal` cuando hay extras del mes, además del `breakdown`. Validado por testing agent (frontend, 100%) — iteración 135.
 - [Bugfix] Pronto Pago no se respetaba en detalle de "Pago Pensión".
 - [Bugfix] Dashboard del Padre tampoco respetaba el pronto pago.

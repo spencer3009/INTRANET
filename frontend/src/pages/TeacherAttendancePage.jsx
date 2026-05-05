@@ -213,6 +213,7 @@ function StudentAttendanceTab({ token, user }) {
         date: selectedDate,
         justification_reason,
         justification_note,
+        section_id: selectedSection,
       }, { headers });
       setStudents(prev => prev.map(s =>
         s.id === justifyModal.studentId ? {

@@ -416,6 +416,8 @@ class JustifyAttendanceRequest(BaseModel):
     date: str
     justification_reason: str
     justification_note: Optional[str] = None
+    grade_id: Optional[str] = None
+    section_id: Optional[str] = None
 
 @router.post("/attendance/justify")
 async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depends(get_current_user)):
@@ -440,13 +442,19 @@ async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depend
     if user.get("last_name"):
         justified_by_name = f"{user['name']} {user['last_name']}"
 
-    # Get student info for grade_id and section_id
+    # Get student info for grade_id and section_id (fallback)
     student = await db.users.find_one(
         {"id": data.student_id, "school_id": school_id, "role": "student"},
         {"_id": 0, "grado_id": 1, "seccion_id": 1}
     )
-    student_grade_id = student.get("grado_id") if student else None
-    student_section_id = student.get("seccion_id") if student else None
+    # Prefer explicit grade_id/section_id from the request payload (sent by the
+    # client when justifying from the manual attendance screen). This guarantees
+    # the persisted attendance record carries the SAME grade/section the user is
+    # currently viewing — otherwise the record can become invisible on
+    # subsequent loads if the student's grado_id/seccion_id in the users
+    # collection are missing or differ.
+    student_grade_id = data.grade_id or (student.get("grado_id") if student else None)
+    student_section_id = data.section_id or (student.get("seccion_id") if student else None)
 
     # Check if record exists to determine if we need to set grade_id/section_id
     existing_record = await db.attendances.find_one({
@@ -512,6 +520,62 @@ async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depend
 async def get_justification_reasons():
     """Return the list of valid justification reasons."""
     return {"reasons": [{"id": k, "label": v} for k, v in JUSTIFICATION_REASONS.items()]}
+
+
+@router.post("/attendance/backfill-grade-section")
+async def backfill_grade_section(current_user = Depends(get_current_user)):
+    """One-shot backfill: fill grade_id/section_id on attendance records that
+    have null/missing values, using the student's current grado_id/seccion_id.
+    Admins/owners only. Idempotent.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar el backfill")
+
+    school_id = user["school_id"]
+
+    # Find broken attendance records in this school
+    broken = await db.attendances.find({
+        "school_id": school_id,
+        "type": "student",
+        "$or": [
+            {"grade_id": None},
+            {"grade_id": {"$exists": False}},
+            {"section_id": None},
+            {"section_id": {"$exists": False}},
+        ]
+    }, {"_id": 0, "id": 1, "user_id": 1, "grade_id": 1, "section_id": 1}).to_list(5000)
+
+    fixed = 0
+    skipped = 0
+    for rec in broken:
+        student = await db.users.find_one(
+            {"id": rec["user_id"], "school_id": school_id, "role": "student"},
+            {"_id": 0, "grado_id": 1, "seccion_id": 1}
+        )
+        if not student or not student.get("grado_id") or not student.get("seccion_id"):
+            skipped += 1
+            continue
+        update = {}
+        if not rec.get("grade_id"):
+            update["grade_id"] = student["grado_id"]
+        if not rec.get("section_id"):
+            update["section_id"] = student["seccion_id"]
+        if update:
+            await db.attendances.update_one({"id": rec["id"]}, {"$set": update})
+            fixed += 1
+
+    logger.info(f"Backfill grade/section: school={school_id} fixed={fixed} skipped={skipped} total_broken={len(broken)}")
+
+    return {
+        "message": "Backfill ejecutado",
+        "total_broken": len(broken),
+        "fixed": fixed,
+        "skipped_no_student_data": skipped,
+    }
+
 
 
 @router.get("/attendance/students/history")
