@@ -5275,20 +5275,54 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   const [registerStatus, setRegisterStatus] = useState("open");
   const [loadingAvailability, setLoadingAvailability] = useState(false);
 
-  // Plantilla de Registro Auxiliar — columnas_finales dinámicas
-  const [columnasVinculables, setColumnasVinculables] = useState([]);
+  // Plantilla de Registro Auxiliar — TODAS las subcolumnas input (criterios) + columnas_finales
+  // agrupadas por criterio (mismo patrón que el modal Nueva Tarea).
+  const [examColumnGroups, setExamColumnGroups] = useState([]);
   const [plantillaLoading, setPlantillaLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load plantilla activa del colegio → columnas_finales
+  // Load plantilla activa del colegio → criterios.subcolumnas (input) + columnas_finales
   useEffect(() => {
     if (!isOpen) return;
     const loadPlantilla = async () => {
       setPlantillaLoading(true);
+      const buildGroups = (plantilla) => {
+        const groups = [];
+        for (const cri of (plantilla?.criterios || [])) {
+          const subs = (cri.subcolumnas || [])
+            .filter(s => s.tipo === "input")
+            .map(s => ({
+              id: s.id,
+              field_key: s.field_key || s.id,
+              label: s.label,
+            }));
+          if (subs.length > 0) {
+            groups.push({
+              criterion: cri.id,
+              criterion_label: cri.nombre || "",
+              subcolumnas: subs,
+            });
+          }
+        }
+        const finales = (plantilla?.columnas_finales || []).map(c => ({
+          id: c.id,
+          field_key: c.field_key || c.id,
+          label: c.label_corto || c.label || c.id,
+          porcentaje: c.porcentaje,
+        }));
+        if (finales.length > 0) {
+          groups.push({
+            criterion: "columnas_finales",
+            criterion_label: "EXÁMENES",
+            subcolumnas: finales,
+          });
+        }
+        return groups;
+      };
       try {
         if (!schoolId) {
-          setColumnasVinculables(PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+          setExamColumnGroups(buildGroups(PLANTILLA_SISTEMA_FALLBACK));
           return;
         }
         const res = await axios.get(
@@ -5300,10 +5334,10 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
         const activa = predeterminada || plantillas.find(p => !p.es_sistema && p.estado === "activa");
         const sistema = plantillas.find(p => p.es_sistema);
         const plantilla = activa || sistema || PLANTILLA_SISTEMA_FALLBACK;
-        setColumnasVinculables(plantilla.columnas_finales || PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+        setExamColumnGroups(buildGroups(plantilla));
       } catch (err) {
         console.error("[EduNet] Error cargando plantilla para vincular examen:", err);
-        setColumnasVinculables(PLANTILLA_SISTEMA_FALLBACK.columnas_finales);
+        setExamColumnGroups(buildGroups(PLANTILLA_SISTEMA_FALLBACK));
       } finally {
         setPlantillaLoading(false);
       }
@@ -5460,6 +5494,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   };
 
   // Check if a slot is available (and not occupied by current exam being edited)
+  // Slot availability — accept either field_key, id or label as `key`
+  // (the legacy `availability` map mirrors all three for compatibility).
   const isSlotAvailable = (key) => {
     if (!availability) return true;
     const slot = availability[key];
@@ -5481,26 +5517,31 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
     return "Ya asignado";
   };
 
+  // Flat list of all subcolumns across groups (for confirmation lookup + counts)
+  const allSubcolumnas = examColumnGroups.flatMap(g => g.subcolumnas);
+
   // Build confirmation text
   const buildConfirmationText = () => {
     if (!registerColumn) {
-      return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el módulo de examenes." };
+      return { linked: false, text: "Este examen NO se vinculará al Registro Auxiliar. Las notas solo quedarán en el módulo de exámenes." };
     }
     const periodName = activePeriod?.nombre || "Periodo activo";
-    const col = columnasVinculables.find(c => (c.label_corto || c.id) === registerColumn);
-    const label = col ? `${col.label} (${col.label_corto || col.id})` : registerColumn;
+    const col = allSubcolumnas.find(c => (c.field_key || c.id) === registerColumn || c.label === registerColumn);
+    const labelText = col ? col.label : registerColumn;
     return {
       linked: true,
-      text: `${periodName} → ${label}`,
-      detail: `Las notas de los alumnos se guardaran automaticamente en la columna ${col?.label_corto || registerColumn}.`
+      text: `${periodName} → ${labelText}`,
+      detail: `Las notas de los alumnos se guardarán automáticamente en la columna ${labelText}.`
     };
   };
 
   const confirmation = buildConfirmationText();
 
-  // All slots taken? (solo si todas las columnas vinculables están ocupadas)
-  const allSlotsTaken = availability && columnasVinculables.length > 0 &&
-    columnasVinculables.every(c => !isSlotAvailable(c.label_corto || c.id));
+  // Count of available / blocked across the whole list
+  const totalSubcols = allSubcolumnas.length;
+  const availableCount = allSubcolumnas.filter(c => isSlotAvailable(c.field_key || c.id)).length;
+  const blockedCount = totalSubcols - availableCount;
+  const allSlotsTaken = availability && totalSubcols > 0 && availableCount === 0;
 
   if (!isOpen) return null;
 
@@ -5611,78 +5652,102 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
                       </div>
                     )}
 
-                    {/* Single column selection — mutually exclusive (dinámico desde plantilla activa) */}
+                    {/* Subcolumnas dinámicas agrupadas por criterio (mismo patrón que modal Tareas) */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-2">Vincular al Registro Auxiliar como:</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-2">Registrar nota como:</label>
                       {plantillaLoading ? (
                         <div className="flex items-center gap-2 text-xs text-amber-600">
                           <Loader2 className="w-3 h-3 animate-spin" /> Cargando columnas de la plantilla...
                         </div>
-                      ) : columnasVinculables.length === 0 ? (
-                        <p className="text-xs text-gray-500 italic">La plantilla activa no tiene columnas finales configuradas.</p>
+                      ) : examColumnGroups.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic">La plantilla activa no tiene columnas configuradas.</p>
                       ) : allSlotsTaken ? (
                         <p className="text-xs text-gray-500 italic">Todas las columnas ya fueron asignadas para este bimestre.</p>
                       ) : (
-                        <div className="space-y-1.5">
-                          {columnasVinculables.map((col) => {
-                            const key = col.label_corto || col.id;
-                            const available = isSlotAvailable(key);
-                            const tooltip = getSlotTooltip(key);
-                            const isSelected = registerColumn === key;
-                            return (
-                              <label
-                                key={col.id || key}
-                                data-testid={`register-col-${String(key).toLowerCase()}`}
-                                title={!available ? tooltip : ""}
-                                className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
-                                  !available
-                                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
-                                    : isSelected
-                                    ? "bg-amber-100 border-amber-400 text-amber-800"
-                                    : "bg-white border-gray-200 hover:border-amber-300"
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="register_column"
-                                  checked={isSelected}
-                                  disabled={!available}
-                                  onChange={() => setRegisterColumn(isSelected ? null : key)}
-                                  onClick={() => { if (isSelected) setRegisterColumn(null); }}
-                                  className="accent-amber-600"
-                                />
-                                <span className="flex-1">
-                                  {col.label} ({col.label_corto || col.id}){col.porcentaje != null ? ` — ${col.porcentaje}%` : ""}
-                                </span>
-                                {!available ? (
-                                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
-                                    {availability?.[key]?.reason === "manual" ? "Notas manuales" : "Ya asignado"}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>
-                                )}
-                              </label>
-                            );
-                          })}
-                          {/* "Sin vinculacion" option */}
-                          <label
-                            data-testid="register-col-none"
-                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
-                              !registerColumn
-                                ? "bg-gray-100 border-gray-300 text-gray-700"
-                                : "bg-white border-gray-200 hover:border-gray-300"
-                            }`}
+                        <>
+                          {/* Counter discreto: disponibles vs ya asignadas */}
+                          <p className="text-[11px] text-gray-500 mb-2" data-testid="exam-cols-counter">
+                            {availableCount} disponibles · {blockedCount} ya asignadas
+                          </p>
+                          <div
+                            className="space-y-3 max-h-[360px] overflow-y-auto pr-1"
+                            data-testid="exam-register-column-groups"
                           >
-                            <input
-                              type="radio"
-                              name="register_column"
-                              checked={!registerColumn}
-                              onChange={() => setRegisterColumn(null)}
-                              className="accent-gray-500"
-                            />
-                            <span className="flex-1 text-gray-500">Sin vinculacion</span>
-                          </label>
-                        </div>
+                            {examColumnGroups.map(grupo => (
+                              <div key={grupo.criterion}>
+                                <p
+                                  className="text-[11px] font-bold uppercase tracking-wide mb-1.5"
+                                  style={{ color: "#FBBF24" }}
+                                >
+                                  {grupo.criterion_label}
+                                </p>
+                                <div className="space-y-1.5">
+                                  {grupo.subcolumnas.map(sub => {
+                                    const slotKey = sub.field_key || sub.id;
+                                    const available = isSlotAvailable(slotKey);
+                                    const tooltip = getSlotTooltip(slotKey);
+                                    const isSelected = registerColumn === slotKey;
+                                    const slot = availability?.[slotKey];
+                                    const reason = slot?.reason;
+                                    return (
+                                      <label
+                                        key={sub.id || slotKey}
+                                        data-testid={`exam-register-col-${String(slotKey).toLowerCase()}`}
+                                        title={!available ? tooltip : ""}
+                                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                                          !available
+                                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                                            : isSelected
+                                            ? "bg-amber-100 border-amber-400 text-amber-800"
+                                            : "bg-white border-gray-200 hover:border-amber-300"
+                                        }`}
+                                      >
+                                        <input
+                                          type="radio"
+                                          name="register_column"
+                                          checked={isSelected}
+                                          disabled={!available}
+                                          onChange={() => setRegisterColumn(isSelected ? null : slotKey)}
+                                          onClick={() => { if (isSelected) setRegisterColumn(null); }}
+                                          className="accent-amber-600"
+                                        />
+                                        <span className="flex-1">
+                                          {sub.label}
+                                          {sub.porcentaje != null ? ` — ${sub.porcentaje}%` : ""}
+                                        </span>
+                                        {!available ? (
+                                          <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
+                                            {reason === "manual" ? "Notas manuales" : "Ya asignado"}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>
+                                        )}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                            {/* "Sin vinculación" option al final */}
+                            <label
+                              data-testid="exam-register-col-none"
+                              className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                                !registerColumn
+                                  ? "bg-gray-100 border-gray-300 text-gray-700"
+                                  : "bg-white border-gray-200 hover:border-gray-300"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="register_column"
+                                checked={!registerColumn}
+                                onChange={() => setRegisterColumn(null)}
+                                className="accent-gray-500"
+                              />
+                              <span className="flex-1 text-gray-500">Sin vinculación</span>
+                            </label>
+                          </div>
+                        </>
                       )}
                     </div>
 

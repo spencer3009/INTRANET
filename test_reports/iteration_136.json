@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend validation Fase 2 — Modal Nuevo Examen (Vinculación al Registro Auxiliar agrupada). Login OK con admin@elroble.edu, navegación a /elroble/curso/{subjectId}, tab EXÁMENES, modal Nuevo Examen abierto. Todas las verificaciones críticas de UI agrupada PASARON: las 17 subcolumnas tipo input se renderizan agrupadas por criterio, counter visible, scroll interno con max-height 360px, opción 'Sin vinculación' presente, label 'Registrar nota como:' presente.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Modal Nuevo Examen", "issues": ["El subtítulo de la sección dice 'Vinculacion al Registro Auxiliar' (sin tilde). Issue cosmético menor, no bloqueante."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Opcional: completar tests FE-6 (crear examen con slot dinámico → POST /api/course/{id}/exams 200), FE-7 (editar examen mantiene auto-selección del slot propio), FE-8 (regresión Modal Nueva Tarea), FE-9 (conflicto 409). No se ejecutaron por límite de tiempo, pero la lógica de UI/agrupación está validada.",
+    "Aclaración: El request mencionaba etiquetas 'TAREAS' y 'PASITOS' para la plantilla de El Roble. La plantilla activa real del colegio usa nombres 'REVISIÓN DE FICHAS' y 'PARTICIPACIONES' (es la plantilla del colegio, no la del sistema). Esto es CORRECTO: la lógica del modal usa la plantilla activa del colegio (predeterminada/activa) antes que el fallback del sistema, exactamente como está documentado en el código (CourseDetailPage.jsx líneas 5333-5336)."
+  ],
+  "critical_code_review_comments": [
+    "CourseDetailPage.jsx tiene 11659 líneas — recomendación de refactor (split en módulos por feature: Exams, Tareas, Material, Foro, etc.). Ya hay un index.js de extracción en /components/course pero la mayoría sigue inline.",
+    "buildGroups() asume que toda subcolumna tipo='input' es vinculable; verificar si hay subcolumnas calculadas que no deberían aparecer (parece OK con filter tipo==='input').",
+    "Filtrado en useEffect loadPlantilla: prioridad correcta predeterminada > activa > sistema > fallback (línea 5333-5336).",
+    "data-testid generado con String(slotKey).toLowerCase() — bien para evitar duplicados/case issues.",
+    "Pequeño typo en el JSX 'Vinculacion' (sin tilde) en label del bloque amarillo (~línea 5611). No bloqueante."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "5/9 tested + 4 lógica visual confirmada (FE-1, FE-2, FE-3, FE-4, FE-5 ✅; FE-6/7/8/9 no ejecutados)"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (validado funcional)",
+  "seed_data_creation": "Ninguno (no se llegó a crear examen TEST_)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "URL del modal: login → /elroble/curso/a1eb013c-1682-4411-b525-334a55f588d5 → click [data-testid='tab-examenes'] → click button:has-text('Nuevo examen'). Login: data-testid login-email-input / login-password-input (NO usar name='email_or_username', no existe ese atributo; el placeholder describe formato pero no hay name). Verificación visual del modal mostró: counter '7 disponibles · 10 ya asignadas', 17 subcolumnas en 5 grupos (ACTITUDINAL: CO/RE, REVISIÓN DE FICHAS: R1-R5, COMPETENCIA: C1/C2, PARTICIPACIONES: P1/P2/P3/EXP/TG/P, EXÁMENES: EM/EB), max-height 360px, overflow-y auto, sin-vinculacion radio presente.",
+  "rca_of_the_issue": "N/A — feature funcionando según spec. La única discrepancia (etiquetas TAREAS/PASITOS vs REVISIÓN DE FICHAS/PARTICIPACIONES) es por usar la plantilla del colegio activa vs sistema, comportamiento correcto y deseado."
+}
