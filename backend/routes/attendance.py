@@ -481,6 +481,22 @@ async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depend
         if not existing_record.get("section_id"):
             set_data["section_id"] = student_section_id
 
+    # Build $setOnInsert WITHOUT fields already present in $set (MongoDB
+    # rejects updates with the same path in $set and $setOnInsert with
+    # error 40 "Updating the path 'X' would create a conflict at 'X'").
+    set_on_insert = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "type": "student",
+        "user_id": data.student_id,
+        "date": data.date,
+        "created_at": now
+    }
+    if "grade_id" not in set_data:
+        set_on_insert["grade_id"] = student_grade_id
+    if "section_id" not in set_data:
+        set_on_insert["section_id"] = student_section_id
+
     result = await db.attendances.update_one(
         {
             "school_id": school_id,
@@ -490,16 +506,7 @@ async def justify_attendance(data: JustifyAttendanceRequest, current_user=Depend
         },
         {
             "$set": set_data,
-            "$setOnInsert": {
-                "id": str(uuid.uuid4()),
-                "school_id": school_id,
-                "type": "student",
-                "user_id": data.student_id,
-                "date": data.date,
-                "grade_id": student_grade_id,
-                "section_id": student_section_id,
-                "created_at": now
-            }
+            "$setOnInsert": set_on_insert
         },
         upsert=True
     )
