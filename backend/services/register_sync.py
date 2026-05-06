@@ -261,6 +261,119 @@ async def get_valid_task_columns_for_school(db, school_id: str) -> set:
         return set(TASK_VALID_COLUMNS)
 
 
+async def get_active_template_for_school(db, school_id: str) -> dict:
+    """
+    Resolve the ACTIVE Registro Auxiliar template for a school using the same
+    priority order the frontend uses:
+      1. School's `es_predeterminada` (and not system)
+      2. School's `estado == "activa"` (and not system)
+      3. The system template (`es_sistema: True`)
+      4. None — caller must fallback (legacy)
+    """
+    try:
+        plantillas = await db.registro_auxiliar_plantillas.find(
+            {"$or": [{"school_id": school_id}, {"es_sistema": True}]},
+            {"_id": 0},
+        ).to_list(50)
+
+        predeterminada = next(
+            (p for p in plantillas
+             if p.get("school_id") == school_id
+             and p.get("es_predeterminada")
+             and not p.get("es_sistema")
+             and p.get("estado") != "eliminada"),
+            None,
+        )
+        if predeterminada:
+            return predeterminada
+
+        activa = next(
+            (p for p in plantillas
+             if p.get("school_id") == school_id
+             and not p.get("es_sistema")
+             and p.get("estado") == "activa"),
+            None,
+        )
+        if activa:
+            return activa
+
+        sistema = next((p for p in plantillas if p.get("es_sistema")), None)
+        if sistema:
+            return sistema
+    except Exception as e:
+        logger.warning(f"[register] active-template lookup failed for {school_id}: {e}")
+
+    return None
+
+
+async def get_valid_exam_columns_for_school(db, school_id: str) -> set:
+    """
+    Return the set of register columns an EXAM may be linked to.
+
+    Exams can target ANY input subcolumna (same as tasks) AND additionally the
+    `columnas_finales` (EM/EB and similar — these are reserved for exams from
+    the original system template, but custom templates may add more).
+
+    Mirrors `get_valid_task_columns_for_school` but unions in the
+    `columnas_finales` ids/labels too.
+    """
+    def _extract_with_finales(plantilla) -> set:
+        out = set()
+        for cri in (plantilla or {}).get("criterios", []) or []:
+            for sub in cri.get("subcolumnas", []) or []:
+                if sub.get("tipo") != "input":
+                    continue
+                key = sub.get("field_key") or sub.get("id")
+                if key:
+                    out.add(key)
+                    out.add(str(key).upper())
+                    out.add(str(key).lower())
+                label = sub.get("label")
+                if label:
+                    out.add(label)
+                    out.add(str(label).upper())
+                    out.add(str(label).lower())
+        # columnas_finales: implicit input (no `tipo` field) — always include
+        for col in (plantilla or {}).get("columnas_finales", []) or []:
+            key = col.get("field_key") or col.get("id")
+            if key:
+                out.add(key)
+                out.add(str(key).upper())
+                out.add(str(key).lower())
+            for label_field in ("label", "label_corto"):
+                label = col.get(label_field)
+                if label:
+                    out.add(label)
+                    out.add(str(label).upper())
+                    out.add(str(label).lower())
+        return out
+
+    try:
+        cols: set = set()
+        async for p in db.registro_auxiliar_plantillas.find(
+            {"school_id": school_id},
+            {"_id": 0, "criterios": 1, "columnas_finales": 1, "estado": 1},
+        ):
+            if p.get("estado") == "eliminada":
+                continue
+            cols |= _extract_with_finales(p)
+
+        system = await db.registro_auxiliar_plantillas.find_one(
+            {"es_sistema": True},
+            {"_id": 0, "criterios": 1, "columnas_finales": 1},
+        )
+        if system:
+            cols |= _extract_with_finales(system)
+
+        # Legacy: keep the historic VALID_COLUMNS (EM, EB, P1, P2, P3, etc.)
+        cols |= set(VALID_COLUMNS)
+        return cols
+    except Exception as e:
+        logger.warning(f"[register] dynamic exam-columns lookup failed for {school_id}: {e}")
+        return set(VALID_COLUMNS)
+
+
+
 def exam_score_to_vigesimal(percentage: float) -> int:
     """Convert exam percentage (0-100) to vigesimal scale (0-20), integer."""
     if percentage is None:

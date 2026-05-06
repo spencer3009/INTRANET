@@ -50,6 +50,9 @@ from services.register_sync import (
     sync_to_register, sync_single_student_task,
     COLUMN_FIELD_MAP, VALID_COLUMNS, TASK_VALID_COLUMNS,
     get_valid_task_columns_for_school,
+    get_valid_exam_columns_for_school,
+    get_active_template_for_school,
+    get_storage_field,
 )
 
 # ONLINE EXAMS MODULE - Premium Implementation
@@ -111,12 +114,23 @@ class ExamUpdate(BaseModel):
 async def get_unified_register_availability(
     subject_id: str = Query(...),
     section_id: str = Query(None),
+    period_id: str = Query(None),
     current_user=Depends(get_current_user)
 ):
     """
-    Unified availability check for EM/EB/P1/P2/P3 columns.
-    TRIPLE verification: exams + tasks + manual grades.
-    period_id is auto-resolved from the active academic period.
+    Unified availability check resolved DYNAMICALLY from the school's active
+    Registro Auxiliar template. Returns:
+
+      - `availability`: legacy map keyed by column id with `{available, reason,
+        assigned_to}` (kept for backward compatibility with the existing Tasks
+        modal).
+      - `columns`: NEW richer list-of-columns format used by the Exam modal.
+        Each entry is `{id, field_key, label, criterion, criterion_label,
+        type, available, blocked_reason, blocked_by}` and includes EVERY input
+        subcolumna of the active plantilla PLUS its `columnas_finales`.
+
+    Triple verification: exams + tasks + manual grades (top-level fields and
+    `grades_dynamic.<column_id>`).
     """
     import asyncio as _asyncio
     user = await resolve_user_from_token(current_user)
@@ -125,23 +139,31 @@ async def get_unified_register_availability(
 
     school_id = user["school_id"]
 
-    # Auto-resolve period from active academic period
-    active_period = await db.academic_periods.find_one(
-        {"school_id": school_id, "activo": True},
-        {"_id": 0, "id": 1, "nombre": 1}
-    )
+    # Auto-resolve period from active academic period when caller didn't pass one
+    if period_id:
+        active_period = await db.academic_periods.find_one(
+            {"school_id": school_id, "id": period_id},
+            {"_id": 0, "id": 1, "nombre": 1, "activo": 1}
+        )
+    else:
+        active_period = await db.academic_periods.find_one(
+            {"school_id": school_id, "activo": True},
+            {"_id": 0, "id": 1, "nombre": 1}
+        )
     if not active_period:
         return {
             "period_id": None,
             "period_name": None,
+            "period_label": None,
             "period_active": False,
             "subject_id": subject_id,
             "section_id": section_id,
             "register_status": "open",
             "availability": {},
+            "columns": [],
         }
 
-    period_id = active_period["id"]
+    resolved_period_id = active_period["id"]
     period_name = active_period.get("nombre", "")
 
     # Resolve section_id from subject if not provided
@@ -155,113 +177,191 @@ async def get_unified_register_availability(
     grade_base_filter = {
         "school_id": school_id,
         "subject_id": subject_id,
-        "period_id": period_id,
+        "period_id": resolved_period_id,
     }
     if section_id:
         grade_base_filter["section_id"] = section_id
 
+    # Resolve the active template — drives the column list shown to teachers
+    plantilla = await get_active_template_for_school(db, school_id)
+
+    # Build the canonical column list from the plantilla
+    columns_meta: list[dict] = []
+    if plantilla:
+        for cri in plantilla.get("criterios", []) or []:
+            cri_id = cri.get("id")
+            cri_nombre = cri.get("nombre") or ""
+            for sub in cri.get("subcolumnas", []) or []:
+                if sub.get("tipo") != "input":
+                    continue
+                sid = sub.get("id")
+                fkey = sub.get("field_key") or sid
+                columns_meta.append({
+                    "id": sid,
+                    "field_key": fkey,
+                    "label": sub.get("label") or fkey,
+                    "criterion": cri_id,
+                    "criterion_label": cri_nombre,
+                    "type": "input",
+                })
+        for col in plantilla.get("columnas_finales", []) or []:
+            cid = col.get("id")
+            fkey = col.get("field_key") or cid
+            columns_meta.append({
+                "id": cid,
+                "field_key": fkey,
+                "label": col.get("label_corto") or col.get("label") or fkey,
+                "criterion": "columnas_finales",
+                "criterion_label": "EXÁMENES",
+                "type": "input",
+            })
+
+    # Fetch linked exams, tasks and lock in parallel
     results = await _asyncio.gather(
-        # a) Exams already linked
         db.online_exams.find(
             {"school_id": school_id, "subject_id": subject_id,
-             "period_id": period_id, "register_column": {"$ne": None}},
+             "period_id": resolved_period_id, "register_column": {"$ne": None}},
             {"_id": 0, "id": 1, "title": 1, "register_column": 1}
-        ).to_list(50),
-        # b) Tasks already linked (exclude soft-deleted)
+        ).to_list(100),
         db.course_posts.find(
             {"school_id": school_id, "subject_id": subject_id,
-             "period_id": period_id, "register_column": {"$ne": None},
+             "period_id": resolved_period_id, "register_column": {"$ne": None},
              "deleted_at": {"$exists": False},
              "$or": [{"post_type": "task"}, {"type": "task"}]},
             {"_id": 0, "id": 1, "title": 1, "register_column": 1}
-        ).to_list(50),
-        # c) Manual grades count per column
-        db.student_grades.count_documents({**grade_base_filter, "exam_mensual": {"$ne": None}}),
-        db.student_grades.count_documents({**grade_base_filter, "exam_bimestral": {"$ne": None}}),
-        db.student_grades.count_documents({**grade_base_filter, "part_p1": {"$ne": None}}),
-        db.student_grades.count_documents({**grade_base_filter, "part_p2": {"$ne": None}}),
-        db.student_grades.count_documents({**grade_base_filter, "part_p3": {"$ne": None}}),
-        # d) Lock status
+        ).to_list(100),
         db.grade_locks.find_one(
             {"school_id": school_id, "subject_id": subject_id,
-             "section_id": section_id, "period_id": period_id} if section_id else {"_id": None},
+             "section_id": section_id, "period_id": resolved_period_id} if section_id
+            else {"_id": None},
             {"_id": 0}
         ),
     )
+    linked_exams, linked_tasks, lock = results
 
-    linked_exams = results[0]
-    linked_tasks = results[1]
-    manual_counts = {
-        "EM": results[2], "EB": results[3],
-        "P1": results[4], "P2": results[5], "P3": results[6],
-    }
-    lock = results[7]
+    exam_by_col = {e["register_column"]: e for e in linked_exams if e.get("register_column")}
+    task_by_col = {t["register_column"]: t for t in linked_tasks if t.get("register_column")}
 
-    # Build exam/task lookup by column
-    exam_by_col = {}
-    for exam in linked_exams:
-        col = exam.get("register_column")
-        if col:
-            exam_by_col[col] = exam
+    # Manual grade counts: dispatch one count per column (static or dynamic field)
+    async def _count_manual(col_meta: dict) -> int:
+        column_key = col_meta["id"]
+        ftype, fkey = await get_storage_field(db, column_key, school_id)
+        if not ftype or not fkey:
+            return 0
+        path = fkey if ftype == "static" else f"grades_dynamic.{fkey}"
+        return await db.student_grades.count_documents({**grade_base_filter, path: {"$ne": None}})
 
-    task_by_col = {}
-    for task in linked_tasks:
-        col = task.get("register_column")
-        if col:
-            task_by_col[col] = task
+    manual_counts_list = await _asyncio.gather(*[_count_manual(c) for c in columns_meta]) \
+        if columns_meta else []
 
-    # Build availability map
-    slots = {}
-    for key in ["EM", "EB", "P1", "P2", "P3"]:
-        if key in exam_by_col:
-            e = exam_by_col[key]
-            slots[key] = {
+    # Build the rich list-format response
+    columns_response: list[dict] = []
+    legacy_availability: dict = {}
+
+    for idx, col in enumerate(columns_meta):
+        keys_to_match = [col["id"], col["field_key"], col["label"]]
+        # Match by ANY of the column's identifiers (id, field_key or label)
+        # because tasks/exams might persist any of those as register_column.
+        assigned_exam = next((exam_by_col[k] for k in keys_to_match if k in exam_by_col), None)
+        assigned_task = next((task_by_col[k] for k in keys_to_match if k in task_by_col), None)
+        manual_count = manual_counts_list[idx] if idx < len(manual_counts_list) else 0
+
+        if assigned_exam:
+            entry = {
+                **col,
                 "available": False,
-                "reason": "exam",
-                "assigned_to": {
-                    "type": "exam",
-                    "id": e["id"],
-                    "title": e.get("title", ""),
-                },
+                "blocked_reason": "exam_assigned",
+                "blocked_by": {"type": "exam", "id": assigned_exam["id"],
+                               "title": assigned_exam.get("title", "")},
             }
-        elif key in task_by_col:
-            t = task_by_col[key]
-            slots[key] = {
-                "available": False,
-                "reason": "task",
-                "assigned_to": {
-                    "type": "task",
-                    "id": t["id"],
-                    "title": t.get("title", ""),
-                },
+            legacy_availability[col["id"]] = {
+                "available": False, "reason": "exam",
+                "assigned_to": {"type": "exam", "id": assigned_exam["id"],
+                                "title": assigned_exam.get("title", "")},
             }
-        elif manual_counts.get(key, 0) > 0:
-            slots[key] = {
+        elif assigned_task:
+            entry = {
+                **col,
                 "available": False,
-                "reason": "manual",
-                "assigned_to": {
-                    "type": "manual",
-                    "id": None,
-                    "title": None,
-                },
+                "blocked_reason": "task_assigned",
+                "blocked_by": {"type": "task", "id": assigned_task["id"],
+                               "title": assigned_task.get("title", "")},
+            }
+            legacy_availability[col["id"]] = {
+                "available": False, "reason": "task",
+                "assigned_to": {"type": "task", "id": assigned_task["id"],
+                                "title": assigned_task.get("title", "")},
+            }
+        elif manual_count > 0:
+            entry = {
+                **col,
+                "available": False,
+                "blocked_reason": "manual_grades",
+                "blocked_by": {"type": "manual", "id": None, "title": None},
+            }
+            legacy_availability[col["id"]] = {
+                "available": False, "reason": "manual",
+                "assigned_to": {"type": "manual", "id": None, "title": None},
             }
         else:
-            slots[key] = {
-                "available": True,
-                "reason": None,
-                "assigned_to": None,
+            entry = {**col, "available": True, "blocked_reason": None, "blocked_by": None}
+            legacy_availability[col["id"]] = {"available": True, "reason": None, "assigned_to": None}
+
+        # Mirror legacy availability under field_key and label as well so the
+        # existing Tasks modal (which lookups by either id, field_key or label)
+        # keeps working unchanged.
+        legacy_availability[col["field_key"]] = legacy_availability[col["id"]]
+        legacy_availability[col["label"]] = legacy_availability[col["id"]]
+
+        columns_response.append(entry)
+
+    # Backward-compat: ensure the legacy keys EM/EB/P1/P2/P3 always exist in
+    # `availability` (even if the school's plantilla uses different ids), since
+    # the Exam modal previously hard-checked those.
+    legacy_static_static = {"EM": "exam_mensual", "EB": "exam_bimestral",
+                            "P1": "part_p1", "P2": "part_p2", "P3": "part_p3"}
+    for legacy_key, real_field in legacy_static_static.items():
+        if legacy_key in legacy_availability:
+            continue
+        # Did we already mark this column via a dynamic id?
+        # If not, fall back to a manual-grade check on the static field.
+        manual_count = await db.student_grades.count_documents(
+            {**grade_base_filter, real_field: {"$ne": None}}
+        )
+        if legacy_key in exam_by_col:
+            e = exam_by_col[legacy_key]
+            legacy_availability[legacy_key] = {
+                "available": False, "reason": "exam",
+                "assigned_to": {"type": "exam", "id": e["id"], "title": e.get("title", "")},
+            }
+        elif legacy_key in task_by_col:
+            t = task_by_col[legacy_key]
+            legacy_availability[legacy_key] = {
+                "available": False, "reason": "task",
+                "assigned_to": {"type": "task", "id": t["id"], "title": t.get("title", "")},
+            }
+        elif manual_count > 0:
+            legacy_availability[legacy_key] = {
+                "available": False, "reason": "manual",
+                "assigned_to": {"type": "manual", "id": None, "title": None},
+            }
+        else:
+            legacy_availability[legacy_key] = {
+                "available": True, "reason": None, "assigned_to": None,
             }
 
     register_status = "closed" if (lock and lock.get("locked")) else "open"
 
     return {
-        "period_id": period_id,
+        "period_id": resolved_period_id,
         "period_name": period_name,
+        "period_label": period_name,
         "period_active": True,
         "subject_id": subject_id,
         "section_id": section_id,
         "register_status": register_status,
-        "availability": slots,
+        "availability": legacy_availability,
+        "columns": columns_response,
     }
 
 
@@ -307,6 +407,20 @@ async def _validate_register_linkage(
                     "plantilla activa del Registro Auxiliar."
                 ),
             )
+    elif source_type == "exam":
+        # Exam slots come dynamically from the school's active template
+        # (input subcolumnas + columnas_finales). This replaces the old hard
+        # limit to EM/EB/P1/P2/P3 so schools with custom plantillas can link
+        # exams to any column they have configured.
+        valid_exam_cols = await get_valid_exam_columns_for_school(db, school_id)
+        if register_column not in valid_exam_cols:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Esta columna no existe o no está habilitada para exámenes en la "
+                    "plantilla activa del Registro Auxiliar."
+                ),
+            )
     elif register_column not in VALID_COLUMNS:
         raise HTTPException(
             status_code=400,
@@ -335,15 +449,29 @@ async def _validate_register_linkage(
             detail=f"La columna {register_column} ya fue asignada al {label} '{ctitle}'. Actualice la pagina e intente de nuevo."
         )
 
-    # Also check manual grades
-    field = COLUMN_FIELD_MAP.get(register_column)
-    if field:
-        manual_count = await db.student_grades.count_documents({
+    # Also check manual grades — for static columns the field is a top-level
+    # key in `student_grades`; for dynamic (custom-template) columns it lives
+    # under `grades_dynamic.<column_id>`. `get_storage_field` resolves both.
+    field_type, field_key = await get_storage_field(db, register_column, school_id)
+    if field_type == "static":
+        manual_query = {
             "school_id": school_id,
             "subject_id": subject_id,
             "period_id": period_id,
-            field: {"$ne": None},
-        })
+            field_key: {"$ne": None},
+        }
+    elif field_type == "dynamic":
+        manual_query = {
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": period_id,
+            f"grades_dynamic.{field_key}": {"$ne": None},
+        }
+    else:
+        manual_query = None
+
+    if manual_query is not None:
+        manual_count = await db.student_grades.count_documents(manual_query)
         if manual_count > 0:
             raise HTTPException(
                 status_code=409,
