@@ -2698,7 +2698,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
           <div data-testid="task-register-linkage-block" className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4 mb-5">
             <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Vinculacion al Registro Auxiliar
+              Vinculación al Registro Auxiliar
             </p>
 
             {taskActivePeriodLoading ? (
@@ -5608,7 +5608,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           <div data-testid="register-linkage-block" className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
             <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Vinculacion al Registro Auxiliar
+              Vinculación al Registro Auxiliar
             </p>
 
             {/* Active period display */}
