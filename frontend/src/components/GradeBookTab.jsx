@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
-import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, ClipboardList } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, ClipboardList, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   PLANTILLA_SISTEMA_FALLBACK,
@@ -28,11 +28,20 @@ const S = {
   thColFinalShort: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "6px 4px", fontSize: "11px", whiteSpace: "nowrap", verticalAlign: "middle" },
   tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600 },
   tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
+  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", position: "relative" },
   tdAvg: { background: "#E2EFDA", border: "1px solid #A9D18E", textAlign: "center", padding: "2px", fontWeight: 700, fontSize: "11px", color: "#375623" },
-  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
+  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", position: "relative" },
   tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864" },
   input: { width: "100%", border: "none", outline: "none", textAlign: "center", fontSize: "12px", padding: "4px 0", background: "transparent", fontFamily: "inherit" },
+  // Trash button — appears on hover when cell has a value & status is open
+  clearBtn: {
+    position: "absolute", top: "1px", right: "1px",
+    border: "none", background: "rgba(254, 226, 226, 0.95)",
+    color: "#b91c1c", padding: "1px 3px", borderRadius: "4px",
+    cursor: "pointer", lineHeight: 0,
+    opacity: 0, transition: "opacity 100ms ease",
+    pointerEvents: "auto",
+  },
   stickyNum: { position: "sticky", left: 0, zIndex: 2 },
   stickyName: { position: "sticky", zIndex: 2 },
   stickyNumHeader: { position: "sticky", left: 0, zIndex: 4 },
@@ -233,6 +242,13 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     setDirty(true);
   }, [status, plantilla]);
 
+  /* Clear a single cell: shortcut for "set to null + autosave next tick".
+     Used by the trash icon that appears on hover. */
+  const handleClearGrade = useCallback((idx, sub) => {
+    if (status !== "open") return;
+    handleGradeChange(idx, sub, "");
+  }, [status, handleGradeChange]);
+
   /* ── Save ── */
   const handleSave = async (isAuto = false) => {
     if (!selectedPeriod || students.length === 0 || !plantilla) return;
@@ -318,6 +334,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   return (
     <div className="space-y-3" data-testid="grade-book">
+      {/* CSS: trash button visible on hover for cells that have a value */}
+      <style>{`
+        .grade-cell:hover .grade-clear-btn { opacity: 1 !important; }
+        .grade-clear-btn:hover { background: #FCA5A5 !important; }
+      `}</style>
       {/* ── TOOLBAR ── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", padding: "12px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -480,7 +501,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                             );
                           }
                           return (
-                            <td key={sub.id} style={{ ...S.tdInput, background: rowBg }}>
+                            <td key={sub.id} className="grade-cell" style={{ ...S.tdInput, background: rowBg }}>
                               <input
                                 type="number"
                                 min="0"
@@ -492,6 +513,18 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                                 style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
                                 data-testid={`grade-${student.student_id}-${sub.field_key || sub.id}`}
                               />
+                              {!isLocked && getGradeValue(student, sub) === 0 && (
+                                <button
+                                  type="button"
+                                  className="grade-clear-btn"
+                                  style={S.clearBtn}
+                                  title="Borrar nota (dejar en blanco)"
+                                  data-testid={`clear-grade-${student.student_id}-${sub.field_key || sub.id}`}
+                                  onClick={() => handleClearGrade(idx, sub)}
+                                >
+                                  <Trash2 size={11} strokeWidth={2.2} />
+                                </button>
+                              )}
                             </td>
                           );
                         })}
@@ -499,7 +532,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     ))}
                     {/* Columnas finales */}
                     {columnas_finales.map(col => (
-                      <td key={col.id} style={{ ...S.tdColFinal, background: rowBg }}>
+                      <td key={col.id} className="grade-cell" style={{ ...S.tdColFinal, background: rowBg }}>
                         <input
                           type="number"
                           min="0"
@@ -511,6 +544,18 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                           style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
                           data-testid={`grade-${student.student_id}-${col.field_key || col.id}`}
                         />
+                        {!isLocked && getGradeValue(student, col) === 0 && (
+                          <button
+                            type="button"
+                            className="grade-clear-btn"
+                            style={S.clearBtn}
+                            title="Borrar nota (dejar en blanco)"
+                            data-testid={`clear-grade-${student.student_id}-${col.field_key || col.id}`}
+                            onClick={() => handleClearGrade(idx, col)}
+                          >
+                            <Trash2 size={11} strokeWidth={2.2} />
+                          </button>
+                        )}
                       </td>
                     ))}
                     {/* Final grade */}
