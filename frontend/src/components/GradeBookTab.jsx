@@ -9,6 +9,7 @@ import {
   calcularPromedioBimestral,
   calcularPromedioCriterio,
   getGradeValue,
+  isStaticSubcolumn,
 } from "../utils/registroAuxiliarUtils";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -33,14 +34,18 @@ const S = {
   tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", position: "relative" },
   tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864" },
   input: { width: "100%", border: "none", outline: "none", textAlign: "center", fontSize: "12px", padding: "4px 0", background: "transparent", fontFamily: "inherit" },
-  // Trash button — appears on hover when cell has a value & status is open
+  // Trash button — appears when cell has value === 0.
+  // Positioned on the LEFT side of the cell so it doesn't overlap with the
+  // native number-input spinner arrows (which sit on the right).
   clearBtn: {
-    position: "absolute", top: "1px", right: "1px",
+    position: "absolute", top: "50%", left: "2px",
+    transform: "translateY(-50%)",
     border: "none", background: "rgba(254, 226, 226, 0.95)",
     color: "#b91c1c", padding: "1px 3px", borderRadius: "4px",
     cursor: "pointer", lineHeight: 0,
-    opacity: 0, transition: "opacity 100ms ease",
+    transition: "background 100ms ease",
     pointerEvents: "auto",
+    zIndex: 1,
   },
   stickyNum: { position: "sticky", left: 0, zIndex: 2 },
   stickyName: { position: "sticky", zIndex: 2 },
@@ -226,14 +231,18 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     const max = plantilla?.escala_maxima || 20;
     const val = value === "" ? null : parseFloat(value);
     if (val !== null && (isNaN(val) || val < 0 || val > max)) return;
+    const isStatic = isStaticSubcolumn(sub);
     setStudents(prev => {
       const updated = [...prev];
       const row = { ...updated[idx] };
-      if (sub.field_key) {
+      if (isStatic) {
+        // Static subcolumn (system template): write to top-level field
         row[sub.field_key] = val;
       } else {
-        // Dynamic (custom template) — store under grades_dynamic.<id>
-        row.grades_dynamic = { ...(row.grades_dynamic || {}), [sub.id]: val };
+        // Dynamic (custom template): write to grades_dynamic.<field_key|id>.
+        // Custom plantillas may have field_key === id (UUID-style).
+        const dynKey = sub.field_key || sub.id;
+        row.grades_dynamic = { ...(row.grades_dynamic || {}), [dynKey]: val };
       }
       row.final_grade = calcularPromedioBimestral(row, plantilla);
       updated[idx] = row;
@@ -242,8 +251,8 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     setDirty(true);
   }, [status, plantilla]);
 
-  /* Clear a single cell: shortcut for "set to null + autosave next tick".
-     Used by the trash icon that appears on hover. */
+  /* Clear a single cell: shortcut for "set to null".
+     Used by the trash icon that appears when value is 0. */
   const handleClearGrade = useCallback((idx, sub) => {
     if (status !== "open") return;
     handleGradeChange(idx, sub, "");
@@ -257,25 +266,24 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       const grades = students.map(s => {
         const entry = { student_id: s.student_id };
         const dynamicEntry = {};
+        const writeSub = (sub) => {
+          if (isStaticSubcolumn(sub)) {
+            entry[sub.field_key] = s[sub.field_key] ?? null;
+          } else {
+            const dynKey = sub.field_key || sub.id;
+            const val = s.grades_dynamic?.[dynKey];
+            // Always include even null so the backend can clear the cell
+            if (val !== undefined) dynamicEntry[dynKey] = val;
+          }
+        };
         for (const criterio of plantilla.criterios) {
           for (const sub of criterio.subcolumnas) {
             if (sub.tipo !== "input") continue;
-            if (sub.field_key) {
-              entry[sub.field_key] = s[sub.field_key];
-            } else {
-              // Phase 5 — column belongs to a custom template
-              const val = s.grades_dynamic?.[sub.id];
-              if (val !== undefined) dynamicEntry[sub.id] = val;
-            }
+            writeSub(sub);
           }
         }
         for (const col of plantilla.columnas_finales) {
-          if (col.field_key) {
-            entry[col.field_key] = s[col.field_key];
-          } else {
-            const val = s.grades_dynamic?.[col.id];
-            if (val !== undefined) dynamicEntry[col.id] = val;
-          }
+          writeSub(col);
         }
         if (Object.keys(dynamicEntry).length > 0) {
           entry.grades_dynamic = dynamicEntry;
@@ -334,9 +342,8 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   return (
     <div className="space-y-3" data-testid="grade-book">
-      {/* CSS: trash button visible on hover for cells that have a value */}
+      {/* CSS: hover effect for the clear button */}
       <style>{`
-        .grade-cell:hover .grade-clear-btn { opacity: 1 !important; }
         .grade-clear-btn:hover { background: #FCA5A5 !important; }
       `}</style>
       {/* ── TOOLBAR ── */}

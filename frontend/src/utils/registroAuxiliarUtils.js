@@ -86,12 +86,38 @@ export const PLANTILLA_SISTEMA_FALLBACK = {
  * Returns `undefined` when neither path has a value, so the caller
  * can coerce to "" for inputs.
  */
+/**
+ * Set de field_keys "estáticos" — campos top-level del documento
+ * `student_grades` que existen como columnas fijas en el modelo legacy.
+ *
+ * Cualquier `field_key` que NO esté aquí es tratado como columna dinámica
+ * (plantilla personalizada) y su valor vive en `grades_dynamic[<id>]`.
+ *
+ * Debe mantenerse sincronizado con `GRADE_SUB_FIELDS` en
+ * `/app/backend/routes/grades.py`.
+ */
+export const STATIC_GRADE_FIELDS = new Set([
+  "act_co", "act_re",
+  "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+  "comp_c1", "comp_c2",
+  "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+  "exam_mensual", "exam_bimestral",
+]);
+
+/** True si la subcolumna se almacena top-level; false si va a grades_dynamic. */
+export function isStaticSubcolumn(sub) {
+  return !!(sub && sub.field_key && STATIC_GRADE_FIELDS.has(sub.field_key));
+}
+
 export function getGradeValue(student, sub) {
   if (!student || !sub) return undefined;
-  if (sub.field_key && student[sub.field_key] !== undefined && student[sub.field_key] !== null) {
+  // Static sub: read from top-level field
+  if (isStaticSubcolumn(sub) && student[sub.field_key] !== undefined && student[sub.field_key] !== null) {
     return student[sub.field_key];
   }
-  return student.grades_dynamic?.[sub.id];
+  // Dynamic sub: read from grades_dynamic[<id>] (use field_key OR id)
+  const dynKey = sub.field_key || sub.id;
+  return student.grades_dynamic?.[dynKey];
 }
 
 /** Promedio de valores no-null. Retorna null si todos son null/undefined/"". */
