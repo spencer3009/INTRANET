@@ -691,15 +691,30 @@ async def backup_students(
     grado_id: str = "",
     seccion_id: str = "",
     turno_id: str = "",
-    user=Depends(require_support_admin)
+    current_user=Depends(get_current_user)
 ):
-    """Export students as Excel backup in import-template format (support only)"""
+    """Export students as Excel backup in import-template format.
+
+    Permitted to:
+      - system_admin_global (soporte) — any school
+      - owner / admin — only their own school
+    """
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from io import BytesIO
 
-    if user.get("role") != "system_admin_global":
-        raise HTTPException(status_code=403, detail="Solo soporte puede exportar backups")
+    # Resolve the requesting user once
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    role = user.get("role")
+    user_school = user.get("school_id")
+    is_support = role == "system_admin_global" or user.get("is_support_session") is True
+    is_admin_owner = role in ("owner", "admin") and user_school == school_id
+
+    if not (is_support or is_admin_owner):
+        raise HTTPException(status_code=403, detail="No tienes permisos para exportar el backup de este colegio")
 
     if not nivel_id or not grado_id or not seccion_id:
         raise HTTPException(status_code=400, detail="Debe seleccionar nivel, grado y sección")

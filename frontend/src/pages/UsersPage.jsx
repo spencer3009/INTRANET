@@ -3203,7 +3203,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Huérfanos
                   </button>
                 )}
-                {isSupportSession && (
+                {(isSupportSession || user?.role === "owner" || user?.role === "admin") && (
                   <button
                     onClick={handleBackupExport}
                     disabled={backupLoading || !studentFilterLevel || !studentFilterGrade || !studentFilterSection || !studentFilterShift}
