@@ -37,6 +37,7 @@ const allNavItems = [
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users", section: "users" },
   { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos", section: "grades" },
   { id: "ajustes-académicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
+  { id: "areas-curriculares", label: "Áreas Curriculares", icon: BookMarked, route: "/areas-curriculares", section: "grades", roles: ["owner", "admin", "director"] },
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas", section: "courses" },
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },

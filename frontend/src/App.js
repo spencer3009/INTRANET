@@ -16,6 +16,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
 import UsersPage from "@/pages/UsersPage";
 import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
+import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AcademicYearsPage from "@/pages/AcademicYearsPage";
 import SubjectsPage from "@/pages/SubjectsPage";
 import SchedulePage from "@/pages/SchedulePage";
@@ -2580,6 +2581,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AcademicSettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Áreas Curriculares — gestión MINEDU (path-based + subdomain) */}
+          <Route
+            path="/:subdomain/areas-curriculares"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminCurricularAreasPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/areas-curriculares"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminCurricularAreasPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

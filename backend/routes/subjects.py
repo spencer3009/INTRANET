@@ -64,6 +64,7 @@ class SubjectCreate(BaseModel):
     color: str = "#3B82F6"
     status: str = "active"
     image_url: Optional[str] = None
+    area_id: Optional[str] = None
     area_name: Optional[str] = None
     area_order: Optional[int] = None
 
@@ -78,6 +79,7 @@ class SubjectUpdate(BaseModel):
     color: Optional[str] = None
     status: Optional[str] = None
     image_url: Optional[str] = None
+    area_id: Optional[str] = None
     area_name: Optional[str] = None
     area_order: Optional[int] = None
 

@@ -39,6 +39,7 @@ from routes.discipline import router as discipline_router
 from routes.news import router as news_router
 from routes.accounting import router as accounting_router, daily_billing_generation_cron, monthly_concept_payments_cron, ensure_subscription_index
 from routes.subjects import router as subjects_router
+from routes.curricular_areas import router as curricular_areas_router
 from routes.health import router as health_router
 from routes.monitoring import router as monitoring_router
 from routes.support_monitor import router as support_monitor_router
@@ -207,6 +208,7 @@ app.include_router(discipline_router)
 app.include_router(news_router)
 app.include_router(accounting_router)
 app.include_router(subjects_router)
+app.include_router(curricular_areas_router)
 app.include_router(health_router)
 app.include_router(support_monitor_router)
 app.include_router(courses_router)
