@@ -290,6 +290,136 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
         ]
     }
 
+@router.get("/student/grades")
+async def get_student_grades(
+    period_id: Optional[str] = Query(None, description="Filter by period; defaults to active"),
+    current_user = Depends(get_current_user),
+):
+    """
+    Return the student's published grades for the requested period.
+
+    Source of truth: `student_grades` collection (same as the Consolidado de
+    Notas). Returns one entry per (subject, period) with the final_grade.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden consultar sus notas")
+
+    school_id = user.get("school_id")
+    student_id = user.get("id")
+
+    # Resolve active period if caller did not provide one
+    if not period_id:
+        active_period = await db.academic_periods.find_one(
+            {"school_id": school_id, "activo": True},
+            {"_id": 0, "id": 1, "nombre": 1},
+        )
+        if not active_period:
+            return {"period_id": None, "period_name": None, "subjects": [], "grades": []}
+        period_id = active_period["id"]
+        period_name = active_period.get("nombre", "")
+    else:
+        p = await db.academic_periods.find_one(
+            {"school_id": school_id, "id": period_id},
+            {"_id": 0, "id": 1, "nombre": 1},
+        )
+        period_name = p.get("nombre", "") if p else ""
+
+    # Subjects the student is enrolled in via their section
+    section_id = user.get("seccion_id")
+    subjects = []
+    if section_id:
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "section_id": section_id, "status": {"$ne": "deleted"}},
+            {"_id": 0, "id": 1, "name": 1, "color": 1, "section_id": 1},
+        ).to_list(100)
+
+    subject_ids = [s["id"] for s in subjects]
+    if not subject_ids:
+        return {"period_id": period_id, "period_name": period_name, "subjects": [], "grades": []}
+
+    # Load student_grades for all the student's subjects in this period
+    grade_docs = await db.student_grades.find(
+        {
+            "school_id": school_id,
+            "student_id": student_id,
+            "period_id": period_id,
+            "subject_id": {"$in": subject_ids},
+        },
+        {"_id": 0},
+    ).to_list(200)
+    grade_by_subject = {g["subject_id"]: g for g in grade_docs}
+
+    # Build per-subject summary
+    subject_summaries = []
+    grades_history = []
+    for s in subjects:
+        g = grade_by_subject.get(s["id"])
+        final = g.get("final_grade") if g else None
+        # Count non-null sub-grades (static + dynamic) to show "X notas"
+        count = 0
+        if g:
+            static_fields = [
+                "act_co", "act_re",
+                "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+                "comp_c1", "comp_c2",
+                "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+                "exam_mensual", "exam_bimestral",
+            ]
+            for f in static_fields:
+                if g.get(f) is not None:
+                    count += 1
+                    grades_history.append({
+                        "id": f"{g.get('id', s['id'])}_{f}",
+                        "subject_id": s["id"],
+                        "subject_name": s.get("name", ""),
+                        "subject_color": s.get("color", "#6366f1"),
+                        "course_id": s["id"],
+                        "course_name": s.get("name", ""),
+                        "course_color": s.get("color", "#6366f1"),
+                        "task_title": f.replace("_", " ").upper(),
+                        "grade": g[f],
+                        "max_grade": 20,
+                        "graded_at": g.get("updated_at"),
+                        "feedback": None,
+                    })
+            for col_id, val in (g.get("grades_dynamic") or {}).items():
+                if val is None:
+                    continue
+                count += 1
+                grades_history.append({
+                    "id": f"{g.get('id', s['id'])}_dyn_{col_id}",
+                    "subject_id": s["id"],
+                    "subject_name": s.get("name", ""),
+                    "subject_color": s.get("color", "#6366f1"),
+                    "course_id": s["id"],
+                    "course_name": s.get("name", ""),
+                    "course_color": s.get("color", "#6366f1"),
+                    "task_title": col_id,
+                    "grade": val,
+                    "max_grade": 20,
+                    "graded_at": g.get("updated_at"),
+                    "feedback": None,
+                })
+        subject_summaries.append({
+            "id": s["id"],
+            "subject_id": s["id"],
+            "name": s.get("name", ""),
+            "color": s.get("color", "#6366f1"),
+            "final_grade": final,
+            "grades_count": count,
+            "has_grades": count > 0 or final is not None,
+        })
+
+    return {
+        "period_id": period_id,
+        "period_name": period_name,
+        "subjects": subject_summaries,
+        "grades": grades_history,
+    }
+
+
+
 @router.get("/student/tasks")
 async def get_student_tasks(
     current_user = Depends(get_current_user),

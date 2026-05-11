@@ -37,49 +37,28 @@ export default function StudentGradesPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get student's courses and settings
-      const [coursesRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/api/student/courses`, { headers }),
-        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
+      // 1) Pull the student's published grades from the source of truth
+      //    (`student_grades` collection — same as the Consolidado de Notas).
+      // 2) Pull settings in parallel so we know the school name / logo.
+      const [gradesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/grades`, { headers }),
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
       ]);
-      
-      const studentCourses = coursesRes.data.courses || [];
-      setCourses(studentCourses);
-      if (settingsRes.data) {
-        setSettings(settingsRes.data);
-      }
-      
-      // For now, we'll show grades from graded tasks
-      // In a full implementation, this would come from a grades collection
-      const allGrades = [];
-      for (const course of studentCourses) {
-        try {
-          const tasksRes = await axios.get(`${API}/api/course/${course.id}/posts?post_type=task`, { headers });
-          const courseTasks = tasksRes.data?.posts || tasksRes.data || [];
-          
-          // Find submissions with grades for this student
-          for (const task of courseTasks) {
-            const submission = task.submissions?.find(s => s.student_id === user?.id);
-            if (submission && submission.grade !== null && submission.grade !== undefined) {
-              allGrades.push({
-                id: task.id,
-                task_title: task.title,
-                course_id: course.id,
-                course_name: course.name,
-                course_color: course.color,
-                grade: submission.grade,
-                max_grade: task.max_grade || 20,
-                graded_at: submission.graded_at,
-                feedback: submission.feedback
-              });
-            }
-          }
-        } catch (err) {
-          console.error(`Error loading grades for course ${course.id}:`, err);
-        }
-      }
-      
-      setGrades(allGrades);
+
+      if (settingsRes.data) setSettings(settingsRes.data);
+
+      const subjects = gradesRes.data?.subjects || [];
+      const grades = gradesRes.data?.grades || [];
+
+      // Map subjects to the "courses" shape the UI uses
+      setCourses(subjects.map(s => ({
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        final_grade: s.final_grade,
+        grades_count: s.grades_count,
+      })));
+      setGrades(grades);
     } catch (err) {
       console.error("Error loading grades:", err);
     } finally {
@@ -91,24 +70,32 @@ export default function StudentGradesPage({ user, token, onLogout }) {
   const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
   const logoUrl = settings?.logo_url;
 
-  // Calculate course averages
+  // Per-course summary: prefer the backend's `final_grade` (consolidated
+  // bimestral average from the Registro Auxiliar). Fall back to averaging the
+  // raw grade history if the consolidated grade isn't yet calculated.
   const courseAverages = courses.map(course => {
     const courseGrades = grades.filter(g => g.course_id === course.id);
+    if (course.final_grade !== null && course.final_grade !== undefined) {
+      return {
+        ...course,
+        average: Math.round(course.final_grade * 10) / 10,
+        grades_count: course.grades_count ?? courseGrades.length,
+      };
+    }
     if (courseGrades.length === 0) return { ...course, average: null, grades_count: 0 };
-    
     const totalPercent = courseGrades.reduce((sum, g) => sum + (g.grade / g.max_grade), 0);
-    const average = (totalPercent / courseGrades.length) * 20; // Normalize to 20
-    
+    const average = (totalPercent / courseGrades.length) * 20;
     return {
       ...course,
       average: Math.round(average * 10) / 10,
-      grades_count: courseGrades.length
+      grades_count: courseGrades.length,
     };
   });
 
-  // Overall average
-  const overallAverage = grades.length > 0
-    ? Math.round((grades.reduce((sum, g) => sum + (g.grade / g.max_grade), 0) / grades.length) * 20 * 10) / 10
+  // Overall average = average of the per-course averages (when present)
+  const courseAvgs = courseAverages.map(c => c.average).filter(a => a !== null && a !== undefined);
+  const overallAverage = courseAvgs.length > 0
+    ? Math.round((courseAvgs.reduce((a, b) => a + b, 0) / courseAvgs.length) * 10) / 10
     : null;
 
   // Grade color helper
