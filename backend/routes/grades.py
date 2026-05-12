@@ -17,6 +17,7 @@ from .core import (
     JWT_SECRET, JWT_ALGORITHM, now_iso, generate_id,
     ADMIN_ROLES, STAFF_ROLES, ACADEMIC_STUDENT_FILTER,
 )
+from services.ranking import compute_ranking
 
 import jwt
 
@@ -739,32 +740,38 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
         grades_lookup[sid][g["subject_id"]] = g.get("final_grade")
 
     # Build student rows with computed fields
+    # Ranking, puntaje, promedio, tercio y desaprobados provienen del helper
+    # compartido `services.ranking.compute_ranking` (Fase 2 — Turno A).
+    ranking_map = await compute_ranking(db, school_id, section_id, period_id)
+
     student_rows = []
     for i, student in enumerate(students):
         student_grades = grades_lookup.get(student["id"], {})
+        rinfo = ranking_map.get(student["id"], {
+            "puntaje": None, "promedio": None,
+            "orden_merito": None, "tercio": None, "cursos_desaprobados": 0,
+        })
         row = {
             "number": i + 1,
             "student_id": student["id"],
             "student_name": f"{student.get('last_name', '')} {student.get('name', '')}".strip(),
             "grades": {},
             "conducta": None,
-            "promedio": None,
-            "puntaje": None,
-            "n_desaprobados": 0,
-            "orden_merito": None,
-            "tercio": None,
+            "promedio": rinfo.get("promedio"),
+            "puntaje": rinfo.get("puntaje"),
+            "n_desaprobados": rinfo.get("cursos_desaprobados", 0),
+            "orden_merito": rinfo.get("orden_merito"),
+            "tercio": rinfo.get("tercio"),
             "tardanza_injustificada": None,
             "tardanza_justificada": None,
             "falta_injustificada": None,
             "falta_justificada": None,
         }
 
-        all_subject_grades = []
-        desaprobados = 0
-
+        # Construir columnas de display (area summary + subject grades)
+        # — independiente del ranking, solo para la grilla del consolidado.
         for col in columns:
             if col["type"] == "area":
-                # Compute area average from sub-subjects
                 sub_grades = [student_grades.get(sid) for sid in col["subject_ids"]]
                 valid = [g for g in sub_grades if g is not None]
                 area_avg = round(sum(valid) / len(valid), 0) if valid else None
@@ -774,37 +781,8 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
                 if grade_val is not None:
                     grade_val = round(grade_val)
                 row["grades"][col["id"]] = int(grade_val) if grade_val is not None else None
-                if grade_val is not None:
-                    all_subject_grades.append(grade_val)
-                    if grade_val < 11:
-                        desaprobados += 1
-
-        # Compute summary fields
-        if all_subject_grades:
-            promedio = round(sum(all_subject_grades) / len(all_subject_grades), 2)
-            row["promedio"] = promedio
-            row["puntaje"] = int(round(sum(all_subject_grades)))
-        row["n_desaprobados"] = desaprobados
 
         student_rows.append(row)
-
-    # Compute ranking (ORDEN DE MÉRITO) by puntaje descending
-    ranked = sorted(
-        [s for s in student_rows if s["puntaje"] is not None],
-        key=lambda x: (-x["puntaje"], x["student_name"])
-    )
-    total_ranked = len(ranked)
-    for rank_idx, s in enumerate(ranked):
-        s["orden_merito"] = rank_idx + 1
-        # Compute TERCIO
-        if total_ranked > 0:
-            tercio_pos = (rank_idx + 1) / total_ranked
-            if tercio_pos <= 1/3:
-                s["tercio"] = "SUP"
-            elif tercio_pos <= 2/3:
-                s["tercio"] = "MED"
-            else:
-                s["tercio"] = "INF"
 
     # Compute summary statistics per subject column
     summary_stats = {}
