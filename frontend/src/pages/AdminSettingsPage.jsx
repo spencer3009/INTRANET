@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "sonner";
 import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -30,7 +31,7 @@ function SectionCard({ icon: Icon, title, description, children }) {
 }
 
 // Input Field Component
-function InputField({ label, type = "text", value, onChange, placeholder, icon: Icon, helpText }) {
+function InputField({ label, type = "text", value, onChange, placeholder, icon: Icon, helpText, readOnly = false, readOnlyHint }) {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
@@ -43,10 +44,14 @@ function InputField({ label, type = "text", value, onChange, placeholder, icon: 
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors`}
+          readOnly={readOnly}
+          disabled={readOnly}
+          title={readOnly ? (readOnlyHint || "Campo de solo lectura") : undefined}
+          className={`w-full ${Icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors ${readOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
         />
       </div>
       {helpText && <p className="text-xs text-slate-500 mt-1">{helpText}</p>}
+      {readOnly && readOnlyHint && <p className="text-xs text-amber-600 mt-1">{readOnlyHint}</p>}
     </div>
   );
 }
@@ -109,7 +114,9 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
     setSaving(true);
     setError(null);
     setSaved(false);
-    
+    const isOwner = user?.role === "owner";
+    let legalForbidden = false;
+
     try {
       await axios.put(`${API}/settings`, {
         system_name: settings.system_name,
@@ -120,18 +127,35 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
         currency: settings.currency
       }, { headers });
 
-      // legal_name vive en `schools` (no en tenant_settings)
-      await axios.put(`${API}/school/legal-info`, {
-        legal_name: settings.legal_name || null
-      }, { headers }).catch((e) => {
-        // Solo owner; admins/director recibirán 403 — no bloquear el resto
-        if (e.response?.status !== 403) throw e;
-      });
+      // legal_name vive en `schools` (no en tenant_settings) — solo owner
+      if (isOwner) {
+        try {
+          await axios.put(`${API}/school/legal-info`, {
+            legal_name: settings.legal_name || null
+          }, { headers });
+        } catch (e) {
+          if (e.response?.status === 403) {
+            legalForbidden = true;
+          } else {
+            throw e;
+          }
+        }
+      } else if (settings.legal_name !== (school?.legal_name || "")) {
+        // El admin/director NO tiene permiso; lo marcamos para mostrar el toast amarillo
+        legalForbidden = true;
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      if (legalForbidden) {
+        toast.warning("Solo el propietario puede modificar la razón social del colegio. Los demás cambios fueron guardados.");
+      } else {
+        toast.success("Configuración guardada correctamente.");
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar");
+      const msg = err.response?.data?.detail || "Error al guardar la configuración. Inténtalo nuevamente.";
+      setError(typeof msg === "string" ? msg : "Error al guardar la configuración. Inténtalo nuevamente.");
+      toast.error(typeof msg === "string" ? msg : "Error al guardar la configuración. Inténtalo nuevamente.");
     } finally {
       setSaving(false);
     }
@@ -252,6 +276,8 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
                   onChange={(v) => updateSetting("legal_name", v)}
                   placeholder="Ej: INSTITUCIÓN EDUCATIVA PRIVADA COLEGIO EL ROBLE"
                   helpText="Aparecerá en la cabecera de las libretas y documentos oficiales"
+                  readOnly={user?.role !== "owner"}
+                  readOnlyHint={user?.role !== "owner" ? "Solo el propietario puede editar este campo." : undefined}
                 />
                 {school && (
                   <div className="bg-slate-50 rounded-xl p-4">

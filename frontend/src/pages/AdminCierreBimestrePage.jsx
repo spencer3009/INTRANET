@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
-import { Lock, Loader2, AlertTriangle, CheckCircle2, Archive, History, RotateCcw } from "lucide-react";
+import { Lock, Loader2, AlertTriangle, CheckCircle2, Archive, History, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -16,6 +16,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   // Reopen flow
@@ -114,6 +115,45 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
     } finally { setRunning(false); }
   };
 
+  // ── Computed helpers (hooks deben llamarse antes de cualquier early return)
+  const NIVEL_ORDER = { INICIAL: 1, PRIMARIA: 2, SECUNDARIA: 3 };
+  const normalize = (s) => (s || "").toString().trim();
+  const titleCase = (s) => {
+    const t = normalize(s).toLowerCase();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+  const sectionLabel = useCallback((s) => {
+    if (!s) return "";
+    const grado = normalize(s.grado_nombre) || "—";
+    const sec = normalize(s.nombre) || "—";
+    const nivel = titleCase(s.nivel_nombre) || "—";
+    return `${grado} ${sec} ${nivel}`.replace(/\s+/g, " ").trim();
+  }, []);
+
+  const sortedSections = useMemo(() => {
+    const arr = [...(sections || [])];
+    arr.sort((a, b) => {
+      const na = NIVEL_ORDER[(a.nivel_nombre || "").toUpperCase()] ?? 99;
+      const nb = NIVEL_ORDER[(b.nivel_nombre || "").toUpperCase()] ?? 99;
+      if (na !== nb) return na - nb;
+      const ga = (a.grado_nombre || "").localeCompare(b.grado_nombre || "", "es", { numeric: true });
+      if (ga !== 0) return ga;
+      return (a.nombre || "").localeCompare(b.nombre || "", "es");
+    });
+    const seen = new Map();
+    arr.forEach(s => { const k = sectionLabel(s); seen.set(k, (seen.get(k) || 0) + 1); });
+    return arr.map(s => ({
+      ...s,
+      _label: sectionLabel(s) + (seen.get(sectionLabel(s)) > 1 ? ` (id: ${(s.id || "").slice(0, 6)}…)` : ""),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, sectionLabel]);
+
+  const selectedSection = useMemo(
+    () => sortedSections.find(s => s.id === sectionId) || null,
+    [sortedSections, sectionId]
+  );
+
   if (user?.role !== "owner") {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center" data-testid="cierre-bim-no-owner">
@@ -127,7 +167,13 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
   }
 
   const periodName = periods.find(p => p.id === selectedPeriodId)?.nombre || "—";
-  const sectionLabel = sectionId ? (sections.find(s => s.id === sectionId)?.nombre || sectionId) : "todas las secciones";
+
+  const targetScopeLabel = selectedSection
+    ? `LA SECCIÓN ${(selectedSection._label || "").toUpperCase()}`
+    : "TODO EL COLEGIO";
+  const buttonLabel = selectedSection
+    ? `Cerrar ${periodName} para ${selectedSection._label}`
+    : `Cerrar ${periodName} para todo el colegio`;
 
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="cierre-bim-page">
@@ -151,34 +197,18 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Bimestre</label>
-                  <select
-                    value={selectedPeriodId}
-                    onChange={(e) => setSelectedPeriodId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                    data-testid="cierre-bim-period-select"
-                  >
-                    {periods.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} {p.activo ? "· activo" : ""}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Sección (opcional)</label>
-                  <select
-                    value={sectionId}
-                    onChange={(e) => setSectionId(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                    data-testid="cierre-bim-section-select"
-                  >
-                    <option value="">Todas las secciones</option>
-                    {sections.map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Bimestre</label>
+                <select
+                  value={selectedPeriodId}
+                  onChange={(e) => setSelectedPeriodId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  data-testid="cierre-bim-period-select"
+                >
+                  {periods.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.activo ? "· activo" : ""}</option>
+                  ))}
+                </select>
               </div>
 
               <button
@@ -189,8 +219,47 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                 data-testid="cierre-bim-trigger-btn"
               >
                 {running && <Loader2 className="w-5 h-5 animate-spin" />}
-                Cerrar Bimestre
+                {buttonLabel}
               </button>
+
+              {/* Opciones avanzadas (colapsable) */}
+              <div className="border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(v => !v)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
+                  data-testid="cierre-bim-advanced-toggle"
+                >
+                  {advancedOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  Opciones avanzadas
+                </button>
+                {advancedOpen && (
+                  <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4" data-testid="cierre-bim-advanced-panel">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cerrar solo una sección específica</label>
+                    <select
+                      value={sectionId}
+                      onChange={(e) => setSectionId(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+                      data-testid="cierre-bim-section-select"
+                    >
+                      <option value="">— Selecciona una sección —</option>
+                      {sortedSections.map(s => (
+                        <option key={s.id} value={s.id}>{s._label}</option>
+                      ))}
+                    </select>
+                    {sectionId && (
+                      <button
+                        type="button"
+                        onClick={() => setSectionId("")}
+                        className="mt-2 text-xs text-slate-500 hover:text-slate-800 underline"
+                        data-testid="cierre-bim-clear-section"
+                      >
+                        Quitar selección (volver a "todo el colegio")
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {showConfirm && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4" data-testid="cierre-bim-confirm-box">
@@ -199,10 +268,13 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                     <div className="flex-1">
                       <p className="text-sm text-amber-900 font-semibold mb-1">¿Estás seguro?</p>
                       <p className="text-sm text-amber-800">
-                        Esta acción congelará las libretas del <strong>{periodName}</strong> para <strong>{sectionLabel}</strong>. Las notas, comentarios y conducta de este bimestre NO podrán modificarse después del cierre.
+                        Esta acción congelará las libretas del <strong>{periodName}</strong> para <strong>{targetScopeLabel}</strong>.
+                      </p>
+                      <p className="text-sm text-amber-800 mt-2">
+                        Las notas, comentarios del tutor y conducta de este bimestre <strong>NO podrán modificarse</strong> después del cierre, salvo reapertura manual por el propietario.
                       </p>
                       <div className="flex gap-2 mt-3">
-                        <button type="button" onClick={() => doClose(false)} disabled={running} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium" data-testid="cierre-bim-confirm-btn">Confirmar cierre</button>
+                        <button type="button" onClick={() => doClose(false)} disabled={running} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium" data-testid="cierre-bim-confirm-btn">Confirmar cierre de {periodName}</button>
                         <button type="button" onClick={() => setShowConfirm(false)} className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium" data-testid="cierre-bim-cancel-btn">Cancelar</button>
                       </div>
                     </div>
