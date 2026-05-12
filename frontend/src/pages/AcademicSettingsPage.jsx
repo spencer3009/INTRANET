@@ -1112,6 +1112,13 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [shifts, setShifts] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [sectionStudentCounts, setSectionStudentCounts] = useState({});
+  // Tutor management (Fase 2 - Libreta)
+  const [tutorsBySection, setTutorsBySection] = useState({});
+  const [teachersList, setTeachersList] = useState([]);
+  const [tutorModalOpen, setTutorModalOpen] = useState(false);
+  const [tutorTarget, setTutorTarget] = useState(null);
+  const [tutorSelectedId, setTutorSelectedId] = useState("");
+  const [tutorSaving, setTutorSaving] = useState(false);
 
   // Computed: students per grade and per level (from section counts)
   const gradeStudentCounts = {};
@@ -1207,7 +1214,54 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   }, [selectedCategory]);
 
   const loadSections = async () => {
-    try { const res = await axios.get(`${API}/academic/sections`, { headers }); setSections(res.data); } catch (err) { console.error(err); }
+    try {
+      const res = await axios.get(`${API}/academic/sections`, { headers });
+      setSections(res.data);
+      // Cargar tutores en paralelo
+      const tutorPairs = await Promise.all(
+        (res.data || []).map(async (s) => {
+          try {
+            const r = await axios.get(`${API}/sections/${s.id}/tutor`, { headers });
+            return [s.id, r.data?.tutor || null];
+          } catch { return [s.id, null]; }
+        })
+      );
+      setTutorsBySection(Object.fromEntries(tutorPairs));
+      // Cargar lista de profesores
+      try {
+        const tRes = await axios.get(`${API}/users?role=teacher`, { headers });
+        const items = Array.isArray(tRes.data) ? tRes.data : (tRes.data?.users || tRes.data?.items || []);
+        setTeachersList(items);
+      } catch { setTeachersList([]); }
+    } catch (err) { console.error(err); }
+  };
+
+  const openTutorModal = (section) => {
+    setTutorTarget(section);
+    setTutorSelectedId(tutorsBySection[section.id]?.id || "");
+    setTutorModalOpen(true);
+  };
+
+  const saveTutor = async (clearTutor = false) => {
+    if (!tutorTarget) return;
+    setTutorSaving(true);
+    try {
+      await axios.put(
+        `${API}/sections/${tutorTarget.id}/tutor`,
+        { teacher_id: clearTutor ? null : (tutorSelectedId || null) },
+        { headers }
+      );
+      // recargar SOLO los tutores
+      const r = await axios.get(`${API}/sections/${tutorTarget.id}/tutor`, { headers });
+      setTutorsBySection(prev => ({ ...prev, [tutorTarget.id]: r.data?.tutor || null }));
+      setTutorModalOpen(false);
+      setTutorTarget(null);
+      setTutorSelectedId("");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al guardar tutor");
+    } finally {
+      setTutorSaving(false);
+    }
   };
   const loadShifts = async () => {
     try { const res = await axios.get(`${API}/academic/shifts`, { headers }); setShifts(res.data); } catch (err) { console.error(err); }
@@ -1580,6 +1634,22 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                           <div className="mt-3 pt-3 border-t border-slate-100">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-semibold"><Users className="w-4 h-4" />{sectionStudentCounts[s.id] || 0} estudiantes</span>
                           </div>
+                          <div className="mt-3 pt-3 border-t border-slate-100" data-testid={`section-tutor-block-${s.id}`}>
+                            <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">Tutor</p>
+                            {tutorsBySection[s.id] ? (
+                              <p className="text-sm font-medium text-slate-700 truncate" data-testid={`section-tutor-name-${s.id}`}>{tutorsBySection[s.id].nombres_completos}</p>
+                            ) : (
+                              <p className="text-sm italic text-slate-400" data-testid={`section-tutor-empty-${s.id}`}>Sin asignar</p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openTutorModal(s); }}
+                              className="mt-2 text-xs px-3 py-1 rounded-lg border border-purple-200 text-purple-600 hover:bg-purple-50"
+                              data-testid={`section-tutor-btn-${s.id}`}
+                            >
+                              {tutorsBySection[s.id] ? "Cambiar tutor" : "Asignar tutor"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1643,6 +1713,66 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); setPreselectedGradeForSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId={preselectedGradeForSection || ""} />
       <SectionTypesAdminModal isOpen={showSectionTypesAdmin} onClose={() => setShowSectionTypesAdmin(false)} token={token} onTypesUpdated={loadSections} />
       <ShiftModal isOpen={showShiftModal} onClose={() => { setShowShiftModal(false); setEditingShift(null); }} token={token} shift={editingShift} onSuccess={handleShiftSuccess} />
+
+      {/* Tutor assignment modal (Fase 2 - Libreta) */}
+      {tutorModalOpen && tutorTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !tutorSaving && setTutorModalOpen(false)} data-testid="tutor-modal-backdrop">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} data-testid="tutor-modal">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Asignar Tutor</h3>
+            <p className="text-sm text-slate-500 mb-4">Sección <strong>{tutorTarget.nombre}</strong> · {tutorTarget.grado_nombre}</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Profesor</label>
+                <select
+                  value={tutorSelectedId}
+                  onChange={(e) => setTutorSelectedId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  data-testid="tutor-modal-select"
+                >
+                  <option value="">— Seleccionar profesor —</option>
+                  {teachersList.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {`${t.last_name || ""} ${t.name || ""}`.trim() || t.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {tutorsBySection[tutorTarget.id] && (
+                <button
+                  type="button"
+                  onClick={() => saveTutor(true)}
+                  disabled={tutorSaving}
+                  className="w-full px-4 py-2 text-sm rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  data-testid="tutor-modal-remove-btn"
+                >
+                  Quitar tutor actual ({tutorsBySection[tutorTarget.id].nombres_completos})
+                </button>
+              )}
+              <p className="text-xs text-slate-500">El tutor podrá calificar conducta, escribir comentarios por bimestre y editar la situación final del año en la libreta de cada alumno de esta sección.</p>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setTutorModalOpen(false)}
+                disabled={tutorSaving}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium"
+                data-testid="tutor-modal-cancel-btn"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => saveTutor(false)}
+                disabled={tutorSaving || !tutorSelectedId}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-medium"
+                data-testid="tutor-modal-save-btn"
+              >
+                {tutorSaving ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Delete confirmation modal */}
       <ConfirmModal 

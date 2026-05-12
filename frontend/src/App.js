@@ -2621,6 +2621,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/:subdomain/cierre-anio"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cierre-anio"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Academic Years Page - Path-based (for preview mode) */}
           <Route

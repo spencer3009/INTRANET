@@ -49,7 +49,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     system_email: "",
     currency: "PEN",
     whatsapp: "",
-    website_url: ""
+    website_url: "",
+    legal_name: ""
   });
   
   const [loading, setLoading] = useState(true);
@@ -169,8 +170,18 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           system_email: res.data.system_email || "",
           currency: res.data.currency || "PEN",
           whatsapp: res.data.whatsapp || "",
-          website_url: res.data.website_url || ""
+          website_url: res.data.website_url || "",
+          legal_name: res.data.legal_name || ""
         });
+        // legal_name vive en `schools` — leer del endpoint separado si está vacío en settings
+        if (!res.data.legal_name) {
+          try {
+            const schoolRes = await axios.get(`${API}/dashboard/school`, { headers });
+            if (schoolRes.data?.legal_name) {
+              setSettings(prev => ({ ...prev, legal_name: schoolRes.data.legal_name }));
+            }
+          } catch (_) { /* opcional */ }
+        }
       } catch (err) {
         setError(err.response?.data?.detail || "Error al cargar ajustes");
       } finally {
@@ -426,7 +437,14 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     setSuccess("");
     
     try {
-      const res = await axios.put(`${API}/settings`, settings, { headers });
+      const { legal_name, ...settingsForTenant } = settings;
+      const res = await axios.put(`${API}/settings`, settingsForTenant, { headers });
+      // legal_name vive en `schools` (solo owner)
+      try {
+        await axios.put(`${API}/school/legal-info`, { legal_name: legal_name || null }, { headers });
+      } catch (e) {
+        if (e.response?.status !== 403) throw e; // admin/director recibirán 403 silencioso
+      }
       setSuccess("Ajustes guardados correctamente");
       
       if (onSettingsUpdate) {
@@ -1067,6 +1085,21 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     />
                     <p className="text-xs text-slate-400 mt-1">Se mostrará en la pestaña del navegador</p>
                   </div>
+                </div>
+
+                <div className="mt-5">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Razón Social / Nombre Legal
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.legal_name}
+                    onChange={(e) => handleChange('legal_name', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                    placeholder="Ej: INSTITUCIÓN EDUCATIVA PRIVADA COLEGIO EL ROBLE"
+                    data-testid="settings-legal-name"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Aparecerá en la cabecera de las libretas y documentos oficiales. Solo el owner puede editarlo.</p>
                 </div>
               </div>
             </section>
