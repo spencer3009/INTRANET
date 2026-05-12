@@ -1042,130 +1042,64 @@ async def get_parent_student_grades(
     subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0}).to_list(50)
     subjects_map = {s["id"]: s for s in subjects}
     
-    # Source of truth: `student_grades` (same as Consolidado de Notas).
-    # We expand each subject's published grade doc into individual entries
-    # (one per static field with a value + one per grades_dynamic[col_id]).
+    # Get grades
     grades_query = {
         "school_id": school_id,
-        "student_id": student_id,
-        "subject_id": {"$in": subject_ids},
+        "student_id": student_id
     }
-    grade_docs = await db.student_grades.find(grades_query, {"_id": 0}).to_list(200)
-
-    # Friendly labels for the static columns (mirrors the Registro Auxiliar)
-    STATIC_FIELDS_LABELS = {
-        "act_co": "Comportamiento",
-        "act_re": "Responsabilidad",
-        "rf_r1": "Tarea 1", "rf_r2": "Tarea 2", "rf_r3": "Tarea 3",
-        "rf_r4": "Tarea 4", "rf_r5": "Tarea 5",
-        "comp_c1": "Competencia 1", "comp_c2": "Competencia 2",
-        "part_p1": "Pasitos 1", "part_p2": "Pasitos 2", "part_p3": "Pasitos 3",
-        "part_exp": "Exposición", "part_tg": "Trabajo Grupal", "part_p": "Participación",
-        "exam_mensual": "Examen Mensual",
-        "exam_bimestral": "Examen Bimestral",
-    }
-
-    # Optional: enrich dynamic column ids with their plantilla labels
-    plantilla = await db.registro_auxiliar_plantillas.find_one(
-        {"$or": [{"school_id": school_id, "es_predeterminada": True},
-                 {"school_id": school_id, "estado": "activa"},
-                 {"es_sistema": True}]},
-        {"_id": 0, "criterios": 1, "columnas_finales": 1},
-        sort=[("es_predeterminada", -1)],
-    )
-    dynamic_labels = {}
-    if plantilla:
-        for cri in (plantilla.get("criterios") or []):
-            for sub in (cri.get("subcolumnas") or []):
-                if sub.get("tipo") == "input":
-                    key = sub.get("field_key") or sub.get("id")
-                    dynamic_labels[key] = sub.get("label") or key
-        for col in (plantilla.get("columnas_finales") or []):
-            key = col.get("field_key") or col.get("id")
-            dynamic_labels[key] = col.get("label_corto") or col.get("label") or key
-
-    grades_response = []
-    subject_scores = {sid: [] for sid in subject_ids}
-    subject_final = {}
-
-    for doc in grade_docs:
-        sid = doc.get("subject_id")
-        subject = subjects_map.get(sid, {})
-        s_name = subject.get("name", "")
-        s_color = subject.get("color", "#3B82F6")
-        if doc.get("final_grade") is not None:
-            subject_final[sid] = doc["final_grade"]
-
-        for fld, label in STATIC_FIELDS_LABELS.items():
-            val = doc.get(fld)
-            if val is None:
-                continue
+    if subject_ids:
+        grades_query["subject_id"] = {"$in": subject_ids}
+    
+    grades = await db.grades_records.find(grades_query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    # Calculate averages by subject
+    subject_grades = {}
+    for grade in grades:
+        sid = grade.get("subject_id")
+        if sid not in subject_grades:
+            subject_grades[sid] = []
+        if grade.get("grade") is not None:
             try:
-                num = float(val)
-            except (TypeError, ValueError):
-                continue
-            subject_scores[sid].append(num)
-            grades_response.append({
-                "id": f"{doc.get('id', sid)}_{fld}",
-                "subject_id": sid,
-                "subject_name": s_name,
-                "subject_color": s_color,
-                "color": s_color,
-                "evaluation_name": label,
-                "title": label,
-                "score": num,
-                "grade": num,
-                "max_score": 20,
-                "created_at": doc.get("updated_at"),
-            })
-
-        for col_id, val in (doc.get("grades_dynamic") or {}).items():
-            if val is None:
-                continue
-            try:
-                num = float(val)
-            except (TypeError, ValueError):
-                continue
-            subject_scores[sid].append(num)
-            grades_response.append({
-                "id": f"{doc.get('id', sid)}_dyn_{col_id}",
-                "subject_id": sid,
-                "subject_name": s_name,
-                "subject_color": s_color,
-                "color": s_color,
-                "evaluation_name": dynamic_labels.get(col_id, col_id),
-                "title": dynamic_labels.get(col_id, col_id),
-                "score": num,
-                "grade": num,
-                "max_score": 20,
-                "created_at": doc.get("updated_at"),
-            })
-
-    # Per-subject summary: prefer `final_grade` over a raw average of entries
+                subject_grades[sid].append(float(grade["grade"]))
+            except:
+                pass
+    
     subjects_with_avg = []
     for s in subjects:
-        sid = s["id"]
-        if sid in subject_final:
-            avg = round(subject_final[sid], 2)
-        else:
-            scores = subject_scores.get(sid, [])
-            avg = round(sum(scores) / len(scores), 2) if scores else None
+        grades_list = subject_grades.get(s["id"], [])
+        avg = round(sum(grades_list) / len(grades_list), 2) if grades_list else None
         subjects_with_avg.append({
-            "id": sid,
+            "id": s["id"],
             "name": s.get("name"),
             "color": s.get("color", "#3B82F6"),
             "average": avg,
-            "grades_count": len(subject_scores.get(sid, [])),
+            "grades_count": len(grades_list)
         })
-
-    # Overall average: mean of per-subject averages (when present)
-    subj_avgs = [s["average"] for s in subjects_with_avg if s["average"] is not None]
-    overall_avg = round(sum(subj_avgs) / len(subj_avgs), 2) if subj_avgs else None
-
+    
+    # Overall average
+    all_grades = [g for grades_list in subject_grades.values() for g in grades_list]
+    overall_avg = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
+    
+    # Build grades response
+    grades_response = []
+    for grade in grades:
+        subject = subjects_map.get(grade.get("subject_id"), {})
+        grades_response.append({
+            "id": grade.get("id"),
+            "subject_id": grade.get("subject_id"),
+            "subject_name": subject.get("name", ""),
+            "subject_color": subject.get("color", "#3B82F6"),
+            "grade": grade.get("grade"),
+            "evaluation_name": grade.get("evaluation_name", ""),
+            "evaluation_type": grade.get("evaluation_type", ""),
+            "feedback": grade.get("feedback"),
+            "date": grade.get("created_at")
+        })
+    
     return {
         "grades": grades_response,
         "subjects": subjects_with_avg,
-        "average": overall_avg,
+        "average": overall_avg
     }
 
 @router.get("/parent/attendance")

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
-import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, ClipboardList, Trash2 } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import {
   PLANTILLA_SISTEMA_FALLBACK,
@@ -9,7 +9,6 @@ import {
   calcularPromedioBimestral,
   calcularPromedioCriterio,
   getGradeValue,
-  isStaticSubcolumn,
 } from "../utils/registroAuxiliarUtils";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -29,24 +28,11 @@ const S = {
   thColFinalShort: { background: "#F2F2F2", color: "#333", fontWeight: 700, textAlign: "center", border: "1px solid #D0D0D0", padding: "6px 4px", fontSize: "11px", whiteSpace: "nowrap", verticalAlign: "middle" },
   tdNum: { background: "#F8F8F8", textAlign: "center", border: "1px solid #D0D0D0", padding: "2px 4px", fontWeight: 600 },
   tdName: { background: "#FFFFDD", textAlign: "left", border: "1px solid #D0D0D0", padding: "2px 6px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", position: "relative" },
+  tdInput: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
   tdAvg: { background: "#E2EFDA", border: "1px solid #A9D18E", textAlign: "center", padding: "2px", fontWeight: 700, fontSize: "11px", color: "#375623" },
-  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center", position: "relative" },
+  tdColFinal: { border: "1px solid #D0D0D0", padding: 0, textAlign: "center" },
   tdFinal: { background: "#D6E4F0", border: "1px solid #4472C4", textAlign: "center", padding: "2px", fontWeight: 800, fontSize: "12px", color: "#1F3864" },
   input: { width: "100%", border: "none", outline: "none", textAlign: "center", fontSize: "12px", padding: "4px 0", background: "transparent", fontFamily: "inherit" },
-  // Trash button — appears when cell has value === 0.
-  // Positioned on the LEFT side of the cell so it doesn't overlap with the
-  // native number-input spinner arrows (which sit on the right).
-  clearBtn: {
-    position: "absolute", top: "50%", left: "2px",
-    transform: "translateY(-50%)",
-    border: "none", background: "rgba(254, 226, 226, 0.95)",
-    color: "#b91c1c", padding: "1px 3px", borderRadius: "4px",
-    cursor: "pointer", lineHeight: 0,
-    transition: "background 100ms ease",
-    pointerEvents: "auto",
-    zIndex: 1,
-  },
   stickyNum: { position: "sticky", left: 0, zIndex: 2 },
   stickyName: { position: "sticky", zIndex: 2 },
   stickyNumHeader: { position: "sticky", left: 0, zIndex: 4 },
@@ -231,18 +217,14 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     const max = plantilla?.escala_maxima || 20;
     const val = value === "" ? null : parseFloat(value);
     if (val !== null && (isNaN(val) || val < 0 || val > max)) return;
-    const isStatic = isStaticSubcolumn(sub);
     setStudents(prev => {
       const updated = [...prev];
       const row = { ...updated[idx] };
-      if (isStatic) {
-        // Static subcolumn (system template): write to top-level field
+      if (sub.field_key) {
         row[sub.field_key] = val;
       } else {
-        // Dynamic (custom template): write to grades_dynamic.<field_key|id>.
-        // Custom plantillas may have field_key === id (UUID-style).
-        const dynKey = sub.field_key || sub.id;
-        row.grades_dynamic = { ...(row.grades_dynamic || {}), [dynKey]: val };
+        // Dynamic (custom template) — store under grades_dynamic.<id>
+        row.grades_dynamic = { ...(row.grades_dynamic || {}), [sub.id]: val };
       }
       row.final_grade = calcularPromedioBimestral(row, plantilla);
       updated[idx] = row;
@@ -250,13 +232,6 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     });
     setDirty(true);
   }, [status, plantilla]);
-
-  /* Clear a single cell: shortcut for "set to null".
-     Used by the trash icon that appears when value is 0. */
-  const handleClearGrade = useCallback((idx, sub) => {
-    if (status !== "open") return;
-    handleGradeChange(idx, sub, "");
-  }, [status, handleGradeChange]);
 
   /* ── Save ── */
   const handleSave = async (isAuto = false) => {
@@ -266,24 +241,25 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       const grades = students.map(s => {
         const entry = { student_id: s.student_id };
         const dynamicEntry = {};
-        const writeSub = (sub) => {
-          if (isStaticSubcolumn(sub)) {
-            entry[sub.field_key] = s[sub.field_key] ?? null;
-          } else {
-            const dynKey = sub.field_key || sub.id;
-            const val = s.grades_dynamic?.[dynKey];
-            // Always include even null so the backend can clear the cell
-            if (val !== undefined) dynamicEntry[dynKey] = val;
-          }
-        };
         for (const criterio of plantilla.criterios) {
           for (const sub of criterio.subcolumnas) {
             if (sub.tipo !== "input") continue;
-            writeSub(sub);
+            if (sub.field_key) {
+              entry[sub.field_key] = s[sub.field_key];
+            } else {
+              // Phase 5 — column belongs to a custom template
+              const val = s.grades_dynamic?.[sub.id];
+              if (val !== undefined) dynamicEntry[sub.id] = val;
+            }
           }
         }
         for (const col of plantilla.columnas_finales) {
-          writeSub(col);
+          if (col.field_key) {
+            entry[col.field_key] = s[col.field_key];
+          } else {
+            const val = s.grades_dynamic?.[col.id];
+            if (val !== undefined) dynamicEntry[col.id] = val;
+          }
         }
         if (Object.keys(dynamicEntry).length > 0) {
           entry.grades_dynamic = dynamicEntry;
@@ -342,10 +318,6 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   return (
     <div className="space-y-3" data-testid="grade-book">
-      {/* CSS: hover effect for the clear button */}
-      <style>{`
-        .grade-clear-btn:hover { background: #FCA5A5 !important; }
-      `}</style>
       {/* ── TOOLBAR ── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", padding: "12px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -508,7 +480,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                             );
                           }
                           return (
-                            <td key={sub.id} className="grade-cell" style={{ ...S.tdInput, background: rowBg }}>
+                            <td key={sub.id} style={{ ...S.tdInput, background: rowBg }}>
                               <input
                                 type="number"
                                 min="0"
@@ -520,18 +492,6 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                                 style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
                                 data-testid={`grade-${student.student_id}-${sub.field_key || sub.id}`}
                               />
-                              {!isLocked && getGradeValue(student, sub) === 0 && (
-                                <button
-                                  type="button"
-                                  className="grade-clear-btn"
-                                  style={S.clearBtn}
-                                  title="Borrar nota (dejar en blanco)"
-                                  data-testid={`clear-grade-${student.student_id}-${sub.field_key || sub.id}`}
-                                  onClick={() => handleClearGrade(idx, sub)}
-                                >
-                                  <Trash2 size={11} strokeWidth={2.2} />
-                                </button>
-                              )}
                             </td>
                           );
                         })}
@@ -539,7 +499,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     ))}
                     {/* Columnas finales */}
                     {columnas_finales.map(col => (
-                      <td key={col.id} className="grade-cell" style={{ ...S.tdColFinal, background: rowBg }}>
+                      <td key={col.id} style={{ ...S.tdColFinal, background: rowBg }}>
                         <input
                           type="number"
                           min="0"
@@ -551,18 +511,6 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                           style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
                           data-testid={`grade-${student.student_id}-${col.field_key || col.id}`}
                         />
-                        {!isLocked && getGradeValue(student, col) === 0 && (
-                          <button
-                            type="button"
-                            className="grade-clear-btn"
-                            style={S.clearBtn}
-                            title="Borrar nota (dejar en blanco)"
-                            data-testid={`clear-grade-${student.student_id}-${col.field_key || col.id}`}
-                            onClick={() => handleClearGrade(idx, col)}
-                          >
-                            <Trash2 size={11} strokeWidth={2.2} />
-                          </button>
-                        )}
                       </td>
                     ))}
                     {/* Final grade */}
