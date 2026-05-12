@@ -1,5 +1,17 @@
 # EduNet - Changelog
 
+## May 12, 2026 - Fork (Fase 3 Turno F2 — Cierre del módulo Libreta)
+
+### Feature: Consolidado como hub + Drawers + PDF + Portal padre — COMPLETED
+- **Sidebar limpio**: removidas las entradas "Áreas Curriculares" y "Cierre de Bimestre". Las rutas `/areas-curriculares` y `/cierre-bimestre` siguen activas (bookmarks no se rompen).
+- **Action bar en Consolidado**: cabecera `Consolidado de Notas — {año}` con 3 botones (Áreas Curriculares, Cerrar Bimestre, Descargar Excel) con permisos por rol.
+- **Drawers laterales**: nuevo `RightDrawer.jsx` (backdrop + slide-in + ESC + X). `AdminCurricularAreasPage` y `AdminCierreBimestrePage` aceptan prop `embedded` para renderizarse sin Sidebar/topbar dentro del drawer.
+- **Columna "Libreta"** en la tabla del consolidado: botón "Ver" por alumno → `/libreta/{id}?period_id=`. Bimestre cerrado: badge ámbar con candado.
+- **PDF export**: `react-to-print@3.3.0`. Botón "Descargar PDF" en LibretaPage. `@media print` con `.libreta-printable` aislado, color-adjust:exact y saltos inteligentes. Archivo: `Libreta_{codigo}_{bimestre}_{año}.pdf` (157 KB generado en prueba).
+- **Callback `onClosePeriod`**: al cerrar bimestre desde drawer, Consolidado marca el período como cerrado sin refresh.
+- **Testing**: testing_agent_v3_fork (iter 138) — **10/10 tests PASS**. Parent readonly verificado. Sin bugs.
+- **NO Save to GitHub / NO Deploy**. El módulo libreta queda LISTO en preview para mostrar a clientes.
+
 ## May 12, 2026 - Fork (Fase 3 Turno F1 — Libreta Visual del Estudiante)
 
 ### Feature: Vista visual de la libreta + edición inline + navegación cruzada - COMPLETED

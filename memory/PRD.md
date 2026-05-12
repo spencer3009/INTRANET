@@ -18,6 +18,8 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 - Librerías clave: jsPDF, xlsx (SheetJS)
 
 ## Last Implemented (May 2026)
+- [Feature] **Fase 3 Turno F2 — Cierre módulo Libreta**. Consolidado de Notas se convierte en hub: action bar arriba con 3 botones (Áreas Curriculares, Cerrar Bimestre, Descargar Excel) por permisos, nueva columna "Libreta" con botón Ver/candado por alumno, sidebar limpio sin Áreas ni Cierre (rutas standalone preservadas). RightDrawer.jsx + AdminCurricularAreasPage/AdminCierreBimestrePage en modo `embedded`. PDF con `react-to-print@3.3.0` y `@media print` que aísla `.libreta-printable`. Callback `onClosePeriod` marca períodos cerrados en tiempo real en la columna Libreta. 10/10 tests frontend PASS (iter 138). Módulo Libreta cerrado, **listo para mostrar a clientes en preview**.
+
 - [Feature] **Fase 3 Turno F1 — Libreta Visual del Estudiante**. Página `/libreta/:student_id` con render idéntico al Colegio El Roble: cabecera (logo + legal_name + foto/iniciales + bimestre), tabla principal con áreas (rowspan) + asignaturas + I/II/III/IV/Promedio, conducta editable (AD/A/B/C, autosave + N.F.), estadística, asistencias con totales, comentarios del tutor (debounce 600ms), situación final (PROMOVIDO/REQ_RECUPERACION/REPITE + multi-select cursos a recuperar, sólo si bim IV cerrado). Banner amarillo para libretas snapshot. Cross-nav desde Consolidado (nombre → libreta), Dashboard alumno y Dashboard padre. Permisos: owner/admin/director cualquier alumno, teacher con asignación, parent su hijo, student su libreta. Bloqueo de bimestre cerrado (HTTP 423 → toast + reload). 12/12 tests frontend PASS (iter 137). Pendiente Turno F2: exportación PDF con react-to-print.
 
 ## Previously Implemented (Feb 2026)
@@ -41,7 +43,8 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 ## Backlog (priorizado)
 
 ### P1
-- **Fase 3 Turno F2 — Libreta**: exportación PDF (`react-to-print`), enlace directo desde portal del padre, testing E2E completo.
+- **Fase 3 Turno F2 — Libreta**: ✅ COMPLETADO
+- **Limpieza de alumnos fantasma**: 35 cuentas `*.stress@elroble.edu` sin sección real ni notas. Decidir si eliminar/desactivar/dejar.
 - Psicología: log de auditoría estricto.
 - Deploy manual Ola 2 y Ola 3 (esperando confirmación; backups en `/app/memory/wave_deploy/`).
 
