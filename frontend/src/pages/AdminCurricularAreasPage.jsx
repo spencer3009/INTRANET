@@ -13,7 +13,7 @@ import Sidebar from "../components/Sidebar";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function AdminCurricularAreasPage({ user, token, subdomain, onLogout }) {
+export default function AdminCurricularAreasPage({ user, token, subdomain, onLogout, embedded = false }) {
   const navigate = useNavigate();
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -126,55 +126,80 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const activeAreas = areas.filter(a => a.is_active !== false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar
-        active="areas-curriculares"
-        onNavigate={(r) => navigate(`/${subdomain || ""}${r}`.replace(/\/+/g, "/"))}
-        expanded={sidebarExpanded}
-        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
-        onLogout={onLogout}
-        schoolName={user?.school_name}
-        subdomain={subdomain}
-        token={token}
-        user={user}
-      />
+    <div className={embedded ? "min-h-full bg-slate-50" : "min-h-screen bg-slate-50 flex"}>
+      {!embedded && (
+        <Sidebar
+          active="areas-curriculares"
+          onNavigate={(r) => navigate(`/${subdomain || ""}${r}`.replace(/\/+/g, "/"))}
+          expanded={sidebarExpanded}
+          onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          schoolName={user?.school_name}
+          subdomain={subdomain}
+          token={token}
+          user={user}
+        />
+      )}
 
-      <main className="flex-1 ml-16 min-h-screen">
-        {/* Topbar */}
-        <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <BookMarked className="w-6 h-6 text-slate-800" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900" data-testid="page-title">Áreas Curriculares</h1>
-              <p className="text-sm text-slate-500">Organiza las asignaturas según el currículo MINEDU</p>
+      <main className={embedded ? "min-h-full" : "flex-1 ml-16 min-h-screen"}>
+        {/* Topbar (oculto en modo embebido) */}
+        {!embedded && (
+          <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+            <div className="flex items-center gap-3">
+              <BookMarked className="w-6 h-6 text-slate-800" />
+              <div>
+                <h1 className="text-xl font-bold text-slate-900" data-testid="page-title">Áreas Curriculares</h1>
+                <p className="text-sm text-slate-500">Organiza las asignaturas según el currículo MINEDU</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg font-semibold text-sm transition border border-amber-300 disabled:opacity-50"
+                  data-testid="seed-btn"
+                  title="Crear las 10 áreas estándar y vincular asignaturas automáticamente"
+                >
+                  {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {areas.length === 0 ? "Inicializar áreas estándar" : "Re-aplicar fuzzy-match"}
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => setModal({ mode: "create", area: { name: "", order: (activeAreas.length + 1), color: "#0F172A" } })}
+                  className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm transition"
+                  data-testid="create-area-btn"
+                >
+                  <Plus className="w-4 h-4" /> Nueva área
+                </button>
+              )}
+            </div>
+          </header>
+        )}
+
+        <div className={embedded ? "p-6 space-y-6" : "p-8 space-y-8"}>
+          {/* Barra de acciones embebidas (modo drawer) */}
+          {embedded && isAdmin && (
+            <div className="flex items-center justify-end gap-2">
               <button
                 onClick={handleSeed}
                 disabled={seeding}
-                className="flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg font-semibold text-sm transition border border-amber-300 disabled:opacity-50"
+                className="flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-2 rounded-lg font-semibold text-sm transition border border-amber-300 disabled:opacity-50"
                 data-testid="seed-btn"
-                title="Crear las 10 áreas estándar y vincular asignaturas automáticamente"
               >
                 {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {areas.length === 0 ? "Inicializar áreas estándar" : "Re-aplicar fuzzy-match"}
               </button>
-            )}
-            {isAdmin && (
               <button
                 onClick={() => setModal({ mode: "create", area: { name: "", order: (activeAreas.length + 1), color: "#0F172A" } })}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm transition"
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold text-sm transition"
                 data-testid="create-area-btn"
               >
                 <Plus className="w-4 h-4" /> Nueva área
               </button>
-            )}
-          </div>
-        </header>
-
-        <div className="p-8 space-y-8">
+            </div>
+          )}
           {/* ── Tabla de áreas ── */}
           <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <header className="px-6 py-3 border-b border-slate-200 flex items-center justify-between">

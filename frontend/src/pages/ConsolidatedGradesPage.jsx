@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { Loader2, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, Printer, BookMarked, Archive, Eye, Lock } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import RightDrawer from "@/components/RightDrawer";
+import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
+import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,8 +23,12 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(null); // 'areas' | 'cierre' | null
+  const [closedPeriodIds, setClosedPeriodIds] = useState([]); // bimestres recién cerrados
   const tableRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
+  const canManageAreas = ["owner", "admin", "director"].includes(user?.role);
+  const canCloseBim = user?.role === "owner";
 
   useEffect(() => {
     const load = async () => {
@@ -155,6 +162,47 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         />
 
         <main className="flex-1 overflow-y-auto custom-scroll pb-20 lg:pb-0">
+          {/* === ACTION BAR (Top — Áreas / Cerrar Bimestre / Excel) === */}
+          <div className="px-3 pt-3" data-testid="consolidated-actions-bar">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3">
+                <h1 className="text-base font-bold text-slate-900 tracking-tight">Consolidado de Notas <span className="text-slate-400 font-normal">— {new Date().getFullYear()}</span></h1>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {canManageAreas && (
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen("areas")}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors"
+                    data-testid="open-areas-drawer-btn"
+                  >
+                    <BookMarked className="w-4 h-4" /> Áreas Curriculares
+                  </button>
+                )}
+                {canCloseBim && (
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen("cierre")}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors"
+                    data-testid="open-cierre-drawer-btn"
+                  >
+                    <Archive className="w-4 h-4" /> Cerrar Bimestre
+                  </button>
+                )}
+                {data && (
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 transition-colors"
+                    data-testid="export-excel-top-btn"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" /> Descargar Excel
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="cns-page">
       <style>{`
         .cns-page { background:#F8FAFC; padding:12px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
@@ -333,6 +381,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     <td className="cns-ih-val">{dateStr}</td>
                   </>
                 )}
+                <td></td>
               </tr>
               {/* ROW 2: System name + Hora */}
               <tr className="ih">
@@ -351,10 +400,11 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     <td className="cns-ih-val">{timeStr}</td>
                   </>
                 )}
+                <td></td>
               </tr>
               {/* ROW 3-4: Title */}
               <tr className="ih">
-                <td colSpan={3 + allColumns.length + summaryHeaders.length} className="cns-ih-title">{data.title}</td>
+                <td colSpan={3 + allColumns.length + summaryHeaders.length + 1} className="cns-ih-title">{data.title}</td>
               </tr>
               {/* ROW 5: Salon, Periodo, Tutor */}
               <tr className="ih">
@@ -374,6 +424,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     <td className="cns-ih-ctx-val" colSpan={allColumns.length + summaryHeaders.length - 5}>{data.tutor_name || "Sin asignar"}</td>
                   </>
                 )}
+                <td></td>
               </tr>
 
               {/* ROW 6: ASIGNATURAS header + all subject headers (rowSpan=2) + summary headers (rowSpan=2) */}
@@ -396,6 +447,9 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     <span className="cns-vtext">{sh.label.replace("\n", " ")}</span>
                   </th>
                 ))}
+                <th rowSpan={2} className="cns-hdr-vert cns-hdr-summ" title="Abrir libreta del alumno">
+                  <span className="cns-vtext">Libreta</span>
+                </th>
               </tr>
               {/* ROW 7: N° + APELLIDOS Y NOMBRES */}
               <tr>
@@ -436,11 +490,25 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
                       <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
                       <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
+                      <td className="cns-summ-cell" style={{padding:"2px 4px"}}>
+                        <Link
+                          to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                            closedPeriodIds.includes(selectedPeriod)
+                              ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                              : "bg-slate-900 text-white hover:bg-slate-700"
+                          }`}
+                          title={closedPeriodIds.includes(selectedPeriod) ? "Libreta cerrada — solo lectura" : "Ver libreta del alumno"}
+                          data-testid={`consolidado-libreta-btn-${student.number}`}
+                        >
+                          {closedPeriodIds.includes(selectedPeriod) ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />} Ver
+                        </Link>
+                      </td>
                     </tr>
                   ))}
 
                   {/* Spacer */}
-                  <tr><td colSpan={3 + allColumns.length + summaryHeaders.length} style={{height:4, border:"none", background:"#fff"}}></td></tr>
+                  <tr><td colSpan={4 + allColumns.length + summaryHeaders.length} style={{height:4, border:"none", background:"#fff"}}></td></tr>
 
                   {/* Summary footer rows */}
                   {summaryFooterRows.map((fr) => (
@@ -453,6 +521,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                         return <td key={col.id}>{val != null ? val : ""}</td>;
                       })}
                       {summaryHeaders.map((sh) => <td key={sh.key}></td>)}
+                      <td></td>
                     </tr>
                   ))}
                 </>
@@ -468,6 +537,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     {summaryHeaders.map((sh) => (
                       <td key={sh.key}>&mdash;</td>
                     ))}
+                    <td>&mdash;</td>
                   </tr>
                 ))
               )}
@@ -479,6 +549,40 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
           </div>
         </main>
       </div>
+
+      {/* === DRAWER: Áreas Curriculares === */}
+      <RightDrawer
+        open={drawerOpen === "areas"}
+        onClose={() => setDrawerOpen(null)}
+        title="Áreas Curriculares"
+        subtitle="Organiza las asignaturas según el currículo MINEDU"
+        width="min(900px, 75vw)"
+        testId="areas-drawer"
+      >
+        <AdminCurricularAreasPage user={user} token={token} subdomain={user?.subdomain} onLogout={onLogout} embedded />
+      </RightDrawer>
+
+      {/* === DRAWER: Cierre de Bimestre === */}
+      <RightDrawer
+        open={drawerOpen === "cierre"}
+        onClose={() => setDrawerOpen(null)}
+        title="Cierre de Bimestre"
+        subtitle="Congela las libretas para que no se modifiquen"
+        width="min(720px, 65vw)"
+        testId="cierre-drawer"
+      >
+        <AdminCierreBimestrePage
+          user={user}
+          token={token}
+          subdomain={user?.subdomain}
+          onLogout={onLogout}
+          embedded
+          onClosePeriod={(result) => {
+            const pid = result?.period_id;
+            if (pid) setClosedPeriodIds((prev) => Array.from(new Set([...prev, pid])));
+          }}
+        />
+      </RightDrawer>
     </div>
   );
 }

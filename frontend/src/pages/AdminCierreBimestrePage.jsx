@@ -6,7 +6,7 @@ import { Lock, Loader2, AlertTriangle, CheckCircle2, Archive, History, RotateCcw
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function AdminCierreBimestrePage({ user, token, subdomain, onLogout }) {
+export default function AdminCierreBimestrePage({ user, token, subdomain, onLogout, embedded = false, onClosePeriod }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [periods, setPeriods] = useState([]);
@@ -81,6 +81,9 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
       const url = `${API}/libreta/close-period${force ? "?force=true" : ""}`;
       const res = await axios.post(url, { period_id: selectedPeriodId, section_id: sectionId || null }, { headers });
       setResult({ ok: true, data: res.data });
+      if (onClosePeriod) {
+        try { onClosePeriod({ period_id: selectedPeriodId, ...res.data }); } catch { /* noop */ }
+      }
     } catch (err) {
       const detail = err.response?.data?.detail;
       if (err.response?.status === 409) {
@@ -176,25 +179,31 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
     : `Cerrar ${periodName} para todo el colegio`;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex" data-testid="cierre-bim-page">
-      <Sidebar
-        active="cierre-bimestre"
-        onNavigate={() => {}}
-        expanded={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onLogout={onLogout}
-        schoolName="EduNet"
-        subdomain={subdomain}
-        user={user}
-      />
-      <main className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} onLogout={onLogout} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="flex-1 p-6 lg:p-10">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <Archive className="w-7 h-7 text-purple-600" />
-              <h1 className="text-2xl font-bold text-slate-800">Cierre de Bimestre</h1>
-            </div>
+    <div className={embedded ? "bg-slate-50" : "min-h-screen bg-slate-50 flex"} data-testid="cierre-bim-page">
+      {!embedded && (
+        <Sidebar
+          active="cierre-bimestre"
+          onNavigate={() => {}}
+          expanded={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          schoolName="EduNet"
+          subdomain={subdomain}
+          user={user}
+        />
+      )}
+      <main className={embedded ? "flex-1 flex flex-col min-w-0" : "flex-1 flex flex-col min-w-0"}>
+        {!embedded && (
+          <DashboardHeader user={user} onLogout={onLogout} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        )}
+        <div className={embedded ? "flex-1 p-4" : "flex-1 p-6 lg:p-10"}>
+          <div className={embedded ? "w-full" : "max-w-3xl mx-auto"}>
+            {!embedded && (
+              <div className="flex items-center gap-3 mb-6">
+                <Archive className="w-7 h-7 text-purple-600" />
+                <h1 className="text-2xl font-bold text-slate-800">Cierre de Bimestre</h1>
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
               <div>

@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { ChevronLeft, Printer, AlertTriangle, Loader2 } from "lucide-react";
+import { useReactToPrint } from "react-to-print";
 import LibretaCard from "@/components/libreta/LibretaCard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -68,6 +69,20 @@ export default function LibretaPage({ user, token, onLogout }) {
     else setSearchParams({});
   };
 
+  // PDF export
+  const printRef = useRef(null);
+  const buildDocTitle = () => {
+    const stuCode = data?.student?.codigo || data?.student?.student_code || data?.student?.id?.slice(0, 8) || "alumno";
+    const pname = (data?.period_requested?.nombre || data?.period_active?.nombre || "anual").replace(/\s+/g, "_");
+    const year = data?.year || new Date().getFullYear();
+    return `Libreta_${stuCode}_${pname}_${year}`;
+  };
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: buildDocTitle(),
+    pageStyle: `@page { size: A4; margin: 10mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`,
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8" data-testid="libreta-loading">
@@ -121,21 +136,29 @@ export default function LibretaPage({ user, token, onLogout }) {
         </select>
         <Link to={`/libreta/${student_id}`} className="text-xs text-slate-500 hover:underline">Limpiar filtro</Link>
         <div className="flex-1" />
-        <button disabled className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-400 text-sm flex items-center gap-1 cursor-not-allowed" title="Disponible próximamente" data-testid="libreta-print-btn">
-          <Printer className="w-4 h-4" /> Imprimir / PDF
+        <button
+          onClick={handlePrint}
+          className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium flex items-center gap-1.5 transition-colors"
+          title="Descargar la libreta como PDF"
+          data-testid="libreta-pdf-btn"
+        >
+          <Printer className="w-4 h-4" /> Descargar PDF
         </button>
       </div>
 
-      {isSnapshot && (
-        <div className="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 flex items-start gap-2 print:hidden" data-testid="libreta-snapshot-banner">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>
-            <strong>Libreta cerrada.</strong> Esta es una versión cerrada del {(data?.period_requested?.nombre || data?.period_active?.nombre || "bimestre")}{data?.metadata?.closed_at ? `, registrada el ${formatFechaLarga(data.metadata.closed_at)}` : ""}. La información no puede modificarse.
-          </span>
-        </div>
-      )}
+      {/* Contenedor imprimible */}
+      <div ref={printRef} className="libreta-printable">
+        {isSnapshot && (
+          <div className="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 flex items-start gap-2" data-testid="libreta-snapshot-banner">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              <strong>Libreta cerrada.</strong> Esta es una versión cerrada del {(data?.period_requested?.nombre || data?.period_active?.nombre || "bimestre")}{data?.metadata?.closed_at ? `, registrada el ${formatFechaLarga(data.metadata.closed_at)}` : ""}. La información no puede modificarse.
+            </span>
+          </div>
+        )}
 
-      <LibretaCard data={data} token={token} canEdit={canEdit} onReload={() => fetchLibreta(selectedPeriodId)} />
+        <LibretaCard data={data} token={token} canEdit={canEdit} onReload={() => fetchLibreta(selectedPeriodId)} />
+      </div>
     </div>
   );
 }

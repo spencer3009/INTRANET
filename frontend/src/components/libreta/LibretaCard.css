@@ -16,10 +16,17 @@
 
 /* Print */
 @media print {
+  /* Reglas globales: solo el printable visible */
   body * { visibility: hidden; }
-  .libreta-card, .libreta-card * { visibility: visible; }
-  .libreta-card { position: absolute; left: 0; top: 0; width: 100%; }
+  .libreta-printable, .libreta-printable * { visibility: visible; }
+  .libreta-printable { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
   .print\\:hidden { display: none !important; }
+  .libreta-card, .libreta-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* Saltos de página inteligentes */
+  .lc-table { page-break-inside: auto; }
+  .lc-table tr { page-break-inside: avoid; page-break-after: auto; }
+  .lc-table thead { display: table-header-group; }
+  .lc-table tfoot { display: table-footer-group; }
 }
 
 /* Responsive */
