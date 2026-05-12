@@ -467,8 +467,10 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td colSpan={2} className="cns-fn cns-fn-name">
                         <Link
                           to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-slate-900 hover:text-indigo-700 hover:underline cursor-pointer"
-                          title="Ver libreta del alumno"
+                          title="Ver libreta del alumno (se abre en una pestaña nueva)"
                           data-testid={`consolidado-libreta-link-${student.number}`}
                         >
                           {student.student_name}
@@ -493,12 +495,14 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-summ-cell" style={{padding:"2px 4px"}}>
                         <Link
                           to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
                             closedPeriodIds.includes(selectedPeriod)
                               ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
                               : "bg-slate-900 text-white hover:bg-slate-700"
                           }`}
-                          title={closedPeriodIds.includes(selectedPeriod) ? "Libreta cerrada — solo lectura" : "Ver libreta del alumno"}
+                          title={closedPeriodIds.includes(selectedPeriod) ? "Libreta cerrada — abrir en pestaña nueva" : "Ver libreta del alumno en una pestaña nueva"}
                           data-testid={`consolidado-libreta-btn-${student.number}`}
                         >
                           {closedPeriodIds.includes(selectedPeriod) ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />} Ver
