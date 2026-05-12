@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import AdminSidebar from "@/components/AdminSidebar";
+import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import { Lock, Loader2, AlertTriangle, CheckCircle2, Archive } from "lucide-react";
 
@@ -67,8 +67,8 @@ export default function AdminCierreAnoPage({ user, token, subdomain, onLogout })
 
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="cierre-ano-page">
-      <AdminSidebar
-        active="academic"
+      <Sidebar
+        active="cierre-anio"
         onNavigate={() => {}}
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
