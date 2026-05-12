@@ -19,6 +19,7 @@ import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
 import LibretaPage from "@/pages/LibretaPage";
+import MisTutoriasPage from "@/pages/MisTutoriasPage";
 import AcademicYearsPage from "@/pages/AcademicYearsPage";
 import SubjectsPage from "@/pages/SubjectsPage";
 import SchedulePage from "@/pages/SchedulePage";
@@ -503,7 +504,7 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
     // Extract subdomain from current path to redirect to school-specific login
     const pathMatch = location.pathname.match(/^\/([^/]+)/);
     const subdomain = pathMatch ? pathMatch[1] : null;
-    const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school', 'support', 'libreta'];
+    const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school', 'support', 'libreta', 'mis-tutorias'];
     const loginPath = subdomain && !knownNonSchool.includes(subdomain) 
       ? `/${subdomain}/login` 
       : '/login';
@@ -2637,6 +2638,22 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <LibretaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/mis-tutorias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MisTutoriasPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mis-tutorias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MisTutoriasPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
