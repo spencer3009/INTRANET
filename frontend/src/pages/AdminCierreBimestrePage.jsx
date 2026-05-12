@@ -25,7 +25,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
 
   const loadPeriods = useCallback(async () => {
     try {
-      const r = await axios.get(`${API}/academic/periods/active`, { headers });
+      const r = await axios.get(`${API}/academic/periods`, { headers });
       const items = Array.isArray(r.data) ? r.data : (r.data?.periods || []);
       const sorted = [...items].sort((a, b) => (a.orden || 0) - (b.orden || 0));
       setPeriods(sorted);
