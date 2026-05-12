@@ -101,7 +101,7 @@ async def assign_section_tutor(
         {"id": section_id, "school_id": school_id}, {"_id": 0, "id": 1}
     )
     if not section:
-        raise HTTPException(status_code=404, detail="Sección no encontrada")
+        raise HTTPException(status_code=404, detail="No se encontró la sección solicitada")
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -179,7 +179,7 @@ async def get_section_tutor(
         {"id": section_id, "school_id": school_id}, {"_id": 0, "id": 1}
     )
     if not section:
-        raise HTTPException(status_code=404, detail="Sección no encontrada")
+        raise HTTPException(status_code=404, detail="No se encontró la sección solicitada")
 
     teacher = await _get_active_tutor(school_id, section_id)
     if not teacher:
@@ -279,10 +279,10 @@ async def get_libreta(
                  "seccion_id": 1, "section_id": 1},
             )
             if not stu:
-                raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+                raise HTTPException(status_code=404, detail="No se encontró al estudiante")
             sec_id = stu.get("seccion_id") or stu.get("section_id")
             if not await _can_view_libreta(viewer, stu, sec_id):
-                raise HTTPException(status_code=403, detail="No tienes permiso para ver esta libreta")
+                raise HTTPException(status_code=403, detail="No tienes permisos para ver esta libreta")
             payload = snap.get("payload_json") or {}
             payload["metadata"] = {
                 "generated_at": (payload.get("metadata") or {}).get("generated_at"),
@@ -306,15 +306,15 @@ async def get_libreta(
         },
     )
     if not student:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró al estudiante")
 
     section_id = student.get("seccion_id") or student.get("section_id")
     if not section_id:
-        raise HTTPException(status_code=400, detail="El estudiante no tiene sección asignada")
+        raise HTTPException(status_code=400, detail="El estudiante aún no tiene una sección asignada")
 
     # 2) Validar permisos
     if not await _can_view_libreta(viewer, student, section_id):
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta libreta")
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver esta libreta")
 
     school_id = student["school_id"]
 
@@ -323,7 +323,7 @@ async def get_libreta(
         {"id": section_id, "school_id": school_id}, {"_id": 0}
     )
     if not section_doc:
-        raise HTTPException(status_code=404, detail="Sección no encontrada")
+        raise HTTPException(status_code=404, detail="No se encontró la sección solicitada")
     grado_id = section_doc.get("grado_id") or student.get("grado_id")
 
     school_doc = await db.schools.find_one(
@@ -349,7 +349,7 @@ async def get_libreta(
     ).sort("orden", 1).to_list(20)
 
     if not all_periods:
-        raise HTTPException(status_code=400, detail="No hay periodos académicos configurados")
+        raise HTTPException(status_code=400, detail="No hay bimestres académicos configurados")
 
     active_period = next((p for p in all_periods if p.get("activo")), None) or all_periods[0]
 
@@ -358,7 +358,7 @@ async def get_libreta(
     if period_id:
         requested_period = next((p for p in all_periods if p["id"] == period_id), None)
         if not requested_period:
-            raise HTTPException(status_code=404, detail="Periodo no encontrado")
+            raise HTTPException(status_code=404, detail="No se encontró el bimestre indicado")
 
     period_ids = [p["id"] for p in all_periods]
 
@@ -679,7 +679,7 @@ async def update_school_legal_info(
     """Solo el owner puede editar la razón social y el modo de libreta del colegio."""
     user = await _require_user(current_user)
     if user.get("role") != "owner":
-        raise HTTPException(status_code=403, detail="Solo el owner puede editar la configuración del colegio")
+        raise HTTPException(status_code=403, detail="Solo el propietario puede editar la configuración del colegio")
 
     school_id = user["school_id"]
     updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
@@ -728,10 +728,10 @@ async def list_closed_periods(
         {"_id": 0, "id": 1, "school_id": 1, "padre_id": 1, "seccion_id": 1, "section_id": 1},
     )
     if not student:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró al estudiante")
     sec_id = student.get("seccion_id") or student.get("section_id")
     if not await _can_view_libreta(viewer, student, sec_id):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver esta libreta")
 
     school_id = student["school_id"]
     periods = await db.academic_periods.find(
@@ -801,7 +801,7 @@ async def close_period(
     """
     user = await _require_user(current_user)
     if user.get("role") != "owner":
-        raise HTTPException(status_code=403, detail="Solo el owner puede cerrar el bimestre")
+        raise HTTPException(status_code=403, detail="Solo el propietario puede cerrar el bimestre")
 
     school_id = user["school_id"]
 
@@ -810,7 +810,7 @@ async def close_period(
         {"_id": 0, "id": 1, "nombre": 1, "orden": 1, "academic_year_id": 1, "year": 1},
     )
     if not period:
-        raise HTTPException(status_code=404, detail="Período académico no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró el bimestre indicado")
 
     # Year derivado del periodo (académico o calendario)
     year_doc = await db.academic_years.find_one(
@@ -902,7 +902,7 @@ async def close_period(
         raise HTTPException(
             status_code=409,
             detail={
-                "message": "Ya existen snapshots para todos los alumnos del bimestre. Usa ?force=true para sobrescribir.",
+                "message": "Las libretas de este bimestre ya están cerradas para todos los alumnos. Si necesitas actualizarlas, usa la opción 'Volver a generar las libretas'.",
                 **response,
             },
         )
@@ -924,7 +924,7 @@ async def reopen_period(
     """Reabre un bimestre cerrado. Solo owner. Registra en `period_reopen_audit_log`."""
     user = await _require_user(current_user)
     if user.get("role") != "owner":
-        raise HTTPException(status_code=403, detail="Solo el owner puede reabrir bimestres")
+        raise HTTPException(status_code=403, detail="Solo el propietario puede reabrir bimestres")
 
     school_id = user["school_id"]
 

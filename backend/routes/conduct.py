@@ -88,7 +88,7 @@ async def _get_student_for_access(user: dict, student_id: str) -> dict:
         {"_id": 0, "id": 1, "school_id": 1, "seccion_id": 1, "section_id": 1, "padre_id": 1},
     )
     if not s:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró al estudiante")
     if s.get("school_id") != user["school_id"]:
         raise HTTPException(status_code=403, detail="El estudiante no pertenece a tu colegio")
     return s
@@ -182,7 +182,7 @@ async def get_conduct_for_student(
     user = await _require_user(current_user)
     student = await _get_student_for_access(user, student_id)
     if not await _can_read_conduct(user, student):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para realizar esta acción")
 
     query: dict = {"school_id": user["school_id"], "student_id": student_id}
     if period_id:
@@ -201,14 +201,14 @@ async def upsert_conduct(
     user = await _require_user(current_user)
     student = await _get_student_for_access(user, body.student_id)
     if not await _can_write_conduct(user, student):
-        raise HTTPException(status_code=403, detail="Solo el tutor o admin puede calificar conducta")
+        raise HTTPException(status_code=403, detail="Solo el tutor o el administrador pueden calificar la conducta")
 
     # Validar period_id existe en el colegio
     period = await db.academic_periods.find_one(
         {"id": body.period_id, "school_id": user["school_id"]}, {"_id": 0, "id": 1}
     )
     if not period:
-        raise HTTPException(status_code=404, detail="Período académico no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró el bimestre indicado")
 
     final_letra = _validate_letra_score(body.letra, body.score_numeric)
     now = datetime.now(timezone.utc).isoformat()
@@ -219,7 +219,7 @@ async def upsert_conduct(
     if await is_period_closed(user["school_id"], body.student_id, body.period_id):
         raise HTTPException(
             status_code=423,
-            detail="El bimestre ya está cerrado para este alumno. Para modificarlo, contacta al administrador para reabrirlo.",
+            detail="Este bimestre ya está cerrado. Para modificar la conducta, solicita al propietario la reapertura del bimestre.",
         )
 
     existing = await db.conduct_grades.find_one(
@@ -274,7 +274,7 @@ async def delete_conduct(
         raise HTTPException(status_code=404, detail="Registro de conducta no encontrado")
     student = await _get_student_for_access(user, doc["student_id"])
     if not await _can_write_conduct(user, student):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para realizar esta acción")
     await db.conduct_grades.delete_one({"id": conduct_id})
     return None
 

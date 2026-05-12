@@ -64,7 +64,7 @@ async def _get_student(user: dict, student_id: str) -> dict:
         {"_id": 0, "id": 1, "school_id": 1, "seccion_id": 1, "section_id": 1, "padre_id": 1},
     )
     if not s:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró al estudiante")
     if s.get("school_id") != user["school_id"]:
         raise HTTPException(status_code=403, detail="El estudiante no pertenece a tu colegio")
     return s
@@ -120,7 +120,7 @@ async def _validate_cursos(school_id: str, cursos_ids: List[str]) -> List[dict]:
     if missing:
         raise HTTPException(
             status_code=400,
-            detail=f"Asignaturas no encontradas: {', '.join(missing)}",
+            detail="Algunas asignaturas seleccionadas no existen. Recarga la página y vuelve a intentarlo.",
         )
     return docs
 
@@ -138,7 +138,7 @@ async def get_final_status(
     user = await _require_user(current_user)
     student = await _get_student(user, student_id)
     if not await _can_read(user, student):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para realizar esta acción")
 
     q = {"school_id": user["school_id"], "student_id": student_id}
     if year is not None:
@@ -162,13 +162,13 @@ async def upsert_final_status(
     user = await _require_user(current_user)
     student = await _get_student(user, body.student_id)
     if not await _can_write(user, student):
-        raise HTTPException(status_code=403, detail="Solo el tutor o admin puede editar situación final")
+        raise HTTPException(status_code=403, detail="Solo el tutor o el administrador pueden editar la situación final")
 
     # Validar situacion
     if body.situacion is not None and body.situacion not in VALID_SITUACIONES:
         raise HTTPException(
             status_code=400,
-            detail=f"Situación inválida. Valores válidos: {sorted(VALID_SITUACIONES)}",
+            detail="La situación final debe ser 'Promovido', 'Requiere recuperación' o 'Repite'.",
         )
 
     cursos = list(body.cursos_para_recuperar or [])
@@ -176,12 +176,12 @@ async def upsert_final_status(
     if body.situacion == "REQ_RECUPERACION" and not cursos:
         raise HTTPException(
             status_code=400,
-            detail="Si la situación es REQ_RECUPERACION debes indicar al menos un curso a recuperar.",
+            detail="Si la situación es 'Requiere recuperación', debes indicar al menos un curso a recuperar.",
         )
     if body.situacion == "PROMOVIDO" and cursos:
         raise HTTPException(
             status_code=400,
-            detail="PROMOVIDO no admite cursos para recuperar.",
+            detail="Si el alumno está promovido, no debe tener cursos a recuperar.",
         )
 
     # Validar que los cursos existen
@@ -196,7 +196,7 @@ async def upsert_final_status(
     if not last_period:
         raise HTTPException(
             status_code=400,
-            detail="No se encontró el bimestre IV de tu colegio para este año.",
+            detail="No se encontró el cuarto bimestre del año académico.",
         )
     bim4_snap = await db.report_cards_snapshots.find_one(
         {
@@ -208,7 +208,7 @@ async def upsert_final_status(
     if not bim4_snap:
         raise HTTPException(
             status_code=400,
-            detail="La situación final solo puede establecerse al cerrar el bimestre IV.",
+            detail="La situación final solo puede registrarse después de cerrar el cuarto bimestre.",
         )
 
     now = datetime.now(timezone.utc).isoformat()

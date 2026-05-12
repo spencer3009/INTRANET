@@ -7,6 +7,16 @@ import LibretaCard from "@/components/libreta/LibretaCard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Formato peruano: "12 de mayo de 2026"
+const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function formatFechaLarga(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return `${d.getDate()} de ${MESES_ES[d.getMonth()]} de ${d.getFullYear()}`;
+  } catch { return "—"; }
+}
+
 export default function LibretaPage({ user, token, onLogout }) {
   const { student_id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,13 +42,18 @@ export default function LibretaPage({ user, token, onLogout }) {
       }
     } catch (err) {
       const code = err.response?.status;
-      if (code === 401 || code === 403) {
+      if (code === 401) {
+        toast.error("Tu sesión expiró. Inicia sesión nuevamente.");
+        setTimeout(() => navigate("/login"), 1500);
+        return;
+      }
+      if (code === 403) {
         toast.error("No tienes permisos para ver esta libreta");
         setTimeout(() => navigate("/dashboard"), 1500);
         return;
       }
-      if (code === 404) setError("Libreta no encontrada");
-      else setError("Error al cargar la libreta");
+      if (code === 404) setError("No se encontró la libreta solicitada");
+      else setError("Ocurrió un problema al cargar la libreta. Intenta nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +73,7 @@ export default function LibretaPage({ user, token, onLogout }) {
       <div className="min-h-screen bg-slate-50 p-8" data-testid="libreta-loading">
         <div className="max-w-5xl mx-auto bg-white rounded-2xl border border-slate-200 p-12 text-center">
           <Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto mb-3" />
-          <p className="text-slate-500">Cargando libreta…</p>
+          <p className="text-slate-500">Cargando libreta del estudiante…</p>
         </div>
       </div>
     );
@@ -99,14 +114,14 @@ export default function LibretaPage({ user, token, onLogout }) {
           className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
           data-testid="libreta-period-select"
         >
-          <option value="">Vista por defecto (modo {data?.metadata?.libreta_mode || "acumulada"})</option>
+          <option value="">Vista por defecto del año</option>
           {(data?.all_periods || []).map(p => (
             <option key={p.id} value={p.id}>{p.nombre}</option>
           ))}
         </select>
         <Link to={`/libreta/${student_id}`} className="text-xs text-slate-500 hover:underline">Limpiar filtro</Link>
         <div className="flex-1" />
-        <button disabled className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-400 text-sm flex items-center gap-1 cursor-not-allowed" title="Disponible en Turno F2" data-testid="libreta-print-btn">
+        <button disabled className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-400 text-sm flex items-center gap-1 cursor-not-allowed" title="Disponible próximamente" data-testid="libreta-print-btn">
           <Printer className="w-4 h-4" /> Imprimir / PDF
         </button>
       </div>
@@ -115,7 +130,7 @@ export default function LibretaPage({ user, token, onLogout }) {
         <div className="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 flex items-start gap-2 print:hidden" data-testid="libreta-snapshot-banner">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>
-            <strong>Libreta congelada.</strong> Corresponde al cierre del bimestre el {data?.metadata?.closed_at ? new Date(data.metadata.closed_at).toLocaleDateString() : "—"}. Es una versión histórica y no puede editarse.
+            <strong>Libreta cerrada.</strong> Esta es una versión cerrada del {(data?.period_requested?.nombre || data?.period_active?.nombre || "bimestre")}{data?.metadata?.closed_at ? `, registrada el ${formatFechaLarga(data.metadata.closed_at)}` : ""}. La información no puede modificarse.
           </span>
         </div>
       )}

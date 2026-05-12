@@ -42,7 +42,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
       setUnassignedSubjects(all.filter(s => !s.area_id && s.status !== "deleted"));
     } catch (err) {
       console.error("[CurricularAreas] load error", err);
-      toast.error("Error cargando áreas curriculares");
+      toast.error("No se pudieron cargar las áreas curriculares. Intenta nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -57,12 +57,12 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
       const res = await axios.post(`${API}/migration/seed-curricular-areas`, {}, { headers });
       const d = res.data;
       toast.success(
-        `✅ ${d.areas_created} áreas creadas · ${d.subjects_assigned} asignaturas vinculadas` +
-        (d.subjects_unassigned > 0 ? ` · ${d.subjects_unassigned} sin asignar (revisar abajo)` : "")
+        `${d.areas_created} áreas creadas · ${d.subjects_assigned} asignaturas vinculadas` +
+        (d.subjects_unassigned > 0 ? ` · ${d.subjects_unassigned} sin asignar (revísalas abajo)` : "")
       );
       await loadAreas();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error en la inicialización");
+      toast.error(err.response?.data?.detail || "No se pudo inicializar las áreas. Intenta nuevamente.");
     } finally {
       setSeeding(false);
     }
@@ -71,7 +71,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const handleSaveArea = async () => {
     if (!modal) return;
     const name = (modal.area?.name || "").trim();
-    if (!name) { toast.error("El nombre es obligatorio"); return; }
+    if (!name) { toast.error("El nombre del área es obligatorio"); return; }
     setSavingArea(true);
     try {
       if (modal.mode === "create") {
@@ -80,7 +80,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
           order: parseInt(modal.area.order || 0, 10),
           color: modal.area.color || "#0F172A",
         }, { headers });
-        toast.success("Área creada");
+        toast.success("Área curricular creada correctamente");
       } else {
         await axios.put(`${API}/curricular-areas/${modal.area.id}`, {
           name,
@@ -88,25 +88,25 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
           color: modal.area.color,
           is_active: modal.area.is_active,
         }, { headers });
-        toast.success("Área actualizada");
+        toast.success("Área curricular actualizada");
       }
       setModal(null);
       await loadAreas();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al guardar");
+      toast.error(err.response?.data?.detail || "No se pudieron guardar los cambios. Intenta nuevamente.");
     } finally {
       setSavingArea(false);
     }
   };
 
   const handleDeactivate = async (area) => {
-    if (!window.confirm(`¿Desactivar el área "${area.name}"?\nLas asignaturas vinculadas quedarán huérfanas hasta que las reasignes.`)) return;
+    if (!window.confirm(`¿Desactivar el área "${area.name}"?\nLas asignaturas vinculadas quedarán sin área hasta que las reasignes.`)) return;
     try {
       await axios.delete(`${API}/curricular-areas/${area.id}`, { headers });
-      toast.success("Área desactivada");
+      toast.success("Área curricular desactivada");
       await loadAreas();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al desactivar");
+      toast.error(err.response?.data?.detail || "No se pudo desactivar el área. Intenta nuevamente.");
     }
   };
 
@@ -115,11 +115,11 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
     if (!areaId) return;
     try {
       await axios.put(`${API}/subjects/${subject.id}/area`, { area_id: areaId }, { headers });
-      toast.success(`"${subject.name}" vinculada`);
+      toast.success(`"${subject.name}" vinculada al área correctamente`);
       setLinking(prev => { const n = { ...prev }; delete n[subject.id]; return n; });
       await loadAreas();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al vincular");
+      toast.error(err.response?.data?.detail || "No se pudo vincular la asignatura. Intenta nuevamente.");
     }
   };
 

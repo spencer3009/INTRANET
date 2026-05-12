@@ -123,7 +123,7 @@ async def _require_admin(current_user) -> dict:
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     if user.get("role") not in ADMIN_ROLES:
-        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar áreas curriculares")
+        raise HTTPException(status_code=403, detail="Solo los administradores pueden gestionar áreas curriculares")
     return user
 
 

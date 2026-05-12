@@ -61,7 +61,7 @@ async def _get_student(user: dict, student_id: str) -> dict:
         {"_id": 0, "id": 1, "school_id": 1, "seccion_id": 1, "section_id": 1, "padre_id": 1},
     )
     if not s:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró al estudiante")
     if s.get("school_id") != user["school_id"]:
         raise HTTPException(status_code=403, detail="El estudiante no pertenece a tu colegio")
     return s
@@ -109,7 +109,7 @@ async def get_comments(
     user = await _require_user(current_user)
     student = await _get_student(user, student_id)
     if not await _can_read(user, student):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para realizar esta acción")
 
     q = {"school_id": user["school_id"], "student_id": student_id}
     if period_id:
@@ -128,13 +128,13 @@ async def upsert_comment(
     user = await _require_user(current_user)
     student = await _get_student(user, body.student_id)
     if not await _can_write(user, student):
-        raise HTTPException(status_code=403, detail="Solo el tutor o admin puede escribir comentarios")
+        raise HTTPException(status_code=403, detail="Solo el tutor o el administrador pueden escribir comentarios")
 
     period = await db.academic_periods.find_one(
         {"id": body.period_id, "school_id": user["school_id"]}, {"_id": 0, "id": 1}
     )
     if not period:
-        raise HTTPException(status_code=404, detail="Período académico no encontrado")
+        raise HTTPException(status_code=404, detail="No se encontró el bimestre indicado")
 
     comment_clean = (body.comment or "").strip()
     now = datetime.now(timezone.utc).isoformat()
@@ -145,7 +145,7 @@ async def upsert_comment(
     if await is_period_closed(user["school_id"], body.student_id, body.period_id):
         raise HTTPException(
             status_code=423,
-            detail="El bimestre ya está cerrado para este alumno. Para modificarlo, contacta al administrador para reabrirlo.",
+            detail="Este bimestre ya está cerrado. Para modificar el comentario, solicita al propietario la reapertura del bimestre.",
         )
 
     # Caso "" → borrar
@@ -209,7 +209,7 @@ async def delete_comment(
         raise HTTPException(status_code=404, detail="Comentario no encontrado")
     student = await _get_student(user, doc["student_id"])
     if not await _can_write(user, student):
-        raise HTTPException(status_code=403, detail="Sin permiso")
+        raise HTTPException(status_code=403, detail="No tienes permisos para realizar esta acción")
     await db.tutor_comments.delete_one({"id": comment_id})
     return None
 

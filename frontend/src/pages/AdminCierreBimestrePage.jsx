@@ -86,7 +86,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
       if (err.response?.status === 409) {
         setResult({ ok: false, status: 409, data: detail });
       } else {
-        setResult({ ok: false, status: err.response?.status, message: typeof detail === "string" ? detail : "Error inesperado" });
+        setResult({ ok: false, status: err.response?.status, message: typeof detail === "string" ? detail : "Ocurrió un problema al cerrar el bimestre. Intenta nuevamente." });
       }
     } finally {
       setRunning(false);
@@ -111,7 +111,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
       setReopenReason("");
       setReopenConfirmed(false);
     } catch (err) {
-      setResult({ ok: false, message: err.response?.data?.detail || "Error al reabrir" });
+      setResult({ ok: false, message: err.response?.data?.detail || "Ocurrió un problema al reabrir el bimestre. Intenta nuevamente." });
     } finally { setRunning(false); }
   };
 
@@ -160,7 +160,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
         <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md text-center">
           <Lock className="w-10 h-10 text-slate-400 mx-auto mb-3" />
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Acceso restringido</h2>
-          <p className="text-sm text-slate-500">Solo el owner puede cerrar bimestres.</p>
+          <p className="text-sm text-slate-500">Solo el propietario puede cerrar bimestres.</p>
         </div>
       </div>
     );
@@ -287,13 +287,13 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-emerald-900 font-semibold mb-1">Cierre exitoso de {result.data.period_name}</p>
+                      <p className="text-sm text-emerald-900 font-semibold mb-1">Cierre exitoso del {result.data.period_name}</p>
                       <ul className="text-sm text-emerald-800 space-y-0.5">
-                        <li>Creados: <strong>{result.data.snapshots_created}</strong></li>
-                        <li>Sobrescritos: <strong>{result.data.snapshots_overwritten}</strong></li>
-                        <li>Saltados: <strong>{result.data.snapshots_skipped_existing}</strong></li>
-                        <li>Total alumnos: <strong>{result.data.total_students}</strong></li>
-                        {result.data.errors?.length > 0 && (<li className="text-red-700">Errores: {result.data.errors.length}</li>)}
+                        <li>Libretas cerradas por primera vez: <strong>{result.data.snapshots_created}</strong></li>
+                        <li>Libretas vueltas a generar: <strong>{result.data.snapshots_overwritten}</strong></li>
+                        <li>Libretas que ya estaban cerradas: <strong>{result.data.snapshots_skipped_existing}</strong></li>
+                        <li>Total de alumnos procesados: <strong>{result.data.total_students}</strong></li>
+                        {result.data.errors?.length > 0 && (<li className="text-red-700">Alumnos con error: {result.data.errors.length}</li>)}
                       </ul>
                     </div>
                   </div>
@@ -302,9 +302,11 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
 
               {result && !result.ok && result.status === 409 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4" data-testid="cierre-bim-conflict">
-                  <p className="text-sm text-amber-900 font-semibold mb-2">Ya existen snapshots para los alumnos del bimestre.</p>
-                  <p className="text-sm text-amber-800 mb-3">Skipped: {result.data?.snapshots_skipped_existing ?? "?"}</p>
-                  <button type="button" onClick={() => doClose(true)} disabled={running} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium" data-testid="cierre-bim-force-btn">Sobrescribir (force=true)</button>
+                  <p className="text-sm text-amber-900 font-semibold mb-2">Las libretas de este bimestre ya están cerradas.</p>
+                  <p className="text-sm text-amber-800 mb-3">
+                    Ya cerrados: <strong>{result.data?.snapshots_skipped_existing ?? "—"} alumnos</strong>. Si necesitas actualizar las notas o conducta del bimestre, vuelve a generar las libretas (esto sobrescribirá las versiones existentes).
+                  </p>
+                  <button type="button" onClick={() => doClose(true)} disabled={running} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium" data-testid="cierre-bim-force-btn">Volver a generar las libretas</button>
                 </div>
               )}
 
@@ -321,12 +323,12 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                   <h3 className="text-lg font-semibold text-slate-800">Reabrir {reopenTarget.period_name}</h3>
                 </div>
                 <p className="text-sm text-slate-600 mb-4">
-                  Esta acción borra el snapshot y permite que el tutor edite nuevamente notas, conducta y comentarios. Queda registrado en el audit log.
+                  Esta acción borra la libreta cerrada y permite que el tutor edite nuevamente notas, conducta y comentarios. Queda registrada en el historial de auditoría.
                 </p>
                 <textarea
                   value={reopenReason}
                   onChange={(e) => setReopenReason(e.target.value)}
-                  placeholder="Razón obligatoria (ej: error en notas del curso de Matemática)..."
+                  placeholder="Motivo obligatorio (ejemplo: corrección de notas del curso de Matemática)..."
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl resize-none"
                   rows={3}
                   data-testid="cierre-bim-reopen-reason"
@@ -351,7 +353,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                 <p className="text-sm text-slate-500">Cargando…</p>
               ) : history.length === 0 ? (
                 <p className="text-sm text-slate-500 italic">
-                  El historial detallado por sección requerirá un endpoint adicional (Fase 3). Por ahora puedes ver el estado actual de cada alumno en su libreta o vía <code className="bg-slate-100 px-1 rounded">GET /api/libreta/closed-periods/&lt;student_id&gt;</code>.
+                  Aún no hay cierres registrados en esta sesión. Para consultar el estado de un alumno específico, abre su libreta desde el menú de Alumnos.
                 </p>
               ) : (
                 <table className="w-full text-sm">

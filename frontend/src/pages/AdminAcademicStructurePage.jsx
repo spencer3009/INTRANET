@@ -1138,7 +1138,7 @@ function SectionsTab({ token, headers }) {
       setTutorTargetSection(null);
       setSelectedTeacherId("");
     } catch (err) {
-      alert(err.response?.data?.detail || "Error al guardar tutor");
+      alert(err.response?.data?.detail || "No se pudo guardar el tutor. Intenta nuevamente.");
     } finally {
       setSavingTutor(false);
     }
@@ -1158,7 +1158,7 @@ function SectionsTab({ token, headers }) {
       setTutorTargetSection(null);
       setSelectedTeacherId("");
     } catch (err) {
-      alert(err.response?.data?.detail || "Error al quitar tutor");
+      alert(err.response?.data?.detail || "No se pudo quitar el tutor. Intenta nuevamente.");
     } finally {
       setSavingTutor(false);
     }

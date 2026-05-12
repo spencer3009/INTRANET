@@ -6,6 +6,20 @@ import "./LibretaCard.css";
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LETRAS = ["AD", "A", "B", "C"];
 
+// Formato peruano: DD/MM/YYYY HH:MM
+function formatFechaHoraES(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}/${mm}/${yy} ${hh}:${mi}`;
+  } catch { return "—"; }
+}
+
 const letraClass = (l) => {
   if (l === "C") return "lc-red";
   if (l === "AD") return "lc-green";
@@ -47,10 +61,10 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
   const saveConduct = async (period_id, letra) => {
     try {
       await axios.put(`${API}/conduct`, { student_id: data.student.id, period_id, letra }, { headers });
-      toast.success("Conducta actualizada");
+      toast.success("Conducta actualizada correctamente");
     } catch (err) {
-      if (err.response?.status === 423) toast.error("Bimestre cerrado");
-      else toast.error(err.response?.data?.detail || "Error al guardar");
+      if (err.response?.status === 423) toast.error("Este bimestre ya está cerrado. No se puede modificar la conducta.");
+      else toast.error(err.response?.data?.detail || "No se pudo guardar la conducta. Intenta nuevamente.");
       onReload && onReload();
     }
   };
@@ -58,10 +72,10 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
   const saveComment = debounce(async (period_id, comment) => {
     try {
       await axios.put(`${API}/tutor-comments`, { student_id: data.student.id, period_id, comment }, { headers });
-      toast.success("Comentario guardado");
+      toast.success("Comentario del tutor guardado");
     } catch (err) {
-      if (err.response?.status === 423) toast.error("Bimestre cerrado");
-      else toast.error(err.response?.data?.detail || "Error al guardar comentario");
+      if (err.response?.status === 423) toast.error("Este bimestre ya está cerrado. No se puede modificar el comentario.");
+      else toast.error(err.response?.data?.detail || "No se pudo guardar el comentario. Intenta nuevamente.");
     }
   }, 600);
 
@@ -76,7 +90,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
       setFinalStatus(r.data?.final_status || { situacion, cursos_para_recuperar });
       toast.success("Situación final actualizada");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al guardar situación final");
+      toast.error(err.response?.data?.detail || "No se pudo guardar la situación final. Intenta nuevamente.");
     }
   };
 
@@ -172,7 +186,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
             ))}
             {(data.subjects_without_area || []).map(s => (
               <tr key={s.id}>
-                <td className="lc-area-name text-center text-slate-400 italic">(sin área)</td>
+                <td className="lc-area-name text-center text-slate-400 italic">Sin área asignada</td>
                 <td>{s.name}</td>
                 {periods.map(p => {
                   const cell = s.grades?.[p.id] || {};
@@ -214,7 +228,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
                     </td>
                   );
                 }
-                return <td key={p.id} className={`text-center ${letraClass(c?.letra)}`} title={closed ? "Bimestre cerrado" : ""}>{c?.letra || "—"}</td>;
+                return <td key={p.id} className={`text-center ${letraClass(c?.letra)}`} title={closed ? "Este bimestre ya está cerrado" : ""}>{c?.letra || "—"}</td>;
               })}
               <td className="text-center font-semibold">{(() => {
                 const ls = periods.map(p => conduct[p.id]?.letra).filter(Boolean);
@@ -291,7 +305,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
                 <td className="p-0">
                   <textarea
                     value={val}
-                    placeholder={readonly ? (closed ? "(Bimestre cerrado)" : "Sin comentarios para este bimestre") : "Escribir comentario…"}
+                    placeholder={readonly ? (closed ? "Este bimestre ya está cerrado" : "Sin comentarios para este bimestre") : "Escribir comentario…"}
                     readOnly={readonly}
                     rows={2}
                     onChange={(e) => { setComments(prev => ({ ...prev, [p.id]: e.target.value })); saveComment(p.id, e.target.value); }}
@@ -309,12 +323,18 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
       <table className="lc-table" data-testid="libreta-final-status-table">
         <thead><tr><th colSpan={3}>SITUACIÓN FINAL DEL ESTUDIANTE</th></tr></thead>
         <tbody>
-          {["PROMOVIDO", "REQ_RECUPERACION", "REPITE"].map(sit => {
+          {[
+            ["PROMOVIDO", "Promovido"],
+            ["REQ_RECUPERACION", "Requiere recuperación"],
+            ["REPITE", "Repite el año"],
+          ].map((row) => {
+            const sit = row[0];
+            const label = row[1];
             const checked = finalStatus.situacion === sit;
             const disabled = !canEdit || !bim4Closed;
             return (
               <tr key={sit}>
-                <td className="w-44">{sit === "REQ_RECUPERACION" ? "REQ. RECUPERACIÓN" : sit}</td>
+                <td className="w-44">{label}</td>
                 <td className="text-center w-12">
                   <input
                     type="radio"
@@ -353,7 +373,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
             );
           })}
           {!bim4Closed && (
-            <tr><td colSpan={3} className="text-center text-xs text-slate-500 italic py-2">Disponible al cerrar el bimestre IV.</td></tr>
+            <tr><td colSpan={3} className="text-center text-xs text-slate-500 italic py-2">Esta sección se habilita después de cerrar el cuarto bimestre.</td></tr>
           )}
         </tbody>
       </table>
@@ -361,7 +381,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
       {data?.tutor && (
         <div className="mt-6 pt-4 border-t border-slate-300 text-sm text-slate-700 flex justify-between print:text-xs">
           <div><strong>Tutor de aula:</strong> {data.tutor.nombres_completos}</div>
-          <div><strong>Generada:</strong> {new Date(data?.metadata?.generated_at || Date.now()).toLocaleString()}</div>
+          <div><strong>Generada:</strong> {formatFechaHoraES(data?.metadata?.generated_at || new Date().toISOString())}</div>
         </div>
       )}
     </div>
