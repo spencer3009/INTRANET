@@ -417,25 +417,18 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
           {/* Mi Libreta — Quick Access (Fase 3 - Turno F1) */}
           <div
             onClick={() => navigateTo(`/libreta/${user?.id}`)}
-            className="relative overflow-hidden rounded-2xl p-5 mb-6 cursor-pointer group transform transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5"
-            style={{
-              background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
-              boxShadow: '0 10px 40px -10px rgba(15, 23, 42, 0.5)'
-            }}
+            className="bg-white border border-slate-200 rounded-2xl px-5 py-4 mb-6 cursor-pointer group transition-all duration-200 hover:shadow-md hover:border-indigo-200"
             data-testid="student-mi-libreta-card"
           >
-            <div className="absolute -top-12 -right-12 w-40 h-40 bg-gradient-to-br from-amber-400/20 to-orange-500/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500" />
-            <div className="relative flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg flex-shrink-0">
-                  <GraduationCap className="w-6 h-6 text-amber-300" />
-                </div>
-                <div>
-                  <p className="text-base font-bold text-white">Mi Libreta del Estudiante</p>
-                  <p className="text-sm text-slate-300 hidden sm:block">Consulta tus calificaciones, conducta, asistencia y situación final del año.</p>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0 border border-indigo-100 group-hover:bg-indigo-100 transition-colors">
+                <GraduationCap className="w-7 h-7 text-indigo-600" strokeWidth={1.8} />
               </div>
-              <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-lg font-bold text-slate-900 leading-tight">Mi Libreta del Estudiante</p>
+                <p className="text-sm text-slate-500 mt-0.5">Calificaciones, conducta, asistencia y situación final por bimestre</p>
+              </div>
+              <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
             </div>
           </div>
 
