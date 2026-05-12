@@ -39,7 +39,7 @@ from routes.discipline import router as discipline_router
 from routes.news import router as news_router
 from routes.accounting import router as accounting_router, daily_billing_generation_cron, monthly_concept_payments_cron, ensure_subscription_index
 from routes.subjects import router as subjects_router
-from routes.curricular_areas import router as curricular_areas_router
+from routes.curricular_areas import router as curricular_areas_router, ensure_curricular_subject_indexes
 from routes.libreta import router as libreta_router, ensure_libreta_indexes
 from routes.conduct import router as conduct_router, ensure_conduct_indexes
 from routes.tutor_comments import router as tutor_comments_router, ensure_tutor_comments_indexes
@@ -412,6 +412,7 @@ async def _run_startup_tasks():
         await ensure_conduct_indexes()
         await ensure_tutor_comments_indexes()
         await ensure_final_status_indexes()
+        await ensure_curricular_subject_indexes()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
             created = school.get("created_at")

@@ -283,6 +283,251 @@ async def assign_subject_area(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Gestión manual de asignaturas vinculadas (Fase 1 — listado + bulk link/unlink)
+# ─────────────────────────────────────────────────────────────────────────────
+class SubjectBulkIn(BaseModel):
+    subject_ids: List[str] = Field(default_factory=list, min_length=1)
+
+
+async def _enrich_subjects(school_id: str, subjects: List[dict]) -> List[dict]:
+    """Agrega grade_name, section_name, teacher_name, current_area_name a cada subject."""
+    grade_ids = list({s.get("grade_id") for s in subjects if s.get("grade_id")})
+    section_ids = list({s.get("section_id") for s in subjects if s.get("section_id")})
+    teacher_ids = list({s.get("teacher_id") for s in subjects if s.get("teacher_id")})
+    area_ids = list({s.get("area_id") for s in subjects if s.get("area_id")})
+
+    grades = {g["id"]: g async for g in db.grades.find({"id": {"$in": grade_ids}, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1})} if grade_ids else {}
+    sections = {x["id"]: x async for x in db.sections.find({"id": {"$in": section_ids}, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1})} if section_ids else {}
+    teachers = {t["id"]: t async for t in db.users.find({"id": {"$in": teacher_ids}, "school_id": school_id}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1})} if teacher_ids else {}
+    areas = {a["id"]: a async for a in db.curricular_areas.find({"id": {"$in": area_ids}, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1})} if area_ids else {}
+
+    result = []
+    for s in subjects:
+        g = grades.get(s.get("grade_id"))
+        sec = sections.get(s.get("section_id"))
+        t = teachers.get(s.get("teacher_id"))
+        a = areas.get(s.get("area_id"))
+        teacher_name = None
+        if t:
+            teacher_name = f"{(t.get('first_name') or '').strip()} {(t.get('last_name') or '').strip()}".strip() or None
+        result.append({
+            "id": s["id"],
+            "name": s.get("name"),
+            "code": s.get("code"),
+            "grade_id": s.get("grade_id"),
+            "grade_name": g.get("nombre") if g else None,
+            "section_id": s.get("section_id"),
+            "section_name": sec.get("nombre") if sec else None,
+            "teacher_id": s.get("teacher_id"),
+            "teacher_name": teacher_name,
+            "current_area_id": s.get("area_id"),
+            "current_area_name": a.get("name") if a else s.get("area_name"),
+        })
+    return result
+
+
+@router.get("/curricular-areas/{area_id}/subjects")
+async def list_area_subjects(
+    area_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    search: Optional[str] = Query(None),
+    grade_id: Optional[str] = Query(None),
+    current_user=Depends(get_current_user),
+):
+    """Lista paginada de asignaturas vinculadas al área (cualquier rol autenticado del mismo colegio)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user["school_id"]
+    area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+
+    query = {
+        "school_id": school_id,
+        "area_id": area_id,
+        "status": {"$ne": "deleted"},
+    }
+    if search:
+        query["name"] = {"$regex": search.strip(), "$options": "i"}
+    if grade_id:
+        query["grade_id"] = grade_id
+
+    total = await db.subjects.count_documents(query)
+    skip = (page - 1) * page_size
+    docs = await db.subjects.find(query, {"_id": 0}).sort([("name", 1)]).skip(skip).limit(page_size).to_list(page_size)
+    subjects = await _enrich_subjects(school_id, docs)
+    return {"subjects": subjects, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/curricular-areas/{area_id}/available-subjects")
+async def list_available_subjects(
+    area_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    search: Optional[str] = Query(None),
+    unassigned_only: bool = Query(False),
+    current_user=Depends(get_current_user),
+):
+    """Asignaturas del colegio que NO están vinculadas al área actual.
+    Con `unassigned_only=true` solo devuelve las que no tienen área."""
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+    area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+
+    query = {
+        "school_id": school_id,
+        "status": {"$ne": "deleted"},
+    }
+    if unassigned_only:
+        query["$or"] = [{"area_id": {"$exists": False}}, {"area_id": None}]
+    else:
+        # Cualquiera excepto el área actual
+        query["$or"] = [
+            {"area_id": {"$exists": False}},
+            {"area_id": None},
+            {"area_id": {"$ne": area_id}},
+        ]
+    if search:
+        query["name"] = {"$regex": search.strip(), "$options": "i"}
+
+    total = await db.subjects.count_documents(query)
+    skip = (page - 1) * page_size
+    docs = await db.subjects.find(query, {"_id": 0}).sort([("name", 1)]).skip(skip).limit(page_size).to_list(page_size)
+    subjects = await _enrich_subjects(school_id, docs)
+    return {"subjects": subjects, "total": total, "page": page, "page_size": page_size}
+
+
+@router.post("/curricular-areas/{area_id}/subjects/unlink")
+async def bulk_unlink_subjects(
+    area_id: str,
+    payload: SubjectBulkIn,
+    current_user=Depends(get_current_user),
+):
+    """Desvincula múltiples asignaturas del área (area_id queda null)."""
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+    area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+
+    ids = list({s for s in payload.subject_ids if s})
+    if not ids:
+        raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para desvincular")
+
+    # Solo desvincula las que pertenecen al área Y al colegio
+    matching = await db.subjects.find(
+        {"id": {"$in": ids}, "school_id": school_id, "area_id": area_id},
+        {"_id": 0, "id": 1},
+    ).to_list(1000)
+    matching_ids = [m["id"] for m in matching]
+
+    errors: List[dict] = []
+    not_found = set(ids) - set(matching_ids)
+    for nf in not_found:
+        errors.append({"subject_id": nf, "error": "La asignatura no existe o no pertenece a esta área."})
+
+    unlinked_count = 0
+    if matching_ids:
+        now = datetime.now(timezone.utc).isoformat()
+        res = await db.subjects.update_many(
+            {"id": {"$in": matching_ids}, "school_id": school_id},
+            {"$set": {"area_id": None, "area_name": None, "area_order": None, "updated_at": now}},
+        )
+        unlinked_count = res.modified_count
+        logger.info(f"[curricular_areas] unlink area={area_id} count={unlinked_count} by={user.get('id')}")
+
+    return {"unlinked_count": unlinked_count, "errors": errors}
+
+
+@router.post("/curricular-areas/{area_id}/subjects/link")
+async def bulk_link_subjects(
+    area_id: str,
+    payload: SubjectBulkIn,
+    current_user=Depends(get_current_user),
+):
+    """Vincula múltiples asignaturas al área. Si una ya estaba vinculada a otra
+    área, registra la reasignación y sobrescribe."""
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+    area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+
+    ids = list({s for s in payload.subject_ids if s})
+    if not ids:
+        raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para vincular")
+
+    # Solo asignaturas válidas del colegio
+    existing = await db.subjects.find(
+        {"id": {"$in": ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
+        {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
+    ).to_list(1000)
+    existing_map = {s["id"]: s for s in existing}
+
+    errors: List[dict] = []
+    for nid in set(ids) - set(existing_map.keys()):
+        errors.append({"subject_id": nid, "error": "La asignatura no existe en tu colegio."})
+
+    # Separar reasignaciones de vínculos nuevos
+    reassigned: List[dict] = []
+    to_update_ids: List[str] = []
+    for sid, s in existing_map.items():
+        prev_area_id = s.get("area_id")
+        if prev_area_id == area_id:
+            # Ya estaba en esta área, no se cuenta
+            continue
+        if prev_area_id:
+            reassigned.append({
+                "subject_id": sid,
+                "subject_name": s.get("name"),
+                "previous_area_id": prev_area_id,
+                "previous_area_name": s.get("area_name"),
+                "new_area_id": area_id,
+                "new_area_name": area.get("name"),
+            })
+        to_update_ids.append(sid)
+
+    linked_count = 0
+    if to_update_ids:
+        now = datetime.now(timezone.utc).isoformat()
+        res = await db.subjects.update_many(
+            {"id": {"$in": to_update_ids}, "school_id": school_id},
+            {"$set": {
+                "area_id": area_id,
+                "area_name": area.get("name"),
+                "area_order": area.get("order"),
+                "updated_at": now,
+            }},
+        )
+        linked_count = res.modified_count
+        logger.info(
+            f"[curricular_areas] link area={area_id} new={linked_count} "
+            f"reassigned={len(reassigned)} by={user.get('id')}"
+        )
+
+    return {"linked_count": linked_count, "reassigned": reassigned, "errors": errors}
+
+
+# Índice para acelerar las consultas por área (idempotente — se ejecuta al startup)
+async def ensure_curricular_subject_indexes():
+    try:
+        await db.subjects.create_index(
+            [("school_id", 1), ("area_id", 1), ("status", 1)],
+            name="idx_subjects_school_area_status",
+        )
+        await db.subjects.create_index(
+            [("school_id", 1), ("name", 1)],
+            name="idx_subjects_school_name",
+        )
+    except Exception as e:
+        logger.warning(f"[curricular_areas] index creation: {e}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Migración inicial — Seed áreas estándar + fuzzy-match a asignaturas
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/migration/seed-curricular-areas")
