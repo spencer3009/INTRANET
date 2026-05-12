@@ -1,5 +1,23 @@
 # EduNet - Changelog
 
+## May 12, 2026 - Fork (Fase 3 Turno F1 — Libreta Visual del Estudiante)
+
+### Feature: Vista visual de la libreta + edición inline + navegación cruzada - COMPLETED
+- **Frontend nuevo**:
+  - `pages/LibretaPage.jsx`: contenedor con barra de controles (volver, selector de bimestre, placeholder PDF), banner de snapshot congelado, estados loading/error/403.
+  - `components/libreta/LibretaCard.jsx`: layout idéntico al Colegio El Roble — cabecera (logo + legal_name + foto/iniciales del alumno + año/nivel/bimestre), tabla de identificación, tabla principal con rowspan de áreas (I/II/III/IV/Promedio), conducta editable (select AD/A/B/C con autosave + N.F. computada), estadística (puntaje/promedio/desaprobados/orden mérito/tercio), asistencias con totales, comentarios por bimestre (textarea con debounce 600ms), situación final (PROMOVIDO/REQ_RECUPERACION/REPITE + multi-select de cursos a recuperar, habilitada sólo si bimestre IV cerrado).
+  - `components/libreta/LibretaCard.css`: estilos del documento con `@media print` listos para Turno F2.
+- **Rutas registradas en `App.js`**: `/libreta/:student_id` y `/:subdomain/libreta/:student_id` (ProtectedRoute + 'libreta' agregado a `knownNonSchool` para no confundir el segmento con un subdominio).
+- **Navegación cruzada**:
+  - `ConsolidatedGradesPage.jsx`: el nombre del alumno ahora es `<Link>` a `/libreta/{student_id}?period_id=...`.
+  - `StudentDashboardPage.jsx`: card destacada "Mi Libreta del Estudiante" (`data-testid=student-mi-libreta-card`).
+  - `ParentDashboardPage.jsx`: card "Libreta de {selectedChild.name}" (`data-testid=parent-mi-libreta-card`).
+- **Bloqueo de bimestre cerrado**: las celdas de conducta de bimestres con snapshot ya no son select; los textareas de comentarios pasan a `readOnly` con placeholder "(Bimestre cerrado)". Manejo de HTTP 423 con toast + recarga.
+- **Testing**: testing_agent_v3_fork — 12/12 tests ejecutables PASS (frontend). Tests 4 (alumno logueado) y 13 (teacher sin asignación) saltados por falta de credenciales. Backend Fase 1 + Fase 2 ya validado por pytest previo.
+- **Visual fidelity**: 9/10 vs Colegio El Roble (cabecera + tabla principal + bloques inferiores).
+- **NO Save to GitHub / NO Deploy**: respetando la estrategia de deploy por olas del usuario.
+
+
 ## April 27, 2026 - Fork (Subscription Inline Payment Fix)
 
 ### Fix: Sincronización Estado Financiero ↔ Yape (eliminada contradicción AL DÍA / PENDIENTE) - COMPLETED

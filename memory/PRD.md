@@ -17,7 +17,10 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 - Frontend: React + Tailwind + shadcn/ui
 - Librerías clave: jsPDF, xlsx (SheetJS)
 
-## Last Implemented (Feb 2026)
+## Last Implemented (May 2026)
+- [Feature] **Fase 3 Turno F1 — Libreta Visual del Estudiante**. Página `/libreta/:student_id` con render idéntico al Colegio El Roble: cabecera (logo + legal_name + foto/iniciales + bimestre), tabla principal con áreas (rowspan) + asignaturas + I/II/III/IV/Promedio, conducta editable (AD/A/B/C, autosave + N.F.), estadística, asistencias con totales, comentarios del tutor (debounce 600ms), situación final (PROMOVIDO/REQ_RECUPERACION/REPITE + multi-select cursos a recuperar, sólo si bim IV cerrado). Banner amarillo para libretas snapshot. Cross-nav desde Consolidado (nombre → libreta), Dashboard alumno y Dashboard padre. Permisos: owner/admin/director cualquier alumno, teacher con asignación, parent su hijo, student su libreta. Bloqueo de bimestre cerrado (HTTP 423 → toast + reload). 12/12 tests frontend PASS (iter 137). Pendiente Turno F2: exportación PDF con react-to-print.
+
+## Previously Implemented (Feb 2026)
 - [Feature] **Modal Nuevo Examen — Vinculación dinámica al Registro Auxiliar**. Antes solo aceptaba EM/EB/P1/P2/P3 hardcodeados; ahora replica la lógica del modal Nueva Tarea y muestra TODAS las subcolumnas tipo input de la plantilla activa del colegio (criterios + columnas_finales) agrupadas por criterio con badges de disponibilidad (Disponible / Ya asignado / Notas manuales). 
   - Backend (`services/register_sync.py`): nuevas helpers `get_active_template_for_school` y `get_valid_exam_columns_for_school`.
   - Backend (`routes/exams.py`): `_validate_register_linkage` ahora valida exámenes contra el set dinámico (no más limitación EM/EB/P1/P2/P3); check de notas manuales soporta tanto static (`student_grades.<field>`) como dinámico (`grades_dynamic.<column_id>`); `GET /api/register/availability` reescrito devuelve `columns: [...]` con la lista completa Y mantiene `availability: {...}` legacy para compat con el modal Tareas.
@@ -38,7 +41,9 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 ## Backlog (priorizado)
 
 ### P1
+- **Fase 3 Turno F2 — Libreta**: exportación PDF (`react-to-print`), enlace directo desde portal del padre, testing E2E completo.
 - Psicología: log de auditoría estricto.
+- Deploy manual Ola 2 y Ola 3 (esperando confirmación; backups en `/app/memory/wave_deploy/`).
 
 ### P2
 - Crear módulo de "Encuestas".
