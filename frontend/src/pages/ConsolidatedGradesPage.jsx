@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Loader2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -409,7 +410,16 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                   {data.students.map((student) => (
                     <tr key={student.student_id} className="cns-dr" data-testid={`student-row-${student.number}`}>
                       <td className="cns-fn cns-fn-num">{student.number}</td>
-                      <td colSpan={2} className="cns-fn cns-fn-name">{student.student_name}</td>
+                      <td colSpan={2} className="cns-fn cns-fn-name">
+                        <Link
+                          to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          className="text-slate-900 hover:text-indigo-700 hover:underline cursor-pointer"
+                          title="Ver libreta del alumno"
+                          data-testid={`consolidado-libreta-link-${student.number}`}
+                        >
+                          {student.student_name}
+                        </Link>
+                      </td>
                       {allColumns.map((col) => {
                         const val = student.grades[col.id];
                         const isFail = val !== null && val !== undefined && val < 11;

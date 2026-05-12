@@ -1,0 +1,48 @@
+{
+  "summary": "FASE 3 Turno F1 (Libreta del Estudiante) - Frontend end-to-end testing completado. Se ejecutaron 12 de 14 tests del review request. Todos los flujos visuales, edición inline, navegación cruzada y permisos funcionan correctamente. Solo se omitieron tests 4 (no hay credencial student) y 13 (no hay credencial teacher sin asignación).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Libreta - tabla principal", "issues": ["Existen 3 asignaturas legacy huérfanas mostradas como '(SIN ÁREA)' (Test, asdd, Prueba Nueva). No es bug de Fase 3 pero pueden ensuciar visualmente la libreta. Sugerir limpieza de datos o filtro UI para asignaturas sin grades."]}
+    ]
+  },
+  "test_results_per_case": {
+    "test_1_backend_smoke": "PASS - GET /api/libreta/{id} retorna todas las keys: student, school, section, tutor, year, period_active, all_periods, areas, conducta, tutor_comments, final_status, ranking, asistencia, metadata, subjects_without_area, period_requested",
+    "test_2_owner_libreta_render": "PASS - Cabecera, identificación (STU-000001, CALLE MARQUEZ Magno Eduardo), tabla principal con columnas I/II/III/IV/Promedio, bloques CONDUCTA, ESTADÍSTICA, ASISTENCIAS, COMENTARIOS DEL TUTOR (4 filas), SITUACIÓN FINAL todos visibles. Logo Colegio El Roble + iniciales 'CM' del alumno renderizan correctamente.",
+    "test_3_consolidated_cross_nav": "PASS - Tras seleccionar INICIAL/3 años/A/BIMESTRE I, 22 links a /libreta/{student_id}?period_id=... son clicables con data-testid='consolidado-libreta-link-{n}'. Navegación funciona.",
+    "test_4_student_dashboard": "NO TESTEADO - sin credenciales de student",
+    "test_5_parent_libreta_card": "PASS - Card 'Libreta de Magno Eduardo' con data-testid='parent-mi-libreta-card' visible en /elroble/parent. Click navega a /elroble/libreta/4d30c475-c1cf-42d1-9485-620b556ecf72.",
+    "test_6_period_selector": "PASS - Cambiar select a 'BIMESTRE I' actualiza URL con ?period_id={uuid}.",
+    "test_7_conduct_inline_edit": "PASS - libreta-conduct-3 es SELECT (bim activo no cerrado). Cambio a 'AD' dispara PUT /api/conduct, toast 'Conducta actualizada' visible.",
+    "test_8_comment_inline_edit": "PASS - libreta-comment-3 (bim activo) es editable, debounce ~600ms dispara PUT /api/tutor-comments, toast 'Comentario guardado' visible.",
+    "test_9_closed_bim_lockdown": "PASS - libreta-conduct-1/2/4 son TD plano (no SELECT) porque están cerrados. libreta-comment-1/2/4 readOnly=true con placeholder '(Bimestre cerrado)'.",
+    "test_10_parent_readonly": "PASS - Como parent, NO hay celdas SELECT (todas TD) y los 4 textareas son readOnly=true.",
+    "test_11_snapshot_banner": "PASS - Al abrir /libreta/{id}?period_id={closed_bim} aparece banner amarillo 'Libreta congelada. Corresponde al cierre del bimestre el 5/12/2026...' con data-testid='libreta-snapshot-banner'.",
+    "test_12_empty_state": "NO TESTEADO - estudiante seleccionado tenía áreas con grades (aún sin notas en celdas pero areas no vacías → no se renderiza data-testid='libreta-empty-grades').",
+    "test_13_teacher_403": "NO TESTEADO - sin credenciales de teacher sin asignación a la sección.",
+    "test_14_loader_page": "PASS - data-testid='libreta-page' monta tras la carga; data-testid='libreta-loading' brevemente visible durante fetch."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(opcional) Limpiar datos: hay 3 asignaturas legacy huérfanas 'Test', 'asdd', 'Prueba Nueva' renderizadas como (SIN ÁREA) en libretas de Inicial. Considerar filtro UI o limpieza de seed.",
+    "(opcional) Si el tester quiere cubrir Test 4 y Test 13 manualmente, necesita credenciales de student y de teacher sin asignación a la sección de Magno."
+  ],
+  "critical_code_review_comments": [
+    "LibretaCard.jsx (370 líneas) - aceptable, podría dividirse en sub-componentes (HeaderBlock, GradesTable, ConductBlock, AttendanceBlock, FinalStatusBlock) si crece más.",
+    "Toast 'Comentario guardado' se dispara en cada debounce — para UX podría ser sólo 'guardado' silencioso (check inline) para no spam-toastear si el usuario escribe largo. No bloqueante.",
+    "Atributo data-testid='libreta-loading' se desmonta inmediatamente al setear data; race condition mínima no observable."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (1/1 smoke verificado via curl)", "frontend": "100% (12/12 tests ejecutables pasaron; 2 saltados por falta de credenciales)"},
+  "test_credentials": "admin@elroble.edu/1234abc8 (owner) y maria.peres@gmail.com/1234abc8 (parent) — ambas funcionando.",
+  "seed_data_creation": "Ninguna. Se usaron datos seed existentes (Magno y otros estudiantes de Inicial A).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Libreta Fase 3 Turno F1 quedó verde. Tests 4 (student) y 13 (teacher sin permiso) requieren crear credenciales. Backend ya validado en pytest previos. Tests 7/8 dependen de tener al menos un bimestre NO cerrado (actualmente bim III) — si todos los bim quedan cerrados, esos selects desaparecen y los tests dejan de aplicar.",
+  "rca": "N/A — no se reportaron bugs."
+}

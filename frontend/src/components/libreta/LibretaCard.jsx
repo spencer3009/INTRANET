@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import "./LibretaCard.css";
@@ -148,7 +148,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
           </thead>
           <tbody>
             {(data.areas || []).map(area => (
-              <>
+              <Fragment key={area.id}>
                 {area.subjects.map((s, idx) => (
                   <tr key={s.id}>
                     {idx === 0 && (<td rowSpan={area.subjects.length + 1} className="lc-area-name text-center">{area.name}</td>)}
@@ -168,7 +168,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
                   })}
                   <td className={`text-center font-semibold ${letraClass(area.promedio_area?.final?.letter)}`}>{area.promedio_area?.final?.letter || "—"}</td>
                 </tr>
-              </>
+              </Fragment>
             ))}
             {(data.subjects_without_area || []).map(s => (
               <tr key={s.id}>
