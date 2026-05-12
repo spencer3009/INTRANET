@@ -1,161 +1,160 @@
-<analysis>**original_problem_statement**: Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del servidor en producción evitando OOM crashes. Implementar monitoreo de salud y tracking de sesiones activas en tiempo real. Adicionalmente, corregir errores críticos en PWA, ajustar la visibilidad de componentes por roles y corregir masivamente la ortografía (tildes) en los textos del frontend.
-PRODUCT REQUIREMENTS: 
-- P1: Guard global para bloquear servicios a alumnos /.
-- P1: Psicología — Log de auditoría estricto.
+<analysis>**original_problem_statement**: Replicar y expandir módulos del SaaS escolar. Optimizar el rendimiento del servidor en producción. Nuevos requerimientos añadidos: Módulo Libreta Individual del Estudiante dividido en 4 fases (Fase 1: Áreas curriculares y modelo, Fase 2: Backend Libreta, Fase 3: Frontend Libreta, Fase 4: Exportación PDF). Además, el usuario ha solicitado la implementación de un Deploy por Olas (Wave deployment) dividiendo los cambios acumulados en varios commits/deploys separados por nivel de riesgo.
 
-**User's preferred language**: **Spanish** (INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond exclusively in **Spanish**).
+**User's preferred language**: Spanish
+(INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond exclusively in Spanish).
 
-**what currently exists?**:
-SaaS escolar (FastAPI + React + MongoDB) en producción. El backend usa WebSockets y multi-phase API loading. El sistema cuenta con Registro Auxiliar Dinámico (Fase 5), PWA instalable con Service Worker (actualizado a v10), portales separados por roles (Owner, Admin, Teacher, Student, Parent, Support) y aislamiento multi-tenant. Se implementó notificaciones de cumpleaños en calendarios y un popup global multi-tenant.
+**what currently exists?** 
+SaaS escolar completo (FastAPI + React + MongoDB) multi-tenant con portales separados por roles. Flujos de matrícula, asistencia, contabilidad, reportes, registro auxiliar dinámico (plantillas de colegio), y consolidado de notas. Se agregó soporte para Áreas Curriculares MINEDU y conversión de notas vigesimales a literales.
 
-**Last working item**:
-    - Last item agent was working: Corrección ortográfica masiva (tildes) en los textos hardcodeados del JSX en  y . El agente creó y ejecutó scripts de Python ( y ) para realizar reemplazos seguros en atributos y elementos de texto sin dañar variables, rutas de API o clases CSS.
-    - Status: IN PROGRESS / USER VERIFICATION PENDING
-    - Agent Testing Done: Y (El frontend compila correctamente y el Lint no reporta errores post-reemplazo).
-    - Which testing method agent to use?: manual testing by python scripts and build validation
+**Last working item**: 
+    - Last item agent was working: Ejecutando el **Paso 0** de la estrategia de Deploy por Olas solicitada por el usuario. El agente debía consultar si la colección  tenía datos en Producción. Como el agente solo tiene acceso a la DB de Preview, ejecutó la consulta en Preview (resultado: 0 documentos) y se detuvo para informar al usuario y esperar instrucciones sobre cómo proceder con Producción y la Ola 1.
+    - Status: BLOCKED / USER VERIFICATION PENDING
+    - Agent Testing Done: Y (en base de datos de preview)
+    - Which testing method agent to use?: NA (Waiting for user confirmation / Git operations)
     - User Testing Done: N
 
-**All Pending/In progress Issue list**:
-  - Issue 1: Validar despliegues en Producción (Deploy a INTRANET)
-     - Attempted fixes: Múltiples features (Cumpleaños, Service Worker PWA v10, Autocompletado, etc.) fueron probados exitosamente en el entorno preview.
-     - Next debug checklist: Informar/recordar al usuario que debe presionar el botón Save to Github y apuntar al repositorio INTRANET para que estos cambios se reflejen en la versión productiva.
-     - Why fix this issue and what will be achieved with the fix?: Sincronización del entorno preview con la producción real del colegio.
-     - Status: USER VERIFICATION PENDING
-     - Is recurring issue? Y
+**All Pending/In progress Issue list**: 
+  - Issue 1: Validar colección  en Producción (Paso 0 del Deploy por Olas).
+     - Attempted fixes: Agente revisó en preview y está vacía, pero necesita confirmación real de Producción.
+     - Next debug checklist: Esperar respuesta del usuario con los counts de la DB de producción.
+     - Why fix this issue and what will be achieved with the fix?: Define si es seguro desplegar el cambio del Portal Padre (Ola 2) sin perder datos legacy.
+     - Status: BLOCKED
+     - Is recurring issue?: N
      - Should Test frontend/backend/both after fix?: NA
+     - Blocked on other issue: None
+  - Issue 2: Editor de plantillas está creando IDs duplicados (ej. ).
+     - Attempted fixes: Identificado durante las pruebas E2E, pero pospuesto para priorizar el deploy.
+     - Next debug checklist: Revisar frontend en  en la lógica de generación de UUIDs al agregar subcolumnas.
+     - Why fix this issue and what will be achieved with the fix?: Evita colisiones de datos en el registro auxiliar ().
+     - Status: NOT STARTED
+     - Is recurring issue?: N
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on other issue: None
 
-**In progress Task List**:
-  - Task 1: Finalizar tarea de Corrección Ortográfica
-     - Where to resume: El script  modificó 45 archivos de manera segura. Falta enviar el reporte final y mensaje de confirmación al usuario resumiendo el éxito de las correcciones en el frontend para concluir este requerimiento.
-     - What will be achieved with this?: Mejora en la calidad y profesionalismo de la interfaz de usuario en todos los módulos (Tópico, Psicología, Matrículas, etc.).
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix?: frontend (verificar que siga compilando)
-     - Blocked on something: N/A
+**In progress Task List**: 
+  - Task 1: Ejecutar Deploy por Olas (Ola 1, Ola 2, Ola 3).
+     - Where to resume: Aislar los archivos modificados según las instrucciones del usuario para realizar commits parciales o explicar al usuario cómo funciona el auto-commit de la plataforma.
+     - What will be achieved with this?: Despliegue seguro a producción minimizando riesgos de regresión.
+     - Status: BLOCKED
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on something: Confirmación del usuario (Paso 0).
+  - Task 2: Módulo Libreta Individual del Estudiante - FASE 2.
+     - Where to resume: Esperar a que terminen todas las Olas de deploy. Luego, crear modelo  y endpoint .
+     - What will be achieved with this?: Backend para renderizar libretas completas con notas, asistencia, conducta y estadísticas.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix?: backend
+     - Blocked on something: Task 1 (Deploy por Olas).
 
-**Upcoming and Future Tasks**
+**Upcoming and Future Tasks**: 
     Upcoming Tasks:
-    - P1: Guard global para bloquear servicios (asistencia, notas, etc.) a alumnos en estado  o .
-    - P1: Psicología — Log de auditoría estricto.
-    
+    - P1: Módulo Libreta Individual del Estudiante - Fase 3 (Frontend React - Vista de libreta).
+    - P1: Módulo Libreta Individual del Estudiante - Fase 4 (Exportación a PDF con ).
+    - P2: Migración de IDs duplicados en plantillas existentes.
+    - P2: Agregar badge → SEM3 (indicador de vinculación) en la lista de exámenes ().
+    - P2: Psicología — Log de auditoría estricto.
+
     Future Tasks:
-    - P2: Crear módulo de Encuestas.
-    - P2: Optimización de rendimiento del servidor en carga de exámenes masivos (3000 estudiantes).
-    - P2: Refactorización crítica:  (>11,000 líneas). Separar componentes internos urgentemente.
-    - P2: Crear plantilla Adventista para carnets QR.
-    - P3: Añadir gráfica de evolución (IMC a lo largo del año) en el historial del alumno (Tópico).
+    - P3: Crear módulo de Encuestas.
     - P3: Botón Bloquear plantilla a nivel colegio (solo admin).
     - P3: Papelera de reciclaje para el profesor (soft-delete de 30 días).
-    - P3: Banner amarillo de alerta en dashboard del alumno si tiene tareas atrasadas.
 
-**Completed work in this session**
-- Bugfix: Pantalla blanca PWA (Escáner QR y general) resuelta. Reparado el fallback HTTP 200 vacío en , agregado precache,  global y versión v10 (DONE).
-- Feature: Endpoint temporal  para borrar tareas por nombre y school_id (DONE).
-- Bugfix: Tareas vencidas desaparecían del portal de profesores; se cambió el query en  para mostrarlas (DONE).
-- UI/UX: Remover mock data de Noticias y Avisos en Dashboards de Admin/Owner (DONE).
-- Feature: 5 tarjetas de métricas interactivas en Panel Soporte (Renovados, Vencidos, Nuevos, Al día, Todos) (DONE).
-- Feature: Buscador con autocompletado en  para Personal y Profesores (DONE).
-- Feature: Calendario de cumpleaños (backend  & ) (DONE).
-- Feature: Popup-carrusel global de Cumpleaños con efecto  (multi-tenant) almacenado en  (DONE).
-- UI/UX: Widgets de Cumpleaños del mes integrados y reordenados en los dashboards de todos los roles (DONE).
-- UI/UX: Nivelación de alturas mediante Flexbox () en contenedores de dashboards de Alumnos, Owners y Padres (DONE).
-- Feature: Calculadora visual de tarifas en vivo en la sección de precios del panel de Soporte (DONE).
-- Bugfix: Restricción del popup de Cumpleaños para que NO aparezca en landing/rutas públicas y aislar rigurosamente la metadata por tenant  (DONE).
+**Completed work in this session**: 
+- Bugfix:  muestra ahora el  correctamente en todos sus pasos. (DONE)
+- Bugfix: Error 500 () y guardado de justificaciones de asistencia manual corrigiendo el envío de  y . (DONE)
+- Feature: Vinculación dinámica de Exámenes al Registro Auxiliar (, , ) adaptado para leer plantillas customizadas. (DONE)
+- Feature: Botón de Papelera (Trash) en el  para limpiar/borrar notas que tengan valor 0. (DONE)
+- Feature: Botón Backup Excel de estudiantes habilitado para owner/admin en . (DONE)
+- Bugfix: Portal del Estudiante modificado para leer notas de  en lugar de submissions de tareas. (DONE)
+- Bugfix: Portal del Padre modificado para leer de  en lugar de  legacy. (DONE)
+- Feature: Libreta Individual - FASE 1: Se creó la colección , endpoints CRUD, helper de conversión de nota vigesimal a literal MINEDU () y página . (DONE)
 
-**Earlier issues found/mentioned but not fixed**
-None
+**Earlier issues found/mentioned but not fixed**: 
+   - Issue 1: Error  al escanear código QR desde Android con traductor de Google.
+   - Issue 2:  (>11,000 líneas) y  (>6,000 líneas) requieren refactorización urgente.
 
-**Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Falta de click en Save to Github por parte del usuario para que los fixes suban a producción (INTRANET).
-  - Recurrence count: 2
-  - Status: IN PROGRESS / PENDING USER ACTION
-  Note: Mencionar siempre que el usuario apruebe un bloque de cambios que debe subirlos a Github.
+**Known issue recurrence from previous fork**: 
+  - Issue recurrence in previous fork: El usuario frecuentemente olvida realizar Save to Github y asume que sus cambios en Preview se reflejan automáticamente en Producción. En este último paso, el usuario está implementando una estrategia manual de despliegue.
+  - Recurrence count: 6
+  - Status: IN PROGRESS (Atendiendo su pipeline manual de deploy).
 
-**Code Architecture**
+**Code Architecture**: 
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── birthdays.py                  # Nuevo módulo de consultas de cumpleaños
-│   │   ├── courses.py                    # Endpoint tareas docentes (fix vencidos)
-│   │   ├── support.py                    # Cleanup huérfanas, escuelas y metrics
-├── frontend/
-│   ├── public/
-│   │   ├── service-worker.js             # V10 con fixes críticos para PWA (JS errors proxy)
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── BirthdayPopupCarousel.jsx # Popup de Cumpleaños global con canvas-confetti
-│   │   │   ├── BirthdayMonthCarousel.jsx # Widget de dashboard compacto
-│   │   │   ├── ErrorBoundary.jsx         # Nuevo wrapper de control de crashes
-│   │   ├── pages/                        # Componentes de layouts alineados con Flexbox
+│   │   ├── exams.py                    # Refactorizado linkage de registro
+│   │   ├── curricular_areas.py         # NUEVO: Gestión de áreas MINEDU
+│   │   ├── student_portal.py           # Endpoint de notas actualizado
+│   │   ├── parent_portal.py            # Endpoint de notas actualizado
+│   ├── services/
+│   │   ├── register_sync.py            # Helpers de plantillas dinámicas
+│   │   ├── grades_literal.py           # NUEVO: Helper conversión a Letras
 
-**Key Technical Concepts**
-- **PWA Service Worker Resilience**: Se actualizó el worker a  para propagar excepciones reales del network (stale-while-revalidate sin falsos HTTP 200 en chunks JS fallidos) para evitar pantalla blanca.
-- **Tenant Isolation en Componentes Globales**: El  está inyectado a nivel de layout (), pero está atado a rutas de la Intranet y respeta estricto aislamiento de los fetchs a MongoDB usando el  del token.
-- **Python Regex para JSX**: Para la masiva refactorización ortográfica en frontend, se usaron comandos python para modificar exclusivamente contenido entre tags  y strings de atributos legibles, evitando romper nombres de rutas, variables o CSS clases (ej: ).
+**Key Technical Concepts**: 
+- **Dynamic Register Templates**: El registro auxiliar usa plantillas dinámicas; las notas de los estudiantes pueden guardarse bajo campos estáticos () o bajo el sub-documento .
+- **Literal Grade Conversion**: Escala MINEDU (0-10=C, 11-13=B, 14-17=A, 18-20=AD) con redondeo matemático ().
 
-**key DB schema**
-- : Define el año activo por  y rige para los cumpleaños evaluables.
-- : Colección de logs de renovación con , que ahora alimenta métricas de soporte ().
+**key DB schema**: 
+  - : 
+  - : agregados campos opcionales 
 
-**changes in tech stack**
-- Añadida dependencia frontend  para el efecto del cumpleaños.
+**changes in tech stack**: 
+  - Ninguno significativo.
 
-**All files of reference**
--  (Reparación de PWA)
--  (Global fallback errors)
--  (Nuevas API metrics, cleanups)
--  (Nueva lógica cumpleaños multi-tenant)
--  (Global Confetti UI)
--  (Dashboard soporte y pricing est.)
--  (Buscador staff autocomplete)
+**All files of reference**: 
+  - 
+  - 
+  - 
+  - 
+  - 
 
-**Areas that need refactoring**:
--  (>11,000 líneas). Continúa como deuda técnica alta urgente de separar.
+**Areas that need refactoring**: 
+  -  y .
 
-**key api endpoints**
--  & 
--  & 
+**key api endpoints**: 
+  -  (Devuelve las columnas dinámicas para vincular evaluaciones)
+  -  (Nuevo endpoint que lee  para portales)
+  -  (Inicializa áreas MINEDU)
+
+**Critical Info for New Agent**: 
+- **⚠️ MANEJO DE GIT Y DEPLOYS**: El usuario ha pedido un Deploy por Olas, donde requiere que *solo ciertos archivos modificados* vayan en el primer commit (Ola 1), otros en el segundo (Ola 2), etc.
+- **Sin embargo**, como agente en Emergent, la plataforma hace auto-commits o el botón Save to Github hace push de todo el working directory actual. *Debes explicarle esto al usuario o utilizar comandos manuales de git CLI (como Saved working directory and index state WIP on main: 6fd211af auto-commit for 4a1a3b5e-b0d9-40a4-8ba0-67297c999fbc o restaurar archivos temporalmente)* para poder separar los deploys exactamente como lo pide. Si no manejas el control de versiones manualmente mediante bash, subirás todos los cambios de golpe a pesar de las Olas.
+- **PASO 0**: El usuario pidió consultar la DB de producción para ver si  está vacía. Como no tienes acceso, el agente anterior lo hizo en preview. Debes decirle al usuario que verifique esto directamente en su BD de producción o darle el OK para avanzar asumiendo el riesgo.
+- Nunca avances a la Fase 2 de Libretas hasta que el ciclo de deploy actual esté finalizado y el usuario dé su aprobación explícita.
+
+**documents and test reports created in this job**: 
+- 
 - 
 
-**Critical Info for New Agent**
-- **ORTOGRAFÍA**: El último paso realizado fue un script Python que sustituyó cientos de palabras sin tildes en el JSX (Ej: 'Atencion' -> 'Atención'). El código compila correctamente, pero debes concluir reportando este éxito al usuario.
-- **PWA**: NUNCA coloques interceptores  para archivos  o  en el service-worker, pues rompen la PWA de React causando pantallas en blanco. El fix actual en  es correcto.
-- **GUARDAR CAMBIOS**: Sigue recordando al usuario que debe utilizar el botón Save to Github (repo: INTRANET) para propagar todo a sus escuelas.
-- Responde estrictamente en Español.
-
-**documents and test reports created in this job**
--  (Script de fix temporal, no comiteable).
--  (Script temporal para pasadas adicionales).
-*(Los test de esta iteración fueron todos E2E con capturas y curl).*
-
-**Last 10 User Messages and any pending HUMAN messages** 
-1. [User] Pide que la altura de tarjetas se alinee en el dashboard del Padre.
-2. [Agent] Utiliza  y logra la nivelación.
-3. [User] Pide que en los cursos del Padre se muestren 8 en vez de 5.
-4. [Agent] Edita la paginación para cursos en ParentDashboardPage.
-5. [User] Consulta si la explosión de serpentinas funciona también para profesores y admins.
-6. [Agent] Envía capturas confirmando que es global (aparece para todos).
-7. [User] Pide invertir la posición de Cumpleaños y Calendario en el portal del profesor.
-8. [Agent] Modifica TeacherDashboardPage y envía captura de confirmación.
-9. [User] Pregunta cómo corregir masivamente las tildes si los textos están hardcodeados en el JSX y da directivas estrictas.
-10. [Agent] Corre scripts de Python  iterativos que tocan ~111 archivos y pasan el Lint. *Pending: Comunicarle al usuario el resultado final y ver qué sigue*.
+**Last 10 User Messages and any pending HUMAN messages**: 
+1. [User] Pregunta cómo dejar una nota en blanco en el registro auxiliar (actualmente solo deja poner 0).
+2. [Agent] Responde cómo hacerlo y ofrece añadir un botón 🗑️ para limpiar notas con 0.
+3. [User] Acepta la idea.
+4. [Agent] Implementa la papelera en  y arregla un bug silencioso con .
+5. [User] Pide que el botón Backup Excel de estudiantes se habilite también para owner y admin.
+6. [Agent] Modifica permisos en backend y frontend, y lo testea.
+7. [User] Reporta que los alumnos ven Sin notas en su portal, a pesar de tener notas en el consolidado.
+8. [Agent] Corrige portal del alumno (leyendo ) y previene el mismo error en el portal del padre.
+9. [User] Proporciona el mega-prompt MÓDULO LIBRETA INDIVIDUAL DEL ESTUDIANTE dividido en fases.
+10. [Agent] Termina la Fase 1.
+11. [User] Pide el inventario de todo lo que no se ha desplegado.
+12. [Agent] Lista todos los cambios pendientes en preview (Exámenes dinámicos, Papelera, Backup, Portal alumno, Portal padre, Áreas Fase 1).
+13. [User] **[PENDING HUMAN MESSAGE]** Dicta estrategia DEPLOY POR OLAS (Olas 1, 2 y 3) e instruye ejecutar el PASO 0 (verificar DB de producción) antes de cualquier commit.
+14. [Agent] Aclara que solo tiene acceso a Preview, ejecuta el test allí, y queda esperando instrucciones.
 
 **Project Health Check:**
-Healthy.
+Healthy, but with a highly sensitive pending manual Git deployment strategy.
 
-**3rd Party Integrations**
-- No se han modificado ni agregado en esta iteración; se mantiene igual.  es un paquete local de JS.
+**3rd Party Integrations**: 
+  - Ninguna nueva añadida (Cloudinary en uso previo). Ninguna integración de LLM en esta sesión.
 
-**Testing status**
-  - Testing agent used after significant changes: NO (Testing robusto manual con logs de UI, builds de React y uso extenso de Screenshot Tool).
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: Ninguna
+**Testing status**: 
+  - Testing agent used after significant changes: YES ().
+  - Troubleshoot agent used after agent stuck in loop: YES (Para el issue de asistencia manual).
+  - Test files created: None.
+  - Known regressions: None detected in preview.
 
-**Credentials to test flow:**
-Admin: 
-Profesor: 
-Padre:  (Actualizada a: )
-Alumno: 
+**Credentials to test flow**:
+  - Check .
 
-**What agent forgot to execute**
-El agente aplicó los reemplazos ortográficos (pass 1 y pass 2) exitosamente y comprobó que compilaba el Frontend, pero no emitió un mensaje final al usuario con el comando  resumiendo este hito. Debe terminarse este hilo indicándole al usuario los resultados. Igualmente, no se actualizó el PRD.md en la herramienta Finish. Tienes que hacerlo al momento del closure.</analysis>
+**What agent forgot to execute**: 
+El agente no ha definido un plan para lidiar con el requerimiento de hacer commits parciales (Olas) dado el comportamiento de auto-commit de la plataforma. El próximo agente debe planificar cómo aislar los archivos (vía No local changes to save o checkouts selectivos de archivos) para el deploy de la Ola 1.</analysis>

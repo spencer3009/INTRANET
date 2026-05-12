@@ -13,7 +13,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://modal-monto-total.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://libreta-escolar.preview.emergentagent.com')
 
 # Test credentials
 COORDINATOR_EMAIL = "coordinador@elroble.edu"
