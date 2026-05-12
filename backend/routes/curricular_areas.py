@@ -335,10 +335,14 @@ async def list_area_subjects(
     grade_id: Optional[str] = Query(None),
     current_user=Depends(get_current_user),
 ):
-    """Lista paginada de asignaturas vinculadas al área (cualquier rol autenticado del mismo colegio)."""
-    user = await resolve_user_from_token(current_user)
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    """Lista paginada de asignaturas vinculadas al área.
+
+    Restringido a owner/admin/director del mismo colegio (consistente con
+    el resto de endpoints de gestión de áreas).
+
+    Excluye asignaturas con `status: deleted`.
+    """
+    user = await _require_admin(current_user)
     school_id = user["school_id"]
     area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1})
     if not area:
@@ -407,7 +411,20 @@ async def bulk_unlink_subjects(
     payload: SubjectBulkIn,
     current_user=Depends(get_current_user),
 ):
-    """Desvincula múltiples asignaturas del área (area_id queda null)."""
+    """Desvincula múltiples asignaturas del área (`area_id` queda `null`).
+
+    Comportamiento de **fallo parcial (best-effort)**:
+    - Procesa todas las asignaturas válidas en una sola operación de Mongo.
+    - Si alguna asignatura no existe, no pertenece al área o tiene `status: deleted`,
+      se reporta individualmente en `errors[]` con su motivo y se omite del update.
+    - No hay rollback global: las asignaturas válidas SÍ se desvinculan aunque
+      otras del mismo request fallen.
+
+    Response:
+    - `unlinked_count`: cantidad efectivamente actualizada
+    - `unlinked`: `[{subject_id, subject_name}]` — útil para feedback al usuario
+    - `errors`: `[{subject_id, error}]` — motivo individual por cada fallo
+    """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
     area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1})
@@ -418,29 +435,46 @@ async def bulk_unlink_subjects(
     if not ids:
         raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para desvincular")
 
-    # Solo desvincula las que pertenecen al área Y al colegio
+    # Asignaturas válidas: del colegio, del área, y NO soft-deleted
     matching = await db.subjects.find(
-        {"id": {"$in": ids}, "school_id": school_id, "area_id": area_id},
-        {"_id": 0, "id": 1},
+        {
+            "id": {"$in": ids},
+            "school_id": school_id,
+            "area_id": area_id,
+            "status": {"$ne": "deleted"},
+        },
+        {"_id": 0, "id": 1, "name": 1},
     ).to_list(1000)
     matching_ids = [m["id"] for m in matching]
 
+    # Identificar el motivo de cada fallo individual (best-effort, no rollback)
     errors: List[dict] = []
-    not_found = set(ids) - set(matching_ids)
-    for nf in not_found:
-        errors.append({"subject_id": nf, "error": "La asignatura no existe o no pertenece a esta área."})
+    for nf in set(ids) - set(matching_ids):
+        # Inspeccionar si existe pero está deleted / en otra área / fuera del tenant
+        ref = await db.subjects.find_one({"id": nf, "school_id": school_id}, {"_id": 0, "status": 1, "area_id": 1})
+        if not ref:
+            errors.append({"subject_id": nf, "error": "La asignatura no existe en tu colegio."})
+        elif ref.get("status") == "deleted":
+            errors.append({"subject_id": nf, "error": "La asignatura está eliminada."})
+        elif ref.get("area_id") != area_id:
+            errors.append({"subject_id": nf, "error": "La asignatura no pertenece a esta área."})
+        else:
+            errors.append({"subject_id": nf, "error": "No se pudo desvincular."})
 
-    unlinked_count = 0
+    unlinked: List[dict] = []
     if matching_ids:
         now = datetime.now(timezone.utc).isoformat()
         res = await db.subjects.update_many(
-            {"id": {"$in": matching_ids}, "school_id": school_id},
+            {"id": {"$in": matching_ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
             {"$set": {"area_id": None, "area_name": None, "area_order": None, "updated_at": now}},
         )
+        unlinked = [{"subject_id": m["id"], "subject_name": m.get("name")} for m in matching]
+        logger.info(f"[curricular_areas] unlink area={area_id} count={res.modified_count} by={user.get('id')}")
         unlinked_count = res.modified_count
-        logger.info(f"[curricular_areas] unlink area={area_id} count={unlinked_count} by={user.get('id')}")
+    else:
+        unlinked_count = 0
 
-    return {"unlinked_count": unlinked_count, "errors": errors}
+    return {"unlinked_count": unlinked_count, "unlinked": unlinked, "errors": errors}
 
 
 @router.post("/curricular-areas/{area_id}/subjects/link")
@@ -449,8 +483,23 @@ async def bulk_link_subjects(
     payload: SubjectBulkIn,
     current_user=Depends(get_current_user),
 ):
-    """Vincula múltiples asignaturas al área. Si una ya estaba vinculada a otra
-    área, registra la reasignación y sobrescribe."""
+    """Vincula múltiples asignaturas al área.
+
+    Si una asignatura ya estaba vinculada a otra área, registra la reasignación
+    en `reassigned[]` y sobrescribe el `area_id`. Las asignaturas ya vinculadas
+    al mismo área NO se cuentan en `linked_count` (no se contabilizan no-ops).
+
+    Comportamiento de **fallo parcial (best-effort)**:
+    - Procesa todas las asignaturas válidas en una sola operación de Mongo.
+    - Si una asignatura no existe en el colegio o tiene `status: deleted`,
+      se reporta en `errors[]` con su motivo y se omite del update.
+    - No hay rollback global: las válidas SÍ se vinculan aunque otras fallen.
+
+    Response:
+    - `linked_count`: cantidad efectivamente actualizada
+    - `reassigned`: `[{subject_id, subject_name, previous_area_id, previous_area_name, new_area_id, new_area_name}]`
+    - `errors`: `[{subject_id, error}]`
+    """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
     area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0})
@@ -461,16 +510,23 @@ async def bulk_link_subjects(
     if not ids:
         raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para vincular")
 
-    # Solo asignaturas válidas del colegio
+    # Asignaturas válidas (excluye deleted)
     existing = await db.subjects.find(
         {"id": {"$in": ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
         {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
     ).to_list(1000)
     existing_map = {s["id"]: s for s in existing}
 
+    # Errores individuales (best-effort)
     errors: List[dict] = []
     for nid in set(ids) - set(existing_map.keys()):
-        errors.append({"subject_id": nid, "error": "La asignatura no existe en tu colegio."})
+        ref = await db.subjects.find_one({"id": nid, "school_id": school_id}, {"_id": 0, "status": 1})
+        if not ref:
+            errors.append({"subject_id": nid, "error": "La asignatura no existe en tu colegio."})
+        elif ref.get("status") == "deleted":
+            errors.append({"subject_id": nid, "error": "La asignatura está eliminada."})
+        else:
+            errors.append({"subject_id": nid, "error": "No se pudo vincular."})
 
     # Separar reasignaciones de vínculos nuevos
     reassigned: List[dict] = []
@@ -478,7 +534,7 @@ async def bulk_link_subjects(
     for sid, s in existing_map.items():
         prev_area_id = s.get("area_id")
         if prev_area_id == area_id:
-            # Ya estaba en esta área, no se cuenta
+            # Ya estaba en esta área, no se cuenta (no-op)
             continue
         if prev_area_id:
             reassigned.append({
@@ -495,7 +551,7 @@ async def bulk_link_subjects(
     if to_update_ids:
         now = datetime.now(timezone.utc).isoformat()
         res = await db.subjects.update_many(
-            {"id": {"$in": to_update_ids}, "school_id": school_id},
+            {"id": {"$in": to_update_ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
             {"$set": {
                 "area_id": area_id,
                 "area_name": area.get("name"),
