@@ -1,7 +1,7 @@
 /* eslint-disable */
 // AdminCurricularAreasPage — gestión de Áreas Curriculares (MINEDU)
 // UTF-8 con tildes/ñ reales. Layout estándar del portal (Sidebar + topbar).
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import {
   BookMarked, LinkIcon, RefreshCcw,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -19,6 +20,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
 
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [areas, setAreas] = useState([]);
+  const areasRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [modal, setModal] = useState(null); // {mode: 'create'|'edit', area?}
@@ -38,6 +40,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
         axios.get(`${API}/subjects`, { headers }).catch(() => ({ data: { subjects: [] } })),
       ]);
       setAreas(areasRes.data || []);
+      areasRef.current = areasRes.data || [];
       const all = subjectsRes.data?.subjects || subjectsRes.data || [];
       setUnassignedSubjects(all.filter(s => !s.area_id && s.status !== "deleted"));
     } catch (err) {
@@ -340,7 +343,11 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
       {/* ── Modal crear / editar ── */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !savingArea && setModal(null)}>
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()} data-testid="area-modal">
+          <div
+            className={`bg-white rounded-xl ${modal.mode === "edit" ? "max-w-2xl" : "max-w-md"} w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto`}
+            onClick={e => e.stopPropagation()}
+            data-testid="area-modal"
+          >
             <header className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900">
                 {modal.mode === "create" ? "Nueva área curricular" : "Editar área"}
@@ -389,6 +396,23 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 </label>
               )}
             </div>
+
+            {/* ── Acordeón: Asignaturas vinculadas (solo edición) ── */}
+            {modal.mode === "edit" && modal.area?.id && (
+              <AreaSubjectsManager
+                area={modal.area}
+                token={token}
+                onChange={async () => {
+                  // Refresca la tabla principal y propaga el nuevo conteo al área del modal
+                  await loadAreas();
+                  setModal(prev => {
+                    if (!prev) return prev;
+                    const fresh = (areasRef.current || []).find(a => a.id === prev.area.id);
+                    return fresh ? { ...prev, area: { ...prev.area, subjects_count: fresh.subjects_count } } : prev;
+                  });
+                }}
+              />
+            )}
             <footer className="mt-6 flex items-center justify-end gap-2">
               <button onClick={() => setModal(null)} disabled={savingArea} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">Cancelar</button>
               <button

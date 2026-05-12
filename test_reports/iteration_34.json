@@ -60,8 +60,8 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "schedule_url": "https://registro-conducta.preview.emergentagent.com/horarios",
-    "student_schedule_url": "https://registro-conducta.preview.emergentagent.com/student/schedule"
+    "schedule_url": "https://area-subject-link.preview.emergentagent.com/horarios",
+    "student_schedule_url": "https://area-subject-link.preview.emergentagent.com/student/schedule"
   },
 
   "seed_data_creation": "None - used existing test data. Grade IDs: 3 años=peru-edunet-1, 1°=peru-edunet-1. Section IDs: ÚNICA=peru-edunet-1, A=peru-edunet-1",
