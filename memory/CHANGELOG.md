@@ -1,5 +1,17 @@
 # EduNet - Changelog
 
+## May 12, 2026 - Fork (Feature: Gestión Manual de Asignaturas — Fase 2 Frontend)
+
+### Feature: Modal de Áreas Curriculares expandido con acordeón de asignaturas — COMPLETED
+- **Acordeón colapsable** "Asignaturas vinculadas (N)" montado **dentro** del modal existente de edición en `AdminCurricularAreasPage.jsx` (NO se creó página standalone). Lazy-load: el endpoint `GET /curricular-areas/{id}/subjects` sólo se llama al expandir.
+- **Componente `AreaSubjectsManager.jsx`** (536 líneas): toolbar con buscador (debounce 300ms) + botones "Vincular asignaturas" / "Desvincular seleccionadas (N)", tabla paginada (20/página) con selección individual y masiva, scroll vertical interno (max-h 420px), confirmación previa a desvincular individual/masivo y toasts pluralizados (1 / 2-3 / 4+ / mezcla).
+- **Sub-modal `LinkSubjectsSubModal`**: toggle "Solo asignaturas sin área" ON por default (seguro), llama `/available-subjects?unassigned_only=true|false`. Filas con badge ámbar mostrando el área actual cuando aplica. Banner de warning de reasignación dinámico listando hasta 5 asignaturas + recuento. Toast distingue casos: vinculación nueva, reasignación pura, mezcla, no-op, y errores parciales (`errors[]`).
+- **Refresco automático del contador** en la columna "ASIGNATURAS" de la tabla principal vía `onChange={loadAreas}` + `areasRef` para evitar closures stale. Modal aumentado a `max-w-2xl` en modo edición.
+- **Operaciones transaccionales independientes**: cerrar el modal sin guardar metadata NO revierte vinculaciones (texto sutil "Los cambios se guardan automáticamente" en el header del acordeón).
+- **Testing**: `testing_agent_v3_fork` iter 139 → **100% frontend success rate, 13/13 comportamientos verificados**, sin bugs. Lazy-load, debounce, bulk selection, reassign warning y empty state confirmados E2E.
+- **NO Save to GitHub / NO Deploy** — listo en preview para validación del director.
+
+
 ## May 12, 2026 - Fork (Fase 3 Turno F2 — Cierre del módulo Libreta)
 
 ### Feature: Consolidado como hub + Drawers + PDF + Portal padre — COMPLETED
