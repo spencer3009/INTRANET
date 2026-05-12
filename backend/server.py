@@ -40,7 +40,10 @@ from routes.news import router as news_router
 from routes.accounting import router as accounting_router, daily_billing_generation_cron, monthly_concept_payments_cron, ensure_subscription_index
 from routes.subjects import router as subjects_router
 from routes.curricular_areas import router as curricular_areas_router
-from routes.libreta import router as libreta_router
+from routes.libreta import router as libreta_router, ensure_libreta_indexes
+from routes.conduct import router as conduct_router, ensure_conduct_indexes
+from routes.tutor_comments import router as tutor_comments_router, ensure_tutor_comments_indexes
+from routes.final_status import router as final_status_router, ensure_final_status_indexes
 from routes.health import router as health_router
 from routes.monitoring import router as monitoring_router
 from routes.support_monitor import router as support_monitor_router
@@ -211,6 +214,9 @@ app.include_router(accounting_router)
 app.include_router(subjects_router)
 app.include_router(curricular_areas_router)
 app.include_router(libreta_router)
+app.include_router(conduct_router)
+app.include_router(tutor_comments_router)
+app.include_router(final_status_router)
 app.include_router(health_router)
 app.include_router(support_monitor_router)
 app.include_router(courses_router)
@@ -402,6 +408,10 @@ async def _run_startup_tasks():
         await ensure_pae_indexes()
         await ensure_movilidad_indexes()
         await ensure_coordinacion_indexes()
+        await ensure_libreta_indexes()
+        await ensure_conduct_indexes()
+        await ensure_tutor_comments_indexes()
+        await ensure_final_status_indexes()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
             created = school.get("created_at")

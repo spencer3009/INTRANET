@@ -10,7 +10,7 @@ Endpoints:
 Fuente única de notas: `student_grades` (Ola 1 ya alineó portales).
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
@@ -25,6 +25,9 @@ from services.ranking import compute_ranking
 from services.libreta_format import format_section_libreta
 from services.attendance_summary import summary_by_period
 from services.grades_literal import numerica_a_letra, promedio_numerico
+from .conduct import get_conduct_payload_for_libreta
+from .tutor_comments import get_comments_payload_for_libreta
+from .final_status import get_final_status_payload_for_libreta
 
 logger = logging.getLogger(__name__)
 
@@ -251,13 +254,45 @@ def _compute_n_orden(students_sorted: List[dict], student_id: str) -> Optional[i
 async def get_libreta(
     student_id: str,
     period_id: Optional[str] = Query(default=None),
+    year: Optional[int] = Query(default=None),
     current_user=Depends(get_current_user),
 ):
     """Genera el payload completo de la libreta del estudiante.
 
     Si `period_id` no viene, usa el periodo `activo: true` del colegio.
+    Si `year` viene y existe un snapshot persistido para ese (student, year),
+    devuelve el snapshot tal cual (libreta congelada / histórica).
     """
     viewer = await _require_user(current_user)
+
+    # 0) Snapshot read-through si se pide un año específico y hay snapshot
+    if year is not None:
+        snap = await db.report_cards_snapshots.find_one(
+            {"school_id": viewer["school_id"], "student_id": student_id, "year": year},
+            {"_id": 0},
+        )
+        if snap:
+            # Validar permisos antes de devolver el snapshot
+            stu = await db.users.find_one(
+                {"id": student_id, "role": "student"},
+                {"_id": 0, "id": 1, "school_id": 1, "padre_id": 1,
+                 "seccion_id": 1, "section_id": 1},
+            )
+            if not stu:
+                raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+            sec_id = stu.get("seccion_id") or stu.get("section_id")
+            if not await _can_view_libreta(viewer, stu, sec_id):
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver esta libreta")
+            payload = snap.get("payload_json") or {}
+            payload["metadata"] = {
+                "generated_at": (payload.get("metadata") or {}).get("generated_at"),
+                "is_snapshot": True,
+                "year_closed": True,
+                "closed_at": snap.get("closed_at"),
+                "closed_by": snap.get("closed_by"),
+                "snapshot_version": snap.get("snapshot_version", "1.0"),
+            }
+            return payload
 
     # 1) Cargar estudiante
     student = await db.users.find_one(
@@ -516,6 +551,17 @@ async def get_libreta(
     nombres = (student.get("name") or "").strip()
     apellidos_nombres = f"{apellidos.upper()}, {nombres}" if apellidos else nombres
 
+    # 15) Conducta, comentarios del tutor, situación final (Turno B)
+    conducta_payload = await get_conduct_payload_for_libreta(
+        school_id, student_id, period_ids
+    )
+    comments_payload = await get_comments_payload_for_libreta(
+        school_id, student_id, period_ids
+    )
+    final_status_payload = await get_final_status_payload_for_libreta(
+        school_id, student_id, year_val
+    )
+
     return {
         "student": {
             "id": student["id"],
@@ -559,9 +605,199 @@ async def get_libreta(
         "subjects_without_area": subjects_without_area,
         "ranking": ranking_payload,
         "asistencia": asistencia_payload,
+        "conducta": conducta_payload,
+        "tutor_comments": comments_payload,
+        "final_status": final_status_payload,
         "metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "is_snapshot": False,
             "year_closed": False,
         },
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ENDPOINT — LEGAL NAME (razón social del colegio)
+# ════════════════════════════════════════════════════════════════════════════
+
+class SchoolLegalInfoUpdate(BaseModel):
+    legal_name: Optional[str] = None
+
+
+@router.put("/school/legal-info")
+async def update_school_legal_info(
+    body: SchoolLegalInfoUpdate,
+    current_user=Depends(get_current_user),
+):
+    """Solo el owner puede editar la razón social del colegio."""
+    user = await _require_user(current_user)
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Solo el owner puede editar la razón social")
+
+    school_id = user["school_id"]
+    legal_clean = (body.legal_name or "").strip() or None
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {"legal_name": legal_clean, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    school = await db.schools.find_one(
+        {"id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1},
+    )
+    return {"school": school}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ENDPOINTS — SNAPSHOT (cierre de año)
+# ════════════════════════════════════════════════════════════════════════════
+
+class CloseYearBody(BaseModel):
+    year: int = Field(ge=2000, le=2100)
+    section_id: Optional[str] = None
+
+
+@router.post("/libreta/close-year")
+async def close_academic_year(
+    body: CloseYearBody,
+    force: bool = Query(default=False),
+    current_user=Depends(get_current_user),
+):
+    """Persiste un snapshot de la libreta de cada alumno del año indicado.
+
+    - Solo owner.
+    - Si `section_id` viene: cierra solo esa sección.
+    - Si ya existe snapshot para (alumno, año) y `force=false`: lo registra como skipped.
+    - Si `force=true`: sobrescribe.
+    """
+    user = await _require_user(current_user)
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Solo el owner puede cerrar el año")
+
+    school_id = user["school_id"]
+
+    # 1) Determinar lista de alumnos
+    student_filter: Dict[str, Any] = {
+        "school_id": school_id,
+        "role": "student",
+        "student_status": {"$in": ["enrolled", "active"]},
+    }
+    if body.section_id:
+        student_filter["seccion_id"] = body.section_id
+    students = await db.users.find(
+        student_filter, {"_id": 0, "id": 1}
+    ).to_list(5000)
+    if body.section_id and not students:
+        # fallback con `section_id`
+        student_filter["section_id"] = student_filter.pop("seccion_id")
+        students = await db.users.find(
+            student_filter, {"_id": 0, "id": 1}
+        ).to_list(5000)
+
+    snapshots_created = 0
+    snapshots_skipped_existing = 0
+    snapshots_overwritten = 0
+    errors: List[Dict[str, str]] = []
+    now = datetime.now(timezone.utc).isoformat()
+
+    for s in students:
+        sid = s["id"]
+        existing = await db.report_cards_snapshots.find_one(
+            {"school_id": school_id, "student_id": sid, "year": body.year},
+            {"_id": 0, "id": 1},
+        )
+        if existing and not force:
+            snapshots_skipped_existing += 1
+            continue
+        try:
+            payload = await get_libreta(sid, period_id=None, year=None, current_user=current_user)
+        except HTTPException as exc:
+            errors.append({"student_id": sid, "error": exc.detail})
+            continue
+        except Exception as exc:  # noqa: BLE001
+            logger.exception(f"[close-year] error en alumno {sid}: {exc}")
+            errors.append({"student_id": sid, "error": "Error interno"})
+            continue
+
+        # Forzar que el payload guardado no sea ya un snapshot
+        payload["metadata"] = {
+            "generated_at": now,
+            "is_snapshot": False,
+            "year_closed": False,
+        }
+
+        doc = {
+            "id": existing["id"] if existing else str(uuid.uuid4()),
+            "school_id": school_id,
+            "student_id": sid,
+            "year": body.year,
+            "payload_json": payload,
+            "closed_at": now,
+            "closed_by": user["id"],
+            "snapshot_version": "1.0",
+        }
+        if existing:
+            await db.report_cards_snapshots.update_one(
+                {"id": existing["id"]}, {"$set": doc}
+            )
+            snapshots_overwritten += 1
+        else:
+            await db.report_cards_snapshots.insert_one(doc)
+            snapshots_created += 1
+
+    has_skips_without_force = snapshots_skipped_existing > 0 and not force
+    status_code = 409 if has_skips_without_force and snapshots_created == 0 else 200
+    response = {
+        "year": body.year,
+        "section_id": body.section_id,
+        "snapshots_created": snapshots_created,
+        "snapshots_overwritten": snapshots_overwritten,
+        "snapshots_skipped_existing": snapshots_skipped_existing,
+        "errors": errors,
+        "total_students": len(students),
+    }
+    if status_code == 409:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Ya existen snapshots para todos los alumnos. Usa ?force=true para sobrescribir.",
+                **response,
+            },
+        )
+    return response
+
+
+class ReopenSnapshotBody(BaseModel):
+    year: int
+    student_id: Optional[str] = None
+
+
+@router.delete("/libreta/snapshot")
+async def delete_snapshot(
+    body: ReopenSnapshotBody,
+    current_user=Depends(get_current_user),
+):
+    """Elimina snapshot(s). Solo owner. Sin UI por ahora (Postman/curl)."""
+    user = await _require_user(current_user)
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Solo el owner puede reabrir año")
+
+    q: Dict[str, Any] = {"school_id": user["school_id"], "year": body.year}
+    if body.student_id:
+        q["student_id"] = body.student_id
+    res = await db.report_cards_snapshots.delete_many(q)
+    return {"deleted": res.deleted_count, "year": body.year, "student_id": body.student_id}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# INDEX
+# ════════════════════════════════════════════════════════════════════════════
+
+async def ensure_libreta_indexes():
+    try:
+        await db.report_cards_snapshots.create_index(
+            [("school_id", 1), ("student_id", 1), ("year", 1)],
+            unique=True, name="uniq_snapshot_student_year",
+        )
+    except Exception as e:
+        logger.warning(f"[libreta] snapshot index creation: {e}")
+

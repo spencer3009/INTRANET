@@ -1068,6 +1068,13 @@ function SectionsTab({ token, headers }) {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  // Tutor management
+  const [tutorsMap, setTutorsMap] = useState({});  // {section_id: {id, nombres_completos} | null}
+  const [teachers, setTeachers] = useState([]);
+  const [showTutorModal, setShowTutorModal] = useState(false);
+  const [tutorTargetSection, setTutorTargetSection] = useState(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [savingTutor, setSavingTutor] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -1080,13 +1087,80 @@ function SectionsTab({ token, headers }) {
         axios.get(`${API}/academic/grades`, { headers }),
         axios.get(`${API}/academic/levels`, { headers })
       ]);
-      setSections(sectionsRes.data || []);
+      const sec = sectionsRes.data || [];
+      setSections(sec);
       setGrades(gradesRes.data || []);
       setLevels(levelsRes.data || []);
+      // Cargar tutores en paralelo (Turno B - Libreta)
+      const tutorPairs = await Promise.all(
+        sec.map(async (s) => {
+          try {
+            const r = await axios.get(`${API}/sections/${s.id}/tutor`, { headers });
+            return [s.id, r.data?.tutor || null];
+          } catch {
+            return [s.id, null];
+          }
+        })
+      );
+      setTutorsMap(Object.fromEntries(tutorPairs));
+      // Cargar lista de profesores del colegio
+      try {
+        const tRes = await axios.get(`${API}/users?role=teacher`, { headers });
+        const items = Array.isArray(tRes.data) ? tRes.data : (tRes.data?.users || tRes.data?.items || []);
+        setTeachers(items);
+      } catch {
+        setTeachers([]);
+      }
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openTutorModal = (section) => {
+    setTutorTargetSection(section);
+    setSelectedTeacherId(tutorsMap[section.id]?.id || "");
+    setShowTutorModal(true);
+  };
+
+  const handleSaveTutor = async () => {
+    if (!tutorTargetSection) return;
+    setSavingTutor(true);
+    try {
+      await axios.put(
+        `${API}/sections/${tutorTargetSection.id}/tutor`,
+        { teacher_id: selectedTeacherId || null },
+        { headers }
+      );
+      await loadData();
+      setShowTutorModal(false);
+      setTutorTargetSection(null);
+      setSelectedTeacherId("");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al guardar tutor");
+    } finally {
+      setSavingTutor(false);
+    }
+  };
+
+  const handleRemoveTutor = async () => {
+    if (!tutorTargetSection) return;
+    setSavingTutor(true);
+    try {
+      await axios.put(
+        `${API}/sections/${tutorTargetSection.id}/tutor`,
+        { teacher_id: null },
+        { headers }
+      );
+      await loadData();
+      setShowTutorModal(false);
+      setTutorTargetSection(null);
+      setSelectedTeacherId("");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al quitar tutor");
+    } finally {
+      setSavingTutor(false);
     }
   };
 
@@ -1165,16 +1239,36 @@ function SectionsTab({ token, headers }) {
         {sections.length === 0 ? (
           <p className="text-center py-8 text-slate-500">No hay secciones</p>
         ) : (
-          sections.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onEdit={handleEdit}
-              onDelete={(i) => { setItemToDelete(i); setShowDeleteModal(true); }}
-              onToggle={handleToggle}
-              extraInfo={`${getGradeInfo(item.grado_id)} • Cap: ${item.capacidad || 30}`}
-            />
-          ))
+          sections.map((item) => {
+            const tutor = tutorsMap[item.id];
+            return (
+              <div key={item.id} data-testid={`section-row-${item.id}`}>
+                <ItemRow
+                  item={item}
+                  onEdit={handleEdit}
+                  onDelete={(i) => { setItemToDelete(i); setShowDeleteModal(true); }}
+                  onToggle={handleToggle}
+                  extraInfo={`${getGradeInfo(item.grado_id)} • Cap: ${item.capacidad || 30}`}
+                />
+                <div className="px-4 pb-3 -mt-2 flex items-center gap-3 text-sm" data-testid={`section-tutor-row-${item.id}`}>
+                  <span className="text-slate-500">Tutor:</span>
+                  {tutor ? (
+                    <span className="text-slate-700 font-medium" data-testid={`section-tutor-name-${item.id}`}>{tutor.nombres_completos}</span>
+                  ) : (
+                    <span className="italic text-slate-400" data-testid={`section-tutor-empty-${item.id}`}>Sin asignar</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => openTutorModal(item)}
+                    className="ml-auto px-2.5 py-1 text-xs rounded-lg border border-purple-200 text-purple-600 hover:bg-purple-50"
+                    data-testid={`section-tutor-assign-btn-${item.id}`}
+                  >
+                    {tutor ? "Cambiar" : "Asignar"}
+                  </button>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -1244,11 +1338,50 @@ function SectionsTab({ token, headers }) {
         confirmText="Eliminar"
         confirmVariant="danger"
       />
+
+      <SimpleModal
+        isOpen={showTutorModal}
+        onClose={() => { setShowTutorModal(false); setTutorTargetSection(null); setSelectedTeacherId(""); }}
+        title={tutorTargetSection ? `Asignar Tutor a la sección ${getGradeInfo(tutorTargetSection.grado_id)} - ${tutorTargetSection.nombre}` : "Asignar Tutor"}
+        onSave={handleSaveTutor}
+        loading={savingTutor}
+      >
+        <div className="space-y-4" data-testid="tutor-assign-modal-body">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Profesor</label>
+            <select
+              value={selectedTeacherId}
+              onChange={(e) => setSelectedTeacherId(e.target.value)}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+              data-testid="tutor-assign-select"
+            >
+              <option value="">— Seleccionar profesor —</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>
+                  {`${t.last_name || ""} ${t.name || ""}`.trim() || t.email}
+                </option>
+              ))}
+            </select>
+          </div>
+          {tutorTargetSection && tutorsMap[tutorTargetSection.id] && (
+            <button
+              type="button"
+              onClick={handleRemoveTutor}
+              className="w-full px-4 py-2 text-sm rounded-xl border border-red-200 text-red-600 hover:bg-red-50"
+              data-testid="tutor-remove-btn"
+              disabled={savingTutor}
+            >
+              Quitar tutor actual ({tutorsMap[tutorTargetSection.id].nombres_completos})
+            </button>
+          )}
+          <p className="text-xs text-slate-500">
+            El tutor de aula podrá calificar conducta, escribir comentarios por bimestre y editar la situación final del año en la libreta de cada alumno de su sección.
+          </p>
+        </div>
+      </SimpleModal>
     </div>
   );
 }
-
-// Shifts Tab Content
 function ShiftsTab({ token, headers }) {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);

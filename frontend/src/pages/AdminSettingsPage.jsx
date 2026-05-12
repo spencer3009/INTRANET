@@ -119,7 +119,15 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
         website_url: settings.website_url,
         currency: settings.currency
       }, { headers });
-      
+
+      // legal_name vive en `schools` (no en tenant_settings)
+      await axios.put(`${API}/school/legal-info`, {
+        legal_name: settings.legal_name || null
+      }, { headers }).catch((e) => {
+        // Solo owner; admins/director recibirán 403 — no bloquear el resto
+        if (e.response?.status !== 403) throw e;
+      });
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -237,6 +245,13 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
                   onChange={(v) => updateSetting("system_title", v)}
                   placeholder="Ej: Colegio San Martín - Intranet"
                   helpText="Se muestra en el título del navegador"
+                />
+                <InputField
+                  label="Razón Social / Nombre Legal"
+                  value={settings.legal_name}
+                  onChange={(v) => updateSetting("legal_name", v)}
+                  placeholder="Ej: INSTITUCIÓN EDUCATIVA PRIVADA COLEGIO EL ROBLE"
+                  helpText="Aparecerá en la cabecera de las libretas y documentos oficiales"
                 />
                 {school && (
                   <div className="bg-slate-50 rounded-xl p-4">
