@@ -34,7 +34,7 @@
   "test_credentials": {
     "admin": "admin@elroble.edu / 1234abc8 (subdomain: elroble)",
     "psychologist": "ana.garcia@elroble.edu / Psico123! (subdomain: elroble)",
-    "app_url": "https://libreta-escolar.preview.emergentagent.com"
+    "app_url": "https://registro-conducta.preview.emergentagent.com"
   },
   "seed_data_creation": "Created test psychologist (TEST_Psico) and test session during backend testing - both cleaned up after tests",
   "retest_needed": false,

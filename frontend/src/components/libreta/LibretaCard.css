@@ -1,0 +1,29 @@
+/* Libreta Card — formato Colegio El Roble */
+.libreta-card { font-family: Inter, Arial, sans-serif; color: #1E293B; }
+
+.lc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.lc-table th, .lc-table td { border: 1px solid #E2E8F0; padding: 6px 8px; vertical-align: middle; }
+.lc-table thead th { background: #0F172A; color: #fff; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+.lc-table tbody td { background: #fff; }
+.lc-area-name { background: #F1F5F9; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.lc-area-avg td { background: #F1F5F9; font-weight: 600; }
+.lc-red { color: #DC2626; font-weight: 700; }
+.lc-green { color: #16A34A; font-weight: 700; }
+
+/* Edición inline */
+.lc-table select, .lc-table textarea, .lc-table input { font-family: inherit; font-size: 12px; }
+.lc-table textarea { min-height: 36px; }
+
+/* Print */
+@media print {
+  body * { visibility: hidden; }
+  .libreta-card, .libreta-card * { visibility: visible; }
+  .libreta-card { position: absolute; left: 0; top: 0; width: 100%; }
+  .print\\:hidden { display: none !important; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lc-table { font-size: 10px; }
+  .lc-table th, .lc-table td { padding: 4px 5px; }
+}

@@ -63,7 +63,7 @@
   "test_credentials": {
     "email": "admin@elroble.edu",
     "password": "1234abc8",
-    "login_url": "https://libreta-escolar.preview.emergentagent.com/elroble/login"
+    "login_url": "https://registro-conducta.preview.emergentagent.com/elroble/login"
   },
 
   "seed_data_for_testing": {
