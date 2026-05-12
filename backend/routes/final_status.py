@@ -187,6 +187,30 @@ async def upsert_final_status(
     # Validar que los cursos existen
     await _validate_cursos(user["school_id"], cursos)
 
+    # Validar que el bimestre IV del año esté cerrado para este alumno
+    last_period = await db.academic_periods.find_one(
+        {"school_id": user["school_id"], "orden": 4},
+        {"_id": 0, "id": 1, "nombre": 1},
+        sort=[("orden", -1)],
+    )
+    if not last_period:
+        raise HTTPException(
+            status_code=400,
+            detail="No se encontró el bimestre IV de tu colegio para este año.",
+        )
+    bim4_snap = await db.report_cards_snapshots.find_one(
+        {
+            "school_id": user["school_id"],
+            "student_id": body.student_id,
+            "period_id": last_period["id"],
+        }, {"_id": 0, "id": 1},
+    )
+    if not bim4_snap:
+        raise HTTPException(
+            status_code=400,
+            detail="La situación final solo puede establecerse al cerrar el bimestre IV.",
+        )
+
     now = datetime.now(timezone.utc).isoformat()
     section_id = student.get("seccion_id") or student.get("section_id")
     existing = await db.final_status.find_one(

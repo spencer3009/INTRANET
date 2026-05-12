@@ -42,7 +42,7 @@ const allNavItems = [
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas", section: "courses" },
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },
-  { id: "cierre-anio", label: "Cierre de Año", icon: Archive, route: "/cierre-anio", section: "grades", roles: ["owner"] },
+  { id: "cierre-bimestre", label: "Cierre de Bimestre", icon: Archive, route: "/cierre-bimestre", section: "grades", roles: ["owner"] },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },

@@ -140,6 +140,14 @@ async def upsert_comment(
     now = datetime.now(timezone.utc).isoformat()
     section_id = student.get("seccion_id") or student.get("section_id")
 
+    # Bloqueo si el bimestre ya está cerrado
+    from .libreta import is_period_closed
+    if await is_period_closed(user["school_id"], body.student_id, body.period_id):
+        raise HTTPException(
+            status_code=423,
+            detail="El bimestre ya está cerrado para este alumno. Para modificarlo, contacta al administrador para reabrirlo.",
+        )
+
     # Caso "" → borrar
     if not comment_clean:
         await db.tutor_comments.delete_many(

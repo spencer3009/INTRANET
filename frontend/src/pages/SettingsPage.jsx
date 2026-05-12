@@ -50,7 +50,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     currency: "PEN",
     whatsapp: "",
     website_url: "",
-    legal_name: ""
+    legal_name: "",
+    libreta_mode: "acumulada"
   });
   
   const [loading, setLoading] = useState(true);
@@ -171,17 +172,18 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           currency: res.data.currency || "PEN",
           whatsapp: res.data.whatsapp || "",
           website_url: res.data.website_url || "",
-          legal_name: res.data.legal_name || ""
+          legal_name: res.data.legal_name || "",
+          libreta_mode: "acumulada"
         });
-        // legal_name vive en `schools` — leer del endpoint separado si está vacío en settings
-        if (!res.data.legal_name) {
-          try {
-            const schoolRes = await axios.get(`${API}/dashboard/school`, { headers });
-            if (schoolRes.data?.legal_name) {
-              setSettings(prev => ({ ...prev, legal_name: schoolRes.data.legal_name }));
-            }
-          } catch (_) { /* opcional */ }
-        }
+        // legal_name + libreta_mode viven en `schools`
+        try {
+          const schoolRes = await axios.get(`${API}/dashboard/school`, { headers });
+          setSettings(prev => ({
+            ...prev,
+            legal_name: schoolRes.data?.legal_name || prev.legal_name,
+            libreta_mode: schoolRes.data?.libreta_mode || "acumulada",
+          }));
+        } catch (_) { /* opcional */ }
       } catch (err) {
         setError(err.response?.data?.detail || "Error al cargar ajustes");
       } finally {
@@ -1100,6 +1102,45 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     data-testid="settings-legal-name"
                   />
                   <p className="text-xs text-slate-400 mt-1">Aparecerá en la cabecera de las libretas y documentos oficiales. Solo el owner puede editarlo.</p>
+                </div>
+
+                <div className="mt-6 border-t pt-5">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Modo de Libreta
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="libreta_mode"
+                        value="acumulada"
+                        checked={(settings.libreta_mode || "acumulada") === "acumulada"}
+                        onChange={(e) => handleChange('libreta_mode', e.target.value)}
+                        className="mt-1"
+                        data-testid="settings-libreta-mode-acumulada"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-slate-800">Modo acumulado <span className="text-xs text-indigo-600 ml-2">recomendado</span></div>
+                        <div className="text-xs text-slate-500">Cada libreta muestra todos los bimestres cerrados hasta la fecha (I → último cerrado).</div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="libreta_mode"
+                        value="bimestral"
+                        checked={settings.libreta_mode === "bimestral"}
+                        onChange={(e) => handleChange('libreta_mode', e.target.value)}
+                        className="mt-1"
+                        data-testid="settings-libreta-mode-bimestral"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-slate-800">Modo bimestral</div>
+                        <div className="text-xs text-slate-500">Cada libreta muestra solo el bimestre cerrado más reciente.</div>
+                      </div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">Esta configuración afecta cómo se muestran las libretas a los padres. Puedes cambiarla en cualquier momento.</p>
                 </div>
               </div>
             </section>

@@ -17,7 +17,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import UsersPage from "@/pages/UsersPage";
 import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
-import AdminCierreAnoPage from "@/pages/AdminCierreAnoPage";
+import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
 import AcademicYearsPage from "@/pages/AcademicYearsPage";
 import SubjectsPage from "@/pages/SubjectsPage";
 import SchedulePage from "@/pages/SchedulePage";
@@ -2604,36 +2604,20 @@ function App() {
             }
           />
 
-          {/* Cierre de Año Académico — solo owner (snapshots de libretas) */}
+          {/* Cierre de Bimestre — solo owner (snapshots de libretas por bimestre) */}
           <Route
-            path="/:subdomain/admin/cierre-anio"
+            path="/:subdomain/cierre-bimestre"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                <AdminCierreBimestrePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/admin/cierre-anio"
+            path="/cierre-bimestre"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/:subdomain/cierre-anio"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cierre-anio"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                <AdminCierreBimestrePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

@@ -214,6 +214,14 @@ async def upsert_conduct(
     now = datetime.now(timezone.utc).isoformat()
     section_id = student.get("seccion_id") or student.get("section_id")
 
+    # Bloqueo si el bimestre ya está cerrado (snapshot existe)
+    from .libreta import is_period_closed  # import diferido para evitar ciclo
+    if await is_period_closed(user["school_id"], body.student_id, body.period_id):
+        raise HTTPException(
+            status_code=423,
+            detail="El bimestre ya está cerrado para este alumno. Para modificarlo, contacta al administrador para reabrirlo.",
+        )
+
     existing = await db.conduct_grades.find_one(
         {
             "school_id": user["school_id"],
