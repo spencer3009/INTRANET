@@ -1,15 +1,16 @@
 # EduNet - Changelog
 
-## May 12, 2026 - Fork (Feature: Gestión Manual de Asignaturas — Fase 2 Frontend)
+## May 12, 2026 - Fork (Feature: Gestión Manual de Asignaturas — Fase 2 Frontend) — REVISADO
 
-### Feature: Modal de Áreas Curriculares expandido con acordeón de asignaturas — COMPLETED
+### Feature: Modal de Áreas Curriculares expandido con acordeón de asignaturas — COMPLETED + correctivos
 - **Acordeón colapsable** "Asignaturas vinculadas (N)" montado **dentro** del modal existente de edición en `AdminCurricularAreasPage.jsx` (NO se creó página standalone). Lazy-load: el endpoint `GET /curricular-areas/{id}/subjects` sólo se llama al expandir.
-- **Componente `AreaSubjectsManager.jsx`** (536 líneas): toolbar con buscador (debounce 300ms) + botones "Vincular asignaturas" / "Desvincular seleccionadas (N)", tabla paginada (20/página) con selección individual y masiva, scroll vertical interno (max-h 420px), confirmación previa a desvincular individual/masivo y toasts pluralizados (1 / 2-3 / 4+ / mezcla).
-- **Sub-modal `LinkSubjectsSubModal`**: toggle "Solo asignaturas sin área" ON por default (seguro), llama `/available-subjects?unassigned_only=true|false`. Filas con badge ámbar mostrando el área actual cuando aplica. Banner de warning de reasignación dinámico listando hasta 5 asignaturas + recuento. Toast distingue casos: vinculación nueva, reasignación pura, mezcla, no-op, y errores parciales (`errors[]`).
-- **Refresco automático del contador** en la columna "ASIGNATURAS" de la tabla principal vía `onChange={loadAreas}` + `areasRef` para evitar closures stale. Modal aumentado a `max-w-2xl` en modo edición.
-- **Operaciones transaccionales independientes**: cerrar el modal sin guardar metadata NO revierte vinculaciones (texto sutil "Los cambios se guardan automáticamente" en el header del acordeón).
-- **Testing**: `testing_agent_v3_fork` iter 139 → **100% frontend success rate, 13/13 comportamientos verificados**, sin bugs. Lazy-load, debounce, bulk selection, reassign warning y empty state confirmados E2E.
-- **NO Save to GitHub / NO Deploy** — listo en preview para validación del director.
+- **Componente `AreaSubjectsManager.jsx`**: toolbar con buscador (debounce 300ms) + botones "Vincular asignaturas" / "Desvincular seleccionadas (N)", tabla paginada (20/página) con selección individual y masiva, scroll vertical interno (max-h 420px), confirmación previa a desvincular individual/masivo y toasts pluralizados (1 / 2-3 / 4+ / mezcla).
+- **Sub-modal `LinkSubjectsSubModal`**: toggle "Solo asignaturas sin área" ON por default, llama `/available-subjects?unassigned_only=true|false`. Filas con badge ámbar mostrando el área actual cuando aplica. Banner de warning de reasignación dinámico listando hasta 5 asignaturas + recuento. Toast distingue casos: vinculación nueva, reasignación pura, mezcla, no-op, errores parciales.
+- **Refresco automático del contador** en la columna "ASIGNATURAS" de la tabla principal vía `onChange={loadAreas}` + `areasRef` para evitar closures stale.
+- **CORRECTIVO 1 — Fix fetch redundante (de 3 calls → 1 call en mount)**: agregado guard contra React Strict Mode double-invoke con `prevSearchRef` y `prevPageDepsRef` (comparación de "valor anterior"). Verificado E2E: sub-modal abre con 1 sola llamada a `/available-subjects`. Adicionalmente añadido `reqIdRef` (request id counter) en `load()` y `fetchSubjects()` para descartar respuestas obsoletas (anti race-condition para tipeo rápido o cambios rápidos de toggle).
+- **CORRECTIVO 2 — 8 screenshots E2E capturados con `admin@elroble.edu`** mostrando: modal cerrado, modal abierto poblado, empty state (Inglés 0 subjects), sub-modal toggle ON default, sub-modal toggle OFF con banner de reasignación, confirmación de desvinculación masiva, toast "Vinculada: Algebra al área", toast "2 asignaturas reasignadas a esta área" + banner detallando origen de cada una.
+- **Testing**: `testing_agent_v3_fork` iter 139 → 100% frontend PASS, 13/13 comportamientos verificados.
+- **NO Save to GitHub / NO Deploy** — listo en preview, pendiente Fase 3 E2E con cuenta real.
 
 
 ## May 12, 2026 - Fork (Fase 3 Turno F2 — Cierre del módulo Libreta)

@@ -24,26 +24,30 @@ export default function AreaSubjectsManager({ area, token, onChange }) {
   const [confirm, setConfirm] = useState(null); // {type:'one'|'many', payload}
   const [subModal, setSubModal] = useState(false);
   const debounceRef = useRef(null);
+  const fetchReqIdRef = useRef(0); // guarda anti-race
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchSubjects = useCallback(async () => {
     if (!area?.id) return;
+    const myId = ++fetchReqIdRef.current;
     setLoading(true);
     try {
       const r = await axios.get(`${API}/curricular-areas/${area.id}/subjects`, {
         params: { page, page_size: PAGE_SIZE, search: search || undefined },
         headers,
       });
+      if (myId !== fetchReqIdRef.current) return; // respuesta obsoleta
       setData({ subjects: r.data?.subjects || [], total: r.data?.total || 0 });
       setLoadedOnce(true);
     } catch (err) {
+      if (myId !== fetchReqIdRef.current) return;
       const code = err.response?.status;
       if (code === 403) toast.error("No tienes permisos para gestionar asignaturas de esta área.");
       else if (code === 404) toast.error("Área no encontrada.");
       else toast.error(err.response?.data?.detail || "No se pudieron cargar las asignaturas. Intenta nuevamente.");
       setData({ subjects: [], total: 0 });
     } finally {
-      setLoading(false);
+      if (myId === fetchReqIdRef.current) setLoading(false);
     }
     // eslint-disable-next-line
   }, [area?.id, page, search]);
@@ -297,29 +301,50 @@ function LinkSubjectsSubModal({ area, token, onClose, onLinked }) {
   const [selected, setSelected] = useState(new Map()); // id -> subject
   const [linking, setLinking] = useState(false);
   const debounceRef = useRef(null);
+  const prevSearchRef = useRef(""); // estable bajo React Strict Mode (double-invoke)
+  const prevPageDepsRef = useRef(null);
+  const reqIdRef = useRef(0); // protege contra race conditions (response order)
   const headers = { Authorization: `Bearer ${token}` };
 
   const load = useCallback(async () => {
+    const myId = ++reqIdRef.current;
     setLoading(true);
     try {
       const r = await axios.get(`${API}/curricular-areas/${area.id}/available-subjects`, {
         params: { page, page_size: PAGE_SIZE, search: search || undefined, unassigned_only: unassignedOnly },
         headers,
       });
+      if (myId !== reqIdRef.current) return; // respuesta obsoleta, descartar
       setData({ subjects: r.data?.subjects || [], total: r.data?.total || 0 });
     } catch (err) {
+      if (myId !== reqIdRef.current) return;
       toast.error(err.response?.data?.detail || "No se pudieron cargar las asignaturas disponibles.");
     } finally {
-      setLoading(false);
+      if (myId === reqIdRef.current) setLoading(false);
     }
     // eslint-disable-next-line
-  }, [area.id, page, unassignedOnly]);
+  }, [area.id, page, unassignedOnly, search]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, unassignedOnly]);
-
+  // Fetch único en mount + reactivo a page/unassignedOnly.
+  // Resistente a React Strict Mode (double-invoke en dev): el ref guarda la
+  // última combinación servida y se ignora si no cambió.
   useEffect(() => {
+    const key = `${page}|${unassignedOnly}`;
+    if (prevPageDepsRef.current === key) return;
+    prevPageDepsRef.current = key;
+    load();
+    // eslint-disable-next-line
+  }, [page, unassignedOnly]);
+
+  // Search debounced: dispara SÓLO cuando el valor cambia respecto al anterior.
+  useEffect(() => {
+    if (prevSearchRef.current === search) return;
+    prevSearchRef.current = search;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { setPage(1); load(); }, 300);
+    debounceRef.current = setTimeout(() => {
+      if (page !== 1) setPage(1);
+      else load();
+    }, 300);
     return () => clearTimeout(debounceRef.current);
     // eslint-disable-next-line
   }, [search]);
