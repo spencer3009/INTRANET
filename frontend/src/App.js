@@ -2606,7 +2606,7 @@ function App() {
 
           {/* Cierre de Año Académico — solo owner (snapshots de libretas) */}
           <Route
-            path="/:subdomain/cierre-anio"
+            path="/:subdomain/admin/cierre-anio"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -2614,7 +2614,7 @@ function App() {
             }
           />
           <Route
-            path="/cierre-anio"
+            path="/admin/cierre-anio"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AdminCierreAnoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />

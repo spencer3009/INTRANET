@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronRight,
   Video,
-  HeartPulse
+  HeartPulse,
+  Archive
 } from "lucide-react";
 
 // Admin Navigation Structure - Organized by logical sections
@@ -78,6 +79,7 @@ const NAV_SECTIONS = [
       { id: "sistema", label: "Sistema", icon: Settings, route: "/admin/settings" },
       { id: "branding", label: "Branding", icon: Palette, route: "/admin/branding" },
       { id: "roles", label: "Roles y Permisos", icon: Shield, route: "/admin/roles" },
+      { id: "cierre-anio", label: "Cierre de Año Académico", icon: Archive, route: "/admin/cierre-anio", ownerOnly: true },
     ]
   }
 ];
@@ -200,7 +202,7 @@ export default function AdminSidebar({
             
             {/* Section Items */}
             <div className={`space-y-1 ${isExpanded && !expandedSections.includes(section.id) ? 'hidden' : ''}`}>
-              {section.items.map((item) => {
+              {section.items.filter(item => !item.ownerOnly || user?.role === "owner").map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.route);
                 
