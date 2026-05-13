@@ -18,6 +18,8 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 - Librerías clave: jsPDF, xlsx (SheetJS)
 
 ## Last Implemented (Feb 2026)
+- [Feature] **Tutorías Fases C & D — Portal del Tutor multi-sección + Pulido Admin**. Reescritura de `MisTutoriasPage.jsx` con grid de tarjetas (URL state via `useSearchParams`) + dashboard con 3 tabs por sección (Conducta+Comentarios bulk autosave / Consolidado read-only / Libretas grid). Fase D: tarjeta "Tutorías por sección" en `AdminDashboardPage` (X/Y con tutor + badge "N sin asignar") y badge "Tutor · N" en cada fila de `AdminTeachersPage`. Backend 9/9 pytest PASS (`test_tutoring_admin_phase_c.py`), frontend 100% en flujos críticos (iter 143). Listo para preview, esperando redeploy.
+
 - [Feature] **Tutorías Fase B — Matriz de Gobernanza Admin**. Página `/admin/tutoring-overview` (`AdminTutoringOverviewPage.jsx`) accesible a owner/admin/director/coordinator. Tabla con todas las secciones del colegio + tutor actual + % comentarios / % conducta del bimestre activo. Acciones por fila (Asignar/Cambiar/Quitar → `PUT /api/sections/{id}/tutor`) y reasignación masiva (`POST /api/admin/tutorings/transfer`). Filtros: búsqueda, estado, nivel, tutor, periodo. Nueva entrada "Tutorías" en `AdminSidebar` bajo ESTRUCTURA ACADÉMICA. Backend: 9/9 pytest PASS (`/app/backend/tests/test_tutoring_admin_phase_b.py`). Frontend: smoke + flujos validados al 100% (iter 142). Listo para preview, esperando redeploy a edunet.pe.
 
 - [Feature] **Tutorías Fase A — Backend de Gobernanza** (sesión previa). Router nuevo `tutoring_admin.py` con `GET /api/admin/tutoring-overview` (matriz consolidada), `GET /api/teachers/{id}/tutorings`, `POST /api/admin/tutorings/transfer`, `GET /api/mis-tutorias/sections/{id}/consolidated`. Sin nuevo rol "tutor": un tutor es un `teacher` con doc en `academic_assignments` (`role: "tutor"`, `status: "activo"`).
@@ -54,8 +56,8 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 ## Backlog (priorizado)
 
 ### P1
-- **Tutorías Fase C — Portal del Profesor-Tutor multi-sección**. Refactorizar `MisTutoriasPage.jsx`: si el profesor tutorea múltiples secciones, mostrar grid de tarjetas. Al ingresar a una sección, dashboard con 3 tabs (Conducta/Comentarios bulk · Consolidado del salón solo lectura · Libretas individuales).
-- **Tutorías Fase D — Pulido**. Tarjeta "Tutores" en Dashboard Admin; badge "Tutor de N secciones" en listado de profesores.
+- **Tutorías Fase C — Portal del Profesor-Tutor multi-sección**: ✅ COMPLETADO (iter 143)
+- **Tutorías Fase D — Pulido**: ✅ COMPLETADO (iter 143)
 - **Fase 3 Turno F2 — Libreta**: ✅ COMPLETADO
 - **Limpieza de alumnos fantasma**: 35 cuentas `*.stress@elroble.edu` sin sección real ni notas. Decidir si eliminar/desactivar/dejar.
 - Psicología: log de auditoría estricto.

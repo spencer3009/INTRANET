@@ -1,5 +1,27 @@
 # EduNet - Changelog
 
+## Feb 13, 2026 - Fork (Tutorías Fases C & D — Portal del Tutor + Pulido Admin) — COMPLETED ✅
+
+### Feature: Portal Profesor-Tutor multi-sección (Fase C)
+- **Reescritura completa** de `/app/frontend/src/pages/MisTutoriasPage.jsx` (~620 líneas, bien seccionado por componentes).
+- **Grid de tarjetas**: si el profe (o admin) tutorea ≥2 secciones, ve un grid de cards `[testid=tutoring-card-{id}]` con nivel + grado · sección + # alumnos. Si tutorea 1 sola, auto-selecciona y va directo al dashboard. Estado en URL via `useSearchParams` (`?section_id=…&tab=…`) para deep-linking + back/forward del navegador.
+- **Section Dashboard** con header (botón "Mis salones" si >1, título del salón, selector de bimestre) + nav de **3 tabs**:
+  1. **Conducta & Comentarios** (`BulkConductCommentsTab`): mini-stats (Alumnos, Comentarios x/N, Conducta x/N, Bimestre) + tabla bulk editable con autosave 700ms en comentarios y autosave inmediato en conducta. Respeta HTTP 423 → textarea readonly + select disabled + label "bloqueado".
+  2. **Consolidado del salón** (`ConsolidatedTab`): fetch a `GET /api/mis-tutorias/sections/{id}/consolidated?period_id=…` — tabla read-only con todas las asignaturas (incluyendo cursos que el tutor NO dicta), promedio y orden de mérito.
+  3. **Libretas individuales** (`LibretasTab`): grid de cards con avatar de iniciales + nombre + código + link `target=_blank` a `/libreta/{student_id}`.
+
+### Feature: Pulido Admin (Fase D)
+- **AdminDashboardPage** (`/admin`): fetch paralelo a `/api/admin/tutoring-overview` + nueva tarjeta `[testid=dashboard-tutoring-card]` debajo de los Stats. Muestra "X/Y secciones con tutor" + badge rojo "(N sin asignar)" + nº de profesores con rol tutor. Click → navega a `/admin/tutoring-overview`.
+- **AdminTeachersPage**: en cada fila de profesor, badge `[testid=teacher-tutor-badge-{id}]` "Tutor · N" junto al @username cuando el profe tiene tutorías activas. La columna "Cursos" ahora excluye correctamente las asignaciones tutor-role (filtra por `a.subject_id`).
+
+### Testing
+- Backend: 9/9 pytest PASS (`/app/backend/tests/test_tutoring_admin_phase_c.py`) — listado de secciones, bulk de alumnos, consolidated scoping, lock 423 en bimestres cerrados.
+- Frontend: 100% PASS en flujos Phase C (grid → dashboard → 3 tabs → back). Phase D validada por code review (owner no accede a `/admin/*`).
+- Sin bugs ni acciones pendientes (iter 143).
+- **NO Save to GitHub / NO Deploy** — listo en preview, esperando que el usuario redespliegue a edunet.pe.
+
+
+
 ## Feb 13, 2026 - Fork (Tutorías Fase B: Matriz de Gobernanza Admin) — COMPLETED ✅
 
 ### Feature: AdminTutoringOverviewPage — gestión centralizada de tutores por sección
