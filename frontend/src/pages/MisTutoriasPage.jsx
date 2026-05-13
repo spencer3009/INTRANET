@@ -15,6 +15,7 @@ import {
   ArrowLeft, Users, MessageSquare, BarChart3, BookOpen, ChevronRight, RefreshCw,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import TeacherSidebar from "@/components/TeacherSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -130,9 +131,13 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
 
   const navigateTo = (path) => navigate(`/${user?.subdomain || ""}${path}`.replace(/\/+/g, "/"));
 
+  // Render appropriate sidebar based on user role
+  const isTeacherRole = user?.role === "teacher";
+  const SidebarComponent = isTeacherRole ? TeacherSidebar : Sidebar;
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar
+      <SidebarComponent
         active="mis-tutorias"
         onNavigate={(r) => navigateTo(r)}
         expanded={sidebarOpen}
