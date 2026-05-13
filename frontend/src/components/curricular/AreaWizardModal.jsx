@@ -25,6 +25,14 @@ function errMsg(err, fallback) {
   return fallback;
 }
 
+// Normaliza un nombre a su "group_key" canónico (mismo criterio que backend `_slug`).
+// Minúsculas + trim + NFD + filtra marcas combinatorias (acentos/tildes).
+// Así "Computación", "COMPUTACION", "computacion" colapsan al mismo grupo.
+function slugify(s) {
+  if (!s) return "";
+  return s.trim().toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+}
+
 const STEPS = [
   { key: "grades", label: "Grados", icon: Layers },
   { key: "meta", label: "Nombre & color", icon: BookMarked },
@@ -123,7 +131,7 @@ export default function AreaWizardModal({ token, defaultOrder = 1, onClose, onCr
         if (s.status === "deleted") continue;
         if (!gradeFilter.has(s.grade_id)) continue;
         if (unassignedOnly && s.area_id) continue;
-        const key = (s.name || "").trim().toLowerCase();
+        const key = slugify(s.name);
         if (!key) continue;
         if (!groups.has(key)) {
           groups.set(key, {
