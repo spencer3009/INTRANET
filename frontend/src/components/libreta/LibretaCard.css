@@ -1,36 +1,138 @@
-/* Libreta Card — formato Colegio El Roble */
-.libreta-card { font-family: Inter, Arial, sans-serif; color: #1E293B; }
+/* Libreta — fiel al HTML de referencia (Colegio El Roble) */
 
-.lc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.lc-table th, .lc-table td { border: 1px solid #E2E8F0; padding: 6px 8px; vertical-align: middle; }
-.lc-table thead th { background: #0F172A; color: #fff; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
-.lc-table tbody td { background: #fff; }
-.lc-area-name { background: #F1F5F9; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
-.lc-area-avg td { background: #F1F5F9; font-weight: 600; }
-.lc-red { color: #DC2626; font-weight: 700; }
-.lc-green { color: #16A34A; font-weight: 700; }
+.libreta-card {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  font-size: 10px;
+  background: #fff;
+  width: 21cm;
+  margin: 0 auto;
+  padding: 1cm;
+}
 
-/* Edición inline */
-.lc-table select, .lc-table textarea, .lc-table input { font-family: inherit; font-size: 12px; }
-.lc-table textarea { min-height: 36px; }
+/* ── Header ── */
+.lr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.lr-logo { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
+.lr-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lr-header-center { flex: 1; text-align: center; }
+.lr-privada { font-size: 11px; margin-bottom: 2px; }
+.lr-colegio { font-family: "Times New Roman", serif; font-size: 22px; font-weight: bold; margin-bottom: 6px; }
+.lr-informe { font-size: 18px; font-weight: bold; color: #2a4f6f; margin-bottom: 4px; }
+.lr-nivel { font-size: 12px; font-weight: bold; }
+.lr-bimestre { font-size: 11px; font-weight: bold; margin-top: 2px; }
 
-/* Print */
+.lr-photo {
+  width: 80px; height: 90px;
+  border: 1px solid #999;
+  background: #ddd;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.lr-photo img { width: 100%; height: 100%; object-fit: cover; }
+.lr-photo-placeholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #c4d4e0, #8fa8be);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; font-weight: bold;
+}
+
+/* ── Student info (rounded boxes) ── */
+.lr-student-info {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 60px;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 9px;
+  text-align: center;
+}
+.lr-student-info .lr-label { padding-bottom: 2px; font-size: 9px; }
+.lr-student-info .lr-value-box {
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 3px 6px;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+/* ── Grades table ── */
+.lr-grades { width: 100%; border-collapse: collapse; font-size: 9px; border: 1px solid #000; }
+.lr-grades th, .lr-grades td { border: 1px solid #000; padding: 2px 4px; text-align: center; height: 16px; }
+.lr-grades th { background: #fff; font-weight: bold; }
+.lr-grades td.lr-area { background: #fff; font-weight: bold; vertical-align: middle; }
+.lr-grades td.lr-asig { text-align: left; padding-left: 6px; }
+.lr-grades td.lr-asig.lr-prom-area { font-weight: bold; }
+.lr-grades td.lr-grade { color: #c00; font-weight: normal; }
+.lr-grades td.lr-grade-final { color: #c00; font-weight: bold; }
+.lr-grades tr.lr-prom-row td { font-weight: bold; }
+.lr-grades .lr-col-areas { width: 22%; }
+.lr-grades .lr-col-asig { width: 30%; }
+.lr-grades .lr-col-bim { width: 8%; }
+.lr-grades .lr-col-final { width: 8%; }
+
+/* Inline editor inside grades cell (conducta select) */
+.lr-grades select, .lr-info select { font: inherit; color: #c00; border: 0; background: transparent; text-align: center; width: 100%; }
+
+/* ── Info tables grid ── */
+.lr-info-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
+.lr-info { width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 8.5px; }
+.lr-info th, .lr-info td { border: 1px solid #000; padding: 2px 4px; text-align: center; }
+.lr-info th { font-weight: bold; background: #fff; }
+.lr-info td.lr-label { text-align: left; padding-left: 4px; }
+
+/* ── Comentarios ── */
+.lr-comentarios { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 4px; font-size: 9px; }
+.lr-comentarios th { border: 1px solid #000; padding: 3px; background: #fff; font-weight: bold; text-align: center; }
+.lr-comentarios td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; }
+.lr-comentarios td.lr-bim { text-align: center; font-weight: bold; width: 30px; }
+.lr-comentarios textarea {
+  width: 100%; min-height: 32px; font: inherit; color: inherit;
+  border: 0; background: transparent; resize: vertical; outline: none;
+}
+
+/* ── Situación final ── */
+.lr-situacion { width: 60%; border-collapse: collapse; border: 1px solid #000; margin-top: 6px; font-size: 9px; }
+.lr-situacion th, .lr-situacion td { border: 1px solid #000; padding: 3px 6px; text-align: left; }
+.lr-situacion th { font-weight: bold; text-align: center; background: #fff; }
+.lr-situacion td.lr-x { text-align: center; width: 30px; }
+
+/* ── Page 2 ── */
+.lr-page2 {
+  background: #fff;
+  width: 21cm;
+  min-height: 22cm;
+  margin: 24px auto 0 auto;
+  padding: 1cm;
+  page-break-before: always;
+}
+.lr-page-header { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 180px; }
+.lr-signatures { margin-top: 180px; display: flex; justify-content: space-around; text-align: center; font-size: 10px; }
+.lr-signature-box { width: 250px; border-top: 1px solid #000; padding-top: 4px; }
+.lr-signature-box .lr-name { font-size: 9px; }
+.lr-signature-box .lr-title { font-weight: bold; font-size: 10px; margin-top: 2px; }
+
+/* ── Empty state ── */
+.lr-empty { padding: 32px; text-align: center; color: #6b7280; font-style: italic; }
+
+/* ── Print ── */
+@page { size: A4; margin: 1.5cm; }
 @media print {
-  /* Reglas globales: solo el printable visible */
   body * { visibility: hidden; }
   .libreta-printable, .libreta-printable * { visibility: visible; }
   .libreta-printable { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-  .print\\:hidden { display: none !important; }
-  .libreta-card, .libreta-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  /* Saltos de página inteligentes */
-  .lc-table { page-break-inside: auto; }
-  .lc-table tr { page-break-inside: avoid; page-break-after: auto; }
-  .lc-table thead { display: table-header-group; }
-  .lc-table tfoot { display: table-footer-group; }
+  .libreta-card { box-shadow: none; padding: 0; width: auto; }
+  .lr-page2 { margin: 0; }
+  .libreta-printable, .libreta-printable * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .lr-grades { page-break-inside: auto; }
+  .lr-grades tr { page-break-inside: avoid; page-break-after: auto; }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .lc-table { font-size: 10px; }
-  .lc-table th, .lc-table td { padding: 4px 5px; }
+/* ── Responsive (preview en pantalla) ── */
+@media (max-width: 900px) {
+  .libreta-card { width: 100%; padding: 12px; }
+  .lr-situacion { width: 100%; }
 }

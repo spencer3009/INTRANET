@@ -1,5 +1,25 @@
 # EduNet - Changelog
 
+## May 13, 2026 - Fork (Libreta: rediseño fiel al modelo HTML del Colegio El Roble) — COMPLETED ✅
+
+### Feature: LibretaCard reescrita para coincidir con el `libreta.html` de referencia
+- **Solicitud del usuario**: usar el HTML provisto como single source of truth para la estructura visual de la libreta. El layout anterior no coincidía (usaba tablas con bordes slate, header en grid 12-col, asistencias con 4 filas en vez de 5, sin página 2 de firmas).
+- **Rewrite completo** de `/app/frontend/src/components/libreta/LibretaCard.jsx` y `LibretaCard.css`:
+  - Header con flexbox: logo (80x80, izq), bloque central (INSTITUCIÓN EDUCATIVA PRIVADA / nombre colegio en Times New Roman 22px bold / Informe de Progreso en azul `#2a4f6f` 18px / NIVEL / BIMESTRE), foto del alumno (80x90 borde gris, der).
+  - Datos del alumno: grid de 4 columnas con `value-box` redondeados (border-radius 8px, border negro): Código / Apellidos y Nombres / Salón / N°Ord.
+  - Tabla de calificaciones: bordes negros 1px, fondos blancos, notas en rojo `#c00`, Promedio Final en bold. Soporta 3 casos de área:
+    - 1 subject con nombre = área → colspan=2 (caso INGLES, EDUCACIÓN FISICA).
+    - 1 subject con nombre ≠ área → 2 celdas separadas, sin fila promedio.
+    - N>1 subjects → rowspan en área + fila "Promedio Área:" en bold.
+  - 2 columnas de tablas info: izq CONDUCTA + ASISTENCIAS Y TARDANZAS (5 filas: Presente, Tardanza Injustificada, Tardanza Justificada, Falta Injustificada, Falta Justificada); der ESTADÍSTICA (Puntaje, Promedio, Cursos Desaprobados, Orden de Mérito, Tercio por Salón).
+  - Comentarios de la tutora: 4 filas (I/II/III/IV) con textareas editables.
+  - Situación final: 3 filas (PROMOVIDO / REQ. RECUPERACIÓN / REPITE) con columna X y rowspan=3 para cursos a recuperar.
+  - **Página 2 nueva**: separada con `page-break-before: always`, header de nombre + "Página 2", y firmas (TUTORA con nombre del tutor + DIRECTORA).
+- **Lógica preservada**: edición de conducta con dropdown, comentarios con debounce 600ms, lockdown por bimestre cerrado (HTTP 423), situación final habilitada solo tras cerrar el bim IV, multi-select de cursos a recuperar.
+- **Print-ready**: `@page A4 margin 1.5cm`, `print-color-adjust: exact` para conservar el rojo de notas, page-break en filas largas.
+- **NO Save to GitHub / NO Deploy** — listo en preview, esperando que el usuario redespliegue a edunet.pe.
+
+
 ## May 13, 2026 - Fork (Sprint C: Áreas Curriculares con scope_grade_ids desde la creación) — COMPLETED ✅
 
 ### Feature: Wizard de 3 pasos + scope por grado a nivel de ÁREA
