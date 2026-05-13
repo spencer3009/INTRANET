@@ -23,6 +23,20 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PAGE_SIZE = 20;
 const NO_GRADE = "__no_grade__"; // bucket especial para subjects sin grade_id
 
+// Convierte cualquier `detail` de FastAPI (string, array de errores, dict)
+// a un string seguro para renderizar en toasts. Evita el crash de React
+// "Objects are not valid as a React child" cuando el backend devuelve 422.
+function errMsg(err, fallback) {
+  const d = err?.response?.data?.detail;
+  if (typeof d === "string" && d.trim()) return d;
+  if (Array.isArray(d) && d.length > 0) {
+    const first = d[0] || {};
+    return first.msg || first.message || fallback;
+  }
+  if (d && typeof d === "object" && d.msg) return d.msg;
+  return fallback;
+}
+
 export default function AreaSubjectsManager({ area, token, onChange, embedded = false }) {
   const [open, setOpen] = useState(embedded);
   const [loadedOnce, setLoadedOnce] = useState(false);
@@ -46,7 +60,7 @@ export default function AreaSubjectsManager({ area, token, onChange, embedded = 
     setLoading(true);
     try {
       const r = await axios.get(`${API}/curricular-areas/${area.id}/subjects`, {
-        params: { page: 1, page_size: 500, search: search || undefined },
+        params: { page: 1, page_size: 200, search: search || undefined },
         headers,
       });
       if (myId !== fetchReqIdRef.current) return;
@@ -57,7 +71,7 @@ export default function AreaSubjectsManager({ area, token, onChange, embedded = 
       const code = err.response?.status;
       if (code === 403) toast.error("No tienes permisos para gestionar asignaturas de esta área.");
       else if (code === 404) toast.error("Área no encontrada.");
-      else toast.error(err.response?.data?.detail || "No se pudieron cargar las asignaturas.");
+      else toast.error(errMsg(err, "No se pudieron cargar las asignaturas."));
       setData({ subjects: [], total: 0 });
     } finally {
       if (myId === fetchReqIdRef.current) setLoading(false);
@@ -172,7 +186,7 @@ export default function AreaSubjectsManager({ area, token, onChange, embedded = 
     } catch (err) {
       const code = err.response?.status;
       if (code === 403) toast.error("No tienes permisos.");
-      else toast.error(err.response?.data?.detail || "Error de conexión.");
+      else toast.error(errMsg(err, "Error de conexión."));
     } finally {
       setUnlinking(false);
       setConfirm(null);
@@ -414,7 +428,7 @@ function LinkSubjectsSubModal({ area, token, onClose, onLinked }) {
       setData({ subjects: r.data?.subjects || [], total: r.data?.total || 0 });
     } catch (err) {
       if (myId !== reqIdRef.current) return;
-      toast.error(err.response?.data?.detail || "No se pudieron cargar las asignaturas disponibles.");
+      toast.error(errMsg(err, "No se pudieron cargar las asignaturas disponibles."));
     } finally {
       if (myId === reqIdRef.current) setLoading(false);
     }
@@ -518,7 +532,7 @@ function LinkSubjectsSubModal({ area, token, onClose, onLinked }) {
     } catch (err) {
       const code = err.response?.status;
       if (code === 403) toast.error("No tienes permisos.");
-      else toast.error(err.response?.data?.detail || "Error de conexión.");
+      else toast.error(errMsg(err, "Error de conexión."));
     } finally {
       setLinking(false);
     }
