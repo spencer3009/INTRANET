@@ -35,6 +35,7 @@ export default function InstallGateway({ children }) {
   const [installed, setInstalled] = useState(isStandalone);
   const [skipInstall, setSkipInstall] = useState(wasRecentlyDismissed());
   const [intentFailed, setIntentFailed] = useState(false);
+  const [showManualHint, setShowManualHint] = useState(false);
   const promptRef = useRef(null);
 
   const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
@@ -79,7 +80,26 @@ export default function InstallGateway({ children }) {
 
   const handleInstall = async () => {
     const p = deferredPrompt || promptRef.current || window.__pwaInstallPrompt;
-    if (!p) return;
+    if (!p) {
+      // El navegador todavía no disparó beforeinstallprompt — esperamos
+      // hasta 3 segundos por si llega tarde, sino mostramos instrucciones.
+      setInstalling(true);
+      setProgress(10);
+      let waited = 0;
+      while (waited < 3000) {
+        await new Promise(r => setTimeout(r, 250));
+        waited += 250;
+        const np = promptRef.current || window.__pwaInstallPrompt;
+        if (np) {
+          setDeferredPrompt(np);
+          setInstalling(false);
+          return handleInstall();  // retry now that prompt is ready
+        }
+      }
+      setInstalling(false);
+      setShowManualHint(true);
+      return;
+    }
     setInstalling(true);
     setProgress(0);
     for (const s of [{ t: 30, d: 300 }, { t: 60, d: 400 }, { t: 85, d: 300 }]) {
@@ -204,29 +224,39 @@ export default function InstallGateway({ children }) {
           </p>
 
           {hasNativePrompt ? (
-            <button
-              onClick={handleInstall}
-              disabled={installing}
-              className="w-full py-4 bg-[#001f4b] text-white font-bold text-base rounded-2xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all disabled:opacity-70 shadow-xl"
-              style={{ boxShadow: "0 12px 32px -8px rgba(0,31,75,0.5)" }}
-              data-testid="install-app-btn"
-            >
-              <Download className="w-5 h-5" />
-              Instalar EduNet
-            </button>
+            <p className="text-sm text-slate-500 leading-relaxed mb-8">
+              Instale EduNet en su celular para acceder fácilmente desde su pantalla principal.
+            </p>
           ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left mb-2" data-testid="install-manual-instructions">
-              <p className="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">
-                Cómo instalar manualmente:
+            <p className="text-sm text-slate-500 leading-relaxed mb-8">
+              Instale EduNet en su celular para acceder fácilmente desde su pantalla principal.
+            </p>
+          )}
+
+          {/* CTA principal: "Instalar EduNet" — el flujo automático */}
+          <button
+            onClick={handleInstall}
+            disabled={installing}
+            className="w-full py-4 bg-[#001f4b] text-white font-bold text-base rounded-2xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all disabled:opacity-70 shadow-xl"
+            style={{ boxShadow: "0 12px 32px -8px rgba(0,31,75,0.5)" }}
+            data-testid="install-app-btn"
+          >
+            <Download className="w-5 h-5" />
+            Instalar EduNet
+          </button>
+
+          {/* Fallback de instrucciones manuales — solo aparece si Chrome
+              no disparó el prompt y el user ya intentó instalar. */}
+          {showManualHint && !hasNativePrompt && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left" data-testid="install-manual-instructions">
+              <p className="text-xs font-bold text-amber-900 mb-2 uppercase tracking-wide">
+                ¿No se abrió el instalador?
               </p>
-              <ol className="text-xs text-slate-600 space-y-1.5 leading-relaxed list-decimal list-inside">
+              <ol className="text-xs text-amber-900/80 space-y-1.5 leading-relaxed list-decimal list-inside">
                 <li>Toca el menú <strong>⋮</strong> arriba a la derecha de Chrome.</li>
                 <li>Toca <strong>"Instalar aplicación"</strong> o <strong>"Agregar a pantalla principal"</strong>.</li>
                 <li>Confirma <strong>"Instalar"</strong>.</li>
               </ol>
-              <p className="text-[11px] text-slate-400 mt-3 italic">
-                Si no ves esa opción, interactúa unos segundos con la página (desliza o toca) y vuelve a abrir el menú.
-              </p>
             </div>
           )}
 
