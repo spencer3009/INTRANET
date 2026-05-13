@@ -7,7 +7,8 @@ import BroadcastPopup from "@/components/BroadcastPopup";
 import { 
   Users, GraduationCap, UserCog, UserCheck, BookOpen, HelpCircle,
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
-  Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList, Video, HeartPulse
+  Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList, Video, HeartPulse,
+  UserPlus
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -100,6 +101,7 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
     activeSubjects: 0,
     pendingUsers: 0
   });
+  const [tutoringSummary, setTutoringSummary] = useState(null);
   const [settings, setSettings] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   
@@ -110,9 +112,10 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const [usersRes, settingsRes] = await Promise.all([
+      const [usersRes, settingsRes, tutoringRes] = await Promise.all([
         axios.get(`${API}/users`, { headers }),
-        axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/admin/tutoring-overview`, { headers }).catch(() => ({ data: null })),
       ]);
       
       const users = usersRes.data || [];
@@ -129,6 +132,9 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
       
       if (settingsRes.data) {
         setSettings(settingsRes.data);
+      }
+      if (tutoringRes?.data?.summary) {
+        setTutoringSummary(tutoringRes.data.summary);
       }
       
       // Mock recent activity for now
@@ -258,6 +264,36 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                   onClick={() => navigateTo('/admin/parents')}
                 />
               </div>
+
+              {/* Tutorías insight */}
+              {tutoringSummary && (
+                <button
+                  onClick={() => navigateTo('/admin/tutoring-overview')}
+                  className="w-full bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-200 transition-all text-left group mb-6 flex items-center gap-5"
+                  data-testid="dashboard-tutoring-card"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <UserPlus className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-500">Tutorías por sección</p>
+                    <p className="text-xl font-bold text-slate-800 mt-0.5">
+                      {tutoringSummary.with_tutor}/{tutoringSummary.total_sections} secciones con tutor
+                      {tutoringSummary.without_tutor > 0 && (
+                        <span className="ml-2 text-sm font-semibold text-red-600">
+                          ({tutoringSummary.without_tutor} sin asignar)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {tutoringSummary.unique_tutors} profesor{tutoringSummary.unique_tutors === 1 ? "" : "es"} con rol de tutor
+                    </p>
+                  </div>
+                  <div className="text-indigo-600 text-sm font-medium opacity-60 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1">
+                    Gestionar <ArrowRight className="w-4 h-4" />
+                  </div>
+                </button>
+              )}
 
               {/* Gestión Rápida: Noticias, Eventos, Encuestas, Academia */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6" data-testid="dashboard-quick-actions">

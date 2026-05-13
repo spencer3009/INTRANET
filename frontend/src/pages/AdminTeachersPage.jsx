@@ -17,9 +17,14 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDetails, onManageAssignments }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
-  // Count assigned subjects
-  const teacherAssignments = assignments.filter(a => a.teacher_id === teacher.id);
+  // Count assigned subjects (exclude tutor-role rows which have no subject_id)
+  const teacherAssignments = assignments.filter(a => a.teacher_id === teacher.id && a.subject_id);
   const uniqueSubjects = [...new Set(teacherAssignments.map(a => a.subject_id))];
+
+  // Count active tutor sections
+  const tutorCount = assignments.filter(
+    a => a.teacher_id === teacher.id && a.role === "tutor" && (a.status === "activo" || !a.status)
+  ).length;
   
   return (
     <tr className="hover:bg-slate-50 transition-colors" data-testid={`teacher-row-${teacher.id}`}>
@@ -34,7 +39,18 @@ function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDe
           </div>
           <div>
             <p className="font-medium text-slate-800">{teacher.name} {teacher.last_name}</p>
-            <p className="text-xs text-slate-500">@{teacher.username}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs text-slate-500">@{teacher.username}</p>
+              {tutorCount > 0 && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 inline-flex items-center gap-0.5"
+                  title={`Tutor de ${tutorCount} sección${tutorCount === 1 ? "" : "es"}`}
+                  data-testid={`teacher-tutor-badge-${teacher.id}`}
+                >
+                  Tutor · {tutorCount}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </td>

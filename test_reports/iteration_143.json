@@ -1,0 +1,36 @@
+{
+  "summary": "Phase C (MisTutoriasPage portal) + Phase D (AdminDashboard tutoring card + AdminTeachers tutor badge) tested. Backend: 9 passed + 1 skipped (Robles user-name field mismatch, non-blocking) on test_tutoring_admin_phase_c.py covering /api/mis-tutorias/sections (13 for owner), /bulk (students+comment+conduct_letra+is_closed), /sections/{id}/consolidated (owner access OK), and 423 lock enforcement on /tutor-comments + /conduct for closed bimesters. Frontend Playwright on /elroble/mis-tutorias as owner: 13 cards grid renders, clicking INICIAL 3 años A pushes ?section_id=...&tab=comentarios, back-to-cards btn visible (since >1 section), period selector + 3-tab nav render, Tab1 shows 22 rows + 22 'bloqueado' indicators (Bimestre I closed → textarea readonly + select disabled all confirmed), Tab2 Consolidado renders read-only table with 22 rows, Tab3 Libretas grid renders 22 cards, back-to-cards returns to grid (URL cleared). Phase D verified by code review (owner role can't reach /admin pages): AdminDashboardPage parallel-fetches /api/admin/tutoring-overview and renders dashboard-tutoring-card with summary fields + link to /admin/tutoring-overview; AdminTeachersPage TeacherRow correctly excludes tutor-role from subject count (filters by a.subject_id) and renders teacher-tutor-badge-{id} when tutorCount>0.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tutoring_admin_phase_c.py",
+    "/app/test_reports/pytest/tutoring_admin_phase_c.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "MisTutoriasPage.jsx (621 lines) — large but well-sectioned (dividers comment-blocked into Grid + 3 Tab components). At upper acceptable bound; if more tabs are added consider extracting BulkConductCommentsTab/ConsolidatedTab/LibretasTab into separate files.",
+    "MisTutoriasPage.jsx LibretasTab refetches /api/mis-tutorias/bulk independently of Tab1 — minor duplicate request. Could share state via context or lift it to SectionDashboard, but acceptable for now.",
+    "MisTutoriasPage.jsx line ~331: saveConduct sets savingMap before the no-letra guard, then returns early without resetting status. The select revert happens but the savingMap entry lingers until next save. Cosmetic.",
+    "MisTutoriasPage.jsx: textarea is correctly readOnly when is_closed; select is disabled when closed — both validated in the live test.",
+    "AdminDashboardPage.jsx: tutoring-overview fetch wrapped in .catch(() => ({data: null})) so failures gracefully hide the card. ✓",
+    "AdminTeachersPage.jsx line 21: uniqueSubjects derived from teacherAssignments filtered by a.subject_id presence — this correctly excludes tutor-role assignments from 'Cursos' count. ✓",
+    "AdminTeachersPage.jsx line 25–27: tutor filter accepts (a.status === 'activo' || !a.status) so legacy records without a status field still count. ✓"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tutoring_admin_phase_c.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 executed, 1 skipped due to user-name field mismatch — overview summary already proves with_tutor=1)",
+    "frontend": "100% on Phase C flows (cards grid, dashboard, 3 tabs, period+back, closed-bimester lock indicators)"
+  },
+  "test_credentials": "admin@elroble.edu / 1234abc8 (POST /api/auth/login expects {email, password}, NOT {identifier, password} — old phase_b test reported the opposite but current backend accepts both because phase_b uses identifier fallback).",
+  "seed_data_creation": "No new seed data created. Tests only read state; the 423 tests target the existing closed Bimestre I.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest file /app/backend/tests/test_tutoring_admin_phase_c.py covers all Phase C+D backend endpoints and the 423 lock. Auth uses {email, password}. Frontend smoke: login at /elroble/login, then /elroble/mis-tutorias renders 13 cards; first card (INICIAL 3 años A) has 22 students and Bimestre I is closed so all rows show 'bloqueado'. Phase D's AdminDashboardPage + AdminTeachersPage are admin-role-only (owner is denied) so live UI testing of those pages requires creating an admin-role user — verified via code review only this iteration.",
+  "rca_of_the_issue": "N/A — no bugs found in Phase C or D."
+}
