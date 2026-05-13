@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Sparkles, Save, X, Loader2,
   BookMarked, LinkIcon, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
+  Archive, AlertTriangle,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
@@ -26,6 +27,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [seeding, setSeeding] = useState(false);
   const [modal, setModal] = useState(null); // {mode: 'create'|'edit', area?}
   const [savingArea, setSavingArea] = useState(false);
+  const [archiveModal, setArchiveModal] = useState(null); // {area, archiving: false}
 
   // Subjects sin área (para el panel de "asignar")
   const [unassignedSubjects, setUnassignedSubjects] = useState([]);
@@ -103,14 +105,30 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
     }
   };
 
-  const handleDeactivate = async (area) => {
-    if (!window.confirm(`¿Desactivar el área "${area.name}"?\nLas asignaturas vinculadas quedarán sin área hasta que las reasignes.`)) return;
+  const handleDeactivate = (area) => {
+    // Abre el modal con copy contextual según las asignaturas vinculadas
+    setArchiveModal({ area, archiving: false });
+  };
+
+  const confirmArchive = async () => {
+    if (!archiveModal?.area) return;
+    const area = archiveModal.area;
+    setArchiveModal(m => ({ ...m, archiving: true }));
     try {
-      await axios.delete(`${API}/curricular-areas/${area.id}`, { headers });
-      toast.success("Área curricular desactivada");
+      const r = await axios.delete(`${API}/curricular-areas/${area.id}`, { headers });
+      const d = r.data || {};
+      const subjects = d.subjects_unlinked_count || 0;
+      const groups = d.groups_unlinked_count || 0;
+      if (subjects > 0) {
+        toast.success(`Área "${area.name}" desactivada. ${groups} asignatura${groups === 1 ? "" : "s"} (${subjects} instancia${subjects === 1 ? "" : "s"}) quedaron sin área.`);
+      } else {
+        toast.success(`Área "${area.name}" desactivada.`);
+      }
+      setArchiveModal(null);
       await loadAreas();
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo desactivar el área. Intenta nuevamente.");
+      setArchiveModal(m => ({ ...m, archiving: false }));
     }
   };
 
@@ -284,11 +302,11 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                           {a.is_active !== false && (
                             <button
                               onClick={() => handleDeactivate(a)}
-                              className="text-red-500 hover:text-red-700 p-1.5 ml-1"
+                              className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 p-1.5 ml-1 rounded transition-colors"
                               data-testid={`delete-area-${a.id}`}
-                              title="Desactivar"
+                              title="Desactivar área"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Archive className="w-4 h-4" />
                             </button>
                           )}
                         </td>
@@ -455,6 +473,82 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 Guardar
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Archivar (desactivar área con auto-unlink) ── */}
+      {archiveModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4" onClick={() => !archiveModal.archiving && setArchiveModal(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()} data-testid="archive-area-modal">
+            {(() => {
+              const a = archiveModal.area;
+              const n = a.subjects_count ?? 0;
+              const hasSubjects = n > 0;
+              return (
+                <>
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <Archive className="w-5 h-5 text-slate-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-base">
+                        Desactivar el área "{a.name}"
+                      </h4>
+                      {hasSubjects ? (
+                        <p className="text-sm text-slate-600 mt-1">
+                          Esta área tiene <span className="font-semibold">{n} instancia{n === 1 ? "" : "s"}</span> vinculada{n === 1 ? "" : "s"}.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-600 mt-1">Esta área no tiene asignaturas vinculadas.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {hasSubjects && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-sm text-slate-700">
+                      <p className="font-semibold mb-2 text-slate-800">Al desactivar el área:</p>
+                      <ul className="space-y-1.5 text-xs">
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-600 mt-0.5">●</span>
+                          <span>Las asignaturas <strong>seguirán existiendo</strong> con sus notas, horarios y profesores intactos.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-amber-600 mt-0.5">●</span>
+                          <span>Las asignaturas quedarán <strong>sin área curricular</strong> asignada.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-slate-500 mt-0.5">●</span>
+                          <span>Podrás <strong>reasignarlas</strong> a otra área en cualquier momento.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setArchiveModal(null)}
+                      disabled={archiveModal.archiving}
+                      className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 disabled:opacity-50"
+                      data-testid="archive-cancel-btn"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmArchive}
+                      disabled={archiveModal.archiving}
+                      className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                      data-testid="archive-confirm-btn"
+                    >
+                      {archiveModal.archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                      Desactivar área
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -252,18 +252,59 @@ async def update_curricular_area(
 
 @router.delete("/curricular-areas/{area_id}")
 async def delete_curricular_area(area_id: str, current_user=Depends(get_current_user)):
-    """Soft delete: marca is_active=false. Asignaturas vinculadas quedan
-    huérfanas (area_id apunta a un área inactiva). Para reasignarlas,
-    desde la UI."""
+    """Soft delete del área + auto-unlink de sus asignaturas.
+
+    El DELETE auto-desvincula las asignaturas vinculadas antes del soft
+    delete del área para evitar referencias huérfanas a áreas inactivas.
+    Las asignaturas mantienen su existencia y TODAS sus relaciones (notas,
+    horarios, profesores, secciones); sólo pierden su clasificación
+    curricular (`area_id`, `area_name`, `area_order` → null).
+
+    Response incluye un breakdown para que el frontend muestre el resumen:
+    - `subjects_unlinked_count`: cantidad de instancias afectadas
+    - `groups_unlinked_count`: cantidad de grupos (slug del nombre) afectados
+    """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
-    res = await db.curricular_areas.update_one(
-        {"id": area_id, "school_id": school_id},
-        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}},
-    )
-    if res.matched_count == 0:
+    now = datetime.now(timezone.utc).isoformat()
+
+    area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada")
-    return {"message": "Área desactivada"}
+
+    # 1) Auto-unlink: cuántos subjects y cuántos grupos (slug distintos) están vinculados
+    linked_subjects = await db.subjects.find(
+        {"school_id": school_id, "area_id": area_id, "status": {"$ne": "deleted"}},
+        {"_id": 0, "id": 1, "name": 1},
+    ).to_list(5000)
+    groups_unlinked_count = len({_slug(s.get("name") or "") for s in linked_subjects if s.get("name")})
+    subjects_unlinked_count = 0
+    if linked_subjects:
+        ids = [s["id"] for s in linked_subjects]
+        res = await db.subjects.update_many(
+            {"id": {"$in": ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
+            {"$set": {"area_id": None, "area_name": None, "area_order": None, "updated_at": now}},
+        )
+        subjects_unlinked_count = res.modified_count
+
+    # 2) Soft delete del área
+    await db.curricular_areas.update_one(
+        {"id": area_id, "school_id": school_id},
+        {"$set": {"is_active": False, "updated_at": now}},
+    )
+
+    logger.info(
+        f"[curricular_areas] archive area={area_id} name='{area.get('name')}' "
+        f"subjects_unlinked={subjects_unlinked_count} groups_unlinked={groups_unlinked_count} "
+        f"by={user.get('id')}"
+    )
+
+    return {
+        "message": "Área desactivada",
+        "deactivated_area_id": area_id,
+        "subjects_unlinked_count": subjects_unlinked_count,
+        "groups_unlinked_count": groups_unlinked_count,
+    }
 
 
 @router.put("/subjects/{subject_id}/area")
