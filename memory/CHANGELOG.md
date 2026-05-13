@@ -1,5 +1,20 @@
 # EduNet - Changelog
 
+## Feb 13, 2026 - Fork (Tutorías Fase B: Matriz de Gobernanza Admin) — COMPLETED ✅
+
+### Feature: AdminTutoringOverviewPage — gestión centralizada de tutores por sección
+- **Página nueva** `/app/frontend/src/pages/AdminTutoringOverviewPage.jsx` (~520 líneas) accesible en `/:subdomain/admin/tutoring-overview` para roles owner/admin/director/coordinator (gating `isAdmin(user)`).
+- **Sidebar**: nuevo item "Tutorías" en `AdminSidebar.jsx` bajo sección **ESTRUCTURA ACADÉMICA** (icono `UserCheck`).
+- **UI**: integra `AdminSidebar` + `DashboardHeader`. Summary cards (Secciones totales, Con tutor, Sin tutor, Tutores activos). Filtros: búsqueda libre, estado (todas/asignadas/sin asignar), nivel, tutor, bimestre. Tabla con Nivel/Grado/Sección/Tutor actual/# Alumnos/% Coment/% Conducta/Acciones.
+- **Acciones por fila**: "Asignar" (sin tutor) / "Cambiar" (con tutor) abre modal con selector de profesor → `PUT /api/sections/{id}/tutor` con `{teacher_id}`. "Quitar" envía `{teacher_id: null}` (borrado lógico → `status: inactivo`).
+- **Reasignación masiva**: checkboxes multi-select → barra inferior con contador → modal de transferencia → `POST /api/admin/tutorings/transfer` con `{section_ids[], new_teacher_id}`. Botón secundario "Quitar a todos" para retirar tutorías en bulk.
+- **Indicadores de avance**: badges de % Comentarios y % Conducta (verde ≥90, ámbar ≥50, rojo <50) calculados por el backend cuando se pasa `period_id`.
+- **Mejoras de UX** (post-testing): celdas Nivel/Grado de secciones huérfanas muestran badge `sin nivel`/`sin grado` en cursiva ámbar en lugar de `—`; toasts de bulk transfer separados (asignar vs quitar) en lugar de mensaje concatenado.
+- **Testing**: backend 9/9 pytest (`/app/backend/tests/test_tutoring_admin_phase_b.py`) — overview/single PUT/bulk transfer/auth guards. Frontend smoke + flujos completos (load, filtros, modal asignar, modal bulk transfer, sidebar highlight). 13 secciones detectadas en colegio elroble, 1 asignada (Robles Miro Raphael — INICIAL 3 años A) preservada tras tests.
+- **NO Save to GitHub / NO Deploy** — listo en preview, esperando que el usuario redespliegue a edunet.pe.
+
+
+
 ## May 13, 2026 - Fork (Libreta: rediseño fiel al modelo HTML del Colegio El Roble) — COMPLETED ✅
 
 ### Feature: LibretaCard reescrita para coincidir con el `libreta.html` de referencia

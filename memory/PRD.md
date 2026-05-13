@@ -17,7 +17,12 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 - Frontend: React + Tailwind + shadcn/ui
 - Librerías clave: jsPDF, xlsx (SheetJS)
 
-## Last Implemented (May 2026)
+## Last Implemented (Feb 2026)
+- [Feature] **Tutorías Fase B — Matriz de Gobernanza Admin**. Página `/admin/tutoring-overview` (`AdminTutoringOverviewPage.jsx`) accesible a owner/admin/director/coordinator. Tabla con todas las secciones del colegio + tutor actual + % comentarios / % conducta del bimestre activo. Acciones por fila (Asignar/Cambiar/Quitar → `PUT /api/sections/{id}/tutor`) y reasignación masiva (`POST /api/admin/tutorings/transfer`). Filtros: búsqueda, estado, nivel, tutor, periodo. Nueva entrada "Tutorías" en `AdminSidebar` bajo ESTRUCTURA ACADÉMICA. Backend: 9/9 pytest PASS (`/app/backend/tests/test_tutoring_admin_phase_b.py`). Frontend: smoke + flujos validados al 100% (iter 142). Listo para preview, esperando redeploy a edunet.pe.
+
+- [Feature] **Tutorías Fase A — Backend de Gobernanza** (sesión previa). Router nuevo `tutoring_admin.py` con `GET /api/admin/tutoring-overview` (matriz consolidada), `GET /api/teachers/{id}/tutorings`, `POST /api/admin/tutorings/transfer`, `GET /api/mis-tutorias/sections/{id}/consolidated`. Sin nuevo rol "tutor": un tutor es un `teacher` con doc en `academic_assignments` (`role: "tutor"`, `status: "activo"`).
+
+## Previously Implemented (May 2026)
 - [Feature] **Sprint C — Áreas Curriculares con scope_grade_ids a nivel de ÁREA + Wizard de creación**. Las áreas ahora pueden crearse acotadas a un rango de grados desde el inicio. Conviven dos modos: `scope_grade_ids=[]` → área global (MINEDU), lista no vacía → área acotada (ej. "Aritmética Avanzada 4°-5° Sec"). Backend: campos `scope_grade_ids` + `scope_label` en `GET/POST/PUT /curricular-areas`; helper `_compute_scope_label` genera labels legibles tipo "Primaria · 4° a 6° + Secundaria · 1° a 5°". Frontend nuevo: `AreaWizardModal.jsx` (wizard 3 pasos con stepper visual — grados → nombre/color → asignaturas opcionales); `GradeScopePicker.jsx` (selector reutilizable usado también en modal edición). Tabla principal muestra badge de scope por área. Bug fix: corregida llamada `/api/subjects` → `/api/academic/subjects` (404 silencioso). Testing iter 141: Backend 8/8 PASS, Frontend ~90% green, sin regresiones.
 
 - [Feature] **Sprint B — Áreas Curriculares con Scope por Grado** (en las VINCULACIONES). Las áreas MINEDU siguen siendo globales, pero la composición de asignaturas dentro de un área puede variar por grado/nivel. Backend: nuevo `GET /curricular-areas/grade-shortcuts` con atajos dinámicos (`all`, `level:<uuid>`, `sec_first_<uuid>`/`sec_last_<uuid>`); `GET /{area_id}/subjects` retorna `grade_breakdown` por asignatura conceptual; `POST /link` y `/unlink` aceptan `grade_ids` opcional; `/available-subjects?grade_ids=g1,g2`. Frontend (`AreaSubjectsManager.jsx`): acordeón doble nivel (Grado → Asignatura) con headers tipo "INICIAL · 3 AÑOS · (2 asignaturas · 4 instancias)" + `LinkSubjectsSubModal` con paso 1 (atajos rápidos chip-style + Selección individual expandible por nivel) y paso 2 (asignaturas disponibles filtradas por scope). Bug fixes asociados: page_size cap 200 (era 500 → 422); helper `errMsg()` que coerce arrays de validación a string para no romper React. Testing iter 140: Backend 12/12 pytest + Frontend E2E 100% PASS, sin regresiones en Libreta/Consolidado.
@@ -49,6 +54,8 @@ Lenguaje del usuario: **Español** (responder siempre en Español).
 ## Backlog (priorizado)
 
 ### P1
+- **Tutorías Fase C — Portal del Profesor-Tutor multi-sección**. Refactorizar `MisTutoriasPage.jsx`: si el profesor tutorea múltiples secciones, mostrar grid de tarjetas. Al ingresar a una sección, dashboard con 3 tabs (Conducta/Comentarios bulk · Consolidado del salón solo lectura · Libretas individuales).
+- **Tutorías Fase D — Pulido**. Tarjeta "Tutores" en Dashboard Admin; badge "Tutor de N secciones" en listado de profesores.
 - **Fase 3 Turno F2 — Libreta**: ✅ COMPLETADO
 - **Limpieza de alumnos fantasma**: 35 cuentas `*.stress@elroble.edu` sin sección real ni notas. Decidir si eliminar/desactivar/dejar.
 - Psicología: log de auditoría estricto.

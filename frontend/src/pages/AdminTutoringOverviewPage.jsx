@@ -181,7 +181,11 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
       if (!removeMode) body.new_teacher_id = transferTarget || null;
       const r = await axios.post(`${API}/admin/tutorings/transfer`, body, { headers });
       const d = r.data || {};
-      toast.success(`${d.deactivated || 0} tutoría${(d.deactivated || 0) === 1 ? "" : "s"} previa${(d.deactivated || 0) === 1 ? "" : "s"} desactivada${(d.deactivated || 0) === 1 ? "" : "s"}. ${d.assigned ? `${d.assigned} reasignada${d.assigned === 1 ? "" : "s"}.` : ""}`);
+      if (removeMode) {
+        toast.success(`${d.deactivated || 0} tutoría${(d.deactivated || 0) === 1 ? "" : "s"} quitada${(d.deactivated || 0) === 1 ? "" : "s"}`);
+      } else {
+        toast.success(`${d.assigned || 0} sección${(d.assigned || 0) === 1 ? "" : "es"} reasignada${(d.assigned || 0) === 1 ? "" : "s"} correctamente`);
+      }
       setTransferModal(null);
       setTransferTarget("");
       setSelectedRows(new Set());
@@ -344,8 +348,8 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
                             data-testid={`row-checkbox-${r.section_id}`}
                           />
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{r.level_name || "—"}</td>
-                        <td className="px-3 py-2 text-slate-700">{r.grade_name || "—"}</td>
+                        <td className="px-3 py-2 text-slate-700">{r.level_name || <span className="text-xs text-amber-700 italic">sin nivel</span>}</td>
+                        <td className="px-3 py-2 text-slate-700">{r.grade_name || <span className="text-xs text-amber-700 italic">sin grado</span>}</td>
                         <td className="px-3 py-2 font-semibold text-slate-900">{r.section_name}</td>
                         <td className="px-3 py-2">
                           {r.tutor_name ? (
