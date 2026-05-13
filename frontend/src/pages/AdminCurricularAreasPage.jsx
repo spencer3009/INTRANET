@@ -253,6 +253,16 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {areas.length === 0 ? "Inicializar áreas estándar" : "Re-aplicar fuzzy-match"}
               </button>
+              {areas.length > 0 && (
+                <button
+                  onClick={() => { setResetModal(true); setResetConfirmText(""); }}
+                  className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-800 px-3 py-2 rounded-lg font-semibold text-sm transition border border-red-200"
+                  data-testid="hard-reset-btn"
+                  title="Borrar TODAS las áreas y empezar de cero (irreversible)"
+                >
+                  <AlertTriangle className="w-4 h-4" /> Resetear áreas
+                </button>
+              )}
               <button
                 onClick={() => setWizardOpen(true)}
                 className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold text-sm transition"
