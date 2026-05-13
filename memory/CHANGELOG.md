@@ -1,5 +1,24 @@
 # EduNet - Changelog
 
+## May 13, 2026 - Fork (Sprint B: Scope por grado en Áreas Curriculares) — COMPLETED ✅
+
+### Feature: Acordeón doble nivel (Grado → Asignatura) + Sub-modal con selector de grados
+- **Backend** (`/app/backend/routes/curricular_areas.py`):
+  - `GET /curricular-areas/grade-shortcuts` (NUEVO) retorna atajos dinámicos `all`, `level:<uuid>` por cada nivel existente, y `sec_first_<uuid>` / `sec_last_<uuid>` para sub-rangos de secundaria.
+  - `GET /curricular-areas/{area_id}/subjects` ahora incluye `grade_breakdown` por asignatura conceptual con `instance_ids`, `instances_count`, `grade_id/name`, `level_id/name`, orden.
+  - `POST /subjects/link` y `/unlink` aceptan `grade_ids` opcional para limitar el scope al subconjunto de grados elegido.
+  - `GET /available-subjects` soporta `grade_ids` (csv) para filtrar por grado.
+- **Frontend** (`/app/frontend/src/components/curricular/AreaSubjectsManager.jsx`):
+  - Reescrito para reagrupar `data.subjects[].grade_breakdown` en buckets de doble nivel (Grado → Asignatura conceptual) con headers tipo "INICIAL · 3 AÑOS (2 asignaturas · 4 instancias)".
+  - `LinkSubjectsSubModal`: paso 1 selector de grados con atajos rápidos (chips) + "Selección individual" expandible agrupada por nivel; paso 2 tabla de asignaturas disponibles filtrada por scope.
+  - `data-testid` completos: `expand-area-<id>`, `grade-bucket-<key>`, `open-link-submodal-btn`, `link-submodal`, `grade-shortcut-<key>`, `toggle-individual-grades`, `grade-checkbox-<id>`, `confirm-link-btn`.
+- **Bug fixes durante este sprint**:
+  1. Frontend enviaba `page_size=500` pero backend caps a `le=200` → 422 validation. Cambiado a 200.
+  2. Errores 422 de FastAPI devuelven `detail` como array de objetos → React crasheaba al renderizar la respuesta como child. Agregado helper `errMsg(err, fallback)` que coerce a string seguro.
+- **Testing**: `testing_agent_v3_fork` iter 140 — Backend 12/12 pytest PASS (`/app/backend/tests/test_curricular_areas_sprint_b.py`), Frontend E2E 100% PASS, sin regresiones en Libreta/Consolidado. Round-trip link+unlink restauró data original.
+- **NO Save to GitHub / NO Deploy** — listo en preview para validación del usuario.
+
+
 ## May 12, 2026 - Fork (Feature: Gestión Manual de Asignaturas — Fase 2 Frontend) — REVISADO
 
 ### Feature: Modal de Áreas Curriculares expandido con acordeón de asignaturas — COMPLETED + correctivos
