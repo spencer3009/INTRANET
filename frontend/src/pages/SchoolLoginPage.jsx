@@ -10,12 +10,21 @@ const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 export default function SchoolLoginPage({ onLogin }) {
   const { subdomain } = useParams();
   const navigate = useNavigate();
-  
+
   // School info state
   const [school, setSchool] = useState(null);
   const [loadingSchool, setLoadingSchool] = useState(true);
   const [schoolError, setSchoolError] = useState("");
-  
+
+  // Validación temprana del subdomain. Si la URL es algo como
+  // /login.php, /index.html, /favicon.ico o cualquier path técnico —
+  // React Router lo captura como :subdomain pero NO es un colegio real.
+  // En ese caso redirigimos al login general y evitamos llamar al API.
+  const isTechnicalPath = subdomain && (
+    /\.(php|html?|aspx?|jsp|do|cgi|ico|map|js|css|png|jpg|jpeg|webp|svg|gif|txt|xml|json|woff2?|ttf|eot)$/i.test(subdomain)
+    || /[^a-z0-9-]/i.test(subdomain)  // contiene espacios, puntos, etc.
+  );
+
   // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,8 +32,16 @@ export default function SchoolLoginPage({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Si es un path técnico (no un subdomain de colegio), redirigimos
+  useEffect(() => {
+    if (isTechnicalPath) {
+      navigate("/login", { replace: true });
+    }
+  }, [isTechnicalPath, navigate]);
+
   // Fetch school info on mount
   useEffect(() => {
+    if (isTechnicalPath) return;  // skip API call si vamos a redirigir
     const fetchSchool = async () => {
       try {
         const res = await axios.get(`${API}/schools/public/${subdomain}`);
@@ -35,11 +52,11 @@ export default function SchoolLoginPage({ onLogin }) {
         setLoadingSchool(false);
       }
     };
-    
+
     if (subdomain) {
       fetchSchool();
     }
-  }, [subdomain]);
+  }, [subdomain, isTechnicalPath]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +105,8 @@ export default function SchoolLoginPage({ onLogin }) {
   };
 
   // Loading state
-  if (loadingSchool) {
+  // Loading state — incluye el caso del redirect por path técnico
+  if (loadingSchool || isTechnicalPath) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068]">
         <Loader2 className="w-10 h-10 text-white animate-spin" />

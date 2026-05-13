@@ -504,9 +504,14 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
     // Extract subdomain from current path to redirect to school-specific login
     const pathMatch = location.pathname.match(/^\/([^/]+)/);
     const subdomain = pathMatch ? pathMatch[1] : null;
+    // Paths que NUNCA son subdomains de colegios (rutas técnicas o known apps)
     const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school', 'support', 'libreta', 'mis-tutorias'];
-    const loginPath = subdomain && !knownNonSchool.includes(subdomain) 
-      ? `/${subdomain}/login` 
+    const isTechnicalPath = subdomain && (
+      /\.(php|html?|aspx?|jsp|do|cgi|ico|map|js|css|png|jpg|jpeg|webp|svg|gif|txt|xml|json|woff2?|ttf|eot)$/i.test(subdomain)
+      || /[^a-z0-9-]/i.test(subdomain)
+    );
+    const loginPath = subdomain && !knownNonSchool.includes(subdomain) && !isTechnicalPath
+      ? `/${subdomain}/login`
       : '/login';
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
