@@ -73,7 +73,7 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
 
   useEffect(() => { loadBulk(); }, [loadBulk]);
 
-  // 3) Autosave por celda con debounce 700ms
+  // 3) Autosave comentario con debounce 700ms
   const handleChange = (student_id, value) => {
     setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, comment: value } : r));
     if (timersRef.current[student_id]) clearTimeout(timersRef.current[student_id]);
@@ -96,10 +96,38 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
     }
   };
 
+  // 4) Autosave conducta (inmediato, sin debounce — dropdown discreto)
+  const saveConduct = async (student_id, letra) => {
+    const prevLetra = rows.find(r => r.student_id === student_id)?.conduct_letra;
+    // Update optimista
+    setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, conduct_letra: letra || null } : r));
+    setSavingMap(prev => ({ ...prev, [student_id + "_c"]: "saving" }));
+    try {
+      if (!letra) {
+        // El backend solo soporta upsert; "vacío" no se persiste — revertir UI
+        setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, conduct_letra: prevLetra || null } : r));
+        toast.info("La conducta no puede dejarse vacía. Elige AD, A, B o C.");
+        return;
+      }
+      await axios.put(`${API}/conduct`,
+        { student_id, period_id: selectedPeriodId, letra },
+        { headers });
+      setSavingMap(prev => ({ ...prev, [student_id + "_c"]: "saved" }));
+      setTimeout(() => setSavingMap(prev => { const n = { ...prev }; delete n[student_id + "_c"]; return n; }), 1500);
+    } catch (err) {
+      setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, conduct_letra: prevLetra || null } : r));
+      setSavingMap(prev => ({ ...prev, [student_id + "_c"]: "error" }));
+      if (err.response?.status === 423) toast.error("Bimestre cerrado. No se puede modificar la conducta.");
+      else toast.error(err.response?.data?.detail || "No se pudo guardar la conducta.");
+    }
+  };
+
   const selectedSection = sections.find(s => s.section_id === selectedSectionId);
   const sectionLabel = (s) => `${s.grado_nombre || "—"} ${s.nombre || ""} ${s.nivel_nombre ? s.nivel_nombre.charAt(0).toUpperCase() + s.nivel_nombre.slice(1).toLowerCase() : ""}`.replace(/\s+/g, " ").trim();
-  const filledCount = rows.filter(r => (r.comment || "").trim().length > 0).length;
-  const emptyCount = rows.length - filledCount;
+  const filledCommentsCount = rows.filter(r => (r.comment || "").trim().length > 0).length;
+  const filledConductCount = rows.filter(r => !!r.conduct_letra).length;
+  const pendingComments = rows.length - filledCommentsCount;
+  const pendingConduct = rows.length - filledConductCount;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -124,8 +152,8 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
                 <GraduationCap className="w-6 h-6 text-indigo-600" strokeWidth={1.8} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Comentarios del Tutor</h1>
-                <p className="text-sm text-slate-500 mt-0.5">Escribe el comentario para cada alumno de tus secciones. Se guarda automáticamente.</p>
+                <h1 className="text-2xl font-bold text-slate-900">Mis Tutorías</h1>
+                <p className="text-sm text-slate-500 mt-0.5">Comentarios y conducta de los alumnos de tu salón. Guardado automático. También puedes abrir la libreta completa de cada alumno.</p>
               </div>
             </div>
 
@@ -174,8 +202,8 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
                       <p className="text-sm font-semibold text-slate-800">
                         {loadingBulk ? "Cargando…" : (
                           <>
-                            {filledCount} de {rows.length} con comentario
-                            {emptyCount > 0 && <span className="text-amber-700 font-normal"> · {emptyCount} pendiente{emptyCount === 1 ? "" : "s"}</span>}
+                            <span className="block">📝 {filledCommentsCount}/{rows.length} comentarios{pendingComments > 0 && <span className="text-amber-700 font-normal"> · {pendingComments} pend.</span>}</span>
+                            <span className="block">🎯 {filledConductCount}/{rows.length} conducta{pendingConduct > 0 && <span className="text-amber-700 font-normal"> · {pendingConduct} pend.</span>}</span>
                           </>
                         )}
                       </p>
@@ -201,13 +229,15 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
                           <th className="px-3 py-2.5 text-left w-12">N°</th>
                           <th className="px-3 py-2.5 text-left w-72">APELLIDOS Y NOMBRES</th>
                           <th className="px-3 py-2.5 text-left">COMENTARIO DEL TUTOR — {periodInfo?.nombre}</th>
-                          <th className="px-3 py-2.5 text-center w-24"></th>
+                          <th className="px-3 py-2.5 text-center w-28">CONDUCTA</th>
+                          <th className="px-3 py-2.5 text-center w-32">LIBRETA</th>
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map(r => {
                           const closed = r.is_closed;
                           const status = savingMap[r.student_id];
+                          const condStatus = savingMap[r.student_id + "_c"];
                           return (
                             <tr key={r.student_id} className="border-t border-slate-100 hover:bg-slate-50/60" data-testid={`tutoria-row-${r.number}`}>
                               <td className="px-3 py-2 text-sm text-slate-600 align-top">{r.number}</td>
@@ -225,31 +255,55 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
                                   className={`w-full px-3 py-2 text-sm border rounded-lg resize-y focus:outline-none focus:ring-2 ${closed ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500"}`}
                                   data-testid={`tutoria-textarea-${r.number}`}
                                 />
+                                <div className="h-4 mt-1 text-[11px]">
+                                  {closed ? (
+                                    <span className="text-amber-700 inline-flex items-center gap-1"><Lock className="w-3 h-3" /> bloqueado</span>
+                                  ) : status === "saving" || status === "pending" ? (
+                                    <span className="text-slate-500 inline-flex items-center gap-1" data-testid={`tutoria-status-${r.number}`}>
+                                      <Loader2 className="w-3 h-3 animate-spin" /> guardando…
+                                    </span>
+                                  ) : status === "saved" ? (
+                                    <span className="text-emerald-700 inline-flex items-center gap-1" data-testid={`tutoria-status-${r.number}`}>
+                                      <Save className="w-3 h-3" /> guardado
+                                    </span>
+                                  ) : null}
+                                </div>
                               </td>
+                              {/* CONDUCTA */}
                               <td className="px-3 py-2 text-center align-top">
-                                {closed ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200" title="Bimestre cerrado">
-                                    <Lock className="w-3 h-3" />
-                                  </span>
-                                ) : status === "saving" || status === "pending" ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-slate-50 text-slate-500" data-testid={`tutoria-status-${r.number}`}>
-                                    <Loader2 className="w-3 h-3 animate-spin" /> Guardando
-                                  </span>
-                                ) : status === "saved" ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-50 text-emerald-700 border border-emerald-200" data-testid={`tutoria-status-${r.number}`}>
-                                    <Save className="w-3 h-3" /> Guardado
-                                  </span>
-                                ) : (
-                                  <a
-                                    href={`/libreta/${r.student_id}?period_id=${selectedPeriodId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                                    title="Abrir libreta completa en pestaña nueva"
-                                  >
-                                    <ExternalLink className="w-3 h-3" /> Libreta
-                                  </a>
-                                )}
+                                <select
+                                  value={r.conduct_letra || ""}
+                                  onChange={(e) => saveConduct(r.student_id, e.target.value)}
+                                  disabled={closed}
+                                  className={`px-2 py-1.5 text-sm border rounded-lg w-20 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-center ${closed ? "bg-slate-100 text-slate-400 cursor-not-allowed" : r.conduct_letra ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+                                  data-testid={`tutoria-conduct-${r.number}`}
+                                >
+                                  <option value="">—</option>
+                                  <option value="AD">AD</option>
+                                  <option value="A">A</option>
+                                  <option value="B">B</option>
+                                  <option value="C">C</option>
+                                </select>
+                                <div className="h-4 mt-1 text-[11px]">
+                                  {condStatus === "saving" ? (
+                                    <span className="text-slate-500 inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> guardando</span>
+                                  ) : condStatus === "saved" ? (
+                                    <span className="text-emerald-700">✓ guardado</span>
+                                  ) : null}
+                                </div>
+                              </td>
+                              {/* LIBRETA */}
+                              <td className="px-3 py-2 text-center align-top">
+                                <a
+                                  href={`/${user?.subdomain || "elroble"}/libreta/${r.student_id}?period_id=${selectedPeriodId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                                  title="Abrir libreta completa del alumno en pestaña nueva"
+                                  data-testid={`tutoria-libreta-link-${r.number}`}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Ver
+                                </a>
                               </td>
                             </tr>
                           );

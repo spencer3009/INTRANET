@@ -48,6 +48,7 @@ const NAV_SECTIONS = [
     label: "ESTRUCTURA ACADÉMICA",
     items: [
       { id: "estructura-académica", label: "Estructura Académica", icon: Layers, route: "/admin/academic-structure" },
+      { id: "tutorias", label: "Tutorías", icon: UserCheck, route: "/admin/tutoring-overview" },
     ]
   },
   {

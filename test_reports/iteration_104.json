@@ -24,7 +24,7 @@
   },
   "test_credentials": {
     "school_owner": "admin@elroble.edu / 1234abc8 (subdomain: elroble)",
-    "app_url": "https://subject-grade-map.preview.emergentagent.com"
+    "app_url": "https://tutor-asignaciones.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing OMR exam: 7b859047-f6cb-4760-b945-2e17b58c0099 (10 questions, 4 options, answer_key configured, 3 existing scans)",
   "retest_needed": false,

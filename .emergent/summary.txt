@@ -1,158 +1,153 @@
-<analysis>**original_problem_statement**: Replicar y expandir módulos del SaaS escolar EduNet. El módulo Libreta Individual (Fase 3) ha sido completado y pulido (con reportes PDF, portal de padres, y vista rápida de Mis Tutorías para profesores). El nuevo requerimiento actual es el feature: Gestión manual de asignaturas vinculadas a Áreas Curriculares. El usuario ha aprobado la Fase 1 (Backend) y solicita la Fase 2 (Frontend), que consiste en expandir el modal de edición de áreas para permitir vincular y desvincular asignaturas de forma manual en UI. PRODUCT REQUIREMENTS: Agregar acordeón de Asignaturas vinculadas dentro del modal existente en , con sub-modal para vinculación masiva, buscadores en tiempo real, manejo de estados (loaders, empty states, warnings de reasignación) y refresco automático de contadores, sin utilizar páginas standalone.
+<analysis><handoff_summary>
+**original_problem_statement**: 
+El usuario solicitó múltiples mejoras en esta sesión: rediseño completo de la libreta para que sea idéntica a una plantilla HTML proporcionada, reparación del flujo de instalación PWA (el botón Instalar EduNet no aparecía), solución de un bug de z-index en el modal de Programar Examen, y la creación de un sistema integral de **Tutorías**. PRODUCT REQUIREMENTS (Tutorías): En lugar de crear un rol de usuario nuevo, un Tutor es un Profesor () que tiene una asignación en . Se requiere: 1) Matriz de gobernanza para el Admin donde asigne tutores a secciones. 2) Portal del Tutor () que soporte multi-sección, permita calificar conducta en bloque, agregar comentarios y ver el Consolidado del salón, incluso de cursos que el tutor no enseña.
 
 **User's preferred language**: Spanish
-(INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond exclusively in Spanish).
+(INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in Spanish only)
 
 **what currently exists?**: 
-Un SaaS escolar robusto (React + FastAPI + MongoDB). Se ha finalizado por completo la generación de libretas (con snapshots inmutables), vistas dedicadas para roles (owner, profesor-tutor, padre, estudiante) y la exportación de PDFs (usando ). Para el feature actual (Gestión de Asignaturas por Área), la **Fase 1 (Backend) ya está completa y testeada**, incluyendo 4 endpoints administrativos para listar, vincular, desvincular y ver asignaturas disponibles, aplicando lógica de best-effort partial failure y con índices optimizados en MongoDB.
+SaaS Escolar (React + FastAPI + MongoDB). 
+- **Áreas Curriculares**: Completado Sprint C (wizard de 3 pasos con scope_grade_ids).
+- **Libreta**: Rediseñada fielmente al HTML. Las asignaturas sin área se ocultan al padre, con warning ámbar para admins.
+- **PWA**: Botón de instalación CTA siempre visible, con fallback de instrucciones manuales.
+- **Tutorías (Backend Fase A completada)**: El backend () ya expone  para listar todas las secciones y sus tutores, usando las referencias correctas hacia  y .
 
 **Last working item**: 
-    - Last item agent was working: Fase 2 — Frontend: Modal expandido de Áreas Curriculares. El agente acaba de crear el archivo  pero aún no ha implementado su contenido. El objetivo es montar este componente como un acordeón colapsable dentro del modal de edición existente en .
+    - Last item agent was working: Fase B de Tutorías (Frontend Admin) — Construcción de la matriz de gobernanza. El agente recién creó el archivo  tras finalizar y testear exitosamente el backend de Fase A.
     - Status: IN PROGRESS
-    - Agent Testing Done: N
+    - Agent Testing Done: N (Para el archivo frontend recién creado. El backend fue testeado OK).
     - Which testing method agent to use?: frontend testing agent / screenshot tool.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  - Issue 1: 35 alumnos fantasma () fallan en cierre de bimestre (P2)
-     - Attempted fixes: Agente identificó a estos estudiantes de una prueba de estrés en los logs del webhook de Cierre de Bimestre, reportándolo al usuario. El usuario puso en pausa esta limpieza para priorizar nuevos features.
-     - Next debug checklist: Buscar en BD los alumnos con email  y verificar con el usuario si procedemos a hacer un soft/hard delete para limpiar las estadísticas del cierre de bimestre.
-     - Why fix this issue and what will be achieved with the fix?: Evitará que el 60% de los intentos de cierre de bimestre en el preview reporten error Sección no encontrada, manteniendo métricas limpias.
-     - Status: NOT STARTED
-     - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: backend
-     - Blocked on other issue: Confirmación del usuario.
+  Ningún bug bloqueante actual. Todo el trabajo reciente ha sido desarrollo de features.
 
 **In progress Task List**: 
-  - Task 1: Fase 2 — Frontend: Modal expandido de Áreas Curriculares
-     - Where to resume: Escribir el código en  y montarlo dentro de . Implementar estrictamente las especificaciones del Mensaje 659: un acordeón colapsable bajo la opción Activo del modal, con una tabla paginada de asignaturas vinculadas, botón individual/masivo de desvincular y un sub-modal para buscar y vincular asignaturas nuevas (con toggle ). Conectar los endpoints de la Fase 1.
-     - What will be achieved with this?: Permitir a los directores corregir el mapeo del  entre las áreas MINEDU y las asignaturas del colegio desde una interfaz sencilla.
+  - Task 1: Fase B — Frontend Admin: Matriz de Gestión de Tutorías
+     - Where to resume: Desarrollar el UI en el archivo recién creado . Debe consumir  y mostrar una tabla (Nivel, Grado, Sección, Tutor Actual, Acciones). Conectar esta página al  bajo Estructura Académica.
+     - What will be achieved with this?: Permitir al director visualizar qué secciones no tienen tutor y asignarlos rápidamente desde una sola pantalla.
      - Status: IN PROGRESS
      - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on something: Ninguno.
+     - Blocked on something: NA
+  - Task 2: Fase C — Frontend Profesor: Portal Mis Tutorías multi-sección
+     - Where to resume: Refactorizar . Si el profesor tutorea múltiples secciones, mostrar un grid de tarjetas. Al ingresar a una sección, mostrar un Dashboard con 3 tabs: Comentarios+Conducta (bulk edit), Consolidado de Notas del salón (solo lectura), y Libretas individuales.
+     - What will be achieved with this?: Dar al profesor-tutor las herramientas pedagógicas para gestionar las secciones a su cargo.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on something: NA
 
-**Upcoming and Future Tasks**: 
+**Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P0: Fase 3 — E2E Verification para Gestión de Asignaturas. Casos de prueba exhaustivos con datos reales de la cuenta El Roble (después de terminar y aprobar Fase 2).
-    - P1: Stepper visual y bloqueo inteligente en el Consolidado de Notas (Bloquear cierre de bimestre si hay áreas incompletas. Mencionado en msj 612 pero pospuesto por el usuario).
-    - P2: Desplegar a producción las Olas de commits pendientes (Requiere orden explícita del usuario).
+    - P1: Fase D — Tutorías (Pulido): Tarjeta Tutores en Dashboard de Usuarios admin, badge Tutor de N secciones en listado de profesores.
+    - P1: Stepper visual y bloqueo inteligente en Consolidado de Notas (from previous session).
     Future Tasks:
     - P3: Migración de IDs duplicados en plantillas de Registro Auxiliar.
     - P3: Módulo de Encuestas.
-    - P3: Botón Bloquear plantilla a nivel colegio.
 
-**Completed work in this session**: 
-- Fase 3 Turno F1 completado: UI de la libreta idéntica al formato físico y empty states funcionales (DONE).
-- Ajustes UX varios: Rediseño del UI Cierre Bimestre, borrado de asignaturas legacy huérfanas, manejo de error en  (DONE).
-- Revisión de Textos: Traducción de códigos HTTP, mensajes de error backend/frontend, labels técnicos y toasts al español formal (DONE).
-- Fase 3 Turno F2 completado: Exportación PDF con , portal de padres simplificado con tarjetas de color (), drawers laterales para Cierre/Áreas (DONE).
-- Nueva vista de Profesor (): Interfaz para registrar comentarios masivos de tutoría (DONE).
-- Fase 1 (Backend) Gestión de Asignaturas: Endpoints implementados para , , , y  (DONE).
+**Completed work in this session**
+- Sprint C (Áreas Curriculares scope-por-grado + Wizard 3 pasos y endpoints reset) (DONE)
+- Ocultar asignaturas huérfanas en Libreta, con alerta exclusiva para staff (DONE)
+- Rediseño CSS/JSX de LibretaCard fiel al modelo HTML de El Roble (DONE)
+- Fix PWA Install prompt (redirección de  y fallback CTA) (DONE)
+- Fix z-index stacking context en  que bloqueaba inputs en modal Programar Examen (DONE)
+- Fase A Tutorías: Backend routes () y test de permisos/aggregations (DONE)
 
-**Earlier issues found/mentioned but not fixed**: 
+**Earlier issues found/mentioned but not fixed**
    - Issue 1: Componentes masivos
-   - Debug checklist:  (>11,000 líneas) y  (>6,000 líneas).
-   - Why to solve this issue and what will be achieved with this?: Complejidad técnica enorme y potencial para fallos de stack size / memory limit de webpack.
-   - Should Test frontend/backend/both after fix: frontend
-   - Is recurring issue?: Y
+     - Debug checklist:  (>11,000 líneas) y  (>6,000 líneas).
+     - Why to solve this issue and what will be achieved with this?: Prevención de OOM/memory limits en webpack y mejora de mantenibilidad.
+     - Should Test frontend/backend/both after fix: frontend
+     - Is recurring issue?: Y
 
-**Known issue recurrence from previous fork**: 
-  - Issue recurrence in previous fork: El usuario tiene un pipeline manual de despliegue (Deploy por Olas). La aplicación tiene dos entornos: PREVIEW (desarrollo, donde trabaja el agente) y PRODUCTION (, operado por el usuario).
-  - Recurrence count: 8
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Entornos divididos. El agente trabaja estrictamente en el entorno PREVIEW. El usuario tiene desplegado la versión en vivo en PRODUCTION (). 
+  - Recurrence count: 10
   - Status: IN PROGRESS
-  Note: NUNCA utilices Save to GitHub, push a ramas, ni realices despliegues sin el comando explícito del usuario. Todo tu trabajo debe restringirse al ambiente PREVIEW.
+  Note: Cada vez que termines una iteración útil, informa al usuario que debe redesplegar (redeploy) para que los cambios se reflejen en Producción. **Nunca** intentes ingresar, hacer peticiones o manipular datos de la URL de producción directamente.
 
-**Code Architecture**: 
+**Code Architecture**
 /app
-├── backend/
-│   ├── routes/
-│   │   ├── curricular_areas.py       # Endpoints para gestionar vinculaciones y áreas MINEDU
-│   │   ├── libreta.py                # Lectura y snapshot de libretas
-│   │   ├── tutor_comments.py         # Endpoints para comentarios masivos de tutores
+├── backend/routes/
+│   ├── tutoring_admin.py             # (NUEVO) Endpoints de gobernanza de tutorías
+│   ├── tutor_comments.py             # Bulk conduct & comments para tutores
+│   ├── libreta.py                    # Generación de libretas
 ├── frontend/src/
 │   ├── pages/
-│   │   ├── AdminCurricularAreasPage.jsx # Modal principal de áreas
-│   │   ├── MisTutoriasPage.jsx          # UI de carga masiva de comentarios
-│   ├── components/curricular/
-│   │   ├── AreaSubjectsManager.jsx      # Componente pendiente para Fase 2
+│   │   ├── AdminTutoringOverviewPage.jsx # (NUEVO) Matriz admin de tutorías
+│   │   ├── MisTutoriasPage.jsx           # Portal del profesor-tutor
+│   ├── components/libreta/
+│   │   ├── LibretaCard.jsx               # Render fiel al HTML
 
-**Key Technical Concepts**: 
-- **Gestión de Asignaturas (Fase 1 completada)**: El backend admite operaciones masivas (bulk) de vinculación () y desvinculación (), implementando un patrón de Fallo Parcial (best-effort); errores en un registro no bloquean la transacción de los registros correctos.
-- **Snapshots Inmutables**: Una vez que un bimestre se cierra para un estudiante, su libreta se vuelve inmutable y el API rechaza actualizaciones de notas/conducta con error .
-- **RBAC**: Solo , , o  pueden llamar a los endpoints de gestión de asignaturas. Los profesores () pueden agregar comentarios a la libreta solo si tienen  y  sobre la sección del alumno.
+**Key Technical Concepts**
+- **Tutorías (Academic Assignments):** Los tutores NO son un rol nuevo en el modelo de usuario. Son documentos en la colección  con  y ref a  y . 
+- **Separación de roles:** Un profesor puede enseñar matemáticas en 5 secciones, pero ser tutor de solo 1 sección. Como tutor, puede ver el Consolidado completo de esa sección (incluyendo cursos que no dicta).
 
-**key DB schema**: 
+**key DB schema**
   - : 
-  - Índices críticos creados para rendimiento:  y .
+  - : 
 
-**changes in tech stack**: 
-  - Se instaló la dependencia  (Frontend) para la exportación de PDFs in-browser.
+**changes in tech stack**
+  - Ninguno.
 
-**All files of reference**: 
-  - 
-  - 
-  -  (Recién creado, vacío).
+**All files of reference** 
+  -  (Creado)
+  -  (Creado)
+  -  (Modificado)
+  -  (Modificado)
+  -  (Modificado)
+  -  (Modificado)
 
-**Areas that need refactoring**: 
-  -  y .
+**Areas that need refactoring**
+  - , ,  (rutas masivas).
 
-**key api endpoints**: 
-  - 
-  - 
-  - 
-  - 
+**key api endpoints**
+  -  (Matriz de secciones y tutores).
+  -  (Secciones tutoreadas por el profe).
+  -  (Alumnos del salón para bulk edit de conducta y comentario).
+  -  (Registrar conducta AD/A/B/C).
 
-**Critical Info for New Agent**: 
-- Estás trabajando dentro de una **Estrategia estricta de Deploy por Olas**. Las reglas de negocio y specs detalladas para la Fase 2 — Frontend (Gestión Manual de Asignaturas) se encuentran textualmente en el **Mensaje 659** del historial de usuario.
-- Debes implementar la Fase 2 **únicamente en el modal existente**, NO crear páginas standalone. Usa los componentes y patrones existentes de React para la paginación, modales secundarios (submodales) y notificaciones ().
-- **NO hacer Save to GitHub.** Solo implementar código y verificar en Preview.
-- Atención: Evita loops de implementación/screenshot en UI compleja; programa el componente en su totalidad y somételo al testing subagent.
+**Critical Info for New Agent**
+- El plan de Tutorías consta de 4 Fases (A: Backend, B: Admin UI, C: Teacher UI, D: Polish). 
+- La Fase A ya está terminada y testeada exitosamente.  retorna correctamente el cruce de secciones, niveles, grados y tutores asignados.
+- **Tu foco inmediato es la Fase B**: Desarrollar  (que actualmente está vacío/recién creado) y conectarlo al sidebar del administrador.
+- **Importante:** NO crees un modelo de usuario tutor. Todo el sistema se apoya en que el tutor es un  asignado a una  mediante .
 
-**documents and test reports created in this job**: 
-  -  (Fase 3, Turno F1 UI)
-  -  (Fase 3, Turno F2 E2E)
-  - 
-  - 
+**documents and test reports created in this job**
+  -  (Nueva ruta backend)
 
-**Last 10 User Messages and any pending HUMAN messages**: 
-1. [User] Pide que los links Ver Libreta del Consolidado abran en una pestaña nueva para preservar los filtros.
-2. [Agent] Lo implementa () y provee screenshots.
-3. [User] Pregunta cómo se ve esto en el portal del padre.
-4. [Agent] Envía un screenshot mostrando la nueva tarjeta oscura destacada para la libreta.
-5. [User] Pide que la tarjeta no sea negra, sugiere un diseño más ligero y blanco con ícono.
-6. [Agent] Lo cambia a un estilo  limpio, e informa sobre la vista del profesor.
-7. [User] Pregunta desde dónde puede agregar comentarios a la libreta el profesor.
-8. [Agent] Explica el dolor actual (debe abrir cada libreta una por una) y propone crear una pantalla de carga masiva (Mis Tutorías).
-9. [User] Aprueba construir esa pantalla. El agente lo implementa y testea exitosamente.
-10. [User] Propone una lógica de Stepper para el hub del Consolidado, pero inmediatamente pivota y en el último mensaje **pide implementar el Feature: Gestión manual de asignaturas vinculadas a Áreas Curriculares**.
-*(Interacción posterior: El agente completó la Fase 1 en backend con los correcciones pedidas, y el usuario entregó el alcance de la Fase 2 Frontend)*.
+**Last 10 User Messages and any pending HUMAN messages** 
+1. [User] Solicitó crear un nuevo tipo de usuario TUTOR.
+2. [Agent] Explicó que tutor ya es un rol asignado a profesores y propuso un plan de 4 fases para construir portales robustos en lugar de crear un usuario duplicado.
+3. [User] Aprobó la idea. Pidió un plan detallado donde el tutor pueda ver Consolidado y Libretas.
+4. [Agent] Desglosó el plan de Fases A, B, C y D.
+5. [User] Recordó que un profesor puede ser tutor de una sección donde no dicta clases.
+6. [Agent] Confirmó que el modelo relacional separa la enseñanza de la tutoría perfectamente.
+7. [User] Preguntó dónde se asignan las tutorías. Pidió avanzar con el plan propuesto.
+8. [Agent] Implementó Fase A (Backend ), corrigió agregaciones de Mongo para resolver correctamente grados y niveles, y validó con Python que devuelve las 13 secciones. Creó .
 
 **Project Health Check:**
-App robusta, UI refinado y performance en MongoDB optimizada durante esta sesión. Sin errores fatales actualmente (solo ruido por registros basura ).
+App is stable. Backend running OK.
 
-**3rd Party Integrations**: 
+**3rd Party Integrations** 
 	•	Cloudinary (Image Storage) — requires User API Key
 
-**Testing status**: 
-  - Testing agent used after significant changes: YES
+**Testing status**
+  - Testing agent used after significant changes: NO (Testing iterativo self-test con curl y screenshots)
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
-  - Known regressions: None
+  - Known regressions: None currently.
 
-**Credentials to test flow**:
-  - Owner:  /  (Ver  para el padre u otros).
+**Credentials to test flow:**
+  -  /  (Dueño/Admin)
+  -  (Profesor/Tutor)
 
-**What agent forgot to execute**: 
-El agente creó el archivo  pero interrumpió el proceso antes de escribir la lógica y los estilos del acordeón de la Fase 2 Frontend estipulados en el requerimiento del usuario (Mensaje 659).
+**What agent forgot to execute**
+Nada pendiente de la iteración anterior; el agente se detuvo intencionalmente tras completar Fase A para ceder el paso a la implementación de Fase B.
 
 **Debugging checklist for current issue**
-    Issue: Completar la Fase 2 de Gestión Manual de Asignaturas (UI)
-
+    Task: Construir 
     Frontend files to check: 
-    -  (Punto de inyección del acordeón)
-    -  (Donde reside la lógica pesada)
-  
-    Backend files to check:
-    -  (Solo para revisar estructura de la respuesta si es necesario)
-   
-    </analysis>
+    - 
+    -  (Añadir la ruta)
+    -  (Registrar la ruta )
+</handoff_summary></analysis>

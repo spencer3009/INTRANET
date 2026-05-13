@@ -3,13 +3,14 @@ import { useState } from "react";
 import {
   Home, BookOpen, Users, ClipboardList, BarChart3,
   CalendarCheck, MessageSquare, User, LogOut, PenTool,
-  X, Video, HeartPulse, Clock
+  X, Video, HeartPulse, Clock, GraduationCap
 } from "lucide-react";
 
 const teacherNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/teacher" },
   { id: "cursos", label: "Mis Cursos", icon: BookOpen, route: "/teacher/courses" },
   { id: "alumnos", label: "Mis Alumnos", icon: Users, route: "/teacher/students" },
+  { id: "mis-tutorias", label: "Mis Tutorías", icon: GraduationCap, route: "/mis-tutorias" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
   { id: "notas", label: "Notas", icon: BarChart3, route: "/teacher/grades" },
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },

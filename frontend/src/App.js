@@ -56,6 +56,7 @@ import AdminStudentsPage from "@/pages/AdminStudentsPage";
 import AdminTeachersPage from "@/pages/AdminTeachersPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminAcademicStructurePage from "@/pages/AdminAcademicStructurePage";
+import AdminTutoringOverviewPage from "@/pages/AdminTutoringOverviewPage";
 import AdminGradesManagementPage from "@/pages/AdminGradesManagementPage";
 import AdminAttendancePage from "@/pages/AdminAttendancePage";
 import AdminTasksPage from "@/pages/AdminTasksPage";
@@ -1616,6 +1617,18 @@ function App() {
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminAcademicStructurePage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/admin/tutoring-overview"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminTutoringOverviewPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
                 )}
               </ProtectedRoute>
             }
