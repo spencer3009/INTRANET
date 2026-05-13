@@ -7,9 +7,10 @@
 //   - Acciones: Asignar / Cambiar / Quitar
 //   - Reasignación masiva: seleccionar varias secciones y transferir a otro tutor
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import AdminSidebar from "@/components/AdminSidebar";
+import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
   GraduationCap, RefreshCw, Search, Filter, X, Users, AlertTriangle,
@@ -19,11 +20,12 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function AdminTutoringOverviewPage({ user, token, subdomain, onLogout }) {
+  const navigate = useNavigate();
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
 
-  // Cargar branding/settings para nombre del colegio (igual que otras admin pages)
+  // Cargar settings (para nombre de colegio en sidebar/header)
   useEffect(() => {
     (async () => {
       try {
@@ -32,6 +34,8 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
       } catch { /* ignore */ }
     })();
   }, [headers]);
+
+  const navigateTo = (path) => navigate(`/${subdomain || ""}${path}`.replace(/\/+/g, "/"));
 
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState({ rows: [], summary: {}, tutors: [] });
@@ -208,18 +212,18 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
 
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="admin-tutoring-overview-page">
-      <AdminSidebar
-        active="tutorias"
-        onNavigate={() => {}}
+      <Sidebar
+        active="gestion-tutorias"
+        onNavigate={(r) => navigateTo(r)}
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
-        schoolName={settings?.school_name || "EduNet"}
+        schoolName={settings?.school_name || user?.school_name}
         subdomain={subdomain}
         user={user}
       />
       <main className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} settings={settings} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader user={user} settings={settings} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto p-6 space-y-4">
           {/* Header */}

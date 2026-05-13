@@ -40,6 +40,7 @@ const allNavItems = [
   { id: "ajustes-académicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas", section: "courses" },
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
+  { id: "gestion-tutorias", label: "Gestión de Tutorías", icon: GraduationCap, route: "/admin/tutoring-overview", roles: ["owner", "admin", "director", "coordinator"] },
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },
   { id: "mis-tutorias", label: "Comentarios del Tutor", icon: MessageSquare, route: "/mis-tutorias", roles: ["owner", "admin", "director", "teacher"] },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
