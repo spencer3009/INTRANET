@@ -31,6 +31,9 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [savingArea, setSavingArea] = useState(false);
   const [archiveModal, setArchiveModal] = useState(null); // {area, archiving: false}
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [resetModal, setResetModal] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   // Subjects sin área (para el panel de "asignar")
   const [unassignedSubjects, setUnassignedSubjects] = useState([]);
@@ -136,6 +139,29 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
     }
   };
 
+  const handleHardReset = async () => {
+    if (resetConfirmText !== "RESETEAR") {
+      toast.error('Debes escribir exactamente "RESETEAR" (en mayúsculas).');
+      return;
+    }
+    setResetting(true);
+    try {
+      const r = await axios.post(`${API}/curricular-areas/hard-reset`, { confirm: "RESETEAR" }, { headers });
+      const d = r.data || {};
+      toast.success(
+        `Reset completado: ${d.areas_deleted || 0} área${(d.areas_deleted || 0) === 1 ? "" : "s"} eliminada${(d.areas_deleted || 0) === 1 ? "" : "s"}, ` +
+        `${d.subjects_unlinked || 0} asignatura${(d.subjects_unlinked || 0) === 1 ? "" : "s"} desvinculada${(d.subjects_unlinked || 0) === 1 ? "" : "s"}.`
+      );
+      setResetModal(false);
+      setResetConfirmText("");
+      await loadAreas();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo resetear. Intenta nuevamente.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleLinkSubject = async (subject) => {
     const areaId = linking[subject.id];
     if (!areaId) return;
@@ -189,6 +215,16 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 >
                   {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {areas.length === 0 ? "Inicializar áreas estándar" : "Re-aplicar fuzzy-match"}
+                </button>
+              )}
+              {isAdmin && areas.length > 0 && (
+                <button
+                  onClick={() => { setResetModal(true); setResetConfirmText(""); }}
+                  className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-800 px-3 py-2 rounded-lg font-semibold text-sm transition border border-red-200"
+                  data-testid="hard-reset-btn"
+                  title="Borrar TODAS las áreas y empezar de cero (irreversible)"
+                >
+                  <AlertTriangle className="w-4 h-4" /> Resetear áreas
                 </button>
               )}
               {isAdmin && (
@@ -591,6 +627,73 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Hard Reset (borra TODAS las áreas + desvincula asignaturas) ── */}
+      {resetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4" onClick={() => !resetting && setResetModal(false)}>
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()} data-testid="hard-reset-modal">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-700" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-base">Resetear todas las áreas curriculares</h4>
+                <p className="text-sm text-slate-600 mt-1">
+                  Esta acción es <strong>irreversible</strong>. Se eliminarán <strong>todas las {areas.length} áreas</strong>
+                  {" "}(activas e inactivas) y todas las asignaturas vinculadas quedarán <strong>sin área asignada</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">
+              <p className="text-xs font-semibold text-slate-700 mb-1.5">¿Qué SÍ se elimina?</p>
+              <ul className="text-xs text-slate-600 space-y-1 ml-4 list-disc">
+                <li>Los <strong>{areas.length} documentos</strong> de áreas curriculares (físicamente, no se pueden recuperar).</li>
+              </ul>
+              <p className="text-xs font-semibold text-slate-700 mt-2.5 mb-1.5">¿Qué NO se toca?</p>
+              <ul className="text-xs text-slate-600 space-y-1 ml-4 list-disc">
+                <li>Las <strong>asignaturas</strong> (cursos) y todas sus notas, horarios, profesores, secciones, alumnos.</li>
+                <li>Libreta, Consolidado, Registro Auxiliar y demás módulos.</li>
+              </ul>
+            </div>
+            <label className="block mb-4">
+              <span className="text-xs font-semibold text-slate-700">
+                Para confirmar, escribe <code className="bg-slate-100 text-red-700 px-1.5 py-0.5 rounded font-mono">RESETEAR</code> en mayúsculas:
+              </span>
+              <input
+                type="text"
+                value={resetConfirmText}
+                onChange={e => setResetConfirmText(e.target.value)}
+                className="w-full mt-1 border border-red-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 font-mono"
+                placeholder="RESETEAR"
+                disabled={resetting}
+                autoFocus
+                data-testid="hard-reset-confirm-input"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setResetModal(false); setResetConfirmText(""); }}
+                disabled={resetting}
+                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 disabled:opacity-40"
+                data-testid="hard-reset-cancel-btn"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleHardReset}
+                disabled={resetting || resetConfirmText !== "RESETEAR"}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                data-testid="hard-reset-confirm-btn"
+              >
+                {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Sí, eliminar todas
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -453,6 +453,69 @@ async def delete_curricular_area(area_id: str, current_user=Depends(get_current_
     }
 
 
+class HardResetIn(BaseModel):
+    confirm: str  # debe ser exactamente "RESETEAR" (literal, case-sensitive)
+
+
+@router.post("/curricular-areas/hard-reset")
+async def hard_reset_curricular_areas(
+    payload: HardResetIn,
+    current_user=Depends(get_current_user),
+):
+    """Hard delete TODAS las áreas curriculares del colegio (activas e inactivas)
+    + desvincula físicamente las asignaturas que apunten a ellas.
+
+    OPERACIÓN IRREVERSIBLE. Requiere body {confirm: "RESETEAR"}.
+
+    Lo que toca:
+    - DELETE físico de todos los docs en `curricular_areas` del school.
+    - UPDATE en `subjects` del school: `area_id`, `area_name`, `area_order` → null
+      (las asignaturas y sus notas/horarios/profesores/secciones se conservan).
+
+    Lo que NO toca: subjects.id, grades, sections, students, teachers, libreta,
+    consolidados, registros auxiliares, plantillas, etc.
+    """
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+
+    if (payload.confirm or "").strip() != "RESETEAR":
+        raise HTTPException(
+            status_code=400,
+            detail='Confirmación inválida. Debes enviar exactamente "RESETEAR".',
+        )
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # 1) Conteo previo (para log + response)
+    areas_total = await db.curricular_areas.count_documents({"school_id": school_id})
+    subjects_with_area = await db.subjects.count_documents(
+        {"school_id": school_id, "area_id": {"$ne": None}, "status": {"$ne": "deleted"}}
+    )
+
+    # 2) Desvincular asignaturas (subjects.area_id → null)
+    unlink_res = await db.subjects.update_many(
+        {"school_id": school_id, "area_id": {"$ne": None}, "status": {"$ne": "deleted"}},
+        {"$set": {"area_id": None, "area_name": None, "area_order": None, "updated_at": now}},
+    )
+
+    # 3) Hard delete de las áreas
+    del_res = await db.curricular_areas.delete_many({"school_id": school_id})
+
+    logger.warning(
+        f"[curricular_areas] HARD RESET by={user.get('id')} school={school_id} "
+        f"areas_deleted={del_res.deleted_count} subjects_unlinked={unlink_res.modified_count}"
+    )
+
+    return {
+        "message": "Reset completado",
+        "areas_deleted": del_res.deleted_count,
+        "areas_total_before": areas_total,
+        "subjects_unlinked": unlink_res.modified_count,
+        "subjects_with_area_before": subjects_with_area,
+    }
+
+
+
 @router.put("/subjects/{subject_id}/area")
 async def assign_subject_area(
     subject_id: str,
