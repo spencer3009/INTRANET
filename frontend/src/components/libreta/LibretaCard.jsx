@@ -16,7 +16,7 @@ function debounce(fn, ms) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-export default function LibretaCard({ data, token, canEdit, onReload }) {
+export default function LibretaCard({ data, token, canEdit, userRole, onReload }) {
   const headers = { Authorization: `Bearer ${token}` };
   const periods = data?.all_periods || [];
 
@@ -99,7 +99,15 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
   const areasList = data.areas || [];
   const orphans = data.subjects_without_area || [];
 
+  // Solo mostramos un aviso de "huérfanas" para el personal interno del
+  // colegio. Las asignaturas sin área NUNCA se renderizan en la tabla
+  // de notas para mantener la libreta limpia para padres y alumnos.
+  const isStaff = ["owner", "admin", "director"].includes(userRole);
+  const showOrphansWarning = isStaff && orphans.length > 0;
+
   // Subjects para multi-select de "cursos a recuperar"
+  // (incluye huérfanas porque el staff debe poder marcarlas como recuperación
+  //  aunque no se muestren en la tabla principal).
   const subjectsForRecovery = [
     ...areasList.flatMap(a => (a.subjects || []).map(s => ({ id: s.id, name: s.name }))),
     ...orphans.map(s => ({ id: s.id, name: s.name })),
@@ -168,7 +176,7 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
     );
   };
 
-  const showGrades = areasList.length > 0 || orphans.length > 0;
+  const showGrades = areasList.length > 0;
   const tutorFullName = data?.tutor?.nombres_completos || "";
 
   return (
@@ -233,19 +241,25 @@ export default function LibretaCard({ data, token, canEdit, onReload }) {
           </thead>
           <tbody>
             {areasList.map(renderArea)}
-            {orphans.map(s => (
-              <tr key={s.id}>
-                <td className="lr-area" style={{ fontStyle: "italic", color: "#666" }}>Sin área</td>
-                <td className="lr-asig">{s.name}</td>
-                {periods.map(p => {
-                  const cell = s.grades?.[p.id] || {};
-                  return <td key={p.id} className="lr-grade">{cell.letter || "-"}</td>;
-                })}
-                <td className="lr-grade-final">{s.promedio_final?.letter || "-"}</td>
-              </tr>
-            ))}
           </tbody>
         </table>
+      )}
+
+      {/* Aviso solo para staff: hay asignaturas con notas sin área asignada */}
+      {showOrphansWarning && (
+        <div
+          className="mt-2 mb-1 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-amber-900 flex items-start gap-2"
+          style={{ fontSize: 9 }}
+          data-testid="libreta-orphans-warning"
+        >
+          <span style={{ fontSize: 14, lineHeight: 1, marginTop: 1 }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <strong>Visible solo para personal del colegio:</strong>{" "}
+            Este alumno tiene <strong>{orphans.length} asignatura{orphans.length === 1 ? "" : "s"}</strong> sin
+            área curricular asignada. No se muestran en la libreta de los padres.
+            Para incluirlas, vincúlalas a un área desde el módulo "Áreas Curriculares".
+          </div>
+        </div>
       )}
 
       {/* ── 2 columnas: Conducta+Asistencias | Estadística ── */}

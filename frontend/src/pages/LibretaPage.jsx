@@ -157,7 +157,7 @@ export default function LibretaPage({ user, token, onLogout }) {
           </div>
         )}
 
-        <LibretaCard data={data} token={token} canEdit={canEdit} onReload={() => fetchLibreta(selectedPeriodId)} />
+        <LibretaCard data={data} token={token} canEdit={canEdit} userRole={user?.role} onReload={() => fetchLibreta(selectedPeriodId)} />
       </div>
     </div>
   );
