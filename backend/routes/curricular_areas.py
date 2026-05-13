@@ -80,7 +80,23 @@ FUZZY_MAP = {
 
 
 def _slug(s: str) -> str:
-    """Normaliza: minúsculas + sin tildes/ñ → n."""
+    """Normaliza un nombre a su "group_key" canónico.
+
+    Patrón arquitectónico (introducido en sprint Feb-2026 / módulo Áreas):
+    EduNet guarda 1 doc en `subjects` por cada (grado, sección) — por eso un
+    colegio mediano tiene ~90 instancias de "Comunicación" (1 por sección).
+    Para que el director gestione vinculaciones a nivel conceptual y no por
+    instancia, el módulo de Áreas Curriculares **agrupa** por este slug.
+
+    Reglas: minúsculas + trim + NFD (descompone) + filtra marcas combinatorias
+    (Mn). Resultado: "Aritmética A" y "ARITMETICA-A" colapsan al mismo grupo;
+    "Aritmética" y "Aritmetica B" NO colapsan (los sufijos cuentan).
+
+    NOTA: este helper es la fuente de verdad de la agrupación en TODOS los
+    endpoints de `/curricular-areas/{id}/subjects(*)`. No reusarlo desde
+    `register_sync.py` (allí la normalización es de keys de columnas
+    de plantilla, no de nombres de asignaturas — son dominios distintos).
+    """
     if not s:
         return ""
     s = s.strip().lower()
@@ -283,10 +299,33 @@ async def assign_subject_area(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Gestión manual de asignaturas vinculadas (Fase 1 — listado + bulk link/unlink)
+# Gestión manual de asignaturas vinculadas (Fase 1+ — agrupado por nombre)
+#
+# Patrón nuevo (Feb-2026): los endpoints de gestión devuelven **grupos**
+# (agrupados por slug del nombre), no instancias individuales. El cuerpo de
+# link/unlink acepta `group_keys` (preferido) o `subject_ids` (legacy, para
+# que otros módulos como `PUT /api/subjects/{id}/area` o imports masivos
+# sigan funcionando sin cambios). Ver `_slug()` para la justificación.
 # ─────────────────────────────────────────────────────────────────────────────
 class SubjectBulkIn(BaseModel):
-    subject_ids: List[str] = Field(default_factory=list, min_length=1)
+    # Legacy: lista de subject_ids individuales
+    subject_ids: List[str] = Field(default_factory=list)
+    # Nuevo: lista de group_keys (slug del nombre)
+    group_keys: List[str] = Field(default_factory=list)
+
+
+def _pick_display_name(names: List[str]) -> str:
+    """Elige el display_name de un grupo: el más frecuente (desempate alfabético)."""
+    if not names:
+        return ""
+    from collections import Counter
+    c = Counter([n for n in names if n])
+    if not c:
+        return names[0] or ""
+    # most_common preserva orden de inserción para desempates de Counter en Python 3.7+
+    top_count = c.most_common(1)[0][1]
+    candidates = sorted([n for n, k in c.items() if k == top_count])
+    return candidates[0]
 
 
 async def _enrich_subjects(school_id: str, subjects: List[dict]) -> List[dict]:
@@ -332,15 +371,16 @@ async def list_area_subjects(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     search: Optional[str] = Query(None),
-    grade_id: Optional[str] = Query(None),
     current_user=Depends(get_current_user),
 ):
-    """Lista paginada de asignaturas vinculadas al área.
+    """Asignaturas vinculadas al área, **agrupadas por nombre normalizado**.
 
-    Restringido a owner/admin/director del mismo colegio (consistente con
-    el resto de endpoints de gestión de áreas).
+    Cada fila del response es un grupo conceptual (p.ej. "Aritmética") que
+    consolida todas las instancias por grado/sección. `instances_count` es el
+    número de instancias vinculadas A ESTA área (no las totales del colegio).
+    Ver `_slug()` para la justificación del patrón.
 
-    Excluye asignaturas con `status: deleted`.
+    Restringido a owner/admin/director del mismo colegio.
     """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
@@ -353,16 +393,37 @@ async def list_area_subjects(
         "area_id": area_id,
         "status": {"$ne": "deleted"},
     }
-    if search:
-        query["name"] = {"$regex": search.strip(), "$options": "i"}
-    if grade_id:
-        query["grade_id"] = grade_id
+    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1}).to_list(5000)
 
-    total = await db.subjects.count_documents(query)
+    groups: dict = {}
+    for d in docs:
+        key = _slug(d.get("name") or "")
+        if not key:
+            continue
+        g = groups.setdefault(key, {"group_key": key, "_names": [], "instance_ids": []})
+        g["_names"].append(d.get("name") or "")
+        g["instance_ids"].append(d["id"])
+
+    out = []
+    for k, g in groups.items():
+        out.append({
+            "group_key": k,
+            "display_name": _pick_display_name(g["_names"]),
+            "instances_count": len(g["instance_ids"]),
+            "instance_ids": g["instance_ids"],
+        })
+
+    # Búsqueda sobre el slug (normalizada igual que el group_key)
+    if search:
+        s_slug = _slug(search)
+        if s_slug:
+            out = [g for g in out if s_slug in g["group_key"] or s_slug in _slug(g["display_name"])]
+
+    out.sort(key=lambda g: g["display_name"].lower())
+    total = len(out)
     skip = (page - 1) * page_size
-    docs = await db.subjects.find(query, {"_id": 0}).sort([("name", 1)]).skip(skip).limit(page_size).to_list(page_size)
-    subjects = await _enrich_subjects(school_id, docs)
-    return {"subjects": subjects, "total": total, "page": page, "page_size": page_size}
+    page_items = out[skip:skip + page_size]
+    return {"subjects": page_items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/curricular-areas/{area_id}/available-subjects")
@@ -374,8 +435,13 @@ async def list_available_subjects(
     unassigned_only: bool = Query(False),
     current_user=Depends(get_current_user),
 ):
-    """Asignaturas del colegio que NO están vinculadas al área actual.
-    Con `unassigned_only=true` solo devuelve las que no tienen área."""
+    """Asignaturas disponibles para vincular al área, **agrupadas por nombre**.
+
+    `instances_count` = instancias del grupo que están disponibles (no en el
+    área destino). `current_area_name` indica de dónde vienen las instancias
+    disponibles (`null` si todas sin área, "Mixto (varias áreas)" si están
+    repartidas entre 2+ áreas, o el nombre del área si todas en la misma).
+    """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
     area = await db.curricular_areas.find_one({"id": area_id, "school_id": school_id}, {"_id": 0, "id": 1})
@@ -389,20 +455,82 @@ async def list_available_subjects(
     if unassigned_only:
         query["$or"] = [{"area_id": {"$exists": False}}, {"area_id": None}]
     else:
-        # Cualquiera excepto el área actual
-        query["$or"] = [
-            {"area_id": {"$exists": False}},
-            {"area_id": None},
-            {"area_id": {"$ne": area_id}},
+        # Cualquiera excepto el área actual (incluye null y otras áreas)
+        query["$and"] = [
+            {"$or": [
+                {"area_id": {"$exists": False}},
+                {"area_id": None},
+                {"area_id": {"$ne": area_id}},
+            ]},
         ]
-    if search:
-        query["name"] = {"$regex": search.strip(), "$options": "i"}
 
-    total = await db.subjects.count_documents(query)
+    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1}).to_list(5000)
+
+    # Pre-fetch area names para enriquecer (más eficiente que un find por subject)
+    other_area_ids = {d.get("area_id") for d in docs if d.get("area_id")}
+    area_name_map = {}
+    if other_area_ids:
+        cursor = db.curricular_areas.find(
+            {"id": {"$in": list(other_area_ids)}, "school_id": school_id},
+            {"_id": 0, "id": 1, "name": 1},
+        )
+        async for a in cursor:
+            area_name_map[a["id"]] = a.get("name")
+
+    groups: dict = {}
+    for d in docs:
+        key = _slug(d.get("name") or "")
+        if not key:
+            continue
+        g = groups.setdefault(key, {
+            "_names": [],
+            "instance_ids": [],
+            "area_ids_seen": set(),
+            "has_unassigned": False,
+        })
+        g["_names"].append(d.get("name") or "")
+        g["instance_ids"].append(d["id"])
+        aid = d.get("area_id")
+        if aid:
+            g["area_ids_seen"].add(aid)
+        else:
+            g["has_unassigned"] = True
+
+    out = []
+    for k, g in groups.items():
+        aids = g["area_ids_seen"]
+        is_mixed = False
+        current_area_name = None
+        if len(aids) == 0:
+            # Todas sin área
+            current_area_name = None
+        elif len(aids) == 1 and not g["has_unassigned"]:
+            # Todas en la misma área
+            only_id = next(iter(aids))
+            current_area_name = area_name_map.get(only_id)
+        else:
+            # Split: dos+ áreas, o áreas+sin área
+            is_mixed = True
+            current_area_name = "Mixto (varias áreas)"
+        out.append({
+            "group_key": k,
+            "display_name": _pick_display_name(g["_names"]),
+            "instances_count": len(g["instance_ids"]),
+            "instance_ids": g["instance_ids"],
+            "current_area_name": current_area_name,
+            "is_mixed": is_mixed,
+        })
+
+    if search:
+        s_slug = _slug(search)
+        if s_slug:
+            out = [g for g in out if s_slug in g["group_key"] or s_slug in _slug(g["display_name"])]
+
+    out.sort(key=lambda g: g["display_name"].lower())
+    total = len(out)
     skip = (page - 1) * page_size
-    docs = await db.subjects.find(query, {"_id": 0}).sort([("name", 1)]).skip(skip).limit(page_size).to_list(page_size)
-    subjects = await _enrich_subjects(school_id, docs)
-    return {"subjects": subjects, "total": total, "page": page, "page_size": page_size}
+    page_items = out[skip:skip + page_size]
+    return {"subjects": page_items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.post("/curricular-areas/{area_id}/subjects/unlink")
@@ -411,19 +539,23 @@ async def bulk_unlink_subjects(
     payload: SubjectBulkIn,
     current_user=Depends(get_current_user),
 ):
-    """Desvincula múltiples asignaturas del área (`area_id` queda `null`).
+    """Desvincula asignaturas del área. Acepta `group_keys` (preferido) o
+    `subject_ids` (legacy).
 
-    Comportamiento de **fallo parcial (best-effort)**:
-    - Procesa todas las asignaturas válidas en una sola operación de Mongo.
-    - Si alguna asignatura no existe, no pertenece al área o tiene `status: deleted`,
-      se reporta individualmente en `errors[]` con su motivo y se omite del update.
-    - No hay rollback global: las asignaturas válidas SÍ se desvinculan aunque
-      otras del mismo request fallen.
+    Con `group_keys`: resuelve todas las instancias del colegio cuyo
+    `_slug(name) in group_keys` Y `area_id == area_id_actual`. NO toca
+    instancias de los mismos grupos que ya estén sin área (caso a confirmado
+    en planning: solo desvincula las que están en esta área).
 
-    Response:
-    - `unlinked_count`: cantidad efectivamente actualizada
-    - `unlinked`: `[{subject_id, subject_name}]` — útil para feedback al usuario
-    - `errors`: `[{subject_id, error}]` — motivo individual por cada fallo
+    Best-effort: errores individuales en `errors[]` no abortan el resto.
+
+    Response (campos nuevos + legacy):
+    - `unlinked_count`: instancias afectadas (legacy)
+    - `unlinked`: [{subject_id, subject_name}] (legacy, sampled)
+    - `groups_affected`: cantidad de grupos procesados
+    - `total_instances_affected`: alias semántico de `unlinked_count`
+    - `unlinked_groups`: [{group_key, display_name, instances_count}]
+    - `errors`: [{subject_id|group_key, error}]
     """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
@@ -431,50 +563,86 @@ async def bulk_unlink_subjects(
     if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada")
 
-    ids = list({s for s in payload.subject_ids if s})
-    if not ids:
-        raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para desvincular")
-
-    # Asignaturas válidas: del colegio, del área, y NO soft-deleted
-    matching = await db.subjects.find(
-        {
-            "id": {"$in": ids},
-            "school_id": school_id,
-            "area_id": area_id,
-            "status": {"$ne": "deleted"},
-        },
-        {"_id": 0, "id": 1, "name": 1},
-    ).to_list(1000)
-    matching_ids = [m["id"] for m in matching]
-
-    # Identificar el motivo de cada fallo individual (best-effort, no rollback)
     errors: List[dict] = []
-    for nf in set(ids) - set(matching_ids):
-        # Inspeccionar si existe pero está deleted / en otra área / fuera del tenant
-        ref = await db.subjects.find_one({"id": nf, "school_id": school_id}, {"_id": 0, "status": 1, "area_id": 1})
-        if not ref:
-            errors.append({"subject_id": nf, "error": "La asignatura no existe en tu colegio."})
-        elif ref.get("status") == "deleted":
-            errors.append({"subject_id": nf, "error": "La asignatura está eliminada."})
-        elif ref.get("area_id") != area_id:
-            errors.append({"subject_id": nf, "error": "La asignatura no pertenece a esta área."})
-        else:
-            errors.append({"subject_id": nf, "error": "No se pudo desvincular."})
+    unlinked_groups: List[dict] = []
+    matching_docs: List[dict] = []
 
+    if payload.group_keys:
+        # Resolver group_keys -> instance ids dentro del área
+        keys = list({k for k in payload.group_keys if k})
+        if not keys:
+            raise HTTPException(status_code=400, detail="Debes indicar al menos un grupo para desvincular")
+
+        docs = await db.subjects.find(
+            {"school_id": school_id, "area_id": area_id, "status": {"$ne": "deleted"}},
+            {"_id": 0, "id": 1, "name": 1},
+        ).to_list(5000)
+        # Agrupar por slug
+        by_key: dict = {}
+        for d in docs:
+            k = _slug(d.get("name") or "")
+            if k in keys:
+                by_key.setdefault(k, []).append(d)
+        for k in keys:
+            if k not in by_key:
+                errors.append({"group_key": k, "error": "El grupo no tiene instancias en esta área."})
+            else:
+                instances = by_key[k]
+                matching_docs.extend(instances)
+                unlinked_groups.append({
+                    "group_key": k,
+                    "display_name": _pick_display_name([d.get("name") or "" for d in instances]),
+                    "instances_count": len(instances),
+                })
+    elif payload.subject_ids:
+        # Legacy: subject_ids individuales
+        ids = list({s for s in payload.subject_ids if s})
+        if not ids:
+            raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para desvincular")
+
+        matching = await db.subjects.find(
+            {"id": {"$in": ids}, "school_id": school_id, "area_id": area_id, "status": {"$ne": "deleted"}},
+            {"_id": 0, "id": 1, "name": 1},
+        ).to_list(1000)
+        matching_docs = matching
+        matching_ids = {m["id"] for m in matching}
+        for nf in set(ids) - matching_ids:
+            ref = await db.subjects.find_one({"id": nf, "school_id": school_id}, {"_id": 0, "status": 1, "area_id": 1})
+            if not ref:
+                errors.append({"subject_id": nf, "error": "La asignatura no existe en tu colegio."})
+            elif ref.get("status") == "deleted":
+                errors.append({"subject_id": nf, "error": "La asignatura está eliminada."})
+            elif ref.get("area_id") != area_id:
+                errors.append({"subject_id": nf, "error": "La asignatura no pertenece a esta área."})
+            else:
+                errors.append({"subject_id": nf, "error": "No se pudo desvincular."})
+    else:
+        raise HTTPException(status_code=400, detail="Debes indicar `group_keys` o `subject_ids`")
+
+    unlinked_count = 0
     unlinked: List[dict] = []
-    if matching_ids:
+    if matching_docs:
         now = datetime.now(timezone.utc).isoformat()
+        ids_to_update = [d["id"] for d in matching_docs]
         res = await db.subjects.update_many(
-            {"id": {"$in": matching_ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
+            {"id": {"$in": ids_to_update}, "school_id": school_id, "status": {"$ne": "deleted"}},
             {"$set": {"area_id": None, "area_name": None, "area_order": None, "updated_at": now}},
         )
-        unlinked = [{"subject_id": m["id"], "subject_name": m.get("name")} for m in matching]
-        logger.info(f"[curricular_areas] unlink area={area_id} count={res.modified_count} by={user.get('id')}")
         unlinked_count = res.modified_count
-    else:
-        unlinked_count = 0
+        unlinked = [{"subject_id": d["id"], "subject_name": d.get("name")} for d in matching_docs[:50]]
+        logger.info(
+            f"[curricular_areas] unlink area={area_id} count={unlinked_count} "
+            f"groups={len(unlinked_groups)} by={user.get('id')}"
+        )
 
-    return {"unlinked_count": unlinked_count, "unlinked": unlinked, "errors": errors}
+    return {
+        "unlinked_count": unlinked_count,
+        "unlinked": unlinked,
+        "groups_affected": len(unlinked_groups),
+        "total_instances_affected": unlinked_count,
+        "unlinked_groups": unlinked_groups,
+        "errors": errors,
+    }
 
 
 @router.post("/curricular-areas/{area_id}/subjects/link")
@@ -483,22 +651,24 @@ async def bulk_link_subjects(
     payload: SubjectBulkIn,
     current_user=Depends(get_current_user),
 ):
-    """Vincula múltiples asignaturas al área.
+    """Vincula asignaturas al área. Acepta `group_keys` (preferido) o
+    `subject_ids` (legacy).
 
-    Si una asignatura ya estaba vinculada a otra área, registra la reasignación
-    en `reassigned[]` y sobrescribe el `area_id`. Las asignaturas ya vinculadas
-    al mismo área NO se cuentan en `linked_count` (no se contabilizan no-ops).
+    Con `group_keys`: resuelve todas las instancias del colegio cuyo
+    `_slug(name) in group_keys` Y `area_id != area_id_destino` (incluye
+    instancias sin área y/o en otras áreas — caso b confirmado en planning:
+    mueve TODAS las instancias del grupo al área destino).
 
-    Comportamiento de **fallo parcial (best-effort)**:
-    - Procesa todas las asignaturas válidas en una sola operación de Mongo.
-    - Si una asignatura no existe en el colegio o tiene `status: deleted`,
-      se reporta en `errors[]` con su motivo y se omite del update.
-    - No hay rollback global: las válidas SÍ se vinculan aunque otras fallen.
+    Best-effort: errores individuales en `errors[]` no abortan el resto.
 
-    Response:
-    - `linked_count`: cantidad efectivamente actualizada
-    - `reassigned`: `[{subject_id, subject_name, previous_area_id, previous_area_name, new_area_id, new_area_name}]`
-    - `errors`: `[{subject_id, error}]`
+    Response (campos nuevos + legacy):
+    - `linked_count`: instancias efectivamente actualizadas (legacy)
+    - `reassigned`: [{subject_id, ...}] por instancia (legacy, sampled)
+    - `groups_affected`: cantidad de grupos procesados
+    - `total_instances_affected`: alias de `linked_count`
+    - `linked_groups`: [{group_key, display_name, new_instances, reassigned_instances, previous_area_names}]
+    - `reassigned_groups`: [{group_key, display_name, previous_area_name, instances_count}]
+    - `errors`: [{subject_id|group_key, error}]
     """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
@@ -506,52 +676,113 @@ async def bulk_link_subjects(
     if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada")
 
-    ids = list({s for s in payload.subject_ids if s})
-    if not ids:
-        raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para vincular")
-
-    # Asignaturas válidas (excluye deleted)
-    existing = await db.subjects.find(
-        {"id": {"$in": ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
-        {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
-    ).to_list(1000)
-    existing_map = {s["id"]: s for s in existing}
-
-    # Errores individuales (best-effort)
     errors: List[dict] = []
-    for nid in set(ids) - set(existing_map.keys()):
-        ref = await db.subjects.find_one({"id": nid, "school_id": school_id}, {"_id": 0, "status": 1})
-        if not ref:
-            errors.append({"subject_id": nid, "error": "La asignatura no existe en tu colegio."})
-        elif ref.get("status") == "deleted":
-            errors.append({"subject_id": nid, "error": "La asignatura está eliminada."})
-        else:
-            errors.append({"subject_id": nid, "error": "No se pudo vincular."})
+    linked_groups: List[dict] = []
+    reassigned_groups: List[dict] = []
+    matching_docs: List[dict] = []  # docs a actualizar
 
-    # Separar reasignaciones de vínculos nuevos
-    reassigned: List[dict] = []
-    to_update_ids: List[str] = []
-    for sid, s in existing_map.items():
-        prev_area_id = s.get("area_id")
-        if prev_area_id == area_id:
-            # Ya estaba en esta área, no se cuenta (no-op)
-            continue
-        if prev_area_id:
-            reassigned.append({
-                "subject_id": sid,
-                "subject_name": s.get("name"),
-                "previous_area_id": prev_area_id,
-                "previous_area_name": s.get("area_name"),
+    if payload.group_keys:
+        keys = list({k for k in payload.group_keys if k})
+        if not keys:
+            raise HTTPException(status_code=400, detail="Debes indicar al menos un grupo para vincular")
+
+        # Traer TODOS los subjects del colegio (sin status=deleted, sin estar en área destino)
+        docs = await db.subjects.find(
+            {
+                "school_id": school_id,
+                "status": {"$ne": "deleted"},
+                "$or": [
+                    {"area_id": {"$exists": False}},
+                    {"area_id": None},
+                    {"area_id": {"$ne": area_id}},
+                ],
+            },
+            {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
+        ).to_list(5000)
+
+        by_key: dict = {}
+        for d in docs:
+            k = _slug(d.get("name") or "")
+            if k in keys:
+                by_key.setdefault(k, []).append(d)
+
+        for k in keys:
+            instances = by_key.get(k, [])
+            if not instances:
+                errors.append({"group_key": k, "error": "El grupo no tiene instancias disponibles para vincular."})
+                continue
+            matching_docs.extend(instances)
+            new_count = sum(1 for d in instances if not d.get("area_id"))
+            reassigned_instances = [d for d in instances if d.get("area_id")]
+            prev_area_names = sorted({d.get("area_name") for d in reassigned_instances if d.get("area_name")})
+            display = _pick_display_name([d.get("name") or "" for d in instances])
+            linked_groups.append({
+                "group_key": k,
+                "display_name": display,
+                "instances_count": len(instances),
+                "new_instances": new_count,
+                "reassigned_instances": len(reassigned_instances),
+                "previous_area_names": prev_area_names,
+            })
+            if reassigned_instances:
+                # Si vienen de >1 área, reportar la más común; el frontend ya
+                # ve la lista completa en `previous_area_names`.
+                prev_main = _pick_display_name(
+                    [d.get("area_name") or "" for d in reassigned_instances]
+                )
+                reassigned_groups.append({
+                    "group_key": k,
+                    "display_name": display,
+                    "previous_area_name": prev_main or None,
+                    "instances_count": len(reassigned_instances),
+                })
+    elif payload.subject_ids:
+        # Legacy individual
+        ids = list({s for s in payload.subject_ids if s})
+        if not ids:
+            raise HTTPException(status_code=400, detail="Debes indicar al menos una asignatura para vincular")
+
+        existing = await db.subjects.find(
+            {"id": {"$in": ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
+            {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
+        ).to_list(1000)
+        existing_map = {s["id"]: s for s in existing}
+
+        for nid in set(ids) - set(existing_map.keys()):
+            ref = await db.subjects.find_one({"id": nid, "school_id": school_id}, {"_id": 0, "status": 1})
+            if not ref:
+                errors.append({"subject_id": nid, "error": "La asignatura no existe en tu colegio."})
+            elif ref.get("status") == "deleted":
+                errors.append({"subject_id": nid, "error": "La asignatura está eliminada."})
+            else:
+                errors.append({"subject_id": nid, "error": "No se pudo vincular."})
+
+        for sid, s in existing_map.items():
+            if s.get("area_id") == area_id:
+                continue  # no-op
+            matching_docs.append(s)
+    else:
+        raise HTTPException(status_code=400, detail="Debes indicar `group_keys` o `subject_ids`")
+
+    # Calcular reassigned legacy (lista de instancias individuales) para retro-compat
+    reassigned_legacy = []
+    for d in matching_docs:
+        if d.get("area_id") and d.get("area_id") != area_id:
+            reassigned_legacy.append({
+                "subject_id": d["id"],
+                "subject_name": d.get("name"),
+                "previous_area_id": d.get("area_id"),
+                "previous_area_name": d.get("area_name"),
                 "new_area_id": area_id,
                 "new_area_name": area.get("name"),
             })
-        to_update_ids.append(sid)
 
     linked_count = 0
-    if to_update_ids:
+    if matching_docs:
         now = datetime.now(timezone.utc).isoformat()
+        ids_to_update = [d["id"] for d in matching_docs]
         res = await db.subjects.update_many(
-            {"id": {"$in": to_update_ids}, "school_id": school_id, "status": {"$ne": "deleted"}},
+            {"id": {"$in": ids_to_update}, "school_id": school_id, "status": {"$ne": "deleted"}},
             {"$set": {
                 "area_id": area_id,
                 "area_name": area.get("name"),
@@ -561,11 +792,20 @@ async def bulk_link_subjects(
         )
         linked_count = res.modified_count
         logger.info(
-            f"[curricular_areas] link area={area_id} new={linked_count} "
-            f"reassigned={len(reassigned)} by={user.get('id')}"
+            f"[curricular_areas] link area={area_id} count={linked_count} "
+            f"groups={len(linked_groups)} reassigned_groups={len(reassigned_groups)} "
+            f"by={user.get('id')}"
         )
 
-    return {"linked_count": linked_count, "reassigned": reassigned, "errors": errors}
+    return {
+        "linked_count": linked_count,
+        "reassigned": reassigned_legacy[:50],  # cap legacy payload
+        "groups_affected": len(linked_groups) if payload.group_keys else 0,
+        "total_instances_affected": linked_count,
+        "linked_groups": linked_groups,
+        "reassigned_groups": reassigned_groups,
+        "errors": errors,
+    }
 
 
 # Índice para acelerar las consultas por área (idempotente — se ejecuta al startup)
