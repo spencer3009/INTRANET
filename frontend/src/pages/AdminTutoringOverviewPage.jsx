@@ -223,7 +223,15 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
         user={user}
       />
       <main className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} settings={settings} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.school_name || user?.school_name}
+          subdomain={subdomain}
+          token={token}
+        />
         <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto p-6 space-y-4">
           {/* Header */}
