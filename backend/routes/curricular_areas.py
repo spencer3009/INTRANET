@@ -134,6 +134,104 @@ def _serialize(area: dict) -> dict:
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Sprint B — Scope por grado en vinculaciones área↔asignatura
+#
+# Cada doc en `subjects` ya tiene `grade_id` (65/70 en El Roble) — los pocos sin
+# grade_id son templates conceptuales que se tratan como bucket "(sin grado)".
+# El scope por grado vive en la RELACIÓN área↔subject (campo `area_id` del
+# subject) — no en el área (que sigue siendo única y global).
+# ─────────────────────────────────────────────────────────────────────────────
+async def _load_school_grade_index(school_id: str) -> dict:
+    """Lee niveles + grados del colegio y devuelve estructuras para enriquecer
+    respuestas y construir atajos dinámicos. NO asume hardcoded nivels."""
+    levels = {}
+    async for lvl_doc in db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "orden": 1}):
+        levels[lvl_doc["id"]] = {"id": lvl_doc["id"], "name": lvl_doc.get("nombre"), "order": lvl_doc.get("orden", 0)}
+
+    grades_by_id: dict = {}
+    grades_by_level: dict = {lid: [] for lid in levels.keys()}
+    async for G in db.grades.find({"school_id": school_id, "activo": {"$ne": False}}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1, "orden": 1}):
+        lvl = levels.get(G.get("nivel_id")) or {"name": None, "order": 0}
+        info = {
+            "id": G["id"],
+            "name": G.get("nombre"),
+            "order": G.get("orden", 0),
+            "level_id": G.get("nivel_id"),
+            "level_name": lvl["name"],
+            "level_order": lvl["order"],
+        }
+        grades_by_id[G["id"]] = info
+        if G.get("nivel_id") in grades_by_level:
+            grades_by_level[G["nivel_id"]].append(info)
+
+    for lid in grades_by_level:
+        grades_by_level[lid].sort(key=lambda g: g["order"])
+
+    return {"levels": levels, "grades_by_id": grades_by_id, "grades_by_level": grades_by_level}
+
+
+@router.get("/curricular-areas/grade-shortcuts")
+async def grade_shortcuts(current_user=Depends(get_current_user)):
+    """Atajos dinámicos para selección de grados destino al vincular asignaturas.
+
+    Lee dinámicamente niveles/grados del colegio. NO hardcodea "Primaria 1-6" si
+    el colegio sólo llega hasta 4° Primaria. Para SECUNDARIA, además devuelve
+    sub-atajos "1°-3°" y "4°-5°" (división MINEDU típica) cuando existan los
+    grados respectivos.
+
+    Response: `{shortcuts: [{key, label, grade_ids: [...]}], grades: [{id,name,level_name,level_order,grade_order}]}`
+    """
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+    idx = await _load_school_grade_index(school_id)
+    levels_sorted = sorted(idx["levels"].values(), key=lambda x: x["order"])
+
+    all_grades = []
+    for lvl in levels_sorted:
+        all_grades.extend(idx["grades_by_level"].get(lvl["id"], []))
+
+    shortcuts: list = []
+    if all_grades:
+        shortcuts.append({"key": "all", "label": "Todos los grados", "grade_ids": [g["id"] for g in all_grades]})
+
+    # Atajos por nivel completo
+    for lvl in levels_sorted:
+        grades = idx["grades_by_level"].get(lvl["id"], [])
+        if grades:
+            shortcuts.append({
+                "key": f"level:{lvl['id']}",
+                "label": f"Todo {lvl['name']}".strip(),
+                "grade_ids": [g["id"] for g in grades],
+            })
+
+    # Sub-atajos típicos en SECUNDARIA (1°-3° y 4°-5°) — dinámicos según grados existentes
+    sec_levels = [lvl for lvl in levels_sorted if _slug(lvl["name"] or "") == "secundaria"]
+    for sec in sec_levels:
+        grades = idx["grades_by_level"].get(sec["id"], [])
+        if not grades:
+            continue
+        first_three = [g for g in grades if g["order"] in (1, 2, 3)]
+        last_two = [g for g in grades if g["order"] in (4, 5)]
+        if first_three:
+            shortcuts.append({
+                "key": f"sec_first_{sec['id']}",
+                "label": f"{sec['name']} 1°-3°",
+                "grade_ids": [g["id"] for g in first_three],
+            })
+        if last_two:
+            shortcuts.append({
+                "key": f"sec_last_{sec['id']}",
+                "label": f"{sec['name']} 4°-5°",
+                "grade_ids": [g["id"] for g in last_two],
+            })
+
+    return {
+        "shortcuts": shortcuts,
+        "grades": all_grades,  # útil para checkboxes individuales
+    }
+
+
 async def _require_admin(current_user) -> dict:
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
@@ -353,6 +451,10 @@ class SubjectBulkIn(BaseModel):
     subject_ids: List[str] = Field(default_factory=list)
     # Nuevo: lista de group_keys (slug del nombre)
     group_keys: List[str] = Field(default_factory=list)
+    # Sprint B: filtro opcional por grado. Si presente, sólo afecta las
+    # instancias cuyo `subjects.grade_id ∈ grade_ids`. Si vacío/None se
+    # interpreta como "todos los grados" (comportamiento Sprint A).
+    grade_ids: List[str] = Field(default_factory=list)
 
 
 def _pick_display_name(names: List[str]) -> str:
@@ -434,24 +536,60 @@ async def list_area_subjects(
         "area_id": area_id,
         "status": {"$ne": "deleted"},
     }
-    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1}).to_list(5000)
+    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1, "grade_id": 1}).to_list(5000)
+
+    # Sprint B: pre-cargar índice de grados para enriquecer breakdown
+    grade_idx = await _load_school_grade_index(school_id)
+    grade_lookup = grade_idx["grades_by_id"]
 
     groups: dict = {}
     for d in docs:
         key = _slug(d.get("name") or "")
         if not key:
             continue
-        g = groups.setdefault(key, {"group_key": key, "_names": [], "instance_ids": []})
+        g = groups.setdefault(key, {"group_key": key, "_names": [], "instance_ids": [], "_by_grade": {}})
         g["_names"].append(d.get("name") or "")
         g["instance_ids"].append(d["id"])
+        gid = d.get("grade_id") or "__no_grade__"
+        bkt = g["_by_grade"].setdefault(gid, {"grade_id": d.get("grade_id"), "instance_ids": []})
+        bkt["instance_ids"].append(d["id"])
 
     out = []
     for k, g in groups.items():
+        # Construir grade_breakdown ordenado por (level_order, grade_order)
+        breakdown = []
+        for gid, b in g["_by_grade"].items():
+            if gid == "__no_grade__":
+                breakdown.append({
+                    "grade_id": None,
+                    "grade_name": None,
+                    "level_id": None,
+                    "level_name": None,
+                    "level_order": 999,
+                    "grade_order": 999,
+                    "instances_count": len(b["instance_ids"]),
+                    "instance_ids": b["instance_ids"],
+                })
+            else:
+                info = grade_lookup.get(gid, {})
+                breakdown.append({
+                    "grade_id": gid,
+                    "grade_name": info.get("name"),
+                    "level_id": info.get("level_id"),
+                    "level_name": info.get("level_name"),
+                    "level_order": info.get("level_order", 999),
+                    "grade_order": info.get("order", 999),
+                    "instances_count": len(b["instance_ids"]),
+                    "instance_ids": b["instance_ids"],
+                })
+        breakdown.sort(key=lambda x: (x["level_order"], x["grade_order"]))
+
         out.append({
             "group_key": k,
             "display_name": _pick_display_name(g["_names"]),
             "instances_count": len(g["instance_ids"]),
             "instance_ids": g["instance_ids"],
+            "grade_breakdown": breakdown,
         })
 
     # Búsqueda sobre el slug (normalizada igual que el group_key)
@@ -474,6 +612,7 @@ async def list_available_subjects(
     page_size: int = Query(20, ge=1, le=200),
     search: Optional[str] = Query(None),
     unassigned_only: bool = Query(False),
+    grade_ids: Optional[str] = Query(None, description="CSV de grade_ids para filtrar"),
     current_user=Depends(get_current_user),
 ):
     """Asignaturas disponibles para vincular al área, **agrupadas por nombre**.
@@ -482,6 +621,10 @@ async def list_available_subjects(
     área destino). `current_area_name` indica de dónde vienen las instancias
     disponibles (`null` si todas sin área, "Mixto (varias áreas)" si están
     repartidas entre 2+ áreas, o el nombre del área si todas en la misma).
+
+    Sprint B: con `grade_ids` (CSV) solo se incluyen instancias cuyo
+    `grade_id` esté en la lista. Útil cuando el director selecciona grados
+    destino antes de elegir asignaturas.
     """
     user = await _require_admin(current_user)
     school_id = user["school_id"]
@@ -496,7 +639,6 @@ async def list_available_subjects(
     if unassigned_only:
         query["$or"] = [{"area_id": {"$exists": False}}, {"area_id": None}]
     else:
-        # Cualquiera excepto el área actual (incluye null y otras áreas)
         query["$and"] = [
             {"$or": [
                 {"area_id": {"$exists": False}},
@@ -505,7 +647,13 @@ async def list_available_subjects(
             ]},
         ]
 
-    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1}).to_list(5000)
+    grade_filter = None
+    if grade_ids:
+        grade_filter = [g.strip() for g in grade_ids.split(",") if g.strip()]
+        if grade_filter:
+            query["grade_id"] = {"$in": grade_filter}
+
+    docs = await db.subjects.find(query, {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1, "grade_id": 1}).to_list(5000)
 
     # Pre-fetch area names para enriquecer (más eficiente que un find por subject)
     other_area_ids = {d.get("area_id") for d in docs if d.get("area_id")}
@@ -614,8 +762,14 @@ async def bulk_unlink_subjects(
         if not keys:
             raise HTTPException(status_code=400, detail="Debes indicar al menos un grupo para desvincular")
 
+        base_query = {"school_id": school_id, "area_id": area_id, "status": {"$ne": "deleted"}}
+        # Sprint B: filtrar por grado si se especifica
+        grade_filter = list({g for g in (payload.grade_ids or []) if g})
+        if grade_filter:
+            base_query["grade_id"] = {"$in": grade_filter}
+
         docs = await db.subjects.find(
-            {"school_id": school_id, "area_id": area_id, "status": {"$ne": "deleted"}},
+            base_query,
             {"_id": 0, "id": 1, "name": 1},
         ).to_list(5000)
         # Agrupar por slug
@@ -626,7 +780,10 @@ async def bulk_unlink_subjects(
                 by_key.setdefault(k, []).append(d)
         for k in keys:
             if k not in by_key:
-                errors.append({"group_key": k, "error": "El grupo no tiene instancias en esta área."})
+                err_msg = "El grupo no tiene instancias en esta área."
+                if grade_filter:
+                    err_msg = "El grupo no tiene instancias en los grados seleccionados."
+                errors.append({"group_key": k, "error": err_msg})
             else:
                 instances = by_key[k]
                 matching_docs.extend(instances)
@@ -727,18 +884,23 @@ async def bulk_link_subjects(
         if not keys:
             raise HTTPException(status_code=400, detail="Debes indicar al menos un grupo para vincular")
 
-        # Traer TODOS los subjects del colegio (sin status=deleted, sin estar en área destino)
+        # Sprint B: filtrar por grado si se especifica
+        grade_filter = list({g for g in (payload.grade_ids or []) if g})
+        base_query = {
+            "school_id": school_id,
+            "status": {"$ne": "deleted"},
+            "$or": [
+                {"area_id": {"$exists": False}},
+                {"area_id": None},
+                {"area_id": {"$ne": area_id}},
+            ],
+        }
+        if grade_filter:
+            base_query["grade_id"] = {"$in": grade_filter}
+
         docs = await db.subjects.find(
-            {
-                "school_id": school_id,
-                "status": {"$ne": "deleted"},
-                "$or": [
-                    {"area_id": {"$exists": False}},
-                    {"area_id": None},
-                    {"area_id": {"$ne": area_id}},
-                ],
-            },
-            {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1},
+            base_query,
+            {"_id": 0, "id": 1, "name": 1, "area_id": 1, "area_name": 1, "grade_id": 1},
         ).to_list(5000)
 
         by_key: dict = {}
@@ -750,7 +912,10 @@ async def bulk_link_subjects(
         for k in keys:
             instances = by_key.get(k, [])
             if not instances:
-                errors.append({"group_key": k, "error": "El grupo no tiene instancias disponibles para vincular."})
+                err_msg = "El grupo no tiene instancias disponibles para vincular."
+                if grade_filter:
+                    err_msg = "El grupo no tiene instancias disponibles en los grados seleccionados."
+                errors.append({"group_key": k, "error": err_msg})
                 continue
             matching_docs.extend(instances)
             new_count = sum(1 for d in instances if not d.get("area_id"))

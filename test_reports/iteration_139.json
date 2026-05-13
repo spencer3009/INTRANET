@@ -1,5 +1,5 @@
 {
-  "summary": "Frontend-only testing of expanded Curricular Areas modal with collapsible accordion (AreaSubjectsManager) and link sub-modal. All 13 critical UI/UX requirements verified at https://area-subject-link.preview.emergentagent.com/areas-curriculares using admin@elroble.edu. Lazy-load, debounce search, bulk selection, reassign warning, and empty state all work as specified.",
+  "summary": "Frontend-only testing of expanded Curricular Areas modal with collapsible accordion (AreaSubjectsManager) and link sub-modal. All 13 critical UI/UX requirements verified at https://subject-grade-map.preview.emergentagent.com/areas-curriculares using admin@elroble.edu. Lazy-load, debounce search, bulk selection, reassign warning, and empty state all work as specified.",
   "backend_issues": {"critical": [], "minor": []},
   "frontend_issues": {
     "ui_bugs": [],

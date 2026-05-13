@@ -21,7 +21,7 @@
   },
   "test_credentials": {
     "psychologist": "ana.garcia@elroble.edu / Psico123! (subdomain: elroble)",
-    "app_url": "https://area-subject-link.preview.emergentagent.com"
+    "app_url": "https://subject-grade-map.preview.emergentagent.com"
   },
   "seed_data_creation": "None - used existing data",
   "retest_needed": false,

@@ -19,7 +19,7 @@ import os
 import jwt
 from datetime import datetime, timezone, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://area-subject-link.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://subject-grade-map.preview.emergentagent.com')
 
 # Test credentials
 COORDINATOR_EMAIL = "coordinador@elroble.edu"
