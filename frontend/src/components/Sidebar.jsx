@@ -42,7 +42,6 @@ const allNavItems = [
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
   { id: "gestion-tutorias", label: "Gestión de Tutorías", icon: GraduationCap, route: "/admin/tutoring-overview", roles: ["owner", "admin", "director", "coordinator"] },
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },
-  { id: "mis-tutorias", label: "Comentarios del Tutor", icon: MessageSquare, route: "/mis-tutorias", roles: ["owner", "admin", "director", "teacher"] },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },
