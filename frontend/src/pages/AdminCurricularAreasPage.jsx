@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Sparkles, Save, X, Loader2,
-  BookMarked, LinkIcon, RefreshCcw,
+  BookMarked, LinkIcon, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
@@ -21,6 +21,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [areas, setAreas] = useState([]);
   const areasRef = useRef([]);
+  const [expandedAreaId, setExpandedAreaId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [modal, setModal] = useState(null); // {mode: 'create'|'edit', area?}
@@ -234,16 +235,29 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                   </tr>
                 </thead>
                 <tbody>
-                  {areas.map(a => (
-                    <tr key={a.id} className={`border-t border-slate-100 ${a.is_active === false ? "opacity-50" : ""}`} data-testid={`area-row-${a.id}`}>
+                  {areas.map(a => {
+                    const isExpanded = expandedAreaId === a.id;
+                    const totalCols = isAdmin ? 5 : 4;
+                    return (
+                      <React.Fragment key={a.id}>
+                    <tr className={`border-t border-slate-100 ${a.is_active === false ? "opacity-50" : ""}`} data-testid={`area-row-${a.id}`}>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-slate-100 text-slate-700 font-semibold">{a.order}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedAreaId(prev => prev === a.id ? null : a.id)}
+                          className="flex items-center gap-2 text-left hover:text-slate-700 transition-colors group"
+                          data-testid={`expand-area-${a.id}`}
+                          title={isExpanded ? "Ocultar asignaturas vinculadas" : "Ver asignaturas vinculadas"}
+                        >
+                          {isExpanded
+                            ? <ChevronDown className="w-4 h-4 text-slate-500 group-hover:text-slate-900" />
+                            : <ChevRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900" />}
                           <span className="inline-block w-3 h-3 rounded" style={{ background: a.color || "#0F172A" }} />
-                          <span className="font-medium text-slate-900">{a.name}</span>
-                        </div>
+                          <span className="font-medium text-slate-900 group-hover:underline">{a.name}</span>
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full font-semibold">
@@ -280,7 +294,23 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                         </td>
                       )}
                     </tr>
-                  ))}
+                    {isExpanded && (
+                      <tr className="bg-slate-50/40" data-testid={`area-row-expanded-${a.id}`}>
+                        <td colSpan={totalCols} className="px-4 pb-3 pt-1">
+                          <AreaSubjectsManager
+                            area={a}
+                            token={token}
+                            embedded={true}
+                            onChange={async () => {
+                              await loadAreas();
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

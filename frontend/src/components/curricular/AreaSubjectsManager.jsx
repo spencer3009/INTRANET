@@ -15,8 +15,12 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PAGE_SIZE = 20;
 
-export default function AreaSubjectsManager({ area, token, onChange }) {
-  const [open, setOpen] = useState(false);
+export default function AreaSubjectsManager({ area, token, onChange, embedded = false }) {
+  // Cuando `embedded=true`, el componente vive directamente expandido dentro
+  // de una fila de la tabla principal (sin su propio header colapsible — la
+  // fila padre ya hace de acordeón). Cuando `embedded=false` (modal), se
+  // comporta como acordeón con su propio botón toggle.
+  const [open, setOpen] = useState(embedded);
   const [loadedOnce, setLoadedOnce] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -129,19 +133,21 @@ export default function AreaSubjectsManager({ area, token, onChange }) {
   const count = loadedOnce ? data.total : (area?.subjects_count ?? 0);
 
   return (
-    <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden" data-testid="area-subjects-manager">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-900 transition-colors"
-        data-testid="area-subjects-accordion-toggle"
-      >
-        <span className="flex items-center gap-2">
-          {open ? <ChevronDown className="w-4 h-4" /> : <ChevRight className="w-4 h-4" />}
-          Asignaturas vinculadas ({count})
-        </span>
-        {open && <span className="text-[11px] font-normal text-slate-500 italic">Los cambios se guardan automáticamente</span>}
-      </button>
+    <div className={embedded ? "" : "mt-4 border border-slate-200 rounded-xl overflow-hidden"} data-testid="area-subjects-manager">
+      {!embedded && (
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-900 transition-colors"
+          data-testid="area-subjects-accordion-toggle"
+        >
+          <span className="flex items-center gap-2">
+            {open ? <ChevronDown className="w-4 h-4" /> : <ChevRight className="w-4 h-4" />}
+            Asignaturas vinculadas ({count})
+          </span>
+          {open && <span className="text-[11px] font-normal text-slate-500 italic">Los cambios se guardan automáticamente</span>}
+        </button>
+      )}
 
       {open && (
         <div className="bg-white" data-testid="area-subjects-panel">
