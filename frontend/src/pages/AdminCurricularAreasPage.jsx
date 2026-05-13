@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Sparkles, Save, X, Loader2,
-  BookMarked, LinkIcon, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
+  BookMarked, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
   Archive, AlertTriangle,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
@@ -35,23 +35,14 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
 
-  // Subjects sin área (para el panel de "asignar")
-  const [unassignedSubjects, setUnassignedSubjects] = useState([]);
-  const [linking, setLinking] = useState({}); // subject_id → area_id seleccionada
-
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
 
   const loadAreas = useCallback(async () => {
     setLoading(true);
     try {
-      const [areasRes, subjectsRes] = await Promise.all([
-        axios.get(`${API}/curricular-areas?include_inactive=true`, { headers }),
-        axios.get(`${API}/academic/subjects`, { headers }).catch(() => ({ data: { subjects: [] } })),
-      ]);
+      const areasRes = await axios.get(`${API}/curricular-areas?include_inactive=true`, { headers });
       setAreas(areasRes.data || []);
       areasRef.current = areasRes.data || [];
-      const all = subjectsRes.data?.subjects || subjectsRes.data || [];
-      setUnassignedSubjects(all.filter(s => !s.area_id && s.status !== "deleted"));
     } catch (err) {
       console.error("[CurricularAreas] load error", err);
       toast.error("No se pudieron cargar las áreas curriculares. Intenta nuevamente.");
@@ -159,19 +150,6 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
       toast.error(err.response?.data?.detail || "No se pudo resetear. Intenta nuevamente.");
     } finally {
       setResetting(false);
-    }
-  };
-
-  const handleLinkSubject = async (subject) => {
-    const areaId = linking[subject.id];
-    if (!areaId) return;
-    try {
-      await axios.put(`${API}/subjects/${subject.id}/area`, { area_id: areaId }, { headers });
-      toast.success(`"${subject.name}" vinculada al área correctamente`);
-      setLinking(prev => { const n = { ...prev }; delete n[subject.id]; return n; });
-      await loadAreas();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "No se pudo vincular la asignatura. Intenta nuevamente.");
     }
   };
 
@@ -396,58 +374,6 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
               </table>
             )}
           </section>
-
-          {/* ── Asignaturas sin área ── */}
-          {isAdmin && unassignedSubjects.length > 0 && (
-            <section className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden" data-testid="unassigned-panel">
-              <header className="px-6 py-3 border-b border-amber-200 bg-amber-50 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4 text-amber-700" />
-                <h2 className="font-semibold text-amber-900">Asignaturas sin área ({unassignedSubjects.length})</h2>
-              </header>
-              <table className="w-full text-sm">
-                <thead className="bg-amber-50/40">
-                  <tr className="text-left text-amber-900 text-xs uppercase tracking-wide">
-                    <th className="px-4 py-2">Asignatura</th>
-                    <th className="px-4 py-2 w-72">Asignar área</th>
-                    <th className="px-4 py-2 w-24 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unassignedSubjects.slice(0, 50).map(s => (
-                    <tr key={s.id} className="border-t border-amber-100">
-                      <td className="px-4 py-2 font-medium text-slate-800">{s.name}</td>
-                      <td className="px-4 py-2">
-                        <select
-                          value={linking[s.id] || ""}
-                          onChange={e => setLinking(prev => ({ ...prev, [s.id]: e.target.value }))}
-                          className="w-full border border-amber-200 rounded px-2 py-1 text-sm bg-white"
-                          data-testid={`link-select-${s.id}`}
-                        >
-                          <option value="">— Selecciona —</option>
-                          {activeAreas.map(a => (
-                            <option key={a.id} value={a.id}>{a.order}. {a.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <button
-                          onClick={() => handleLinkSubject(s)}
-                          disabled={!linking[s.id]}
-                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-40"
-                          data-testid={`link-btn-${s.id}`}
-                        >
-                          Vincular
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {unassignedSubjects.length > 50 && (
-                <p className="px-4 py-2 text-xs text-amber-700">Mostrando 50 de {unassignedSubjects.length}. Vincula varias y recarga para ver el resto.</p>
-              )}
-            </section>
-          )}
         </div>
       </main>
 
