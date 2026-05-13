@@ -442,7 +442,14 @@ export default function AreaWizardModal({ token, defaultOrder = 1, onClose, onCr
                 ) : availData.subjects.length === 0 ? (
                   <div className="py-10 text-center">
                     <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-600">{unassignedOnly ? "No hay asignaturas sin área en los grados seleccionados." : "No hay asignaturas disponibles."}</p>
+                    <p className="text-sm text-slate-700 font-medium">
+                      {unassignedOnly
+                        ? "No hay asignaturas sin área en los grados seleccionados"
+                        : "No hay asignaturas registradas en los grados seleccionados"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                      Puedes crear el área igualmente y vincular asignaturas después desde el acordeón.
+                    </p>
                   </div>
                 ) : (
                   <table className="w-full text-sm">

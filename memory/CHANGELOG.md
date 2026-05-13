@@ -1,6 +1,27 @@
 # EduNet - Changelog
 
-## May 13, 2026 - Fork (Sprint B: Scope por grado en Áreas Curriculares) — COMPLETED ✅
+## May 13, 2026 - Fork (Sprint C: Áreas Curriculares con scope_grade_ids desde la creación) — COMPLETED ✅
+
+### Feature: Wizard de 3 pasos + scope por grado a nivel de ÁREA
+- **Decisión de arquitectura**: las áreas conviven en dos modos. `scope_grade_ids=[]` → área **global** (como MINEDU). Lista no vacía → área **acotada** al rango de grados. Esto permite "Aritmética Avanzada 4°-5° Sec" sin destruir las 10 áreas MINEDU originales.
+- **Backend** (`/app/backend/routes/curricular_areas.py`):
+  - `CurricularAreaIn` / `CurricularAreaUpdate` aceptan `scope_grade_ids: Optional[List[str]]`.
+  - Nuevo helper `_compute_scope_label(scope_grade_ids, grades_by_id)` produce labels legibles: "Global (todos los grados)" / "Primaria · 1° a 6°" / "Primaria · 4° a 6° + Secundaria · 1° a 5°".
+  - `GET /curricular-areas` enriquece la response con `scope_grade_ids` y `scope_label` (usa `_load_school_grade_index` ya existente).
+  - POST/PUT/seed persisten `scope_grade_ids`.
+- **Frontend nuevo**:
+  - `AreaWizardModal.jsx` — Modal de 3 pasos (① Grados con atajos rápidos + checkboxes individuales por nivel, ② Nombre + color + orden con presets, ③ Asignaturas opcionales filtradas por scope). Stepper visual con estados pending/active/done. Crea el área Y vincula asignaturas en un solo flujo.
+  - `GradeScopePicker.jsx` — Componente reutilizable de selector de grados con atajos + checkboxes; usado en el wizard step 1 y en el modal de edición existente.
+- **Frontend actualizado** (`AdminCurricularAreasPage.jsx`):
+  - Botón "Nueva área" abre el wizard en lugar del modal simple.
+  - Cada fila de la tabla muestra un badge con `scope_label`. Badge slate para global, badge azul para áreas acotadas.
+  - Modal de Edición existente incluye `GradeScopePicker` para modificar el scope de un área activa.
+- **Bug fix asociado**: La página llamaba `/api/subjects` (no existe → 404 toast "Not Found"). Cambiado a `/api/academic/subjects` que es el endpoint real.
+- **Testing**: `testing_agent_v3_fork` iter 141 — Backend 8/8 pytest PASS (`/app/backend/tests/test_curricular_areas_sprint_c.py`), Frontend ~90% green, sin regresiones en Sprint B ni en Libreta/Consolidado.
+- **NO Save to GitHub / NO Deploy** — listo en preview.
+
+
+## May 13, 2026 - Fork (Sprint B: Scope por grado en vinculaciones área↔asignatura) — COMPLETED ✅
 
 ### Feature: Acordeón doble nivel (Grado → Asignatura) + Sub-modal con selector de grados
 - **Backend** (`/app/backend/routes/curricular_areas.py`):
