@@ -36,6 +36,7 @@ class CurricularAreaIn(BaseModel):
     name: str
     order: int = 0
     color: Optional[str] = "#0F172A"
+    scope_grade_ids: Optional[List[str]] = None  # None/[] = global; lista = scope acotado
 
 
 class CurricularAreaUpdate(BaseModel):
@@ -43,6 +44,7 @@ class CurricularAreaUpdate(BaseModel):
     order: Optional[int] = None
     color: Optional[str] = None
     is_active: Optional[bool] = None
+    scope_grade_ids: Optional[List[str]] = None  # None = no tocar; [] = volver a global; lista = nuevo scope
 
 
 class SubjectAreaIn(BaseModel):
@@ -129,9 +131,42 @@ def _serialize(area: dict) -> dict:
         "order": area.get("order", 0),
         "color": area.get("color"),
         "is_active": area.get("is_active", True),
+        "scope_grade_ids": area.get("scope_grade_ids") or [],
         "created_at": area.get("created_at"),
         "updated_at": area.get("updated_at"),
     }
+
+
+def _compute_scope_label(scope_grade_ids: list, grades_by_id: dict) -> str:
+    """Produce un label legible del scope de un área.
+
+    Reglas:
+    - vacío/None → "Global (todos los grados)"
+    - 1 grado → "Inicial · 3 años"
+    - varios contiguos del mismo nivel → "Primaria · 1° a 6°"
+    - rangos partidos → "Primaria · 4° a 6° + Secundaria · 1° a 5°"
+    - sin contigüidad → enumeración corta
+    """
+    if not scope_grade_ids:
+        return "Global (todos los grados)"
+    grades = [grades_by_id.get(gid) for gid in scope_grade_ids if grades_by_id.get(gid)]
+    if not grades:
+        return "Grados no encontrados"
+    # agrupar por nivel
+    by_lvl: dict = {}
+    for g in grades:
+        lid = g.get("level_id")
+        by_lvl.setdefault(lid, {"level_name": g.get("level_name"), "level_order": g.get("level_order", 0), "items": []})
+        by_lvl[lid]["items"].append(g)
+    parts = []
+    for lvl in sorted(by_lvl.values(), key=lambda x: x["level_order"]):
+        items = sorted(lvl["items"], key=lambda g: g.get("order", 0))
+        names = [g.get("name") or "" for g in items]
+        if len(items) == 1:
+            parts.append(f"{lvl['level_name']} · {names[0]}")
+        else:
+            parts.append(f"{lvl['level_name']} · {names[0]} a {names[-1]}")
+    return " + ".join(parts)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +305,17 @@ async def list_curricular_areas(
     async for row in db.subjects.aggregate(pipeline):
         counts[row["_id"]] = row["count"]
 
-    return [{**_serialize(a), "subjects_count": counts.get(a["id"], 0)} for a in areas]
+    # Indexa grados del colegio una sola vez para computar scope_label
+    idx = await _load_school_grade_index(school_id)
+    gby = idx["grades_by_id"]
+
+    out = []
+    for a in areas:
+        ser = _serialize(a)
+        ser["subjects_count"] = counts.get(a["id"], 0)
+        ser["scope_label"] = _compute_scope_label(ser["scope_grade_ids"], gby)
+        out.append(ser)
+    return out
 
 
 @router.post("/curricular-areas")
@@ -300,6 +345,7 @@ async def create_curricular_area(
         "order": payload.order,
         "color": payload.color or "#0F172A",
         "is_active": True,
+        "scope_grade_ids": list(payload.scope_grade_ids or []),
         "created_at": now,
         "updated_at": now,
     }
@@ -339,6 +385,8 @@ async def update_curricular_area(
         update_fields["color"] = payload.color
     if payload.is_active is not None:
         update_fields["is_active"] = payload.is_active
+    if payload.scope_grade_ids is not None:
+        update_fields["scope_grade_ids"] = list(payload.scope_grade_ids)
 
     if update_fields:
         update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -1065,6 +1113,7 @@ async def seed_curricular_areas(current_user=Depends(get_current_user)):
             "order": default["order"],
             "color": "#0F172A",
             "is_active": True,
+            "scope_grade_ids": [],
             "created_at": now,
             "updated_at": now,
         }

@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
+import AreaWizardModal from "../components/curricular/AreaWizardModal";
+import GradeScopePicker from "../components/curricular/GradeScopePicker";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -28,6 +30,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [modal, setModal] = useState(null); // {mode: 'create'|'edit', area?}
   const [savingArea, setSavingArea] = useState(false);
   const [archiveModal, setArchiveModal] = useState(null); // {area, archiving: false}
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Subjects sin área (para el panel de "asignar")
   const [unassignedSubjects, setUnassignedSubjects] = useState([]);
@@ -40,7 +43,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
     try {
       const [areasRes, subjectsRes] = await Promise.all([
         axios.get(`${API}/curricular-areas?include_inactive=true`, { headers }),
-        axios.get(`${API}/subjects`, { headers }).catch(() => ({ data: { subjects: [] } })),
+        axios.get(`${API}/academic/subjects`, { headers }).catch(() => ({ data: { subjects: [] } })),
       ]);
       setAreas(areasRes.data || []);
       areasRef.current = areasRes.data || [];
@@ -93,6 +96,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
           order: parseInt(modal.area.order || 0, 10),
           color: modal.area.color,
           is_active: modal.area.is_active,
+          scope_grade_ids: modal.area.scope_grade_ids || [],
         }, { headers });
         toast.success("Área curricular actualizada");
       }
@@ -189,7 +193,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
               )}
               {isAdmin && (
                 <button
-                  onClick={() => setModal({ mode: "create", area: { name: "", order: (activeAreas.length + 1), color: "#0F172A" } })}
+                  onClick={() => setWizardOpen(true)}
                   className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm transition"
                   data-testid="create-area-btn"
                 >
@@ -214,7 +218,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 {areas.length === 0 ? "Inicializar áreas estándar" : "Re-aplicar fuzzy-match"}
               </button>
               <button
-                onClick={() => setModal({ mode: "create", area: { name: "", order: (activeAreas.length + 1), color: "#0F172A" } })}
+                onClick={() => setWizardOpen(true)}
                 className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg font-semibold text-sm transition"
                 data-testid="create-area-btn"
               >
@@ -275,6 +279,19 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                             : <ChevRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900" />}
                           <span className="inline-block w-3 h-3 rounded" style={{ background: a.color || "#0F172A" }} />
                           <span className="font-medium text-slate-900 group-hover:underline">{a.name}</span>
+                          {a.scope_label && (
+                            <span
+                              className={`ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                                (a.scope_grade_ids?.length || 0) === 0
+                                  ? "bg-slate-50 text-slate-600 border-slate-200"
+                                  : "bg-blue-50 text-blue-800 border-blue-200"
+                              }`}
+                              title={a.scope_label}
+                              data-testid={`area-scope-badge-${a.id}`}
+                            >
+                              {a.scope_label}
+                            </span>
+                          )}
                         </button>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -388,6 +405,18 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
         </div>
       </main>
 
+      {/* ── Wizard Crear Área (3 pasos: grados → nombre → asignaturas) ── */}
+      {wizardOpen && (
+        <AreaWizardModal
+          token={token}
+          defaultOrder={activeAreas.length + 1}
+          onClose={() => setWizardOpen(false)}
+          onCreated={async () => {
+            await loadAreas();
+          }}
+        />
+      )}
+
       {/* ── Modal crear / editar ── */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !savingArea && setModal(null)}>
@@ -442,6 +471,19 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                   />
                   Área activa
                 </label>
+              )}
+              {modal.mode === "edit" && (
+                <div className="pt-3 border-t border-slate-200">
+                  <p className="text-xs font-semibold text-slate-600 mb-1.5">Grados del scope</p>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Define a qué grados aplica esta área. Vacío = área global (todos los grados).
+                  </p>
+                  <GradeScopePicker
+                    token={token}
+                    value={new Set(modal.area.scope_grade_ids || [])}
+                    onChange={(newSet) => setModal({ ...modal, area: { ...modal.area, scope_grade_ids: Array.from(newSet) } })}
+                  />
+                </div>
               )}
             </div>
 
