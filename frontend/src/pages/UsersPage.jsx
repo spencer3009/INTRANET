@@ -4760,6 +4760,92 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <span className="text-sm text-slate-500">Clave no registrada. Use "Asignar DNI como clave" para asignarla.</span>
                       </div>
                     )}
+
+                    {/* Toggle: Editar Contraseña — disponible para padres, profesores, admins, directores, etc. */}
+                    <div className="mt-4 flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <Key className="w-4 h-4 text-amber-500" /> Cambiar contraseña
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordSection(!showPasswordSection);
+                          if (showPasswordSection) {
+                            setEditPassword("");
+                            setConfirmPassword("");
+                          }
+                        }}
+                        className="flex items-center gap-2"
+                        data-testid="toggle-edit-password-nonstudent"
+                      >
+                        <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 ${showPasswordSection ? 'bg-[#001f4b]' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${showPasswordSection ? 'translate-x-7' : 'translate-x-1'}`} />
+                        </div>
+                        <span className="text-sm text-slate-600">{showPasswordSection ? 'Activado' : 'Desactivado'}</span>
+                      </button>
+                    </div>
+
+                    {showPasswordSection && (
+                      <div className="mt-3 bg-slate-50 rounded-xl p-4 space-y-4">
+                        {/* Nueva contraseña */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Nueva contraseña</label>
+                          <div className="relative">
+                            <input
+                              type={showEditPassword ? "text" : "password"}
+                              value={editPassword}
+                              onChange={(e) => setEditPassword(e.target.value)}
+                              placeholder="Mín. 8 caracteres (mayúscs., minúscs., números, símbolos)"
+                              className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none bg-white"
+                              data-testid="edit-password-input-nonstudent"
+                            />
+                            <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                              {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {editPassword && (
+                            <div className="mt-2 space-y-1">
+                              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div className={`h-full transition-all duration-300 ${calculatePasswordStrength(editPassword).color}`} style={{ width: `${calculatePasswordStrength(editPassword).strength}%` }} />
+                              </div>
+                              <p className={`text-xs font-medium ${calculatePasswordStrength(editPassword).textColor}`}>Fortaleza: {calculatePasswordStrength(editPassword).label}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Confirmar contraseña */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Confirmar contraseña</label>
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              placeholder="Reescribe la nueva contraseña"
+                              className={`w-full px-4 py-2.5 pr-10 border rounded-xl outline-none bg-white focus:ring-2 ${
+                                confirmPassword && editPassword !== confirmPassword
+                                  ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                                  : confirmPassword && editPassword === confirmPassword
+                                  ? 'border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
+                                  : 'border-slate-200 focus:ring-[#001f4b]/20 focus:border-[#001f4b]'
+                              }`}
+                              data-testid="edit-password-confirm-input-nonstudent"
+                            />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {confirmPassword && editPassword !== confirmPassword && (
+                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Las contraseñas no coinciden</p>
+                          )}
+                          {confirmPassword && editPassword === confirmPassword && editPassword && (
+                            <p className="text-emerald-500 text-xs mt-1 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Las contraseñas coinciden</p>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-500">Esta contraseña reemplazará la actual al guardar. La fortaleza debe ser al menos "Media".</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
