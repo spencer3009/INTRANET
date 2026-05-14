@@ -2493,7 +2493,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Edit user handler
   const handleEditUser = (userId) => {
     setOpenMenuId(null);
-    const userToEdit = users.find(u => u.id === userId);
+    // Look up in main users list first; if not found (e.g. orphan), search in orphanStudents.
+    const userToEdit = users.find(u => u.id === userId) || orphanStudents.find(o => o.id === userId);
     if (userToEdit) {
       setEditingUser(userToEdit);
       // Normalize gender value (old values used M/F, new uses male/female, import uses Masculino/Femenino)
@@ -2658,13 +2659,22 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       }
       
       const res = await axios.put(`${API}/users/${editingUser.id}`, payload, { headers });
-      // Update local state
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? res.data.user : u));
+      // Update local state — replace if exists, otherwise append (case: editing an orphan)
+      const wasOrphan = !users.some(u => u.id === editingUser.id);
+      if (wasOrphan) {
+        setUsers(prev => [...prev, res.data.user]);
+        // Remove from orphans list too
+        setOrphanStudents(prev => prev.filter(o => o.id !== editingUser.id));
+      } else {
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? res.data.user : u));
+      }
       setShowEditModal(false);
       setEditingUser(null);
       setInfoModalContent({
         title: "Usuario Actualizado",
-        message: "Los datos del usuario han sido actualizados correctamente.",
+        message: wasOrphan
+          ? "Los datos académicos fueron asignados. El alumno ya está visible en la lista de Alumnos."
+          : "Los datos del usuario han sido actualizados correctamente.",
         type: "success"
       });
       setShowInfoModal(true);
@@ -5552,6 +5562,17 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           <p className="text-[11px] text-slate-400 mt-0.5 truncate">{s.import_errors.join(", ")}</p>
                         )}
                       </div>
+                      <button
+                        onClick={() => {
+                          setShowOrphanPanel(false);
+                          handleEditUser(s.id);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0"
+                        data-testid={`edit-orphan-${s.id}`}
+                        title="Editar y asignar nivel/grado/sección"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => deleteOrphan(s.id)}
                         disabled={deletingOrphanId === s.id}
