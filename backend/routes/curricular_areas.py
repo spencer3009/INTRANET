@@ -52,6 +52,43 @@ class SubjectAreaIn(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Helpers de unicidad por scope de grados
+# ─────────────────────────────────────────────────────────────────────────────
+async def _find_name_conflict(school_id: str, name: str, scope_grade_ids, exclude_id: Optional[str] = None):
+    """Busca un área existente con el mismo nombre cuyo scope se solape con el nuevo.
+
+    Reglas:
+      - Si el área NUEVA tiene scope_grade_ids vacío/None → es global; conflictúa con
+        cualquier otra área del mismo nombre (sin importar su scope).
+      - Si el área EXISTENTE es global → conflictúa con cualquier nueva del mismo nombre.
+      - Si ambas tienen scope específico → conflictúa solo si comparten al menos un grado.
+    Retorna el documento conflictivo o None.
+    """
+    query = {
+        "school_id": school_id,
+        "name": {"$regex": f"^{name}$", "$options": "i"},
+    }
+    if exclude_id:
+        query["id"] = {"$ne": exclude_id}
+
+    candidates = await db.curricular_areas.find(
+        query, {"_id": 0, "id": 1, "name": 1, "scope_grade_ids": 1}
+    ).to_list(50)
+
+    new_scope = set(scope_grade_ids or [])
+
+    for c in candidates:
+        existing_scope = set(c.get("scope_grade_ids") or [])
+        # Cualquiera de las dos es global → conflicto total con ese nombre
+        if not new_scope or not existing_scope:
+            return c
+        # Ambas tienen scope acotado → conflicto solo si comparten algún grado
+        if new_scope & existing_scope:
+            return c
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Defaults MINEDU + fuzzy-match para la migración inicial
 # ─────────────────────────────────────────────────────────────────────────────
 DEFAULT_AREAS = [
@@ -329,13 +366,16 @@ async def create_curricular_area(
     if not name:
         raise HTTPException(status_code=400, detail="El nombre del área es obligatorio")
 
-    # Unicidad por nombre dentro del colegio (case-insensitive)
-    existing = await db.curricular_areas.find_one(
-        {"school_id": school_id, "name": {"$regex": f"^{name}$", "$options": "i"}},
-        {"_id": 0, "id": 1},
-    )
-    if existing:
-        raise HTTPException(status_code=409, detail="Ya existe un área con ese nombre")
+    # Unicidad por nombre dentro del colegio, considerando scope_grade_ids:
+    # se permite repetir el nombre si los grados no se solapan.
+    conflict = await _find_name_conflict(school_id, name, payload.scope_grade_ids)
+    if conflict:
+        conflict_scope = conflict.get("scope_grade_ids") or []
+        if conflict_scope:
+            detail = "Ya existe un área con ese nombre que cubre uno o más de los grados seleccionados."
+        else:
+            detail = "Ya existe un área global con ese nombre. Acótala a grados específicos o usa otro nombre."
+        raise HTTPException(status_code=409, detail=detail)
 
     now = datetime.now(timezone.utc).isoformat()
     doc = {
@@ -366,19 +406,29 @@ async def update_curricular_area(
         raise HTTPException(status_code=404, detail="Área no encontrada")
 
     update_fields = {}
+
+    # Determinar el scope efectivo tras el update (para validar nombre y posibles re-scopings)
+    effective_scope = list(payload.scope_grade_ids) if payload.scope_grade_ids is not None else (area.get("scope_grade_ids") or [])
+    effective_name = (payload.name.strip() if payload.name is not None else area.get("name") or "")
+
     if payload.name is not None:
         new_name = payload.name.strip()
         if not new_name:
             raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
-        if new_name.lower() != (area.get("name") or "").lower():
-            dup = await db.curricular_areas.find_one(
-                {"school_id": school_id, "name": {"$regex": f"^{new_name}$", "$options": "i"},
-                 "id": {"$ne": area_id}},
-                {"_id": 0, "id": 1},
-            )
-            if dup:
-                raise HTTPException(status_code=409, detail="Ya existe un área con ese nombre")
         update_fields["name"] = new_name
+
+    # Validar conflicto si cambia el nombre o el scope (porque ambos afectan la unicidad)
+    name_changed = payload.name is not None and effective_name.lower() != (area.get("name") or "").lower()
+    scope_changed = payload.scope_grade_ids is not None and set(effective_scope) != set(area.get("scope_grade_ids") or [])
+    if name_changed or scope_changed:
+        conflict = await _find_name_conflict(school_id, effective_name, effective_scope, exclude_id=area_id)
+        if conflict:
+            conflict_scope = conflict.get("scope_grade_ids") or []
+            if conflict_scope:
+                detail = "Ya existe un área con ese nombre que cubre uno o más de los grados seleccionados."
+            else:
+                detail = "Ya existe un área global con ese nombre. Acótala a grados específicos o usa otro nombre."
+            raise HTTPException(status_code=409, detail=detail)
     if payload.order is not None:
         update_fields["order"] = payload.order
     if payload.color is not None:
