@@ -46,6 +46,17 @@ PAYMENT_CONCEPTS = {
     "otros": "Otros"
 }
 
+
+def _safe_day_of_month(year: int, month: int, day: int) -> int:
+    """Devuelve `day` o el último día del mes si `day` lo excede.
+
+    Ejemplo: _safe_day_of_month(2026, 2, 30) -> 28
+             _safe_day_of_month(2026, 4, 31) -> 30
+    """
+    import calendar
+    last = calendar.monthrange(year, month)[1]
+    return min(max(int(day) or 1, 1), last)
+
 PAYMENT_METHODS = {
     "efectivo": "Efectivo",
     "transferencia": "Transferencia bancaria",
@@ -586,7 +597,8 @@ async def confirm_payment(payment_id: str, current_user = Depends(require_sectio
                 pm = payment["pension_month"]
                 try:
                     year, month = int(pm[:4]), int(pm[5:7])
-                    deadline = datetime(year, month, dia_vencimiento, 12, 0, 0, tzinfo=timezone.utc)
+                    deadline_day = _safe_day_of_month(year, month, dia_vencimiento)
+                    deadline = datetime(year, month, deadline_day, 12, 0, 0, tzinfo=timezone.utc)
                     today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
                     days_late = max((today - deadline).days, 0)
                     
@@ -1308,7 +1320,7 @@ class FinancialSettingsUpdate(BaseModel):
     interes_modalidad: Optional[str] = None   # "monto_fijo" | "porcentaje"
     interes_tope_maximo: Optional[float] = None
     activacion_modo: Optional[str] = None
-    dia_vencimiento_mensualidad: Optional[int] = None  # 1-28
+    dia_vencimiento_mensualidad: Optional[int] = None  # 1-31 (si excede el último día del mes, se usa el último disponible)
     fecha_inicio_ano_escolar: Optional[str] = None  # YYYY-MM-DD
     fecha_fin_ano_escolar: Optional[str] = None  # YYYY-MM-DD
 
@@ -3183,7 +3195,7 @@ async def generate_pending_payments_for_school(
     try:
         year_num = int(mes.split("-")[0])
         month_num = int(mes.split("-")[1])
-        dia_safe = min(dia_venc, 28)
+        dia_safe = _safe_day_of_month(year_num, month_num, dia_venc)
         from datetime import date
         due_date = date(year_num, month_num, dia_safe).isoformat()
     except Exception:
@@ -3448,11 +3460,12 @@ async def daily_billing_generation_cron():
                     })
                     continue
 
-                # CHECK 3: Is today the due day?
+                # CHECK 3: Is today the due day? (if dia_venc > last day of month, fallback to last day)
                 dia_venc = fin_settings.get("dia_vencimiento_mensualidad", 5) or 5
                 pension = fin_settings.get("pension_mensual", 0) or 0
+                effective_due_day = _safe_day_of_month(today.year, today.month, dia_venc)
 
-                if day_of_month != dia_venc or pension <= 0:
+                if day_of_month != effective_due_day or pension <= 0:
                     continue
 
                 # Generate payments

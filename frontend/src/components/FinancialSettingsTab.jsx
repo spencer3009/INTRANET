@@ -219,15 +219,15 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 <input
                   type="number"
                   min="1"
-                  max="28"
+                  max="31"
                   value={form.dia_vencimiento_mensualidad}
-                  onChange={(e) => set("dia_vencimiento_mensualidad", Math.min(28, Math.max(1, parseInt(e.target.value) || 5)))}
+                  onChange={(e) => set("dia_vencimiento_mensualidad", Math.min(31, Math.max(1, parseInt(e.target.value) || 5)))}
                   disabled={!isOwnerOrAdmin}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
                   data-testid="dia-vencimiento-input"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-2">El sistema generara automaticamente las cuotas de todos los alumnos activos cada mes en el día de vencimiento configurado, durante el periodo del ano escolar.</p>
+              <p className="text-xs text-slate-400 mt-2">El sistema generará automáticamente las cuotas de todos los alumnos activos cada mes en el día de vencimiento configurado. Si el mes no tiene ese día (ej. febrero), se usará el último día disponible del mes.</p>
             </div>
           </div>
         )}
@@ -303,7 +303,7 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                 type="number"
                 step="0.01"
                 value={form.matricula}
-                onChange={(e) => set("matrícula", parseFloat(e.target.value) || 0)}
+                onChange={(e) => set("matricula", parseFloat(e.target.value) || 0)}
                 disabled={!isOwnerOrAdmin}
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
                 placeholder="300.00"
@@ -395,9 +395,9 @@ export default function FinancialSettingsTab({ token, user, onGenerateBilling })
                     <input
                       type="number"
                       min="1"
-                      max="28"
+                      max="31"
                       value={form.pronto_pago_fecha_limite}
-                      onChange={(e) => set("pronto_pago_fecha_limite", parseInt(e.target.value) || 5)}
+                      onChange={(e) => set("pronto_pago_fecha_limite", Math.min(31, Math.max(1, parseInt(e.target.value) || 5)))}
                       disabled={!isOwnerOrAdmin}
                       className="w-20 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
                       data-testid="pronto-pago-fecha-input"
