@@ -4,9 +4,11 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import { 
   QrCode, Camera, Check, AlertTriangle, X, Clock, 
   User, Loader2, History, RefreshCw, Volume2, VolumeX,
-  Shield, ExternalLink, Settings, SwitchCamera, Ban
+  Shield, ExternalLink, Settings, SwitchCamera, Ban,
+  Zap, Hand, ListChecks
 } from "lucide-react";
 import { toast } from "sonner";
+import { useScannerQueue } from "@/hooks/useScannerQueue";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SCAN_COOLDOWN = 30000; // 30 seconds cooldown per QR
@@ -308,13 +310,17 @@ export default function QRScannerTab({ token, roleFilter, user }) {
       } else if (type === "warning") {
         oscillator.frequency.value = 440; // A4
         gainNode.gain.value = 0.2;
+      } else if (type === "queued") {
+        // pip suave y corto para distinguir del beep de éxito
+        oscillator.frequency.value = 660; // E5
+        gainNode.gain.value = 0.12;
       } else {
         oscillator.frequency.value = 220; // A3
         gainNode.gain.value = 0.2;
       }
       
       oscillator.start();
-      setTimeout(() => oscillator.stop(), 150);
+      setTimeout(() => oscillator.stop(), type === "queued" ? 70 : 150);
     } catch (e) {
       console.log("Audio not supported");
     }
@@ -332,27 +338,12 @@ export default function QRScannerTab({ token, roleFilter, user }) {
     }, 3000);
   };
 
-  // Handle QR scan - continuous mode
-  const handleScan = async (detectedCodes) => {
-    if (processingRef.current || !detectedCodes || detectedCodes.length === 0) return;
-    
-    const qrToken = detectedCodes[0].rawValue;
-    if (!qrToken) return;
-
-    // Anti-duplicate cache check
-    const now = Date.now();
-    const lastScan = scannedCacheRef.current.get(qrToken);
-    if (lastScan && (now - lastScan) < SCAN_COOLDOWN) return;
-
-    processingRef.current = true;
+  // Procesa un QR (llamada al backend). Es el callback del hook de cola.
+  const processQR = useCallback(async (qrToken) => {
     setLoading(true);
-    
     try {
       const res = await axios.post(`${API}/attendance/qr/scan`, { qr_token: qrToken, mode: scanMode }, { headers });
       const data = res.data;
-      
-      // Add to cache
-      scannedCacheRef.current.set(qrToken, Date.now());
 
       if (data.status === "success") {
         playSound("success");
@@ -364,7 +355,6 @@ export default function QRScannerTab({ token, roleFilter, user }) {
         playSound("error");
         addScanToast("error", data);
       }
-      
       loadHistory();
     } catch (err) {
       const errorData = err.response?.data?.detail;
@@ -373,8 +363,25 @@ export default function QRScannerTab({ token, roleFilter, user }) {
       addScanToast("error", { message: msg });
     } finally {
       setLoading(false);
-      processingRef.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanMode, token]);
+
+  // Cola FIFO de escaneos — evita perder QRs cuando llegan varios alumnos rápido
+  const { mode: queueMode, setMode: setQueueMode, queueSize, processing: queueProcessing, enqueue, processNext, clear: clearQueue } = useScannerQueue({
+    onProcess: processQR,
+    cooldownMs: 30000,
+    onEnqueued: (_t, size) => {
+      // Pip suave solo si quedan más detrás esperando turno
+      if (size > 1) playSound("queued");
+    },
+  });
+
+  // Handler que recibe la cámara — solo encola
+  const handleScan = (detectedCodes) => {
+    if (!detectedCodes || detectedCodes.length === 0) return;
+    const qrToken = detectedCodes[0]?.rawValue;
+    if (qrToken) enqueue(qrToken);
   };
 
   // Reset scanner (used only for error dismissal now)
@@ -448,6 +455,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                 title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+                data-testid="toggle-sound-btn"
               >
                 {soundEnabled ? (
                   <Volume2 className="w-5 h-5 text-white" />
@@ -455,6 +463,42 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                   <VolumeX className="w-5 h-5 text-white/50" />
                 )}
               </button>
+            </div>
+
+            {/* Toggle Auto / Manual entre escaneos */}
+            <div className="mt-3 flex items-center gap-2" data-testid="scan-queue-mode-selector">
+              <span className="text-xs text-white/70 font-medium">Modo:</span>
+              <div className="bg-white/10 rounded-lg p-0.5 inline-flex">
+                <button
+                  onClick={() => setQueueMode("auto")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                    queueMode === "auto" ? "bg-white text-violet-700" : "text-white/80 hover:text-white"
+                  }`}
+                  data-testid="queue-mode-auto"
+                  title="Escaneo continuo: si llegan varios alumnos, se encolan y procesan uno por uno automáticamente"
+                >
+                  <Zap className="w-3.5 h-3.5" /> Auto
+                </button>
+                <button
+                  onClick={() => setQueueMode("manual")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                    queueMode === "manual" ? "bg-white text-violet-700" : "text-white/80 hover:text-white"
+                  }`}
+                  data-testid="queue-mode-manual"
+                  title="Escaneo paso a paso: cada alumno requiere confirmación con botón"
+                >
+                  <Hand className="w-3.5 h-3.5" /> Manual
+                </button>
+              </div>
+              {queueSize > 0 && (
+                <span
+                  className="ml-auto bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                  data-testid="scan-queue-counter"
+                  title={`${queueSize} escaneo${queueSize === 1 ? "" : "s"} en cola`}
+                >
+                  <ListChecks className="w-3 h-3" /> {queueSize} en cola
+                </span>
+              )}
             </div>
             {/* Scan Mode Selector */}
             <div className="flex gap-2 mt-3" data-testid="scan-mode-selector">
@@ -657,6 +701,13 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                           </div>
                         )}
 
+                        {/* Modo manual: overlay que indica que el escaneo está pausado */}
+                        {queueMode === "manual" && !queueProcessing && (
+                          <div className="absolute top-2 left-2 right-2 bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 z-10 pointer-events-none shadow-sm">
+                            <Hand className="w-3.5 h-3.5" /> Modo manual {queueSize > 0 ? `· ${queueSize} en cola` : "· acerca un QR para encolar"}
+                          </div>
+                        )}
+
                         {/* Floating toasts over camera */}
                         <div className="absolute top-2 left-2 right-2 z-20 flex flex-col gap-2 pointer-events-none">
                           {scanToasts.map((t) => (
@@ -707,7 +758,30 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                   </div>
                   
                   {/* Control buttons */}
-                  <div className="flex justify-center gap-3">
+                  <div className="flex justify-center flex-wrap gap-3">
+                    {/* Botón Escanear siguiente — visible solo en modo manual */}
+                    {queueMode === "manual" && (
+                      <button
+                        onClick={processNext}
+                        disabled={queueProcessing || queueSize === 0}
+                        className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 disabled:cursor-not-allowed rounded-xl text-white font-semibold flex items-center gap-2 transition-colors shadow-md"
+                        data-testid="scan-next-btn"
+                        title={queueSize === 0 ? "No hay QRs en cola" : `Procesar siguiente (${queueSize} en cola)`}
+                      >
+                        {queueProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hand className="w-4 h-4" />}
+                        {queueProcessing ? "Procesando..." : queueSize > 0 ? `Escanear siguiente (${queueSize})` : "Escanear siguiente"}
+                      </button>
+                    )}
+                    {queueSize > 1 && (
+                      <button
+                        onClick={clearQueue}
+                        className="px-4 py-2.5 bg-amber-100 hover:bg-amber-200 rounded-xl text-amber-700 font-medium flex items-center gap-2 transition-colors"
+                        data-testid="clear-queue-btn"
+                        title="Vaciar la cola de escaneos pendientes"
+                      >
+                        <X className="w-4 h-4" /> Vaciar cola
+                      </button>
+                    )}
                     {availableCameras.length > 1 && (
                       <button
                         onClick={toggleCamera}

@@ -5,10 +5,12 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import {
   QrCode, ArrowLeft, Check, XCircle, AlertTriangle,
   Keyboard, Camera, Users, Hand, Volume2, VolumeX,
-  SwitchCamera, X, Loader2, RefreshCw, Shield, ExternalLink, Settings
+  SwitchCamera, X, Loader2, RefreshCw, Shield, ExternalLink, Settings,
+  ListChecks
 } from "lucide-react";
 import { toast } from "sonner";
 import { getMovilidadPreferences } from "../../components/MovilidadSettingsModal";
+import { useScannerQueue } from "@/hooks/useScannerQueue";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SCAN_DEBOUNCE_MS = 1500;
@@ -139,13 +141,12 @@ export default function MovilidadScanner({ user, token }) {
   };
 
   const sendRegistro = useCallback(async (qrData) => {
-    if (!qrData || !turnoId || processingRef.current) return;
+    if (!qrData || !turnoId) return;
     if (scannedSetRef.current.has(qrData)) {
       addScanToast("warning", { message: "Ya registrado" });
       playBeep(false);
       return;
     }
-    processingRef.current = true;
     setLoading(true);
     try {
       const res = await axios.post(`${API}/movilidad/registro`, { qr_data: qrData, turno_id: turnoId }, { headers });
@@ -161,21 +162,33 @@ export default function MovilidadScanner({ user, token }) {
       addScanToast("error", { message: detail });
       playBeep(false);
       vibrate(false);
-    } finally { setLoading(false); processingRef.current = false; }
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnoId, token, soundEnabled]);
+
+  // Cola FIFO — evita perder QRs cuando llegan varios alumnos rápido
+  const initialMode = prefReadMode === "manual" ? "manual" : "auto";
+  const { mode: queueMode, setMode: setQueueMode, queueSize, processing: queueProcessing, enqueue, processNext, clear: clearQueue } = useScannerQueue({
+    onProcess: sendRegistro,
+    cooldownMs: SCAN_DEBOUNCE_MS,
+  });
+
+  // Sincronizar modo inicial de las preferencias del usuario
+  useEffect(() => {
+    setQueueMode(initialMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const processQR = useCallback((qrData) => {
     if (!qrData || !turnoId) return;
     const raw = qrData.trim();
     if (!raw) return;
-    if (debounceRef.current) return;
-    debounceRef.current = true;
-    setTimeout(() => { debounceRef.current = false; }, SCAN_DEBOUNCE_MS);
-    if (prefReadMode === "manual") { setPendingQR(raw); }
-    else { sendRegistro(raw); }
-  }, [turnoId, prefReadMode, sendRegistro]);
+    enqueue(raw);
+  }, [turnoId, enqueue]);
 
-  const confirmManualScan = () => { if (pendingQR) { sendRegistro(pendingQR); setPendingQR(null); } };
+  const confirmManualScan = () => { processNext(); };
 
   const handleCameraScan = (detectedCodes) => {
     if (detectedCodes?.length > 0) processQR(detectedCodes[0].rawValue);
@@ -304,11 +317,45 @@ export default function MovilidadScanner({ user, token }) {
                   Escaneo continuo activo — los alumnos pueden pasar uno tras otro
                 </p>
 
-                {/* Manual mode confirm */}
-                {prefReadMode === "manual" && pendingQR && (
-                  <button onClick={confirmManualScan} data-testid="movilidad-confirm-scan"
-                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 animate-pulse">
-                    <Hand className="w-5 h-5" /> Confirmar Lectura
+                {/* Toggle Auto / Manual */}
+                <div className="flex items-center justify-center gap-2" data-testid="movilidad-queue-mode-selector">
+                  <span className="text-xs text-slate-500 font-medium">Modo:</span>
+                  <div className="bg-slate-200 rounded-lg p-0.5 inline-flex">
+                    <button
+                      onClick={() => setQueueMode("auto")}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${queueMode === "auto" ? "bg-white shadow-sm text-slate-900" : "text-slate-600"}`}
+                      data-testid="movilidad-queue-mode-auto"
+                    >
+                      Auto
+                    </button>
+                    <button
+                      onClick={() => setQueueMode("manual")}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${queueMode === "manual" ? "bg-white shadow-sm text-slate-900" : "text-slate-600"}`}
+                      data-testid="movilidad-queue-mode-manual"
+                    >
+                      <Hand className="w-3.5 h-3.5" /> Manual
+                    </button>
+                  </div>
+                  {queueSize > 0 && (
+                    <span
+                      className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                      data-testid="movilidad-queue-counter"
+                    >
+                      <ListChecks className="w-3 h-3" /> {queueSize} en cola
+                    </span>
+                  )}
+                </div>
+
+                {/* Manual mode — botón de avance */}
+                {queueMode === "manual" && (
+                  <button
+                    onClick={confirmManualScan}
+                    disabled={queueProcessing || queueSize === 0}
+                    data-testid="movilidad-confirm-scan"
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-500 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3"
+                  >
+                    {queueProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Hand className="w-5 h-5" />}
+                    {queueProcessing ? "Procesando..." : queueSize > 0 ? `Escanear siguiente (${queueSize})` : "Esperando próximo QR..."}
                   </button>
                 )}
 
