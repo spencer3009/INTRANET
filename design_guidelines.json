@@ -1,128 +1,171 @@
 {
-  "design_system": {
-    "typography": {
-      "font_family": {
-        "heading": "Manrope, sans-serif",
-        "body": "Inter, sans-serif"
-      },
-      "scale": {
-        "h1": "text-4xl font-bold tracking-tight",
-        "h2": "text-3xl font-semibold tracking-tight",
-        "h3": "text-2xl font-semibold",
-        "body_large": "text-lg leading-relaxed",
-        "body_default": "text-base leading-relaxed",
-        "caption": "text-sm text-muted-foreground"
-      }
-    },
-    "colors": {
-      "palette": {
-        "primary": {
-          "default": "#001f4b",
-          "foreground": "#ffffff",
-          "hover": "#001636"
-        },
-        "secondary": {
-          "default": "#e1b82c",
-          "foreground": "#001f4b"
-        },
-        "background": {
-          "app": "#F8FAFC",
-          "card": "#FFFFFF",
-          "subtle": "#F1F5F9"
-        },
-        "text": {
-          "main": "#0F172A",
-          "muted": "#64748B",
-          "inverted": "#FFFFFF"
-        },
-        "border": {
-          "default": "#E2E8F0",
-          "active": "#001f4b"
-        }
-      },
-      "usage": {
-        "primary_action": "bg-[#001f4b] text-white hover:bg-[#001636]",
-        "secondary_action": "bg-white border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC]",
-        "active_tab": "bg-white text-[#001f4b] shadow-sm ring-1 ring-black/5",
-        "inactive_tab": "text-[#64748B] hover:text-[#0F172A] hover:bg-white/50"
-      }
-    },
-    "spacing": {
-      "container_padding": "p-8 md:p-12",
-      "card_padding": "p-8",
-      "grid_gap": "gap-6 md:gap-8",
-      "section_gap": "gap-12"
-    },
-    "visual_enhancers": {
-      "radius": "rounded-xl",
-      "shadows": {
-        "card": "shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300",
-        "dropdown": "shadow-lg border border-slate-100"
-      },
-      "glassmorphism": "backdrop-blur-md bg-white/80 border border-white/20",
-      "gradients": {
-        "subtle_fade": "bg-gradient-to-b from-white to-slate-50"
-      }
-    }
-  },
-  "components": {
-    "Tabs": {
-      "path": "/app/frontend/src/components/ui/tabs.jsx",
-      "style_guide": "Use 'TabsList' with a p-1 bg-slate-100/50 rounded-xl. 'TabsTrigger' should be large (h-14), incorporating an icon and text side-by-side or stacked. Active state must pop with white bg and shadow.",
-      "customization": "Override default height restrictions. Allow triggers to be flexible."
-    },
-    "GradeCard": {
-      "description": "A large, clean card representing a school grade (e.g., 'Primer Grado').",
-      "structure": [
-        "Header: Optional subtle geometric background or icon.",
-        "Title: Large Manrope font (text-2xl).",
-        "Content: 'X Asignaturas' count with a muted text color.",
-        "Action: 'Gestionar asignaturas' button, full width or right aligned, outline style."
-      ],
-      "styling": "bg-white border border-slate-200 rounded-2xl hover:-translate-y-1 transition-transform duration-300"
-    },
-    "Button": {
-      "path": "/app/frontend/src/components/ui/button.jsx",
-      "variants": {
-        "primary": "bg-[#001f4b] text-white hover:bg-[#001636] rounded-lg px-6 py-3 font-medium",
-        "outline": "border-2 border-slate-200 bg-transparent hover:bg-slate-50 text-slate-700 rounded-lg"
-      }
-    }
-  },
-  "layout_strategy": {
-    "page_structure": "Max-width container (max-w-7xl) centered. Header section with Title and Breadcrumbs. Main content area dominated by the Tabs component.",
-    "grid_system": "Grid of cards: grid-cols-1 md:grid-cols-2 lg:grid-cols-3. Use gap-8 for a spacious, premium feel.",
-    "whitespace": "Aggressive use of whitespace. Don't crowd the cards. Let the typography breathe."
-  },
-  "assets": {
-    "icons": {
-      "library": "lucide-react",
-      "mapping": {
-        "Inicial": "Baby",
-        "Primaria": "Backpack",
-        "Secundaria": "GraduationCap",
-        "Subjects": "BookOpen",
-        "Manage": "Settings2"
-      }
-    },
-    "images": [
-      {
-        "category": "card_backgrounds",
-        "description": "Subtle abstract geometric shapes for card headers",
-        "urls": [
-          "https://images.unsplash.com/photo-1684233967170-fe1d3e323443?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdlb21ldHJpYyUyMHNoYXBlcyUyMHNvZnQlMjBjb2xvcnMlMjBlZHVjYXRpb258ZW58MHx8fHwxNzcwOTEwNzk2fDA&ixlib=rb-4.1.0&q=85",
-          "https://images.unsplash.com/photo-1768815210987-591340ed69fb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGdlb21ldHJpYyUyMHNoYXBlcyUyMHNvZnQlMjBjb2xvcnMlMjBlZHVjYXRpb258ZW58MHx8fHwxNzcwOTEwNzk2fDA&ixlib=rb-4.1.0&q=85",
-          "https://images.unsplash.com/photo-1688012578253-6250872eeb2d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGdlb21ldHJpYyUyMHNoYXBlcyUyMHNvZnQlMjBjb2xvcnMlMjBlZHVjYXRpb258ZW58MHx8fHwxNzcwOTEwNzk2fDA&ixlib=rb-4.1.0&q=85"
-        ]
-      }
+  "version": "1.0",
+  "project_context": {
+    "domain": "EduNet - School SaaS Intranet (Peru)",
+    "module": "Mensajes al Tutor",
+    "theme": "Light",
+    "archetype": "Swiss & High-Contrast / Premium Institutional",
+    "aesthetic": "Apple Education meets Linear / Stripe",
+    "adjectives": [
+      "elegante",
+      "moderno",
+      "institucional",
+      "emocionalmente limpio",
+      "visualmente poderoso",
+      "extremadamente profesional"
     ]
   },
-  "universal_guidelines": {
-    "testing": "All interactive elements MUST have a 'data-testid' attribute (e.g., 'tab-inicial', 'btn-manage-grade-1').",
-    "notifications": "Use 'sonner' for all toast notifications.",
-    "transitions": "Do NOT use 'transition: all'. Specify properties (e.g., 'transition-colors', 'transition-transform').",
-    "accessibility": "Ensure contrast ratios are met. Use semantic HTML where possible.",
-    "theme": "Light Mode only for this module (as per premium education standard)."
+  "design_system": {
+    "tokens": {
+      "colors": {
+        "primary": "#0B2C5F",
+        "primary_hover": "#082046",
+        "primary_light": "#E6EAF0",
+        "accent": "#E1B82C",
+        "accent_hover": "#CBA01F",
+        "background": "#FAFAFA",
+        "surface": "#FFFFFF",
+        "border_subtle": "#F3F4F6",
+        "border_default": "#E5E7EB",
+        "border_focus": "#0B2C5F",
+        "text_h1": "#111827",
+        "text_body": "#374151",
+        "text_muted": "#6B7280",
+        "text_placeholder": "#9CA3AF"
+      },
+      "severities": {
+        "info": { "bg": "bg-blue-50", "text": "text-blue-700", "border": "border-blue-100", "icon": "text-blue-500" },
+        "atencion": { "bg": "bg-amber-50", "text": "text-amber-800", "border": "border-amber-200", "icon": "text-amber-500" },
+        "urgente": { "bg": "bg-red-50", "text": "text-red-700", "border": "border-red-200", "icon": "text-red-600", "accent_bar": "before:bg-red-500" }
+      },
+      "statuses": {
+        "abierta": { "bg": "bg-emerald-50", "text": "text-emerald-700", "border": "border-emerald-100", "dot": "bg-emerald-500" },
+        "en_seguimiento": { "bg": "bg-blue-50", "text": "text-blue-700", "border": "border-blue-100", "dot": "bg-blue-500" },
+        "cerrada": { "bg": "bg-gray-100", "text": "text-gray-600", "border": "border-gray-200", "dot": "bg-gray-400" }
+      },
+      "typography": {
+        "font_family": "Inter, system-ui, sans-serif",
+        "h1": "text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900",
+        "h2": "text-lg font-medium tracking-tight text-gray-900",
+        "h3": "text-xs font-semibold uppercase tracking-wider text-gray-500",
+        "body": "text-sm text-gray-600 leading-relaxed"
+      },
+      "shadows": {
+        "card": "shadow-sm",
+        "card_hover": "shadow-md",
+        "modal": "shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]",
+        "button": "shadow-sm"
+      },
+      "radii": {
+        "card": "rounded-xl",
+        "modal": "rounded-2xl",
+        "input": "rounded-lg",
+        "button": "rounded-lg",
+        "badge": "rounded-full"
+      }
+    }
   },
-  "instructions_to_main_agent": "1. Refactor the 'SubjectsPage' to use the 'Tabs' component as the main organizer. 2. Create a new 'GradeCard' component following the style guide. 3. Ensure the 'Gestionar asignaturas' flow remains functional but visually updated. 4. Use the provided image URLs as subtle headers or backgrounds for the cards to add a 'premium' touch."
+  "tailwind_classes": {
+    "layout": {
+      "page_container": "flex flex-col gap-8 p-6 lg:p-10 max-w-7xl mx-auto w-full",
+      "header_group": "flex flex-col gap-1.5"
+    },
+    "cards": {
+      "stat_wrapper": "relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 flex flex-col gap-3",
+      "stat_label": "flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500",
+      "stat_value": "text-3xl font-bold tracking-tight text-gray-900"
+    },
+    "inputs": {
+      "filter_bar": "flex flex-col sm:flex-row items-center gap-3 p-1.5 bg-gray-50/50 border border-gray-200 rounded-xl",
+      "search": "flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/20 focus:border-[#0B2C5F] transition-all shadow-sm",
+      "select": "flex h-10 items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/20 focus:border-[#0B2C5F] shadow-sm cursor-pointer hover:bg-gray-50 transition-colors",
+      "ghost_title": "w-full resize-none appearance-none overflow-hidden bg-transparent text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 placeholder:text-gray-300 focus:outline-none",
+      "ghost_textarea": "w-full min-h-[160px] resize-none appearance-none bg-transparent text-base text-gray-700 placeholder:text-gray-400 focus:outline-none leading-relaxed"
+    },
+    "lists": {
+      "container": "rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden",
+      "row": "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 bg-white p-4 transition-all duration-200 hover:bg-gray-50/80 cursor-pointer last:border-0",
+      "row_urgent": "before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:bg-red-500 before:rounded-r-full bg-red-50/10",
+      "row_unread_dot": "absolute left-4 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-blue-600 ring-4 ring-white"
+    },
+    "modals": {
+      "overlay": "fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm transition-opacity",
+      "content": "fixed left-[50%] top-[50%] z-50 w-full max-w-3xl translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-100 bg-white shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] rounded-2xl overflow-hidden duration-200 sm:rounded-2xl flex flex-col max-h-[90vh]",
+      "header": "px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between sticky top-0 z-10",
+      "body_scroll": "p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6",
+      "footer": "px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0 z-10"
+    },
+    "buttons": {
+      "primary": "inline-flex items-center justify-center rounded-lg bg-[#0B2C5F] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#082046] focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/50 active:scale-[0.98] transition-all",
+      "secondary": "inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 active:scale-[0.98] transition-all",
+      "ghost": "inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors",
+      "danger": "inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500/50 active:scale-[0.98] transition-all"
+    },
+    "chat": {
+      "container": "flex flex-col gap-5 p-5 bg-gray-50/50 rounded-xl border border-gray-100",
+      "bubble_sent": "self-end max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm bg-[#0B2C5F] px-4 py-3 text-sm text-white shadow-sm flex flex-col gap-1",
+      "bubble_received": "self-start max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tl-sm border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 shadow-sm flex flex-col gap-1",
+      "timestamp": "text-[10px] opacity-70 mt-1"
+    },
+    "chips": {
+      "category_container": "flex flex-wrap gap-2",
+      "category_base": "inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium transition-colors cursor-pointer",
+      "category_unselected": "border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
+      "category_selected": "border-[#0B2C5F] bg-[#0B2C5F]/5 text-[#0B2C5F]"
+    },
+    "radio_cards": {
+      "container": "grid grid-cols-1 sm:grid-cols-3 gap-3",
+      "base": "relative flex cursor-pointer rounded-xl border p-4 shadow-sm focus:outline-none transition-all",
+      "unselected": "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
+      "info_selected": "border-blue-500 ring-1 ring-blue-500 bg-blue-50/50",
+      "atencion_selected": "border-amber-500 ring-1 ring-amber-500 bg-amber-50/50",
+      "urgente_selected": "border-red-500 ring-1 ring-red-500 bg-red-50/50"
+    }
+  },
+  "microinteractions": {
+    "hover_lifts": "hover:-translate-y-0.5 transition-transform duration-200",
+    "button_active": "active:scale-[0.98] transition-transform",
+    "urgent_pulse": "animate-pulse shadow-[0_0_0_4px_rgba(239,68,68,0.15)]",
+    "row_hover": "hover:bg-gray-50/80 transition-colors duration-150 ease-in-out"
+  },
+  "global_rules": [
+    "ALL text labels MUST be in Spanish (Perú).",
+    "MANDATORY: Preserve all existing `data-testid` attributes exactly as they are.",
+    "MANDATORY: Keep all React hooks, state logic, and API calls (axios) intact.",
+    "Do NOT replace the main header (`DashboardHeader`) or sidebar components.",
+    "Use only `lucide-react` for icons.",
+    "Do not use generic fully saturated red for urgent matters; rely on the left border highlight (`row_urgent`) and subtle red/amber backgrounds to maintain the premium educational aesthetic."
+  ],
+  "implementation_order": [
+    {
+      "step": 1,
+      "file": "/app/frontend/src/pages/TeacherObservationsPage.jsx",
+      "action": "Redesign Page Header and Stat Cards container. Apply `cards.stat_wrapper` classes to the 4 statistic cards to give them the Linear-style elevation."
+    },
+    {
+      "step": 2,
+      "file": "/app/frontend/src/pages/TeacherObservationsPage.jsx",
+      "action": "Update the Filters bar to the Stripe-style encapsulated row (`inputs.filter_bar`) and implement the Bento-style list container (`lists.container`) for the message rows."
+    },
+    {
+      "step": 3,
+      "file": "/app/frontend/src/pages/TeacherObservationsPage.jsx",
+      "action": "Redesign `ComposerModal`. Use the `modals` tailwind rules for the shell. Replace standard selects with `chips.category_container` for categories and `radio_cards.container` for severities. Implement `inputs.ghost_title` for the subject line."
+    },
+    {
+      "step": 4,
+      "file": "/app/frontend/src/pages/TeacherObservationsPage.jsx",
+      "action": "Redesign `DetailModal` (Teacher side) using the `chat` bubble classes for the communication thread."
+    },
+    {
+      "step": 5,
+      "file": "/app/frontend/src/pages/MisTutoriasPage.jsx",
+      "action": "Locate `TutorObservationsInboxTab`. Mirror the Stat Cards, Filters, and List Row redesigns from the Teacher side. Ensure the unread dot logic uses `lists.row_unread_dot`."
+    },
+    {
+      "step": 6,
+      "file": "/app/frontend/src/pages/MisTutoriasPage.jsx",
+      "action": "Redesign `TutorDetailModal`. Apply the identical chat thread layout from step 4, and update the footer action buttons using the `buttons` classes (Ghost/Danger for Cerrar, Outline for Seguimiento, Primary for Responder)."
+    }
+  ]
 }
