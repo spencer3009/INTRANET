@@ -57,6 +57,7 @@ import AdminTeachersPage from "@/pages/AdminTeachersPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminAcademicStructurePage from "@/pages/AdminAcademicStructurePage";
 import AdminTutoringOverviewPage from "@/pages/AdminTutoringOverviewPage";
+import TeacherObservationsPage from "@/pages/TeacherObservationsPage";
 import AdminGradesManagementPage from "@/pages/AdminGradesManagementPage";
 import AdminAttendancePage from "@/pages/AdminAttendancePage";
 import AdminTasksPage from "@/pages/AdminTasksPage";
@@ -2032,6 +2033,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherGradesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/teacher/observaciones"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherObservationsPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

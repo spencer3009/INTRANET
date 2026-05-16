@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   GraduationCap, Loader2, Lock, Save, AlertTriangle, ExternalLink,
   ArrowLeft, Users, MessageSquare, BarChart3, BookOpen, ChevronRight, RefreshCw,
+  Bell, AlertCircle, Info, CheckCircle2, Send, X,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import TeacherSidebar from "@/components/TeacherSidebar";
@@ -246,6 +247,7 @@ function SectionDashboard({ user, headers, section, periods, selectedPeriodId, o
       {/* Tab nav */}
       <div className="bg-white rounded-2xl border border-slate-200 p-1.5 inline-flex flex-wrap gap-1" data-testid="dashboard-tabs">
         <TabButton id="comentarios" label="Conducta & Comentarios" icon={MessageSquare} active={activeTab === "comentarios"} onClick={() => onSwitchTab("comentarios")} />
+        <TabButton id="observaciones" label="Observaciones" icon={Bell} active={activeTab === "observaciones"} onClick={() => onSwitchTab("observaciones")} />
         <TabButton id="consolidado" label="Consolidado del salón" icon={BarChart3} active={activeTab === "consolidado"} onClick={() => onSwitchTab("consolidado")} />
         <TabButton id="libretas" label="Libretas individuales" icon={BookOpen} active={activeTab === "libretas"} onClick={() => onSwitchTab("libretas")} />
       </div>
@@ -254,6 +256,9 @@ function SectionDashboard({ user, headers, section, periods, selectedPeriodId, o
       <div data-testid={`tab-content-${activeTab}`}>
         {activeTab === "comentarios" && (
           <BulkConductCommentsTab user={user} headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
+        )}
+        {activeTab === "observaciones" && (
+          <TutorObservationsInboxTab headers={headers} sectionId={section.section_id} user={user} />
         )}
         {activeTab === "consolidado" && (
           <ConsolidatedTab headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />

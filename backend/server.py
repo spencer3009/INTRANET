@@ -44,6 +44,7 @@ from routes.libreta import router as libreta_router, ensure_libreta_indexes
 from routes.conduct import router as conduct_router, ensure_conduct_indexes
 from routes.tutor_comments import router as tutor_comments_router, ensure_tutor_comments_indexes
 from routes.tutoring_admin import router as tutoring_admin_router
+from routes.teacher_observations import router as teacher_observations_router
 from routes.final_status import router as final_status_router, ensure_final_status_indexes
 from routes.health import router as health_router
 from routes.monitoring import router as monitoring_router
@@ -100,7 +101,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://tutor-asignaciones.preview.emergentagent.com",
+        "https://teacher-inbox-1.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -218,6 +219,7 @@ app.include_router(libreta_router)
 app.include_router(conduct_router)
 app.include_router(tutor_comments_router)
 app.include_router(tutoring_admin_router)
+app.include_router(teacher_observations_router)
 app.include_router(final_status_router)
 app.include_router(health_router)
 app.include_router(support_monitor_router)
