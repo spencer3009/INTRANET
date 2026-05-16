@@ -7,10 +7,11 @@ import { toast } from "sonner";
 import {
   AlertCircle, Plus, Search, Filter, Send, Clock, Loader2,
   MessageSquare, X, ChevronRight, AlertTriangle, Info, Bell,
-  CheckCircle2, GraduationCap, RefreshCw, User, Lock,
+  CheckCircle2, GraduationCap, RefreshCw, User, Lock, Users, BellDot,
 } from "lucide-react";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import MyTutorsDirectoryModal from "@/components/MyTutorsDirectoryModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -43,6 +44,9 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [showComposer, setShowComposer] = useState(false);
+  const [composerPrefill, setComposerPrefill] = useState(null); // { tutor, section } cuando viene del directorio
+  const [showDirectory, setShowDirectory] = useState(false);
+  const [directorySummary, setDirectorySummary] = useState(null); // resumen para banner
   const [activeObs, setActiveObs] = useState(null); // detalle
   const [schoolSettings, setSchoolSettings] = useState(null);
 
@@ -75,6 +79,23 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
     }
   }, [headers]);
   useEffect(() => { load(); }, [load]);
+
+  // Resumen del directorio (para banner + badge en botón)
+  const loadDirectorySummary = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API}/teacher/my-tutors`, { headers });
+      setDirectorySummary(r.data);
+    } catch (err) {
+      // silencio: el banner es informativo
+    }
+  }, [headers]);
+  useEffect(() => { loadDirectorySummary(); }, [loadDirectorySummary]);
+
+  const handleWriteToTutor = ({ tutor, section }) => {
+    setComposerPrefill({ tutor, section });
+    setShowDirectory(false);
+    setShowComposer(true);
+  };
 
   const filtered = useMemo(() => {
     let list = observations;
@@ -127,14 +148,66 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
                   Comunícate directamente con el <span className="text-gray-900 font-semibold">tutor del salón</span> sobre cualquier incidencia o situación particular de un alumno. Esta conversación es <span className="text-gray-900 font-semibold">privada</span> — ni padres ni alumnos la ven.
                 </p>
               </div>
-              <button
-                onClick={() => setShowComposer(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40 hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 active:scale-[0.98] transition-all whitespace-nowrap"
-                data-testid="new-observation-btn"
-              >
-                <Plus className="w-4 h-4" strokeWidth={2.4} /> Nuevo mensaje
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowDirectory(true)}
+                  className="relative inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 active:scale-[0.98] transition-all"
+                  data-testid="open-directory-btn"
+                >
+                  <Users className="w-4 h-4" strokeWidth={2} /> Mis tutores
+                  {directorySummary?.summary?.tutors_count > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold">{directorySummary.summary.tutors_count}</span>
+                  )}
+                  {directorySummary?.tutors?.some(t => t.totals?.pending_replies > 0) && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                  )}
+                </button>
+                <button
+                  onClick={() => { setComposerPrefill(null); setShowComposer(true); }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40 hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 active:scale-[0.98] transition-all whitespace-nowrap"
+                  data-testid="new-observation-btn"
+                >
+                  <Plus className="w-4 h-4" strokeWidth={2.4} /> Nuevo mensaje
+                </button>
+              </div>
             </header>
+
+            {/* Banner informativo de tutores */}
+            {directorySummary && (directorySummary.summary?.tutors_count > 0 || directorySummary.summary?.sections_without_tutor > 0) && (
+              <div
+                onClick={() => setShowDirectory(true)}
+                className="cursor-pointer group flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/40 p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
+                data-testid="directory-banner"
+              >
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Users className="w-5 h-5 text-white" strokeWidth={2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">
+                    Enseñas en <span className="text-indigo-700">{directorySummary.summary.sections_total}</span> salón{directorySummary.summary.sections_total === 1 ? "" : "es"}
+                    {directorySummary.summary.tutors_count > 0 && (
+                      <> · <span className="text-indigo-700">{directorySummary.summary.tutors_count}</span> tutor{directorySummary.summary.tutors_count === 1 ? "" : "es"} a quien escribir</>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {directorySummary.summary.sections_without_tutor > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                        <AlertTriangle className="w-3 h-3" /> {directorySummary.summary.sections_without_tutor} secci{directorySummary.summary.sections_without_tutor === 1 ? "ón" : "ones"} sin tutor asignado
+                      </span>
+                    ) : (
+                      "Toca para ver tu directorio y escribir directamente a un tutor."
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowDirectory(true); }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors shadow-sm"
+                  data-testid="banner-open-directory"
+                >
+                  Ver mis tutores <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Stats — 4 cards con elevación sutil tipo Linear */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -202,14 +275,24 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
       {showComposer && (
         <ComposerModal
           headers={headers}
-          onClose={() => setShowComposer(false)}
+          prefill={composerPrefill}
+          onClose={() => { setShowComposer(false); setComposerPrefill(null); }}
           onCreated={(o) => {
             setShowComposer(false);
+            setComposerPrefill(null);
             setObservations(prev => [o, ...prev]);
+            loadDirectorySummary(); // refresca contadores
             toast.success("Mensaje enviado al tutor");
           }}
         />
       )}
+
+      <MyTutorsDirectoryModal
+        open={showDirectory}
+        headers={headers}
+        onClose={() => setShowDirectory(false)}
+        onWriteToTutor={handleWriteToTutor}
+      />
 
       {activeObs && (
         <DetailModal
@@ -302,6 +385,9 @@ function StatusBadge({ value }) {
 function ObservationRow({ obs, onOpen }) {
   const replies = obs.thread?.length || 0;
   const isUrgent = obs.severity === "urgente";
+  // Hilo con respuesta nueva: último mensaje no es mío y aún no lo he leído
+  const lastMsg = obs.thread && obs.thread.length > 0 ? obs.thread[obs.thread.length - 1] : null;
+  const hasNewReply = lastMsg && lastMsg.author_id !== obs.author_id && !obs.read_by_author_at;
   const initials = (obs.student?.full_name || "??").split(",").pop().trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   // Avatar con color basado en hash de iniciales — variedad cálida
   const palette = [
@@ -320,12 +406,13 @@ function ObservationRow({ obs, onOpen }) {
       className={`group relative w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-100 last:border-0 transition-colors duration-150 hover:bg-indigo-50/40 ${isUrgent ? "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:bg-gradient-to-b before:from-rose-500 before:to-red-500 before:rounded-r-full" : ""}`}
       data-testid={`obs-row-${obs.id}`}
     >
-      <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 shadow-sm ring-2 ring-white`}>
+      <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 shadow-sm ring-2 ring-white relative`}>
         {initials}
+        {hasNewReply && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-sm font-semibold text-gray-900 truncate">{obs.student?.full_name}</p>
+          <p className={`text-sm truncate ${hasNewReply ? "font-bold text-gray-900" : "font-semibold text-gray-900"}`}>{obs.student?.full_name}</p>
           <span className="text-gray-300">·</span>
           <p className="text-xs text-gray-500 truncate">{obs.student?.grade_name} {obs.student?.section_name}</p>
         </div>
@@ -334,7 +421,12 @@ function ObservationRow({ obs, onOpen }) {
           <CategoryBadge value={obs.category} />
           <SeverityBadge value={obs.severity} />
           <StatusBadge value={obs.status} />
-          {replies > 0 && (
+          {hasNewReply && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500 text-white">
+              <BellDot className="w-3 h-3" /> Respuesta nueva
+            </span>
+          )}
+          {replies > 0 && !hasNewReply && (
             <span className="text-[11px] text-indigo-600 font-medium inline-flex items-center gap-1 ml-1">
               <MessageSquare className="w-3 h-3" /> {replies}
             </span>
@@ -353,7 +445,7 @@ function ObservationRow({ obs, onOpen }) {
 // ════════════════════════════════════════════════════════════════════════════
 // COMPOSER MODAL — Nueva observación
 // ════════════════════════════════════════════════════════════════════════════
-function ComposerModal({ headers, onClose, onCreated }) {
+function ComposerModal({ headers, onClose, onCreated, prefill }) {
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [studentSearch, setStudentSearch] = useState("");
@@ -364,6 +456,12 @@ function ComposerModal({ headers, onClose, onCreated }) {
   const [description, setDescription] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
+  // Cuando viene prefill (tutor/sección desde el directorio), filtramos a esa sección
+  const [scopedSectionId, setScopedSectionId] = useState(prefill?.section?.section_id || null);
+  const scopedTutorName = prefill?.tutor?.name || null;
+  const scopedSectionLabel = prefill?.section
+    ? [prefill.section.nivel_name, prefill.section.grade_name, prefill.section.section_name].filter(Boolean).join(" · ")
+    : null;
 
   useEffect(() => {
     (async () => {
@@ -380,14 +478,18 @@ function ComposerModal({ headers, onClose, onCreated }) {
 
   const filteredStudents = useMemo(() => {
     // Excluir alumnos donde el profesor es el propio tutor (debe usar Mis Tutorías)
-    const base = students.filter(s => !s.tutor?.self);
+    let base = students.filter(s => !s.tutor?.self);
+    // Si venimos del directorio, filtrar a una sola sección
+    if (scopedSectionId) {
+      base = base.filter(s => s.section_id === scopedSectionId);
+    }
     if (!studentSearch.trim()) return base;
     const q = studentSearch.toLowerCase();
     return base.filter(s =>
       (s.full_name || "").toLowerCase().includes(q) ||
       (s.grade_name || "").toLowerCase().includes(q)
     );
-  }, [students, studentSearch]);
+  }, [students, studentSearch, scopedSectionId]);
 
   const submit = async () => {
     if (!selectedStudent) return toast.error("Selecciona un alumno");
@@ -421,8 +523,15 @@ function ComposerModal({ headers, onClose, onCreated }) {
               <MessageSquare className="w-5 h-5 text-[#2563EB]" strokeWidth={1.8} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-semibold tracking-tight text-gray-900">Nuevo mensaje al tutor</h2>
-              <p className="text-xs text-gray-500 inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Privado — solo tú y el tutor del alumno</p>
+              <h2 className="text-base font-semibold tracking-tight text-gray-900">
+                {scopedTutorName ? `Mensaje a ${scopedTutorName}` : "Nuevo mensaje al tutor"}
+              </h2>
+              <p className="text-xs text-gray-500 inline-flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                {scopedSectionLabel
+                  ? `${scopedSectionLabel} · privado entre tú y el tutor`
+                  : "Privado — solo tú y el tutor del alumno"}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors" data-testid="composer-close">
@@ -433,7 +542,23 @@ function ComposerModal({ headers, onClose, onCreated }) {
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
           {/* Alumno */}
           <div>
-            <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 mb-2 block">Alumno</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Alumno</label>
+              {scopedSectionId && !selectedStudent && (
+                <button
+                  onClick={() => setScopedSectionId(null)}
+                  className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  data-testid="composer-clear-scope"
+                >
+                  Ver todos mis alumnos
+                </button>
+              )}
+            </div>
+            {scopedSectionLabel && !selectedStudent && (
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
+                <GraduationCap className="w-3 h-3" /> Mostrando solo alumnos de {scopedSectionLabel}
+              </div>
+            )}
             {selectedStudent ? (
               <div className="flex items-center gap-3 bg-[#2563EB]/3 border border-[#2563EB]/12 rounded-xl p-3.5">
                 <div className="w-11 h-11 rounded-full bg-[#2563EB] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">

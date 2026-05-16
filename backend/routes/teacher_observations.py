@@ -221,6 +221,145 @@ async def list_my_students_with_tutor(current_user=Depends(get_current_user)):
     return {"students": out}
 
 
+@router.get("/teacher/my-tutors")
+async def list_my_tutors(current_user=Depends(get_current_user)):
+    """Directorio de tutores de las secciones donde enseño y NO soy tutor.
+
+    Agrupado por tutor (un mismo tutor puede aparecer con varias secciones).
+    Cada item incluye conteos: mensajes enviados, hilos con respuesta nueva del tutor,
+    y avisos de secciones sin tutor.
+    """
+    current_user = await _require_user(current_user)
+    school_id = current_user["school_id"]
+    teacher_id = current_user["id"]
+
+    # Secciones donde el profesor enseña (asignación con subject_id)
+    asg = await db.academic_assignments.find(
+        {"school_id": school_id, "teacher_id": teacher_id, "subject_id": {"$ne": None}, "status": {"$ne": "inactivo"}},
+        {"_id": 0, "section_id": 1}
+    ).to_list(500)
+    section_ids = list({a["section_id"] for a in asg if a.get("section_id")})
+
+    if not section_ids:
+        return {"tutors": [], "warnings": [], "summary": {"sections_total": 0, "sections_with_tutor": 0, "sections_without_tutor": 0}}
+
+    # Nombres de grado/sección/nivel — el nivel viene desde el grado
+    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(500)}
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id, "id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(500)}
+    niveles = {n["id"]: n.get("nombre") for n in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)}
+
+    # Contar alumnos por sección
+    students_count_pipeline = [
+        {"$match": {"school_id": school_id, "role": "student", "is_deleted": {"$ne": True}, "seccion_id": {"$in": section_ids}}},
+        {"$group": {"_id": "$seccion_id", "n": {"$sum": 1}}},
+    ]
+    students_count = {row["_id"]: row["n"] async for row in db.users.aggregate(students_count_pipeline)}
+
+    # Conteo de mensajes por (recipient_tutor_id, section_id) para este profesor
+    msg_pipeline = [
+        {"$match": {"school_id": school_id, "author_id": teacher_id}},
+        {"$group": {
+            "_id": {"tutor_id": "$recipient_tutor_id", "section_id": "$section_id"},
+            "total": {"$sum": 1},
+            "last_at": {"$max": "$created_at"},
+        }},
+    ]
+    msg_counts = {}
+    async for row in db.teacher_observations.aggregate(msg_pipeline):
+        key = (row["_id"]["tutor_id"], row["_id"]["section_id"])
+        msg_counts[key] = {"total": row["total"], "last_at": row.get("last_at")}
+
+    # Conteo de hilos con respuesta nueva (último msg del thread es del TUTOR y read_by_author_at es null)
+    pending_replies_pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "author_id": teacher_id,
+            "thread.0": {"$exists": True},
+            "read_by_author_at": None,
+        }},
+        {"$addFields": {"last_msg": {"$arrayElemAt": ["$thread", -1]}}},
+        {"$match": {"$expr": {"$ne": ["$last_msg.author_id", "$author_id"]}}},
+        {"$group": {
+            "_id": {"tutor_id": "$recipient_tutor_id", "section_id": "$section_id"},
+            "n": {"$sum": 1},
+        }},
+    ]
+    pending_counts = {}
+    async for row in db.teacher_observations.aggregate(pending_replies_pipeline):
+        key = (row["_id"]["tutor_id"], row["_id"]["section_id"])
+        pending_counts[key] = row["n"]
+
+    # Resolver tutor por sección, agrupar por tutor.id
+    tutors_map: dict = {}  # tutor_id -> { tutor, sections: [] }
+    warnings: list = []
+    sections_with_tutor = 0
+    for sid in section_ids:
+        sec = sections.get(sid)
+        if not sec:
+            continue
+        grade = grades.get(sec.get("grado_id")) or {}
+        grade_name = grade.get("nombre")
+        nivel_name = niveles.get(grade.get("nivel_id"))
+        section_label = f"{nivel_name + ' ' if nivel_name else ''}{grade_name or ''} {sec.get('nombre') or ''}".strip()
+        tutor = await _resolve_tutor_for_section(school_id, sid)
+        if not tutor:
+            warnings.append({
+                "section_id": sid,
+                "section_label": section_label,
+                "grade_name": grade_name,
+                "section_name": sec.get("nombre"),
+                "nivel_name": nivel_name,
+                "reason": "sin_tutor_asignado",
+            })
+            continue
+        if tutor.get("id") == teacher_id:
+            # Soy yo el tutor de esa sección — se gestiona desde Mis Tutorías
+            continue
+        sections_with_tutor += 1
+        key = tutor["id"]
+        if key not in tutors_map:
+            tutors_map[key] = {
+                "tutor": {
+                    "id": tutor["id"],
+                    "name": _full_name(tutor),
+                    "email": tutor.get("email"),
+                    "photo_url": tutor.get("photo_url"),
+                },
+                "sections": [],
+                "totals": {"messages_sent": 0, "pending_replies": 0},
+            }
+        msg_key = (tutor["id"], sid)
+        msg_info = msg_counts.get(msg_key, {"total": 0, "last_at": None})
+        pending = pending_counts.get(msg_key, 0)
+        tutors_map[key]["sections"].append({
+            "section_id": sid,
+            "section_name": sec.get("nombre"),
+            "grade_name": grade_name,
+            "nivel_name": nivel_name,
+            "students_count": students_count.get(sid, 0),
+            "messages_sent": msg_info["total"],
+            "last_message_at": msg_info["last_at"],
+            "pending_replies": pending,
+        })
+        tutors_map[key]["totals"]["messages_sent"] += msg_info["total"]
+        tutors_map[key]["totals"]["pending_replies"] += pending
+
+    tutors_list = list(tutors_map.values())
+    # Ordenar: primero los que tienen pending_replies, luego por messages_sent desc, luego alfabético
+    tutors_list.sort(key=lambda t: (-t["totals"]["pending_replies"], -t["totals"]["messages_sent"], t["tutor"]["name"].lower()))
+
+    return {
+        "tutors": tutors_list,
+        "warnings": warnings,
+        "summary": {
+            "sections_total": len(section_ids),
+            "sections_with_tutor": sections_with_tutor,
+            "sections_without_tutor": len(warnings),
+            "tutors_count": len(tutors_list),
+        },
+    }
+
+
 @router.post("/teacher/observations")
 async def create_observation(payload: ObservationIn, current_user=Depends(get_current_user)):
     current_user = await _require_user(current_user)
@@ -319,13 +458,22 @@ async def get_observation(obs_id: str, current_user=Depends(get_current_user)):
     is_staff = role in {"owner", "admin", "director", "coordinator"}
     if not (is_party or is_staff):
         raise HTTPException(403, "No tienes acceso a esta observación")
-    # Marcar como leída si es el tutor
-    if current_user["id"] == obs.get("recipient_tutor_id") and not obs.get("read_by_tutor_at"):
+    # Marcar como leída
+    now_iso = datetime.now(timezone.utc).isoformat()
+    is_tutor_recipient = current_user["id"] == obs.get("recipient_tutor_id")
+    is_author = current_user["id"] == obs.get("author_id")
+    if is_tutor_recipient and not obs.get("read_by_tutor_at"):
         await db.teacher_observations.update_one(
             {"id": obs_id},
-            {"$set": {"read_by_tutor_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {"read_by_tutor_at": now_iso}}
         )
-        obs["read_by_tutor_at"] = datetime.now(timezone.utc).isoformat()
+        obs["read_by_tutor_at"] = now_iso
+    if is_author and not obs.get("read_by_author_at"):
+        await db.teacher_observations.update_one(
+            {"id": obs_id},
+            {"$set": {"read_by_author_at": now_iso}}
+        )
+        obs["read_by_author_at"] = now_iso
     return await _enrich_observation(obs)
 
 
@@ -344,9 +492,12 @@ async def reply_observation(obs_id: str, payload: ReplyIn, current_user=Depends(
         raise HTTPException(400, "El mensaje no puede estar vacío")
     now = datetime.now(timezone.utc).isoformat()
     entry = {"id": str(uuid.uuid4()), "author_id": current_user["id"], "text": text[:2000], "ts": now}
+    # Cuando uno responde, el OTRO debe ver "no leído" hasta abrir el hilo.
+    is_author = current_user["id"] == obs.get("author_id")
+    unset_field = "read_by_tutor_at" if is_author else "read_by_author_at"
     await db.teacher_observations.update_one(
         {"id": obs_id},
-        {"$push": {"thread": entry}, "$set": {"updated_at": now}}
+        {"$push": {"thread": entry}, "$set": {"updated_at": now, unset_field: None}}
     )
     updated = await db.teacher_observations.find_one({"id": obs_id}, {"_id": 0})
     return await _enrich_observation(updated)
