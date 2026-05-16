@@ -1,5 +1,34 @@
 # EduNet - Changelog
 
+## Feb 16, 2026 - Fork (Observaciones del Aula + Quick Wins) — COMPLETED ✅
+
+### Feature: Módulo "Observaciones del Aula" (comunicación interna Profesor → Tutor)
+- **Backend** `/app/backend/routes/teacher_observations.py` — 8 endpoints REST:
+  - `POST /api/teacher/observations` — crea observación validando que el profesor enseñe la sección, que exista tutor distinto a sí mismo, y dispara push si severity='urgente'.
+  - `GET /api/teacher/observations/sent` — bandeja de enviadas.
+  - `GET /api/teacher/observations/{id}` — detalle; marca como leído cuando lo abre el tutor receptor.
+  - `POST /api/teacher/observations/{id}/reply` — agrega mensaje al hilo (autor o tutor); 409 si está cerrada.
+  - `GET /api/tutor/observations` — inbox del tutor con counts (total, abierta, en_seguimiento, cerrada, unread) y filtros por section_id/status/severity.
+  - `PATCH /api/tutor/observations/{id}/status` — solo el tutor receptor cambia entre en_seguimiento/cerrada (y reabre).
+  - `GET /api/teacher/students-with-tutor` — alumnos del profesor con info del tutor de cada sección.
+  - `GET /api/students/{id}/observations` — historial por alumno (staff o tutor de la sección).
+- **Frontend Profesor** `/app/frontend/src/pages/TeacherObservationsPage.jsx` — composer modal (buscar alumno → categoría → severidad → fecha → título → descripción), lista de enviadas, hilo con respuestas. Filtra alumnos donde el profesor es su propio tutor.
+- **Frontend Tutor** — tab "Observaciones" agregado al portal `MisTutoriasPage.jsx` con `TutorObservationsInboxTab`: mini-stats (Total/Sin leer/Abiertas/En seguimiento/Cerradas), filtros, fila con badges de categoría+severidad+estado y dot rojo para no-leídos, modal de detalle con acciones de estado y reply.
+- **Rutas/Sidebar**: `/:subdomain/teacher/observaciones` en `App.js`; entrada "Observaciones del Aula" en `TeacherSidebar`.
+- **Schema**: nueva colección `teacher_observations` `{id, school_id, student_id, section_id, author_id, recipient_tutor_id, category, severity, title, description, fecha_incidente, status, thread[], read_by_tutor_at, closed_at, closed_by, created_at, updated_at}`.
+
+### Quick Wins resueltos
+- **Fix crash Google Translate**: añadido `<meta name="google" content="notranslate">` en `public/index.html` para que el traductor de Chrome no mute el DOM y rompa React (afectaba a la tabla de Asistencia para profesores).
+- **Prevención de alumnos huérfanos**: `POST /api/enrollment/{id}/approve` ahora retorna HTTP 400 si `nivel_id` no está presente (ni en el body ni en el alumno), evitando que admins aprueben matrículas incompletas que desaparecen del sistema.
+
+### Testing
+- Backend: **17/17 pytest PASS** (`/app/backend/tests/test_teacher_observations.py`) — CRUD completo, permisos (autor/tutor/staff), 409 sin tutor, 400 self-tutor, 403 no-teaching, hilo en cerrada (409), inbox + counts, transiciones de estado, approve sin nivel (400) / con nivel (200).
+- Frontend: E2E PASS — composer profesor → push al tutor → bandeja del tutor → reply → cierre.
+- **Action items aplicados**: Password de `rafa@gmail.com` reseteada a `Tutor123!` (testing agent detectó hash desincronizado); composer ahora oculta alumnos donde el profesor es self-tutor.
+- **NO Save to GitHub / NO Deploy** — listo en preview, pendiente redeploy a edunet.pe.
+
+
+
 ## Feb 13, 2026 - Fork (Tutorías Fases C & D — Portal del Tutor + Pulido Admin) — COMPLETED ✅
 
 ### Feature: Portal Profesor-Tutor multi-sección (Fase C)

@@ -306,9 +306,11 @@ function ComposerModal({ headers, onClose, onCreated }) {
   }, [headers]);
 
   const filteredStudents = useMemo(() => {
-    if (!studentSearch.trim()) return students;
+    // Excluir alumnos donde el profesor es el propio tutor (debe usar Mis Tutorías)
+    const base = students.filter(s => !s.tutor?.self);
+    if (!studentSearch.trim()) return base;
     const q = studentSearch.toLowerCase();
-    return students.filter(s =>
+    return base.filter(s =>
       (s.full_name || "").toLowerCase().includes(q) ||
       (s.grade_name || "").toLowerCase().includes(q)
     );
