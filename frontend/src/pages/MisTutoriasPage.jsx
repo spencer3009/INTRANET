@@ -32,6 +32,24 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
   const [sections, setSections] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("");
+  const [schoolSettings, setSchoolSettings] = useState(null);
+
+  // Cargar settings del colegio (logo, nombre) para el header
+  useEffect(() => {
+    (async () => {
+      try {
+        const settingsUrl = ["owner", "admin", "director"].includes(user?.role)
+          ? `${API}/settings`
+          : `${process.env.REACT_APP_BACKEND_URL}/api/settings/public/${user?.subdomain}`;
+        const res = await axios.get(settingsUrl, { headers });
+        setSchoolSettings(res.data);
+      } catch (err) {
+        // logo fallback handled by DashboardHeader
+      }
+    })();
+  }, [headers, user?.role, user?.subdomain]);
+  const logoUrl = schoolSettings?.logo_url;
+  const schoolName = schoolSettings?.system_name || user?.school_name;
 
   // Selected section (from query param or auto)
   const selectedSectionId = searchParams.get("section_id") || "";
@@ -149,7 +167,7 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
         user={user}
       />
       <main className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} onLogout={onLogout} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader user={user} onLogout={onLogout} onMenuClick={() => setSidebarOpen(!sidebarOpen)} logoUrl={logoUrl} schoolName={schoolName} subdomain={user?.subdomain} token={token} />
 
         <div className="flex-1 p-6 lg:p-8" data-testid="mis-tutorias-page">
           <div className="max-w-7xl mx-auto space-y-6">

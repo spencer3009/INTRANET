@@ -44,6 +44,24 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
   const [search, setSearch] = useState("");
   const [showComposer, setShowComposer] = useState(false);
   const [activeObs, setActiveObs] = useState(null); // detalle
+  const [schoolSettings, setSchoolSettings] = useState(null);
+
+  // Cargar settings del colegio (logo, nombre)
+  useEffect(() => {
+    (async () => {
+      try {
+        const settingsUrl = ["owner", "admin", "director"].includes(user?.role)
+          ? `${API}/settings`
+          : `${process.env.REACT_APP_BACKEND_URL}/api/settings/public/${user?.subdomain}`;
+        const res = await axios.get(settingsUrl, { headers });
+        setSchoolSettings(res.data);
+      } catch (err) {
+        // logo fallback handled by DashboardHeader
+      }
+    })();
+  }, [headers, user?.role, user?.subdomain]);
+  const logoUrl = schoolSettings?.logo_url;
+  const schoolName = schoolSettings?.system_name || user?.school_name;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,7 +112,7 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
         user={user}
       />
       <main className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={user?.subdomain} token={token} />
 
         <div className="flex-1 p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-5">
