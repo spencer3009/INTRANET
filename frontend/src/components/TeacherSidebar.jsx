@@ -105,7 +105,7 @@ export default function TeacherSidebar({
                 <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-sky-500/20" : ""}`}>
                   <Icon className="w-[22px] h-[22px]" />
                 </span>
-                {(expanded || isExpanded) && <span className="font-medium">{item.label}</span>}
+                {(expanded || isExpanded) && <span className="font-medium text-left flex-1">{item.label}</span>}
               </button>
             );
           })}
