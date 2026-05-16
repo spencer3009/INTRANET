@@ -629,3 +629,388 @@ function LibretasTab({ user, headers, sectionId, periodId }) {
     </div>
   );
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB — Observaciones del Aula (bandeja del Tutor)
+// ════════════════════════════════════════════════════════════════════════════
+const OBS_CATEGORIES = {
+  academica:  { label: "Académica",   color: "bg-blue-100 text-blue-700 border-blue-200" },
+  conductual: { label: "Conductual",  color: "bg-amber-100 text-amber-700 border-amber-200" },
+  asistencia: { label: "Asistencia",  color: "bg-purple-100 text-purple-700 border-purple-200" },
+  salud:      { label: "Salud",       color: "bg-pink-100 text-pink-700 border-pink-200" },
+  otro:       { label: "Otro",        color: "bg-slate-100 text-slate-700 border-slate-200" },
+};
+const OBS_SEVERITIES = {
+  info:     { label: "Informativa",        icon: Info,           color: "bg-slate-100 text-slate-700 border-slate-200" },
+  atencion: { label: "Requiere atención",  icon: AlertCircle,    color: "bg-amber-100 text-amber-700 border-amber-200" },
+  urgente:  { label: "Urgente",            icon: AlertTriangle,  color: "bg-red-100 text-red-700 border-red-200" },
+};
+const OBS_STATUSES = {
+  abierta:        { label: "Abierta",        color: "bg-blue-100 text-blue-700" },
+  en_seguimiento: { label: "En seguimiento", color: "bg-amber-100 text-amber-700" },
+  cerrada:        { label: "Cerrada",        color: "bg-emerald-100 text-emerald-700" },
+};
+
+function ObsCategoryBadge({ value }) {
+  const c = OBS_CATEGORIES[value] || OBS_CATEGORIES.otro;
+  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${c.color}`}>{c.label}</span>;
+}
+function ObsSeverityBadge({ value }) {
+  const s = OBS_SEVERITIES[value] || OBS_SEVERITIES.info;
+  const Icon = s.icon;
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${s.color}`}>
+      <Icon className="w-3 h-3" /> {s.label}
+    </span>
+  );
+}
+function ObsStatusBadge({ value }) {
+  const s = OBS_STATUSES[value] || OBS_STATUSES.abierta;
+  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>;
+}
+
+function TutorObservationsInboxTab({ headers, sectionId, user }) {
+  const [loading, setLoading] = useState(false);
+  const [observations, setObservations] = useState([]);
+  const [counts, setCounts] = useState({ total: 0, abierta: 0, en_seguimiento: 0, cerrada: 0, unread: 0 });
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSeverity, setFilterSeverity] = useState("all");
+  const [search, setSearch] = useState("");
+  const [active, setActive] = useState(null);
+
+  const load = useCallback(async () => {
+    if (!sectionId) return;
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/tutor/observations`, {
+        params: { section_id: sectionId }, headers,
+      });
+      setObservations(r.data?.observations || []);
+      setCounts(r.data?.counts || { total: 0, abierta: 0, en_seguimiento: 0, cerrada: 0, unread: 0 });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cargar la bandeja de observaciones");
+    } finally {
+      setLoading(false);
+    }
+  }, [sectionId, headers]);
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = useMemo(() => {
+    let list = observations;
+    if (filterStatus !== "all") list = list.filter(o => o.status === filterStatus);
+    if (filterSeverity !== "all") list = list.filter(o => o.severity === filterSeverity);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(o =>
+        (o.student?.full_name || "").toLowerCase().includes(q) ||
+        (o.title || "").toLowerCase().includes(q) ||
+        (o.author_name || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [observations, filterStatus, filterSeverity, search]);
+
+  const openObservation = async (obs) => {
+    try {
+      const r = await axios.get(`${API}/teacher/observations/${obs.id}`, { headers });
+      setActive(r.data);
+      setObservations(prev => prev.map(o => o.id === obs.id ? { ...o, ...r.data } : o));
+      // Refrescar contadores si pasó de no-leída a leída
+      if (!obs.read_by_tutor_at) {
+        setCounts(prev => ({ ...prev, unread: Math.max(0, (prev.unread || 0) - 1) }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cargar la observación");
+    }
+  };
+
+  const handleUpdated = (updated) => {
+    setActive(updated);
+    setObservations(prev => {
+      const next = prev.map(o => o.id === updated.id ? updated : o);
+      // Recalcular counts
+      setCounts({
+        total: next.length,
+        abierta: next.filter(o => o.status === "abierta").length,
+        en_seguimiento: next.filter(o => o.status === "en_seguimiento").length,
+        cerrada: next.filter(o => o.status === "cerrada").length,
+        unread: next.filter(o => !o.read_by_tutor_at).length,
+      });
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3" data-testid="tutor-obs-inbox">
+      {/* Mini-stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <MiniStat label="Total" value={counts.total} />
+        <MiniStat label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "amber" : "slate"} />
+        <MiniStat label="Abiertas" value={counts.abierta} accent="indigo" />
+        <MiniStat label="En seguimiento" value={counts.en_seguimiento} accent="amber" />
+        <MiniStat label="Cerradas" value={counts.cerrada} accent="emerald" />
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <input
+            type="text"
+            placeholder="Buscar alumno, título o profesor..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+            data-testid="tutor-obs-search"
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          data-testid="tutor-obs-status-filter"
+        >
+          <option value="all">Todos los estados</option>
+          <option value="abierta">Abiertas</option>
+          <option value="en_seguimiento">En seguimiento</option>
+          <option value="cerrada">Cerradas</option>
+        </select>
+        <select
+          value={filterSeverity}
+          onChange={(e) => setFilterSeverity(e.target.value)}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          data-testid="tutor-obs-severity-filter"
+        >
+          <option value="all">Cualquier severidad</option>
+          <option value="urgente">Urgente</option>
+          <option value="atencion">Requiere atención</option>
+          <option value="info">Informativa</option>
+        </select>
+        <button onClick={load} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="Recargar" data-testid="tutor-obs-reload">
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Lista */}
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
+          <Loader2 className="w-7 h-7 text-slate-400 animate-spin mx-auto mb-3" />
+          <p className="text-sm text-slate-500">Cargando observaciones...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center" data-testid="tutor-obs-empty">
+          <Bell className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-700 font-semibold mb-1">No hay observaciones</p>
+          <p className="text-sm text-slate-500">
+            {counts.total === 0
+              ? "Cuando un profesor reporte una incidencia sobre un alumno de esta sección, aparecerá aquí."
+              : "Ajusta los filtros para ver más resultados."}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100" data-testid="tutor-obs-list">
+          {filtered.map(o => (
+            <TutorObservationRow key={o.id} obs={o} onOpen={() => openObservation(o)} />
+          ))}
+        </div>
+      )}
+
+      {active && (
+        <TutorDetailModal
+          obs={active}
+          headers={headers}
+          currentUserId={user?.id}
+          onClose={() => setActive(null)}
+          onUpdate={handleUpdated}
+        />
+      )}
+    </div>
+  );
+}
+
+function TutorObservationRow({ obs, onOpen }) {
+  const replies = obs.thread?.length || 0;
+  const unread = !obs.read_by_tutor_at;
+  return (
+    <button
+      onClick={onOpen}
+      className={`w-full p-4 hover:bg-slate-50/60 transition-colors text-left flex items-start gap-3 ${unread ? "bg-indigo-50/40" : ""}`}
+      data-testid={`tutor-obs-row-${obs.id}`}
+    >
+      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0 relative">
+        {(obs.student?.full_name || "??").split(",").pop().trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+        {unread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={`truncate ${unread ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>{obs.student?.full_name}</p>
+          <span className="text-xs text-slate-400">·</span>
+          <p className="text-xs text-slate-500 truncate">de {obs.author_name}</p>
+        </div>
+        <p className="text-sm text-slate-700 mt-1 line-clamp-1">{obs.title}</p>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <ObsCategoryBadge value={obs.category} />
+          <ObsSeverityBadge value={obs.severity} />
+          <ObsStatusBadge value={obs.status} />
+          {replies > 0 && (
+            <span className="text-[11px] text-slate-500 inline-flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" /> {replies} respuesta{replies === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <p className="text-[11px] text-slate-400 whitespace-nowrap">{new Date(obs.created_at).toLocaleDateString("es-PE")}</p>
+        <ChevronRight className="w-4 h-4 text-slate-400 mt-1" />
+      </div>
+    </button>
+  );
+}
+
+function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpdate }) {
+  const [obs, setObs] = useState(initial);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const sendReply = async () => {
+    if (!reply.trim()) return;
+    setSending(true);
+    try {
+      const r = await axios.post(`${API}/teacher/observations/${obs.id}/reply`, { text: reply.trim() }, { headers });
+      setObs(r.data); onUpdate(r.data); setReply("");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo enviar la respuesta");
+    } finally { setSending(false); }
+  };
+
+  const changeStatus = async (status) => {
+    setUpdatingStatus(true);
+    try {
+      const r = await axios.patch(`${API}/tutor/observations/${obs.id}/status`, { status }, { headers });
+      setObs(r.data); onUpdate(r.data);
+      toast.success(status === "cerrada" ? "Hilo cerrado" : status === "en_seguimiento" ? "Marcado en seguimiento" : "Reabierto");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cambiar el estado");
+    } finally { setUpdatingStatus(false); }
+  };
+
+  const isClosed = obs.status === "cerrada";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={onClose} data-testid="tutor-detail-modal">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 font-bold text-sm flex-shrink-0">
+              {(obs.student?.full_name || "??").split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-slate-900 truncate">{obs.student?.full_name}</p>
+              <p className="text-xs text-slate-500 truncate">
+                {obs.student?.grade_name} {obs.student?.section_name} · Reportado por <strong>{obs.author_name}</strong> · {new Date(obs.created_at).toLocaleString("es-PE")}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-indigo-100 rounded-lg flex-shrink-0" data-testid="tutor-detail-close">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ObsCategoryBadge value={obs.category} />
+            <ObsSeverityBadge value={obs.severity} />
+            <ObsStatusBadge value={obs.status} />
+            {obs.fecha_incidente && (
+              <span className="text-[11px] text-slate-500">Incidente: {obs.fecha_incidente}</span>
+            )}
+          </div>
+          <h3 className="text-lg font-bold text-slate-900">{obs.title}</h3>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{obs.description}</p>
+
+          {/* Acciones de estado */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+            {obs.status !== "en_seguimiento" && !isClosed && (
+              <button
+                onClick={() => changeStatus("en_seguimiento")}
+                disabled={updatingStatus}
+                className="px-3 py-1.5 text-xs font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg inline-flex items-center gap-1.5"
+                data-testid="tutor-status-seguimiento"
+              >
+                <AlertCircle className="w-3.5 h-3.5" /> Marcar en seguimiento
+              </button>
+            )}
+            {!isClosed && (
+              <button
+                onClick={() => changeStatus("cerrada")}
+                disabled={updatingStatus}
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg inline-flex items-center gap-1.5"
+                data-testid="tutor-status-cerrar"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> Cerrar hilo
+              </button>
+            )}
+            {isClosed && (
+              <button
+                onClick={() => changeStatus("en_seguimiento")}
+                disabled={updatingStatus}
+                className="px-3 py-1.5 text-xs font-semibold bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg inline-flex items-center gap-1.5"
+                data-testid="tutor-status-reabrir"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Reabrir hilo
+              </button>
+            )}
+          </div>
+
+          {/* Thread */}
+          {obs.thread && obs.thread.length > 0 && (
+            <div className="space-y-2.5 pt-3 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Hilo de conversación</p>
+              {obs.thread.map(msg => {
+                const mine = msg.author_id === currentUserId;
+                return (
+                  <div key={msg.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0">
+                      {(msg.author_name || "?").split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+                    </div>
+                    <div className={`max-w-[75%] ${mine ? "bg-indigo-100 text-indigo-900" : "bg-slate-100 text-slate-800"} rounded-2xl px-3.5 py-2`}>
+                      <p className="text-[11px] font-semibold mb-0.5">{msg.author_name}</p>
+                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                      <p className="text-[10px] opacity-70 mt-1">{new Date(msg.ts).toLocaleString("es-PE")}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <footer className="px-6 py-3 border-t border-slate-100 bg-slate-50">
+          {isClosed ? (
+            <p className="text-sm text-slate-500 text-center py-2">El hilo está cerrado. Reábrelo para responder al profesor.</p>
+          ) : (
+            <div className="flex gap-2">
+              <textarea
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder="Responder al profesor..."
+                rows={2}
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                data-testid="tutor-reply-input"
+              />
+              <button
+                onClick={sendReply}
+                disabled={sending || !reply.trim()}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg font-semibold flex items-center gap-1.5"
+                data-testid="tutor-reply-btn"
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
+        </footer>
+      </div>
+    </div>
+  );
+}

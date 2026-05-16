@@ -337,6 +337,15 @@ async def approve_student(student_id: str, data: ApproveRequest, current_user=De
     if student.get("enrollment_status") != "pending":
         raise HTTPException(status_code=400, detail="Este alumno no está en estado pendiente")
 
+    # Validar que el alumno tenga nivel asignado (override o ya existente) para
+    # prevenir "alumnos huérfanos" sin nivel_id que desaparecen de los listados.
+    final_nivel_id = data.nivel_id or student.get("nivel_id")
+    if not final_nivel_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede aprobar la matrícula: el alumno no tiene nivel académico asignado. Edita la matrícula y asigna un nivel antes de aprobar.",
+        )
+
     now = datetime.now(timezone.utc).isoformat()
 
     update_fields = {
