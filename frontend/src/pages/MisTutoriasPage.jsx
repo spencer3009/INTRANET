@@ -265,7 +265,7 @@ function SectionDashboard({ user, headers, section, periods, selectedPeriodId, o
       {/* Tab nav */}
       <div className="bg-white rounded-2xl border border-slate-200 p-1.5 inline-flex flex-wrap gap-1" data-testid="dashboard-tabs">
         <TabButton id="comentarios" label="Conducta & Comentarios" icon={MessageSquare} active={activeTab === "comentarios"} onClick={() => onSwitchTab("comentarios")} />
-        <TabButton id="observaciones" label="Observaciones" icon={Bell} active={activeTab === "observaciones"} onClick={() => onSwitchTab("observaciones")} />
+        <TabButton id="observaciones" label="Mensajes del profesor" icon={Bell} active={activeTab === "observaciones"} onClick={() => onSwitchTab("observaciones")} />
         <TabButton id="consolidado" label="Consolidado del salón" icon={BarChart3} active={activeTab === "consolidado"} onClick={() => onSwitchTab("consolidado")} />
         <TabButton id="libretas" label="Libretas individuales" icon={BookOpen} active={activeTab === "libretas"} onClick={() => onSwitchTab("libretas")} />
       </div>
@@ -707,7 +707,7 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
       setObservations(r.data?.observations || []);
       setCounts(r.data?.counts || { total: 0, abierta: 0, en_seguimiento: 0, cerrada: 0, unread: 0 });
     } catch (err) {
-      toast.error(err.response?.data?.detail || "No se pudo cargar la bandeja de observaciones");
+      toast.error(err.response?.data?.detail || "No se pudo cargar la bandeja de mensajes");
     } finally {
       setLoading(false);
     }
@@ -734,12 +734,12 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
       const r = await axios.get(`${API}/teacher/observations/${obs.id}`, { headers });
       setActive(r.data);
       setObservations(prev => prev.map(o => o.id === obs.id ? { ...o, ...r.data } : o));
-      // Refrescar contadores si pasó de no-leída a leída
+      // Refrescar contadores si pasó de no-leído a leído
       if (!obs.read_by_tutor_at) {
         setCounts(prev => ({ ...prev, unread: Math.max(0, (prev.unread || 0) - 1) }));
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || "No se pudo cargar la observación");
+      toast.error(err.response?.data?.detail || "No se pudo cargar el mensaje");
     }
   };
 
@@ -765,9 +765,9 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MiniStat label="Total" value={counts.total} />
         <MiniStat label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "amber" : "slate"} />
-        <MiniStat label="Abiertas" value={counts.abierta} accent="indigo" />
+        <MiniStat label="Abiertos" value={counts.abierta} accent="indigo" />
         <MiniStat label="En seguimiento" value={counts.en_seguimiento} accent="amber" />
-        <MiniStat label="Cerradas" value={counts.cerrada} accent="emerald" />
+        <MiniStat label="Cerrados" value={counts.cerrada} accent="emerald" />
       </div>
 
       {/* Filtros */}
@@ -775,7 +775,7 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
         <div className="relative flex-1 min-w-[200px]">
           <input
             type="text"
-            placeholder="Buscar alumno, título o profesor..."
+            placeholder="Buscar alumno, asunto o profesor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
@@ -789,9 +789,9 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
           data-testid="tutor-obs-status-filter"
         >
           <option value="all">Todos los estados</option>
-          <option value="abierta">Abiertas</option>
+          <option value="abierta">Abiertos</option>
           <option value="en_seguimiento">En seguimiento</option>
-          <option value="cerrada">Cerradas</option>
+          <option value="cerrada">Cerrados</option>
         </select>
         <select
           value={filterSeverity}
@@ -818,10 +818,10 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center" data-testid="tutor-obs-empty">
           <Bell className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-700 font-semibold mb-1">No hay observaciones</p>
+          <p className="text-slate-700 font-semibold mb-1">No hay mensajes</p>
           <p className="text-sm text-slate-500">
             {counts.total === 0
-              ? "Cuando un profesor reporte una incidencia sobre un alumno de esta sección, aparecerá aquí."
+              ? "Cuando un profesor te envíe un mensaje sobre un alumno de esta sección, aparecerá aquí."
               : "Ajusta los filtros para ver más resultados."}
           </p>
         </div>
@@ -863,7 +863,7 @@ function TutorObservationRow({ obs, onOpen }) {
         <div className="flex flex-wrap items-center gap-2">
           <p className={`truncate ${unread ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>{obs.student?.full_name}</p>
           <span className="text-xs text-slate-400">·</span>
-          <p className="text-xs text-slate-500 truncate">de {obs.author_name}</p>
+          <p className="text-xs text-slate-500 truncate">mensaje de {obs.author_name}</p>
         </div>
         <p className="text-sm text-slate-700 mt-1 line-clamp-1">{obs.title}</p>
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -900,9 +900,7 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo enviar la respuesta");
     } finally { setSending(false); }
-  };
-
-  const changeStatus = async (status) => {
+  };  const changeStatus = async (status) => {
     setUpdatingStatus(true);
     try {
       const r = await axios.patch(`${API}/tutor/observations/${obs.id}/status`, { status }, { headers });
@@ -926,7 +924,7 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
             <div className="min-w-0">
               <p className="font-bold text-slate-900 truncate">{obs.student?.full_name}</p>
               <p className="text-xs text-slate-500 truncate">
-                {obs.student?.grade_name} {obs.student?.section_name} · Reportado por <strong>{obs.author_name}</strong> · {new Date(obs.created_at).toLocaleString("es-PE")}
+                {obs.student?.grade_name} {obs.student?.section_name} · Mensaje de <strong>{obs.author_name}</strong> · {new Date(obs.created_at).toLocaleString("es-PE")}
               </p>
             </div>
           </div>

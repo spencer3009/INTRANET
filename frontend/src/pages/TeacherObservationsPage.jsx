@@ -119,12 +119,12 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
             {/* Header */}
             <header className="flex flex-wrap items-start gap-3">
               <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-6 h-6 text-amber-600" strokeWidth={1.8} />
+                <MessageSquare className="w-6 h-6 text-amber-600" strokeWidth={1.8} />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-slate-900">Observaciones del Aula</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Mensajes al Tutor</h1>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  Reporta al tutor cualquier incidencia o situación particular de un alumno. Esta comunicación es <strong>interna</strong> — los padres no la ven.
+                  Comunícate directamente con el <strong>tutor del salón</strong> para reportarle cualquier incidencia, observación o situación particular de un alumno. Esta conversación es <strong>privada entre tú y el tutor</strong> — ni los padres ni el alumno la ven.
                 </p>
               </div>
               <button
@@ -132,16 +132,16 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
                 className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-colors"
                 data-testid="new-observation-btn"
               >
-                <Plus className="w-4 h-4" /> Nueva observación
+                <Plus className="w-4 h-4" /> Nuevo mensaje
               </button>
             </header>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard label="Total enviadas" value={counts.total} accent="slate" />
-              <StatCard label="Abiertas" value={counts.abierta} accent="blue" />
+              <StatCard label="Mensajes enviados" value={counts.total} accent="slate" />
+              <StatCard label="Abiertos" value={counts.abierta} accent="blue" />
               <StatCard label="En seguimiento" value={counts.en_seguimiento} accent="amber" />
-              <StatCard label="Cerradas" value={counts.cerrada} accent="emerald" />
+              <StatCard label="Cerrados" value={counts.cerrada} accent="emerald" />
             </div>
 
             {/* Filters */}
@@ -150,7 +150,7 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar alumno, tutor o título..."
+                  placeholder="Buscar alumno, tutor o asunto..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
@@ -164,9 +164,9 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
                 data-testid="obs-status-filter"
               >
                 <option value="all">Todos los estados</option>
-                <option value="abierta">Abiertas</option>
+                <option value="abierta">Abiertos</option>
                 <option value="en_seguimiento">En seguimiento</option>
-                <option value="cerrada">Cerradas</option>
+                <option value="cerrada">Cerrados</option>
               </select>
               <button onClick={load} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
@@ -177,13 +177,13 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
             {loading ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
                 <Loader2 className="w-7 h-7 text-slate-400 animate-spin mx-auto mb-3" />
-                <p className="text-sm text-slate-500">Cargando observaciones...</p>
+                <p className="text-sm text-slate-500">Cargando mensajes...</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center" data-testid="obs-empty">
-                <AlertCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-700 font-semibold mb-1">No hay observaciones que coincidan</p>
-                <p className="text-sm text-slate-500">{counts.total === 0 ? "Aún no has reportado ninguna observación. Pulsa 'Nueva observación' para empezar." : "Ajusta los filtros para ver más resultados."}</p>
+                <MessageSquare className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-700 font-semibold mb-1">No hay mensajes que coincidan</p>
+                <p className="text-sm text-slate-500">{counts.total === 0 ? "Aún no le has escrito a ningún tutor. Pulsa 'Nuevo mensaje' para empezar." : "Ajusta los filtros para ver más resultados."}</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100" data-testid="obs-list">
@@ -203,7 +203,7 @@ export default function TeacherObservationsPage({ user, token, onLogout }) {
           onCreated={(o) => {
             setShowComposer(false);
             setObservations(prev => [o, ...prev]);
-            toast.success("Observación enviada al tutor");
+            toast.success("Mensaje enviado al tutor");
           }}
         />
       )}
@@ -288,7 +288,7 @@ function ObservationRow({ obs, onOpen }) {
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <p className="text-[11px] text-slate-400 whitespace-nowrap">{new Date(obs.created_at).toLocaleDateString("es-PE")}</p>
-        <p className="text-[11px] text-slate-400">→ {obs.tutor_name}</p>
+        <p className="text-[11px] text-slate-400">para {obs.tutor_name}</p>
         <ChevronRight className="w-4 h-4 text-slate-400 mt-1" />
       </div>
     </button>
@@ -337,7 +337,7 @@ function ComposerModal({ headers, onClose, onCreated }) {
   const submit = async () => {
     if (!selectedStudent) return toast.error("Selecciona un alumno");
     if (!title.trim()) return toast.error("Escribe un título");
-    if (!description.trim()) return toast.error("Describe la observación");
+    if (!description.trim()) return toast.error("Describe el mensaje al tutor");
     setSubmitting(true);
     try {
       const r = await axios.post(`${API}/teacher/observations`, {
@@ -348,7 +348,7 @@ function ComposerModal({ headers, onClose, onCreated }) {
       }, { headers });
       onCreated(r.data);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "No se pudo crear la observación");
+      toast.error(err.response?.data?.detail || "No se pudo enviar el mensaje");
     } finally {
       setSubmitting(false);
     }
@@ -363,11 +363,11 @@ function ComposerModal({ headers, onClose, onCreated }) {
         <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
+              <MessageSquare className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-bold text-slate-900">Nueva observación</h2>
-              <p className="text-xs text-slate-500">Será enviada solo al tutor del alumno</p>
+              <h2 className="font-bold text-slate-900">Nuevo mensaje al tutor</h2>
+              <p className="text-xs text-slate-500">Esta conversación es privada — solo tú y el tutor del alumno</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" data-testid="composer-close">
@@ -444,7 +444,7 @@ function ComposerModal({ headers, onClose, onCreated }) {
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start gap-2">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>Esta sección no tiene tutor asignado.</strong> No podrás enviar la observación. Pide al administrador del colegio que asigne uno desde "Gestión de Tutorías".
+                <strong>Esta sección no tiene tutor asignado.</strong> No podrás enviar el mensaje. Pide al administrador del colegio que asigne uno desde "Gestión de Tutorías".
               </div>
             </div>
           )}
@@ -511,7 +511,7 @@ function ComposerModal({ headers, onClose, onCreated }) {
 
           {/* Título */}
           <div>
-            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Título *</label>
+            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Asunto *</label>
             <input
               type="text"
               value={title}
@@ -526,13 +526,13 @@ function ComposerModal({ headers, onClose, onCreated }) {
 
           {/* Descripción */}
           <div>
-            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Descripción *</label>
+            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Mensaje al tutor *</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={4000}
               rows={5}
-              placeholder="Describe la situación con detalle. Incluye contexto, qué pasó y qué acción tomaste si la hubo."
+              placeholder="Describe la situación con detalle al tutor. Incluye contexto, qué pasó y qué acción tomaste si la hubo."
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 resize-y"
               data-testid="composer-description"
             />
@@ -541,7 +541,7 @@ function ComposerModal({ headers, onClose, onCreated }) {
         </div>
 
         <footer className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-          <p className="text-xs text-slate-500">El tutor recibirá tu observación y podrá responderte en el hilo.</p>
+          <p className="text-xs text-slate-500">El tutor recibirá tu mensaje y podrá responderte en el hilo.</p>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">Cancelar</button>
             <button
@@ -614,7 +614,7 @@ function DetailModal({ obs: initial, headers, currentUserId, onClose, onUpdate }
 
           <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-600 flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-slate-400" />
-            <span>Enviada a <strong className="text-slate-800">{obs.tutor_name}</strong> (tutor)</span>
+            <span>Mensaje enviado a <strong className="text-slate-800">{obs.tutor_name}</strong> (tutor del salón)</span>
             {obs.read_by_tutor_at && (
               <span className="ml-auto inline-flex items-center gap-1 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> Leído</span>
             )}
