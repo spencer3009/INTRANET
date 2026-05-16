@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   GraduationCap, Loader2, Lock, Save, AlertTriangle, ExternalLink,
   ArrowLeft, Users, MessageSquare, BarChart3, BookOpen, ChevronRight, RefreshCw,
-  Bell, AlertCircle, Info, CheckCircle2, Send, X,
+  Bell, AlertCircle, Info, CheckCircle2, Send, X, Clock, Search,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import TeacherSidebar from "@/components/TeacherSidebar";
@@ -672,20 +672,58 @@ const OBS_STATUSES = {
 
 function ObsCategoryBadge({ value }) {
   const c = OBS_CATEGORIES[value] || OBS_CATEGORIES.otro;
-  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${c.color}`}>{c.label}</span>;
+  return <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200">{c.label}</span>;
 }
 function ObsSeverityBadge({ value }) {
-  const s = OBS_SEVERITIES[value] || OBS_SEVERITIES.info;
-  const Icon = s.icon;
+  const map = {
+    info:     { label: "Informativa",       Icon: Info,          cls: "bg-blue-50 text-blue-700 border-blue-100" },
+    atencion: { label: "Requiere atención", Icon: AlertCircle,   cls: "bg-amber-50 text-amber-800 border-amber-200" },
+    urgente:  { label: "Urgente",           Icon: AlertTriangle, cls: "bg-red-50 text-red-700 border-red-200" },
+  };
+  const s = map[value] || map.info;
+  const { Icon } = s;
   return (
-    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${s.color}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border ${s.cls}`}>
       <Icon className="w-3 h-3" /> {s.label}
     </span>
   );
 }
 function ObsStatusBadge({ value }) {
-  const s = OBS_STATUSES[value] || OBS_STATUSES.abierta;
-  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>;
+  const map = {
+    abierta:        { label: "Abierta",        cls: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-emerald-500" },
+    en_seguimiento: { label: "En seguimiento", cls: "bg-blue-50 text-blue-700 border-blue-100",          dot: "bg-blue-500" },
+    cerrada:        { label: "Cerrada",        cls: "bg-gray-100 text-gray-600 border-gray-200",         dot: "bg-gray-400" },
+  };
+  const s = map[value] || map.abierta;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border ${s.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} /> {s.label}
+    </span>
+  );
+}
+
+function MiniStatPremium({ icon: Icon, label, value, accent }) {
+  const accents = {
+    navy:    { iconBg: "bg-[#0B2C5F]/5",  iconColor: "text-[#0B2C5F]" },
+    amber:   { iconBg: "bg-amber-50",     iconColor: "text-amber-600" },
+    emerald: { iconBg: "bg-emerald-50",   iconColor: "text-emerald-600" },
+    blue:    { iconBg: "bg-blue-50",      iconColor: "text-blue-600" },
+    slate:   { iconBg: "bg-gray-100",     iconColor: "text-gray-500" },
+  };
+  const a = accents[accent] || accents.slate;
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500">{label}</p>
+          <p className="text-2xl font-semibold tracking-tight text-gray-900 tabular-nums">{value}</p>
+        </div>
+        <div className={`w-8 h-8 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-4 h-4 ${a.iconColor}`} strokeWidth={1.8} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function TutorObservationsInboxTab({ headers, sectionId, user }) {
@@ -760,32 +798,34 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
   };
 
   return (
-    <div className="space-y-3" data-testid="tutor-obs-inbox">
-      {/* Mini-stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MiniStat label="Total" value={counts.total} />
-        <MiniStat label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "amber" : "slate"} />
-        <MiniStat label="Abiertos" value={counts.abierta} accent="indigo" />
-        <MiniStat label="En seguimiento" value={counts.en_seguimiento} accent="amber" />
-        <MiniStat label="Cerrados" value={counts.cerrada} accent="emerald" />
+    <div className="flex flex-col gap-5" data-testid="tutor-obs-inbox">
+      {/* Mini-stats premium */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <MiniStatPremium icon={MessageSquare} label="Total" value={counts.total} accent="navy" />
+        <MiniStatPremium icon={Bell} label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "amber" : "slate"} />
+        <MiniStatPremium icon={AlertCircle} label="Abiertos" value={counts.abierta} accent="emerald" />
+        <MiniStatPremium icon={Clock} label="En seguimiento" value={counts.en_seguimiento} accent="blue" />
+        <MiniStatPremium icon={CheckCircle2} label="Cerrados" value={counts.cerrada} accent="slate" />
       </div>
 
-      {/* Filtros */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* Filtros — barra encapsulada */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl shadow-sm">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar alumno, asunto o profesor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+            className="w-full h-10 pl-10 pr-3 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-gray-400 text-gray-900"
             data-testid="tutor-obs-search"
           />
         </div>
+        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="h-10 px-3 text-sm font-medium text-gray-700 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer hover:text-gray-900 transition-colors"
           data-testid="tutor-obs-status-filter"
         >
           <option value="all">Todos los estados</option>
@@ -793,10 +833,11 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
           <option value="en_seguimiento">En seguimiento</option>
           <option value="cerrada">Cerrados</option>
         </select>
+        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
         <select
           value={filterSeverity}
           onChange={(e) => setFilterSeverity(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="h-10 px-3 text-sm font-medium text-gray-700 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer hover:text-gray-900 transition-colors"
           data-testid="tutor-obs-severity-filter"
         >
           <option value="all">Cualquier severidad</option>
@@ -804,29 +845,31 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
           <option value="atencion">Requiere atención</option>
           <option value="info">Informativa</option>
         </select>
-        <button onClick={load} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="Recargar" data-testid="tutor-obs-reload">
+        <button onClick={load} className="h-9 w-9 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors" title="Recargar" data-testid="tutor-obs-reload">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Lista */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-          <Loader2 className="w-7 h-7 text-slate-400 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-500">Cargando observaciones...</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-16 text-center shadow-sm">
+          <Loader2 className="w-7 h-7 text-gray-300 animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Cargando mensajes...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center" data-testid="tutor-obs-empty">
-          <Bell className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-700 font-semibold mb-1">No hay mensajes</p>
-          <p className="text-sm text-slate-500">
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center" data-testid="tutor-obs-empty">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#0B2C5F]/5 border border-[#0B2C5F]/10 flex items-center justify-center">
+            <Bell className="w-7 h-7 text-[#0B2C5F]" strokeWidth={1.6} />
+          </div>
+          <p className="text-base font-semibold text-gray-900 mb-1">No hay mensajes</p>
+          <p className="text-sm text-gray-500 max-w-sm mx-auto">
             {counts.total === 0
               ? "Cuando un profesor te envíe un mensaje sobre un alumno de esta sección, aparecerá aquí."
               : "Ajusta los filtros para ver más resultados."}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100" data-testid="tutor-obs-list">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" data-testid="tutor-obs-list">
           {filtered.map(o => (
             <TutorObservationRow key={o.id} obs={o} onOpen={() => openObservation(o)} />
           ))}
@@ -849,37 +892,39 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
 function TutorObservationRow({ obs, onOpen }) {
   const replies = obs.thread?.length || 0;
   const unread = !obs.read_by_tutor_at;
+  const isUrgent = obs.severity === "urgente";
+  const initials = (obs.student?.full_name || "??").split(",").pop().trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return (
     <button
       onClick={onOpen}
-      className={`w-full p-4 hover:bg-slate-50/60 transition-colors text-left flex items-start gap-3 ${unread ? "bg-indigo-50/40" : ""}`}
+      className={`group relative w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-100 last:border-0 transition-colors duration-150 hover:bg-gray-50/70 ${isUrgent ? "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:bg-red-500 before:rounded-r-full" : ""}`}
       data-testid={`tutor-obs-row-${obs.id}`}
     >
-      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0 relative">
-        {(obs.student?.full_name || "??").split(",").pop().trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
-        {unread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />}
+      <div className="w-10 h-10 rounded-full bg-[#0B2C5F]/8 ring-1 ring-[#0B2C5F]/10 flex items-center justify-center text-[#0B2C5F] font-semibold text-xs flex-shrink-0 relative">
+        {initials}
+        {unread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#0B2C5F] rounded-full ring-2 ring-white" />}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className={`truncate ${unread ? "font-bold text-slate-900" : "font-semibold text-slate-800"}`}>{obs.student?.full_name}</p>
-          <span className="text-xs text-slate-400">·</span>
-          <p className="text-xs text-slate-500 truncate">mensaje de {obs.author_name}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className={`truncate text-sm ${unread ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}>{obs.student?.full_name}</p>
+          <span className="text-gray-300">·</span>
+          <p className="text-xs text-gray-500 truncate">mensaje de <span className="text-gray-700 font-medium">{obs.author_name}</span></p>
         </div>
-        <p className="text-sm text-slate-700 mt-1 line-clamp-1">{obs.title}</p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+        <p className="text-sm text-gray-700 line-clamp-1 mb-2">{obs.title}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
           <ObsCategoryBadge value={obs.category} />
           <ObsSeverityBadge value={obs.severity} />
           <ObsStatusBadge value={obs.status} />
           {replies > 0 && (
-            <span className="text-[11px] text-slate-500 inline-flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" /> {replies} respuesta{replies === 1 ? "" : "s"}
+            <span className="text-[11px] text-gray-500 inline-flex items-center gap-1 ml-1">
+              <MessageSquare className="w-3 h-3" /> {replies}
             </span>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <p className="text-[11px] text-slate-400 whitespace-nowrap">{new Date(obs.created_at).toLocaleDateString("es-PE")}</p>
-        <ChevronRight className="w-4 h-4 text-slate-400 mt-1" />
+      <div className="flex flex-col items-end gap-1 flex-shrink-0 pt-0.5">
+        <p className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums">{new Date(obs.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}</p>
+        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors mt-1" />
       </div>
     </button>
   );
@@ -914,54 +959,56 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
   const isClosed = obs.status === "cerrada";
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={onClose} data-testid="tutor-detail-modal">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
+    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose} data-testid="tutor-detail-modal">
+      <div className="bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100" onClick={(e) => e.stopPropagation()}>
+        <header className="px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 font-bold text-sm flex-shrink-0">
+            <div className="w-11 h-11 rounded-full bg-[#0B2C5F] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
               {(obs.student?.full_name || "??").split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-slate-900 truncate">{obs.student?.full_name}</p>
-              <p className="text-xs text-slate-500 truncate">
-                {obs.student?.grade_name} {obs.student?.section_name} · Mensaje de <strong>{obs.author_name}</strong> · {new Date(obs.created_at).toLocaleString("es-PE")}
+              <p className="text-sm font-semibold text-gray-900 truncate">{obs.student?.full_name}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {obs.student?.grade_name} {obs.student?.section_name} · Mensaje de <span className="text-gray-700 font-medium">{obs.author_name}</span> · {new Date(obs.created_at).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-indigo-100 rounded-lg flex-shrink-0" data-testid="tutor-detail-close">
-            <X className="w-5 h-5 text-slate-500" />
+          <button onClick={onClose} className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors flex-shrink-0" data-testid="tutor-detail-close">
+            <X className="w-4.5 h-4.5" />
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           <div className="flex flex-wrap items-center gap-1.5">
             <ObsCategoryBadge value={obs.category} />
             <ObsSeverityBadge value={obs.severity} />
             <ObsStatusBadge value={obs.status} />
             {obs.fecha_incidente && (
-              <span className="text-[11px] text-slate-500">Incidente: {obs.fecha_incidente}</span>
+              <span className="text-[11px] text-gray-500 ml-1">Incidente: {obs.fecha_incidente}</span>
             )}
           </div>
-          <h3 className="text-lg font-bold text-slate-900">{obs.title}</h3>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{obs.description}</p>
+          <div>
+            <h3 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 mb-2">{obs.title}</h3>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{obs.description}</p>
+          </div>
 
           {/* Acciones de estado */}
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
             {obs.status !== "en_seguimiento" && !isClosed && (
               <button
                 onClick={() => changeStatus("en_seguimiento")}
                 disabled={updatingStatus}
-                className="px-3 py-1.5 text-xs font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg inline-flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 active:scale-[0.98] transition-all"
                 data-testid="tutor-status-seguimiento"
               >
-                <AlertCircle className="w-3.5 h-3.5" /> Marcar en seguimiento
+                <Clock className="w-3.5 h-3.5" /> Marcar en seguimiento
               </button>
             )}
             {!isClosed && (
               <button
                 onClick={() => changeStatus("cerrada")}
                 disabled={updatingStatus}
-                className="px-3 py-1.5 text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg inline-flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 px-3 py-1.5 text-xs font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 active:scale-[0.98] transition-all"
                 data-testid="tutor-status-cerrar"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> Cerrar hilo
@@ -971,7 +1018,7 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
               <button
                 onClick={() => changeStatus("en_seguimiento")}
                 disabled={updatingStatus}
-                className="px-3 py-1.5 text-xs font-semibold bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg inline-flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2C5F] hover:bg-[#082046] px-3 py-1.5 text-xs font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/40 active:scale-[0.98] transition-all"
                 data-testid="tutor-status-reabrir"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Reabrir hilo
@@ -979,46 +1026,47 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
             )}
           </div>
 
-          {/* Thread */}
+          {/* Thread — chat bubbles premium */}
           {obs.thread && obs.thread.length > 0 && (
-            <div className="space-y-2.5 pt-3 border-t border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Hilo de conversación</p>
-              {obs.thread.map(msg => {
-                const mine = msg.author_id === currentUserId;
-                return (
-                  <div key={msg.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0">
-                      {(msg.author_name || "?").split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+            <div className="space-y-3 pt-3 border-t border-gray-100">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Hilo de conversación</p>
+              <div className="flex flex-col gap-3">
+                {obs.thread.map(msg => {
+                  const mine = msg.author_id === currentUserId;
+                  return (
+                    <div key={msg.id} className={`flex gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[78%] flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
+                        <p className="text-[10px] font-medium text-gray-500 px-1">{mine ? "Tú" : msg.author_name}</p>
+                        <div className={`px-4 py-2.5 ${mine ? "bg-[#0B2C5F] text-white rounded-2xl rounded-tr-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-tl-md"} shadow-sm`}>
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                        </div>
+                        <p className="text-[10px] text-gray-400 px-1 tabular-nums">{new Date(msg.ts).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
                     </div>
-                    <div className={`max-w-[75%] ${mine ? "bg-indigo-100 text-indigo-900" : "bg-slate-100 text-slate-800"} rounded-2xl px-3.5 py-2`}>
-                      <p className="text-[11px] font-semibold mb-0.5">{msg.author_name}</p>
-                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                      <p className="text-[10px] opacity-70 mt-1">{new Date(msg.ts).toLocaleString("es-PE")}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
 
-        <footer className="px-6 py-3 border-t border-slate-100 bg-slate-50">
+        <footer className="px-6 py-4 border-t border-gray-100 bg-white sticky bottom-0 z-10">
           {isClosed ? (
-            <p className="text-sm text-slate-500 text-center py-2">El hilo está cerrado. Reábrelo para responder al profesor.</p>
+            <p className="text-sm text-gray-500 text-center py-2 inline-flex items-center justify-center gap-1.5 w-full"><Lock className="w-3.5 h-3.5" /> El hilo está cerrado. Reábrelo para responder al profesor.</p>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex items-end gap-2">
               <textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Responder al profesor..."
                 rows={2}
-                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/20 focus:border-[#0B2C5F] resize-none transition-all placeholder:text-gray-400"
                 data-testid="tutor-reply-input"
               />
               <button
                 onClick={sendReply}
                 disabled={sending || !reply.trim()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg font-semibold flex items-center gap-1.5"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#0B2C5F] hover:bg-[#082046] disabled:bg-gray-200 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/30 active:scale-[0.95] transition-all flex-shrink-0"
                 data-testid="tutor-reply-btn"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
