@@ -704,22 +704,23 @@ function ObsStatusBadge({ value }) {
 
 function MiniStatPremium({ icon: Icon, label, value, accent }) {
   const accents = {
-    navy:    { iconBg: "bg-[#0B2C5F]/5",  iconColor: "text-[#0B2C5F]" },
-    amber:   { iconBg: "bg-amber-50",     iconColor: "text-amber-600" },
-    emerald: { iconBg: "bg-emerald-50",   iconColor: "text-emerald-600" },
-    blue:    { iconBg: "bg-blue-50",      iconColor: "text-blue-600" },
-    slate:   { iconBg: "bg-gray-100",     iconColor: "text-gray-500" },
+    indigo:  { bg: "bg-gradient-to-br from-indigo-50 to-white",     border: "border-indigo-100",  iconBg: "bg-indigo-500",   iconColor: "text-white", text: "text-indigo-950" },
+    amber:   { bg: "bg-gradient-to-br from-amber-50 to-white",      border: "border-amber-200",   iconBg: "bg-amber-500",    iconColor: "text-white", text: "text-amber-950" },
+    emerald: { bg: "bg-gradient-to-br from-emerald-50 to-white",    border: "border-emerald-100", iconBg: "bg-emerald-500",  iconColor: "text-white", text: "text-emerald-950" },
+    blue:    { bg: "bg-gradient-to-br from-sky-50 to-white",        border: "border-sky-100",     iconBg: "bg-sky-500",      iconColor: "text-white", text: "text-sky-950" },
+    rose:    { bg: "bg-gradient-to-br from-rose-50 to-white",       border: "border-rose-100",    iconBg: "bg-rose-500",     iconColor: "text-white", text: "text-rose-950" },
+    slate:   { bg: "bg-white",                                       border: "border-gray-200",    iconBg: "bg-gray-100",     iconColor: "text-gray-600", text: "text-gray-900" },
   };
   const a = accents[accent] || accents.slate;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5">
+    <div className={`relative overflow-hidden rounded-2xl border ${a.border} ${a.bg} p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500">{label}</p>
-          <p className="text-2xl font-semibold tracking-tight text-gray-900 tabular-nums">{value}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-600">{label}</p>
+          <p className={`text-2xl font-bold tracking-tight ${a.text} tabular-nums`}>{value}</p>
         </div>
-        <div className={`w-8 h-8 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`}>
-          <Icon className={`w-4 h-4 ${a.iconColor}`} strokeWidth={1.8} />
+        <div className={`w-8 h-8 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+          <Icon className={`w-4 h-4 ${a.iconColor}`} strokeWidth={2} />
         </div>
       </div>
     </div>
@@ -801,10 +802,10 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
     <div className="flex flex-col gap-5" data-testid="tutor-obs-inbox">
       {/* Mini-stats premium */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <MiniStatPremium icon={MessageSquare} label="Total" value={counts.total} accent="navy" />
-        <MiniStatPremium icon={Bell} label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "amber" : "slate"} />
+        <MiniStatPremium icon={MessageSquare} label="Total" value={counts.total} accent="indigo" />
+        <MiniStatPremium icon={Bell} label="Sin leer" value={counts.unread} accent={counts.unread > 0 ? "rose" : "slate"} />
         <MiniStatPremium icon={AlertCircle} label="Abiertos" value={counts.abierta} accent="emerald" />
-        <MiniStatPremium icon={Clock} label="En seguimiento" value={counts.en_seguimiento} accent="blue" />
+        <MiniStatPremium icon={Clock} label="En seguimiento" value={counts.en_seguimiento} accent="amber" />
         <MiniStatPremium icon={CheckCircle2} label="Cerrados" value={counts.cerrada} accent="slate" />
       </div>
 
@@ -858,8 +859,8 @@ function TutorObservationsInboxTab({ headers, sectionId, user }) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-dashed border-gray-300 p-16 text-center" data-testid="tutor-obs-empty">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#0B2C5F]/5 border border-[#0B2C5F]/10 flex items-center justify-center">
-            <Bell className="w-7 h-7 text-[#0B2C5F]" strokeWidth={1.6} />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#2563EB]/5 border border-[#2563EB]/10 flex items-center justify-center">
+            <Bell className="w-7 h-7 text-[#2563EB]" strokeWidth={1.6} />
           </div>
           <p className="text-base font-semibold text-gray-900 mb-1">No hay mensajes</p>
           <p className="text-sm text-gray-500 max-w-sm mx-auto">
@@ -894,21 +895,31 @@ function TutorObservationRow({ obs, onOpen }) {
   const unread = !obs.read_by_tutor_at;
   const isUrgent = obs.severity === "urgente";
   const initials = (obs.student?.full_name || "??").split(",").pop().trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const palette = [
+    "bg-gradient-to-br from-indigo-400 to-violet-500",
+    "bg-gradient-to-br from-sky-400 to-blue-500",
+    "bg-gradient-to-br from-emerald-400 to-teal-500",
+    "bg-gradient-to-br from-amber-400 to-orange-500",
+    "bg-gradient-to-br from-rose-400 to-pink-500",
+    "bg-gradient-to-br from-fuchsia-400 to-purple-500",
+  ];
+  const hash = (initials.charCodeAt(0) || 0) + (initials.charCodeAt(1) || 0);
+  const avatarBg = palette[hash % palette.length];
   return (
     <button
       onClick={onOpen}
-      className={`group relative w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-100 last:border-0 transition-colors duration-150 hover:bg-gray-50/70 ${isUrgent ? "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:bg-red-500 before:rounded-r-full" : ""}`}
+      className={`group relative w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-100 last:border-0 transition-colors duration-150 hover:bg-indigo-50/40 ${isUrgent ? "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:bg-gradient-to-b before:from-rose-500 before:to-red-500 before:rounded-r-full" : ""}`}
       data-testid={`tutor-obs-row-${obs.id}`}
     >
-      <div className="w-10 h-10 rounded-full bg-[#0B2C5F]/8 ring-1 ring-[#0B2C5F]/10 flex items-center justify-center text-[#0B2C5F] font-semibold text-xs flex-shrink-0 relative">
+      <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative shadow-sm ring-2 ring-white`}>
         {initials}
-        {unread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#0B2C5F] rounded-full ring-2 ring-white" />}
+        {unread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <p className={`truncate text-sm ${unread ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}>{obs.student?.full_name}</p>
           <span className="text-gray-300">·</span>
-          <p className="text-xs text-gray-500 truncate">mensaje de <span className="text-gray-700 font-medium">{obs.author_name}</span></p>
+          <p className="text-xs text-gray-500 truncate">mensaje de <span className="text-indigo-700 font-medium">{obs.author_name}</span></p>
         </div>
         <p className="text-sm text-gray-700 line-clamp-1 mb-2">{obs.title}</p>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -916,7 +927,7 @@ function TutorObservationRow({ obs, onOpen }) {
           <ObsSeverityBadge value={obs.severity} />
           <ObsStatusBadge value={obs.status} />
           {replies > 0 && (
-            <span className="text-[11px] text-gray-500 inline-flex items-center gap-1 ml-1">
+            <span className="text-[11px] text-indigo-600 font-medium inline-flex items-center gap-1 ml-1">
               <MessageSquare className="w-3 h-3" /> {replies}
             </span>
           )}
@@ -924,7 +935,7 @@ function TutorObservationRow({ obs, onOpen }) {
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0 pt-0.5">
         <p className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums">{new Date(obs.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}</p>
-        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors mt-1" />
+        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all mt-1" />
       </div>
     </button>
   );
@@ -961,9 +972,9 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={onClose} data-testid="tutor-detail-modal">
       <div className="bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100" onClick={(e) => e.stopPropagation()}>
-        <header className="px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+        <header className="px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-gradient-to-r from-indigo-50/80 via-white to-white z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-full bg-[#0B2C5F] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 shadow-sm ring-2 ring-white">
               {(obs.student?.full_name || "??").split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -1018,7 +1029,7 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
               <button
                 onClick={() => changeStatus("en_seguimiento")}
                 disabled={updatingStatus}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2C5F] hover:bg-[#082046] px-3 py-1.5 text-xs font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/40 active:scale-[0.98] transition-all"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] px-3 py-1.5 text-xs font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40 active:scale-[0.98] transition-all"
                 data-testid="tutor-status-reabrir"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Reabrir hilo
@@ -1037,7 +1048,7 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
                     <div key={msg.id} className={`flex gap-2 ${mine ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[78%] flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
                         <p className="text-[10px] font-medium text-gray-500 px-1">{mine ? "Tú" : msg.author_name}</p>
-                        <div className={`px-4 py-2.5 ${mine ? "bg-[#0B2C5F] text-white rounded-2xl rounded-tr-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-tl-md"} shadow-sm`}>
+                        <div className={`px-4 py-2.5 ${mine ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-2xl rounded-tr-md shadow-sm" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-tl-md shadow-sm"}`}>
                           <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                         </div>
                         <p className="text-[10px] text-gray-400 px-1 tabular-nums">{new Date(msg.ts).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
@@ -1060,13 +1071,13 @@ function TutorDetailModal({ obs: initial, headers, currentUserId, onClose, onUpd
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Responder al profesor..."
                 rows={2}
-                className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/20 focus:border-[#0B2C5F] resize-none transition-all placeholder:text-gray-400"
+                className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] resize-none transition-all placeholder:text-gray-400"
                 data-testid="tutor-reply-input"
               />
               <button
                 onClick={sendReply}
                 disabled={sending || !reply.trim()}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#0B2C5F] hover:bg-[#082046] disabled:bg-gray-200 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0B2C5F]/30 active:scale-[0.95] transition-all flex-shrink-0"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:from-gray-200 disabled:to-gray-200 disabled:shadow-none text-white shadow-md shadow-indigo-500/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 active:scale-[0.95] transition-all flex-shrink-0"
                 data-testid="tutor-reply-btn"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
