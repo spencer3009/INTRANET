@@ -1163,3 +1163,261 @@ async def export_consolidated_excel(section_id: str, period_id: str, current_use
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.spreadsheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DUPLICATE-DOCS MAINTENANCE (owner-only)
+# ──────────────────────────────────────────────────────────────────────────────
+# Toolkit to clean up historical duplicates in `student_grades` caused by
+# concurrent /save and /autosave inserts before a unique index existed.
+#
+# Three explicit steps, called manually by the school owner:
+#   1) GET  /api/grades/_maintenance/duplicates/scan        (read-only)
+#   2) POST /api/grades/_maintenance/duplicates/consolidate (dry_run=true by default)
+#   3) POST /api/grades/_maintenance/duplicates/create-index
+#
+# All operations are SCOPED to the caller's school_id. The consolidation
+# strategy merges non-null values across duplicates (preferring the most
+# recently updated value) before deleting the obsolete docs. No grade is
+# ever lost.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_DUP_GROUP_KEY = ["school_id", "student_id", "subject_id", "section_id", "period_id"]
+
+
+def _doc_score(doc: dict) -> tuple:
+    """Sort key — most recently updated wins, then most non-null grade fields."""
+    upd = doc.get("updated_at") or doc.get("created_at") or ""
+    non_null = sum(
+        1 for f in GRADE_SUB_FIELDS if doc.get(f) is not None
+    ) + len([k for k, v in (doc.get("grades_dynamic") or {}).items() if v is not None])
+    return (upd, non_null)
+
+
+def _merge_docs(docs: list) -> dict:
+    """Merge a list of duplicate docs into one canonical doc.
+
+    Strategy: start from the most recently updated doc, then fill any null
+    static field with a non-null value from the other docs. For grades_dynamic,
+    union all keys preferring values from the most recent doc.
+    Never overwrites an existing non-null value with another non-null value
+    unless the donor doc is strictly newer than the keeper.
+    """
+    if not docs:
+        return {}
+    # Sort newest first
+    ordered = sorted(docs, key=_doc_score, reverse=True)
+    keeper = dict(ordered[0])
+    keeper_grades_dyn = dict(keeper.get("grades_dynamic") or {})
+
+    for donor in ordered[1:]:
+        for f in GRADE_SUB_FIELDS:
+            if keeper.get(f) is None and donor.get(f) is not None:
+                keeper[f] = donor[f]
+        donor_gd = donor.get("grades_dynamic") or {}
+        for k, v in donor_gd.items():
+            if v is not None and keeper_grades_dyn.get(k) is None:
+                keeper_grades_dyn[k] = v
+    keeper["grades_dynamic"] = keeper_grades_dyn
+    return keeper
+
+
+async def _scan_duplicates_for_school(school_id: str) -> dict:
+    """Returns counts + sample groups of duplicate `student_grades` docs."""
+    pipeline = [
+        {"$match": {"school_id": school_id}},
+        {"$group": {
+            "_id": {k: f"${k}" for k in _DUP_GROUP_KEY},
+            "count": {"$sum": 1},
+            "doc_ids": {"$push": "$id"},
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$sort": {"count": -1}},
+    ]
+    groups = await db.student_grades.aggregate(pipeline).to_list(10000)
+    total_dup_docs = sum(g["count"] for g in groups)
+    extra_docs = sum(g["count"] - 1 for g in groups)  # how many would be deleted
+    sample = [
+        {
+            "student_id": g["_id"].get("student_id"),
+            "subject_id": g["_id"].get("subject_id"),
+            "section_id": g["_id"].get("section_id"),
+            "period_id": g["_id"].get("period_id"),
+            "count": g["count"],
+        }
+        for g in groups[:25]
+    ]
+    return {
+        "duplicate_groups": len(groups),
+        "total_duplicate_docs": total_dup_docs,
+        "docs_that_would_be_deleted": extra_docs,
+        "sample_groups": sample,
+    }
+
+
+@router.get("/grades/_maintenance/duplicates/scan")
+async def scan_duplicate_grades(current_user=Depends(get_current_user)):
+    """Read-only — counts duplicate `student_grades` docs for the caller's school."""
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in {"owner", "director"}:
+        raise HTTPException(403, "Sólo el owner/director puede ejecutar esta operación")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(400, "Tu usuario no tiene colegio asignado")
+    report = await _scan_duplicates_for_school(school_id)
+    logger.info(f"[GRADES MAINT] scan school={school_id} groups={report['duplicate_groups']} docs_to_delete={report['docs_that_would_be_deleted']}")
+    return report
+
+
+class ConsolidateRequest(BaseModel):
+    dry_run: bool = True
+    confirm_token: Optional[str] = None  # required when dry_run=false
+
+
+@router.post("/grades/_maintenance/duplicates/consolidate")
+async def consolidate_duplicate_grades(payload: ConsolidateRequest, current_user=Depends(get_current_user)):
+    """Merge duplicates into one canonical doc per group, then delete the rest.
+
+    Default behaviour: dry_run=true → reports what WOULD happen, changes nothing.
+    To actually run: dry_run=false AND confirm_token="CONSOLIDATE_<school_id>".
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in {"owner", "director"}:
+        raise HTTPException(403, "Sólo el owner/director puede ejecutar esta operación")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(400, "Tu usuario no tiene colegio asignado")
+
+    pipeline = [
+        {"$match": {"school_id": school_id}},
+        {"$group": {
+            "_id": {k: f"${k}" for k in _DUP_GROUP_KEY},
+            "count": {"$sum": 1},
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+    ]
+    groups = await db.student_grades.aggregate(pipeline).to_list(10000)
+
+    expected_token = f"CONSOLIDATE_{school_id}"
+    will_execute = (not payload.dry_run) and payload.confirm_token == expected_token
+
+    if (not payload.dry_run) and not will_execute:
+        raise HTTPException(
+            400,
+            f"Para ejecutar la consolidación pasá confirm_token='{expected_token}' (dry_run=false)"
+        )
+
+    summary = {
+        "mode": "execute" if will_execute else "dry_run",
+        "duplicate_groups_found": len(groups),
+        "groups_processed": 0,
+        "docs_kept": 0,
+        "docs_deleted": 0,
+        "groups_with_value_merges": 0,
+        "errors": [],
+    }
+
+    for g in groups:
+        flt = g["_id"]
+        try:
+            docs = await db.student_grades.find(flt, {"_id": 0}).to_list(20)
+            if len(docs) < 2:
+                continue
+            merged = _merge_docs(docs)
+            # Detect merges that actually pulled values from non-keeper docs
+            ordered = sorted(docs, key=_doc_score, reverse=True)
+            keeper_original = ordered[0]
+            value_merge = False
+            for f in GRADE_SUB_FIELDS:
+                if (keeper_original.get(f) is None) and (merged.get(f) is not None):
+                    value_merge = True
+                    break
+            if not value_merge:
+                ko_gd = keeper_original.get("grades_dynamic") or {}
+                m_gd = merged.get("grades_dynamic") or {}
+                for k, v in m_gd.items():
+                    if ko_gd.get(k) is None and v is not None:
+                        value_merge = True
+                        break
+            if value_merge:
+                summary["groups_with_value_merges"] += 1
+
+            summary["groups_processed"] += 1
+            summary["docs_kept"] += 1
+            summary["docs_deleted"] += len(docs) - 1
+
+            if will_execute:
+                keeper_id = keeper_original.get("id")
+                # Apply merged values to the keeper doc
+                update_doc = {f: merged.get(f) for f in GRADE_SUB_FIELDS}
+                update_doc["grades_dynamic"] = merged.get("grades_dynamic") or {}
+                update_doc["final_grade"] = merged.get("final_grade")
+                update_doc["updated_at"] = now_iso()
+                update_doc["updated_by"] = user["id"]
+                await db.student_grades.update_one({"id": keeper_id}, {"$set": update_doc})
+                # Delete the obsolete duplicates
+                other_ids = [d.get("id") for d in docs if d.get("id") and d.get("id") != keeper_id]
+                if other_ids:
+                    await db.student_grades.delete_many({"id": {"$in": other_ids}})
+        except Exception as e:
+            logger.exception(f"[GRADES MAINT] error procesando grupo {flt}: {e}")
+            summary["errors"].append({"group": flt, "error": str(e)[:200]})
+
+    logger.info(f"[GRADES MAINT] consolidate school={school_id} mode={summary['mode']} groups={summary['groups_processed']} deleted={summary['docs_deleted']}")
+    if will_execute and not summary["errors"]:
+        # Verify: count remaining duplicate groups after the operation
+        verify = await _scan_duplicates_for_school(school_id)
+        summary["after_remaining_duplicate_groups"] = verify["duplicate_groups"]
+    return summary
+
+
+@router.post("/grades/_maintenance/duplicates/create-index")
+async def create_unique_grades_index(current_user=Depends(get_current_user)):
+    """Creates the unique index that prevents future duplicates.
+
+    Refuses to create the index if duplicate groups still exist (Mongo would
+    fail anyway). Run /consolidate first, then this.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in {"owner", "director"}:
+        raise HTTPException(403, "Sólo el owner/director puede ejecutar esta operación")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(400, "Tu usuario no tiene colegio asignado")
+
+    # Safety: verify no duplicates remain (en este colegio o globalmente)
+    global_check = await db.student_grades.aggregate([
+        {"$group": {"_id": {k: f"${k}" for k in _DUP_GROUP_KEY}, "count": {"$sum": 1}}},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$limit": 1},
+    ]).to_list(1)
+    if global_check:
+        raise HTTPException(
+            409,
+            "Aún quedan duplicados en student_grades (posiblemente de otro colegio). "
+            "El índice único no puede crearse hasta que se consoliden todos."
+        )
+
+    index_name = "uniq_grades_school_student_subject_section_period"
+    try:
+        existing = await db.student_grades.index_information()
+        if index_name in existing:
+            return {"created": False, "reason": "already_exists", "index_name": index_name}
+        await db.student_grades.create_index(
+            [
+                ("school_id", 1),
+                ("student_id", 1),
+                ("subject_id", 1),
+                ("section_id", 1),
+                ("period_id", 1),
+            ],
+            unique=True,
+            name=index_name,
+            background=True,
+        )
+        logger.info(f"[GRADES MAINT] unique index created: {index_name} (requested by school={school_id})")
+        return {"created": True, "index_name": index_name}
+    except Exception as e:
+        logger.exception(f"[GRADES MAINT] create-index falló: {e}")
+        raise HTTPException(500, f"No se pudo crear el índice: {str(e)[:200]}")
+
