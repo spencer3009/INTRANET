@@ -66,8 +66,11 @@
 .lr-grades td.lr-area { background: #fff; font-weight: bold; vertical-align: middle; }
 .lr-grades td.lr-asig { text-align: left; padding-left: 6px; }
 .lr-grades td.lr-asig.lr-prom-area { font-weight: bold; }
-.lr-grades td.lr-grade { color: #c00; font-weight: normal; }
-.lr-grades td.lr-grade-final { color: #c00; font-weight: bold; }
+/* Letter grades: AD/A/B render blue; C renders red via .is-c modifier */
+.lr-grades td.lr-grade { color: #1d4ed8; font-weight: normal; }
+.lr-grades td.lr-grade-final { color: #1d4ed8; font-weight: bold; }
+.lr-grades td.lr-grade.is-c,
+.lr-grades td.lr-grade-final.is-c { color: #c00; }
 .lr-grades tr.lr-prom-row td { font-weight: bold; }
 .lr-grades .lr-col-areas { width: 22%; }
 .lr-grades .lr-col-asig { width: 30%; }
@@ -75,7 +78,7 @@
 .lr-grades .lr-col-final { width: 8%; }
 
 /* Inline editor inside grades cell (conducta select) */
-.lr-grades select, .lr-info select { font: inherit; color: #c00; border: 0; background: transparent; text-align: center; width: 100%; }
+.lr-grades select, .lr-info select { font: inherit; color: #1d4ed8; border: 0; background: transparent; text-align: center; width: 100%; }
 
 /* ── Info tables grid ── */
 .lr-info-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }

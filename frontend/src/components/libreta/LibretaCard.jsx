@@ -11,6 +11,10 @@ const LETRAS = ["AD", "A", "B", "C"];
 
 const romano = (n) => (n === 1 ? "I" : n === 2 ? "II" : n === 3 ? "III" : n === 4 ? "IV" : String(n));
 
+// Letter grades render blue by default (AD/A/B). "C" renders red.
+// Returns the CSS modifier class to merge onto .lr-grade / .lr-grade-final.
+const letterModifier = (letter) => ((letter || "").toUpperCase() === "C" ? "is-c" : "");
+
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
@@ -128,9 +132,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold" }}>{area.name}</td>
             {periods.map(p => {
               const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className="lr-grade">{cell.letter || "-"}</td>;
+              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
             })}
-            <td className="lr-grade-final">{s.promedio_final?.letter || "-"}</td>
+            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
           </tr>
         );
       }
@@ -141,9 +145,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           <td className="lr-asig">{s.name}</td>
           {periods.map(p => {
             const cell = s.grades?.[p.id] || {};
-            return <td key={p.id} className="lr-grade">{cell.letter || "-"}</td>;
+            return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
           })}
-          <td className="lr-grade-final">{s.promedio_final?.letter || "-"}</td>
+          <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
         </tr>
       );
     }
@@ -159,18 +163,18 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             <td className="lr-asig">{s.name}</td>
             {periods.map(p => {
               const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className="lr-grade">{cell.letter || "-"}</td>;
+              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
             })}
-            <td className="lr-grade-final">{s.promedio_final?.letter || "-"}</td>
+            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
           </tr>
         ))}
         <tr className="lr-prom-row">
           <td className="lr-asig lr-prom-area">Promedio Área:</td>
           {periods.map(p => {
             const av = area.promedio_area?.[p.id] || {};
-            return <td key={p.id} className="lr-grade" style={{ fontWeight: "bold" }}>{av.letter || "-"}</td>;
+            return <td key={p.id} className={`lr-grade ${letterModifier(av.letter)}`} style={{ fontWeight: "bold" }}>{av.letter || "-"}</td>;
           })}
-          <td className="lr-grade-final">{area.promedio_area?.final?.letter || "-"}</td>
+          <td className={`lr-grade-final ${letterModifier(area.promedio_area?.final?.letter)}`}>{area.promedio_area?.final?.letter || "-"}</td>
         </tr>
       </Fragment>
     );
