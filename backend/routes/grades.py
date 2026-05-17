@@ -397,14 +397,41 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
 
         set_payload.update(grade_data)
 
-        await db.student_grades.update_one(
-            {
-                "school_id": school_id,
-                "student_id": entry.student_id,
-                "subject_id": data.subject_id,
-                "section_id": data.section_id,
-                "period_id": data.period_id,
-            },
+        # Defensive (Feb 2026): Some students may have multiple `student_grades`
+        # docs for the same (school_id, student_id, subject_id, section_id,
+        # period_id) tuple — likely caused by historical races between
+        # `/save` and `/autosave` running concurrently without a unique index.
+        # `update_one` would only touch ONE of those duplicates; the GET
+        # endpoint would then read whichever doc the dict-comprehension
+        # `{g["student_id"]: g for g in grades}` happened to keep last,
+        # producing the silent "save returns 200 but value not persisted"
+        # bug reported in production for puntual students.
+        #
+        # Fix: use `update_many` so ALL duplicate docs get the same `$set`
+        # payload. Idempotent — no data destroyed, no schema change.
+        # If duplicates are detected, log a warning so they can be cleaned
+        # offline at a later time.
+        filter_query = {
+            "school_id": school_id,
+            "student_id": entry.student_id,
+            "subject_id": data.subject_id,
+            "section_id": data.section_id,
+            "period_id": data.period_id,
+        }
+        try:
+            existing_count = await db.student_grades.count_documents(filter_query, limit=2)
+            if existing_count > 1:
+                logger.warning(
+                    f"[GRADES SAVE] duplicate student_grades docs detected (count>=2): "
+                    f"student={entry.student_id} subject={data.subject_id} "
+                    f"section={data.section_id} period={data.period_id}"
+                )
+        except Exception:
+            # Count is best-effort; never block the save on telemetry.
+            pass
+
+        await db.student_grades.update_many(
+            filter_query,
             {
                 "$set": set_payload,
                 "$setOnInsert": {
