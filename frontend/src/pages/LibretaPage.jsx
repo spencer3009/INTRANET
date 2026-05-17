@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { ChevronLeft, Printer, AlertTriangle, Loader2 } from "lucide-react";
+import { ChevronLeft, Printer, Download, AlertTriangle, Loader2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import LibretaCard from "@/components/libreta/LibretaCard";
+import { downloadLibretaPdf, safeFilename } from "@/utils/libretaPdf";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -83,6 +84,24 @@ export default function LibretaPage({ user, token, onLogout }) {
     pageStyle: `@page { size: A4; margin: 10mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`,
   });
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const handleDownloadPdf = async () => {
+    if (!printRef.current) return;
+    setDownloadingPdf(true);
+    try {
+      const stuLast = safeFilename(data?.student?.last_name || data?.student?.apellidos || "");
+      const stuName = safeFilename(data?.student?.name || data?.student?.nombres || "");
+      const pname = safeFilename(data?.period_requested?.nombre || data?.period_active?.nombre || "anual");
+      const filename = `Libreta_${stuLast}_${stuName}_${pname}.pdf`;
+      await downloadLibretaPdf(printRef.current, filename);
+      toast.success("PDF descargado");
+    } catch (e) {
+      toast.error("No se pudo generar el PDF. Reintentá.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8" data-testid="libreta-loading">
@@ -137,12 +156,22 @@ export default function LibretaPage({ user, token, onLogout }) {
         <Link to={`/libreta/${student_id}`} className="text-xs text-slate-500 hover:underline">Limpiar filtro</Link>
         <div className="flex-1" />
         <button
-          onClick={handlePrint}
-          className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium flex items-center gap-1.5 transition-colors"
+          onClick={handleDownloadPdf}
+          disabled={downloadingPdf}
+          className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-sm font-medium flex items-center gap-1.5 transition-colors"
           title="Descargar la libreta como PDF"
+          data-testid="libreta-download-pdf-btn"
+        >
+          {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {downloadingPdf ? "Generando…" : "Descargar PDF"}
+        </button>
+        <button
+          onClick={handlePrint}
+          className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium flex items-center gap-1.5 transition-colors"
+          title="Abrir diálogo de impresión"
           data-testid="libreta-pdf-btn"
         >
-          <Printer className="w-4 h-4" /> Descargar PDF
+          <Printer className="w-4 h-4" /> Imprimir
         </button>
       </div>
 

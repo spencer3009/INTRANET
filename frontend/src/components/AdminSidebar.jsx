@@ -27,7 +27,8 @@ import {
   ChevronRight,
   Video,
   HeartPulse,
-  Archive
+  Archive,
+  Download,
 } from "lucide-react";
 
 // Admin Navigation Structure - Organized by logical sections
@@ -56,6 +57,7 @@ const NAV_SECTIONS = [
     label: "GESTIÓN ACADÉMICA",
     items: [
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
+      { id: "libretas-bulk", label: "Descarga de libretas", icon: Download, route: "/admin/libretas-bulk", ownerOrAdmin: true },
       { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/admin/attendance" },
       { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/tasks" },
       { id: "examenes", label: "Exámenes Online", icon: FileEdit, route: "/admin/exams" },
@@ -203,7 +205,11 @@ export default function AdminSidebar({
             
             {/* Section Items */}
             <div className={`space-y-1 ${isExpanded && !expandedSections.includes(section.id) ? 'hidden' : ''}`}>
-              {section.items.filter(item => !item.ownerOnly || user?.role === "owner").map((item) => {
+              {section.items.filter(item => {
+                if (item.ownerOnly && user?.role !== "owner") return false;
+                if (item.ownerOrAdmin && user?.role !== "owner" && user?.role !== "admin") return false;
+                return true;
+              }).map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.route);
                 
