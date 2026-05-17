@@ -700,35 +700,41 @@ function ComposerModal({ headers, onClose, onCreated, prefill }) {
             />
           </div>
 
-          {/* Asunto — ghost input estilo Notion */}
-          <div className="pt-2 border-t border-gray-100">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              placeholder="Asunto del mensaje..."
-              className="w-full bg-transparent text-2xl font-semibold tracking-tight text-gray-900 placeholder:text-gray-300 focus:outline-none border-0"
-              data-testid="composer-title"
-            />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-[11px] text-gray-400">Sé claro y breve — ej: &ldquo;No trajo el material de matemáticas&rdquo;</p>
-              <p className="text-[11px] text-gray-400 tabular-nums">{title.length}/200</p>
+          {/* Asunto — input outlined premium */}
+          <div className="pt-2">
+            <label htmlFor="composer-title" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 mb-2 block">Asunto</label>
+            <div className="relative group">
+              <input
+                id="composer-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={200}
+                placeholder="Asunto del mensaje..."
+                className="w-full h-11 px-4 pr-16 bg-white text-[15px] font-medium text-gray-900 placeholder:text-gray-400 placeholder:font-normal rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                data-testid="composer-title"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400 tabular-nums pointer-events-none">{title.length}/200</span>
             </div>
+            <p className="text-[11px] text-gray-500 mt-1.5 ml-0.5">Sé claro y breve — ej: &ldquo;No trajo el material de matemáticas&rdquo;</p>
           </div>
 
-          {/* Mensaje — ghost textarea */}
+          {/* Mensaje — textarea outlined premium */}
           <div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={4000}
-              rows={6}
-              placeholder="Escribe tu mensaje al tutor. Incluye contexto, qué pasó y qué acción tomaste si la hubo..."
-              className="w-full bg-transparent text-base text-gray-700 placeholder:text-gray-400 focus:outline-none border-0 resize-none leading-relaxed min-h-[140px]"
-              data-testid="composer-description"
-            />
-            <p className="text-[11px] text-gray-400 tabular-nums text-right">{description.length}/4000</p>
+            <label htmlFor="composer-description" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 mb-2 block">Mensaje</label>
+            <div className="relative group">
+              <textarea
+                id="composer-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={4000}
+                rows={6}
+                placeholder="Escribe tu mensaje al tutor. Incluye contexto, qué pasó y qué acción tomaste si la hubo..."
+                className="w-full px-4 py-3 pb-7 bg-white text-[14px] text-gray-800 placeholder:text-gray-400 rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none leading-relaxed min-h-[160px] transition-all"
+                data-testid="composer-description"
+              />
+              <span className="absolute right-3 bottom-2.5 text-[11px] text-gray-400 tabular-nums pointer-events-none bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded">{description.length}/4000</span>
+            </div>
           </div>
         </div>
 
