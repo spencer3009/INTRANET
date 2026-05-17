@@ -67,18 +67,30 @@ class StatusIn(BaseModel):
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 async def _resolve_tutor_for_section(school_id: str, section_id: str):
-    """Retorna el doc de usuario del tutor activo de la sección, o None."""
-    asg = await db.academic_assignments.find_one(
-        {"school_id": school_id, "section_id": section_id, "role": "tutor", "status": "activo"},
-        {"_id": 0, "teacher_id": 1}
-    )
-    if not asg:
+    """Retorna el doc de usuario del tutor activo de la sección, o None.
+
+    Defensivo: tolera school_id/section_id vacíos, asignaciones sin teacher_id,
+    y usuarios huérfanos o sin id.
+    """
+    if not school_id or not section_id:
         return None
-    tutor = await db.users.find_one(
-        {"id": asg["teacher_id"]},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1, "photo_url": 1}
-    )
-    return tutor
+    try:
+        asg = await db.academic_assignments.find_one(
+            {"school_id": school_id, "section_id": section_id, "role": "tutor", "status": "activo"},
+            {"_id": 0, "teacher_id": 1}
+        )
+        if not asg or not asg.get("teacher_id"):
+            return None
+        tutor = await db.users.find_one(
+            {"id": asg.get("teacher_id")},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1, "photo_url": 1}
+        )
+        if not tutor or not tutor.get("id"):
+            return None
+        return tutor
+    except Exception as e:
+        logger.exception(f"[OBS] _resolve_tutor_for_section falló (school={school_id}, section={section_id}): {e}")
+        return None
 
 
 def _full_name(u: dict) -> str:
@@ -168,57 +180,80 @@ async def _send_urgent_push_to_tutor(tutor_id: str, observation: dict, school_id
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/teacher/students-with-tutor")
 async def list_my_students_with_tutor(current_user=Depends(get_current_user)):
+    """Devuelve los alumnos a los que el profesor enseña, con info del tutor de su sección.
+
+    Defensivo: usa .get() para evitar KeyError en docs incompletos; envuelve toda
+    la lógica en try/except con logging para diagnosticar HTTP 500 en producción.
+    """
     current_user = await _require_user(current_user)
-    """Devuelve los alumnos a los que el profesor enseña, con info del tutor de su sección."""
-    school_id = current_user["school_id"]
-    teacher_id = current_user["id"]
+    school_id = (current_user or {}).get("school_id")
+    teacher_id = (current_user or {}).get("id")
+    if not school_id or not teacher_id:
+        logger.warning(f"[OBS] students-with-tutor: usuario sin school_id/id (user={current_user})")
+        raise HTTPException(401, "Sesión inválida o usuario sin colegio asignado")
 
-    # Secciones donde el profesor enseña (cualquier asignación con subject_id)
-    asg = await db.academic_assignments.find(
-        {"school_id": school_id, "teacher_id": teacher_id, "subject_id": {"$ne": None}, "status": {"$ne": "inactivo"}},
-        {"_id": 0, "section_id": 1}
-    ).to_list(500)
-    section_ids = list({a["section_id"] for a in asg if a.get("section_id")})
-    if not section_ids:
-        return {"students": []}
+    try:
+        # Secciones donde el profesor enseña (cualquier asignación con subject_id)
+        asg = await db.academic_assignments.find(
+            {"school_id": school_id, "teacher_id": teacher_id, "subject_id": {"$ne": None}, "status": {"$ne": "inactivo"}},
+            {"_id": 0, "section_id": 1}
+        ).to_list(500)
+        section_ids = list({a.get("section_id") for a in (asg or []) if a and a.get("section_id")})
+        logger.info(f"[OBS] students-with-tutor: school={school_id} teacher={teacher_id} sections={len(section_ids)}")
+        if not section_ids:
+            return {"students": []}
 
-    # Cargar alumnos de esas secciones
-    students = await db.users.find(
-        {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_deleted": {"$ne": True}},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "seccion_id": 1, "grado_id": 1, "nivel_id": 1}
-    ).to_list(2000)
+        # Cargar alumnos de esas secciones
+        students = await db.users.find(
+            {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_deleted": {"$ne": True}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "seccion_id": 1, "grado_id": 1, "nivel_id": 1}
+        ).to_list(2000)
+        students = [s for s in (students or []) if s and s.get("id")]
 
-    # Pre-cargar tutor por sección
-    tutors_by_section: dict = {}
-    for sid in section_ids:
-        tutors_by_section[sid] = await _resolve_tutor_for_section(school_id, sid)
+        # Pre-cargar tutor por sección
+        tutors_by_section: dict = {}
+        for sid in section_ids:
+            try:
+                tutors_by_section[sid] = await _resolve_tutor_for_section(school_id, sid)
+            except Exception as e:
+                logger.exception(f"[OBS] error resolviendo tutor para section={sid}: {e}")
+                tutors_by_section[sid] = None
 
-    # Pre-cargar nombres de grado/sección
-    grades = {g["id"]: g["nombre"] for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)}
-    sections = {s["id"]: s["nombre"] for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)}
+        # Pre-cargar nombres de grado/sección (defensivo ante docs sin id/nombre)
+        grades_docs = await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)
+        grades = {g.get("id"): g.get("nombre") for g in (grades_docs or []) if g and g.get("id")}
+        sections_docs = await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)
+        sections = {s.get("id"): s.get("nombre") for s in (sections_docs or []) if s and s.get("id")}
 
-    out = []
-    for s in students:
-        tutor = tutors_by_section.get(s.get("seccion_id"))
-        # Excluir alumnos donde el profesor ES el tutor (no se reporta a sí mismo)
-        if tutor and tutor.get("id") == teacher_id:
-            tutor_info = {"id": tutor["id"], "name": _full_name(tutor), "self": True}
-        elif tutor:
-            tutor_info = {"id": tutor["id"], "name": _full_name(tutor), "self": False}
-        else:
-            tutor_info = None
-        out.append({
-            "id": s["id"],
-            "full_name": _full_name(s),
-            "photo_url": s.get("photo_url"),
-            "grade_name": grades.get(s.get("grado_id")),
-            "section_name": sections.get(s.get("seccion_id")),
-            "section_id": s.get("seccion_id"),
-            "tutor": tutor_info,
-        })
-    # Ordenar por sección + apellido
-    out.sort(key=lambda x: (x.get("section_name") or "", x.get("full_name") or ""))
-    return {"students": out}
+        out = []
+        for s in students:
+            sid = s.get("seccion_id")
+            tutor = tutors_by_section.get(sid) if sid else None
+            tutor_id = tutor.get("id") if tutor else None
+            # Excluir alumnos donde el profesor ES el tutor (no se reporta a sí mismo)
+            if tutor and tutor_id and tutor_id == teacher_id:
+                tutor_info = {"id": tutor_id, "name": _full_name(tutor), "self": True}
+            elif tutor and tutor_id:
+                tutor_info = {"id": tutor_id, "name": _full_name(tutor), "self": False}
+            else:
+                tutor_info = None
+            out.append({
+                "id": s.get("id"),
+                "full_name": _full_name(s),
+                "photo_url": s.get("photo_url"),
+                "grade_name": grades.get(s.get("grado_id")),
+                "section_name": sections.get(sid),
+                "section_id": sid,
+                "tutor": tutor_info,
+            })
+        # Ordenar por sección + apellido (tolerante a None)
+        out.sort(key=lambda x: ((x.get("section_name") or ""), (x.get("full_name") or "")))
+        return {"students": out}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"[OBS] students-with-tutor falló inesperadamente (school={school_id}, teacher={teacher_id}): {e}")
+        raise HTTPException(500, "No fue posible cargar la lista de alumnos. Intenta de nuevo en unos momentos.")
 
 
 @router.get("/teacher/my-tutors")
