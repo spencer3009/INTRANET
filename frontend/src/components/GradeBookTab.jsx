@@ -9,6 +9,7 @@ import {
   calcularPromedioBimestral,
   calcularPromedioCriterio,
   getGradeValue,
+  isStaticSubcolumn,
 } from "../utils/registroAuxiliarUtils";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -208,10 +209,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   }, [dirty, students]);
 
   /* ── Grade change handler ──
-     `sub` can be either a subcolumna or a columna_final — both carry
-     `id` and optionally `field_key`. We route the write to the static
-     field when `field_key` exists, otherwise to `grades_dynamic[sub.id]`
-     so notes attached to a custom-template column (Phase 5) persist. */
+     Routing rule (must match getGradeValue / handleSave):
+     - Static subcolumn (legacy slot in STATIC_GRADE_FIELDS): write to top-level
+       field on the student row.
+     - Otherwise (custom plantilla — `field_key` may be UUID-style and equal to
+       `id`, or absent): write to `grades_dynamic[<field_key|id>]`. */
   const handleGradeChange = useCallback((idx, sub, value) => {
     if (status !== "open") return;
     const max = plantilla?.escala_maxima || 20;
@@ -220,11 +222,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     setStudents(prev => {
       const updated = [...prev];
       const row = { ...updated[idx] };
-      if (sub.field_key) {
+      if (isStaticSubcolumn(sub)) {
         row[sub.field_key] = val;
       } else {
-        // Dynamic (custom template) — store under grades_dynamic.<id>
-        row.grades_dynamic = { ...(row.grades_dynamic || {}), [sub.id]: val };
+        const dynKey = sub.field_key || sub.id;
+        row.grades_dynamic = { ...(row.grades_dynamic || {}), [dynKey]: val };
       }
       row.final_grade = calcularPromedioBimestral(row, plantilla);
       updated[idx] = row;
@@ -238,28 +240,31 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     if (!selectedPeriod || students.length === 0 || !plantilla) return;
     setSaving(true);
     try {
+      // Build the payload by iterating the full plantilla so EVERY visible
+      // cell (including ones that started empty and were just filled) makes
+      // it into the request. Routing must match handleGradeChange exactly.
       const grades = students.map(s => {
         const entry = { student_id: s.student_id };
         const dynamicEntry = {};
+        const writeSub = (sub) => {
+          if (isStaticSubcolumn(sub)) {
+            // Legacy slot: send even when null so the backend can clear it.
+            entry[sub.field_key] = s[sub.field_key] ?? null;
+          } else {
+            const dynKey = sub.field_key || sub.id;
+            const val = s.grades_dynamic?.[dynKey];
+            // Send `null` to clear; only skip when truly never touched.
+            if (val !== undefined) dynamicEntry[dynKey] = val;
+          }
+        };
         for (const criterio of plantilla.criterios) {
           for (const sub of criterio.subcolumnas) {
             if (sub.tipo !== "input") continue;
-            if (sub.field_key) {
-              entry[sub.field_key] = s[sub.field_key];
-            } else {
-              // Phase 5 — column belongs to a custom template
-              const val = s.grades_dynamic?.[sub.id];
-              if (val !== undefined) dynamicEntry[sub.id] = val;
-            }
+            writeSub(sub);
           }
         }
         for (const col of plantilla.columnas_finales) {
-          if (col.field_key) {
-            entry[col.field_key] = s[col.field_key];
-          } else {
-            const val = s.grades_dynamic?.[col.id];
-            if (val !== undefined) dynamicEntry[col.id] = val;
-          }
+          writeSub(col);
         }
         if (Object.keys(dynamicEntry).length > 0) {
           entry.grades_dynamic = dynamicEntry;
