@@ -19,7 +19,6 @@ import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
 import LibretaPage from "@/pages/LibretaPage";
-import BulkLibretaDownloadPage from "@/pages/BulkLibretaDownloadPage";
 import MisTutoriasPage from "@/pages/MisTutoriasPage";
 import AcademicYearsPage from "@/pages/AcademicYearsPage";
 import SubjectsPage from "@/pages/SubjectsPage";
@@ -2666,15 +2665,6 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <LibretaPage user={user} token={token} onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          />
-          {/* Descarga masiva de libretas — owner/admin (página gestiona su propio gate) */}
-          <Route
-            path="/:subdomain/admin/libretas-bulk"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <BulkLibretaDownloadPage user={user} token={token} />
               </ProtectedRoute>
             }
           />

@@ -7,6 +7,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import RightDrawer from "@/components/RightDrawer";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
+import BulkLibretaZipButton from "@/components/libreta/BulkLibretaZipButton";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -198,6 +199,22 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                   >
                     <FileSpreadsheet className="w-4 h-4" /> Descargar Excel
                   </button>
+                )}
+                {data && (user?.role === "owner" || user?.role === "admin") && (
+                  <BulkLibretaZipButton
+                    sectionId={selectedSection}
+                    periodId={selectedPeriod}
+                    headers={headers}
+                    token={token}
+                    user={user}
+                    labels={{
+                      level: levels.find(l => l.id === selectedLevel)?.nombre,
+                      grade: grades.find(g => g.id === selectedGrade)?.nombre,
+                      section: sections.find(s => s.id === selectedSection)?.nombre,
+                      period: periods.find(p => p.id === selectedPeriod)?.nombre,
+                    }}
+                    size="md"
+                  />
                 )}
               </div>
             </div>

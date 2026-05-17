@@ -18,6 +18,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import BulkLibretaZipButton from "@/components/libreta/BulkLibretaZipButton";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -137,6 +138,7 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
       <SectionDashboard
         user={user}
         headers={headers}
+        token={token}
         section={selectedSection}
         periods={periods}
         selectedPeriodId={selectedPeriodId}
@@ -228,7 +230,7 @@ function SectionCardsGrid({ sections, onPick, fullLabel }) {
 // ════════════════════════════════════════════════════════════════════════════
 // 2) DASHBOARD DE SECCIÓN — Header + Tabs
 // ════════════════════════════════════════════════════════════════════════════
-function SectionDashboard({ user, headers, section, periods, selectedPeriodId, onChangePeriod, activeTab, onSwitchTab, onBack }) {
+function SectionDashboard({ user, headers, token, section, periods, selectedPeriodId, onChangePeriod, activeTab, onSwitchTab, onBack }) {
   return (
     <div className="space-y-4">
       {/* Encabezado del salón */}
@@ -282,7 +284,7 @@ function SectionDashboard({ user, headers, section, periods, selectedPeriodId, o
           <ConsolidatedTab headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
         )}
         {activeTab === "libretas" && (
-          <LibretasTab user={user} headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
+          <LibretasTab user={user} headers={headers} token={token} sectionId={section.section_id} periodId={selectedPeriodId} />
         )}
       </div>
     </div>
@@ -582,7 +584,7 @@ function ConsolidatedTab({ headers, sectionId, periodId }) {
 // ════════════════════════════════════════════════════════════════════════════
 // TAB 3 — Libretas individuales
 // ════════════════════════════════════════════════════════════════════════════
-function LibretasTab({ user, headers, sectionId, periodId }) {
+function LibretasTab({ user, headers, token, sectionId, periodId }) {
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState([]);
 
@@ -620,7 +622,18 @@ function LibretasTab({ user, headers, sectionId, periodId }) {
   }
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4" data-testid="libretas-grid">
-      <p className="text-xs text-slate-500 mb-3 px-1">Haz clic en una tarjeta para abrir la libreta completa del alumno en una pestaña nueva.</p>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3 px-1">
+        <p className="text-xs text-slate-500">Haz clic en una tarjeta para abrir la libreta completa del alumno en una pestaña nueva.</p>
+        <BulkLibretaZipButton
+          sectionId={sectionId}
+          periodId={periodId}
+          headers={headers}
+          token={token}
+          user={user}
+          labels={{ section: "Mi seccion", period: "Bimestre" }}
+          size="sm"
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {students.map(st => {
           const initials = (st.student_name || "??").split(",").pop().trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();

@@ -28,7 +28,6 @@ import {
   Video,
   HeartPulse,
   Archive,
-  Download,
 } from "lucide-react";
 
 // Admin Navigation Structure - Organized by logical sections
@@ -57,7 +56,6 @@ const NAV_SECTIONS = [
     label: "GESTIÓN ACADÉMICA",
     items: [
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
-      { id: "libretas-bulk", label: "Descarga de libretas", icon: Download, route: "/admin/libretas-bulk", ownerOrAdmin: true },
       { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/admin/attendance" },
       { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/tasks" },
       { id: "examenes", label: "Exámenes Online", icon: FileEdit, route: "/admin/exams" },
