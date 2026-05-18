@@ -7538,6 +7538,19 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
       setConfirmAction(null);
     }
   };
+
+  const handleReopen = async (exam) => {
+    setActionLoading(true);
+    try {
+      await axios.post(`${API}/exams/${exam.id}/reopen`, {}, { headers });
+      loadExams();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al reabrir");
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
   
   const handleDelete = async (exam) => {
     setActionLoading(true);
@@ -7803,6 +7816,18 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
                         <span className="hidden sm:inline">Cerrar</span>
                       </button>
                     )}
+
+                    {exam.status === 'closed' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'reopen', exam }); }}
+                        className="px-2.5 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 transition-colors flex items-center gap-1"
+                        title="Reabrir examen"
+                        data-testid={`reopen-exam-btn-${exam.id}`}
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        <span className="hidden sm:inline">Reabrir</span>
+                      </button>
+                    )}
                     
                     <button
                       onClick={(e) => { e.stopPropagation(); setCloneExam(exam); }}
@@ -7857,6 +7882,16 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
         message="Los estudiantes ya no podrán acceder al examen. Esta acción no se puede deshacer."
         confirmText="Cerrar examen"
         confirmColor="amber"
+      />
+
+      <ConfirmExamModal
+        isOpen={confirmAction?.type === 'reopen'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => handleReopen(confirmAction?.exam)}
+        title="¿Reabrir examen?"
+        message="El examen volverá al estado publicado y los estudiantes podrán acceder de nuevo. Los intentos previos no se modifican."
+        confirmText="Reabrir"
+        confirmColor="green"
       />
       
       <ConfirmExamModal

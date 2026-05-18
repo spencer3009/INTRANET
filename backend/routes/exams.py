@@ -1049,6 +1049,42 @@ async def close_exam(
     return {"message": "Examen cerrado exitosamente", "status": ExamStatus.closed.value}
 
 
+@router.post("/exams/{exam_id}/reopen")
+async def reopen_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Reopen a closed exam back to published state.
+
+    Útil cuando el docente cerró un examen por error o quiere extender el
+    plazo. Solo aplica si el examen está cerrado; no toca intentos previos.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para reabrir exámenes")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]},
+        {"_id": 0}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    if exam["status"] != ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="Solo se pueden reabrir exámenes cerrados")
+
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"status": ExamStatus.published.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {"message": "Examen reabierto exitosamente", "status": ExamStatus.published.value}
+
+
 @router.post("/exams/{exam_id}/schedule")
 async def schedule_exam(
     exam_id: str,
