@@ -6082,6 +6082,9 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const [scale, setScale] = useState(1);
+  // null = libre (sin proporción fija). Permite que la caja se ajuste a cualquier
+  // formato (horizontal, vertical, cuadrado, etc.) según el formato de la imagen.
+  const [aspectRatio, setAspectRatio] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const imgRef = useRef(null);
@@ -6128,6 +6131,7 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
     setImageSrc("");
     setShowImageCrop(false);
     setScale(1);
+    setAspectRatio(null);
   }, [question, isOpen]);
   
   const addOption = () => {
@@ -6176,22 +6180,33 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1));
+    // Aspect libre: usar la proporción natural de la imagen para una caja inicial
+    // que cubra el 90% sin forzar formato cuadrado.
+    const initialAspect = aspectRatio || (width / height);
+    setCrop(centerAspectCrop(width, height, initialAspect));
   };
+
+  // Cambiar manualmente la relación de aspecto regenera la caja de recorte.
+  const applyAspect = useCallback((newAspect) => {
+    setAspectRatio(newAspect);
+    if (imgRef.current) {
+      const { width, height } = imgRef.current;
+      const a = newAspect || (width / height);
+      setCrop(centerAspectCrop(width, height, a));
+    }
+  }, []);
   
+  /**
+   * Genera la imagen recortada respetando la proporción real del recorte
+   * (no fuerza cuadrado). Si el archivo resultante supera 5MB, redimensiona
+   * progresivamente (dimensiones + calidad WebP) hasta entrar en el límite.
+   */
   const getCroppedImg = useCallback(async () => {
-    if (!imgRef.current || !completedCrop) return null;
+    if (!imgRef.current || !completedCrop || !completedCrop.width || !completedCrop.height) return null;
     const image = imgRef.current;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    const outputSize = 600; // Square output
-    canvas.width = outputSize;
-    canvas.height = outputSize;
-    
+
     const cropX = completedCrop.x * scaleX;
     const cropY = completedCrop.y * scaleY;
     const cropWidth = completedCrop.width * scaleX;
@@ -6200,15 +6215,58 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
     const scaledCropHeight = cropHeight / scale;
     const offsetX = (cropWidth - scaledCropWidth) / 2;
     const offsetY = (cropHeight - scaledCropHeight) / 2;
-    
-    ctx.drawImage(image, cropX + offsetX, cropY + offsetY, scaledCropWidth, scaledCropHeight, 0, 0, outputSize, outputSize);
-    
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(new File([blob], 'question-image.webp', { type: 'image/webp' }));
-        else resolve(null);
-      }, 'image/webp', 0.8);
-    });
+
+    // Tamaño de salida: máx 1600px en el lado más largo, manteniendo proporción.
+    const renderAndExport = async (maxSide, quality) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const cropAspect = scaledCropWidth / scaledCropHeight;
+      let outW, outH;
+      if (cropAspect >= 1) {
+        outW = Math.min(maxSide, scaledCropWidth);
+        outH = Math.round(outW / cropAspect);
+      } else {
+        outH = Math.min(maxSide, scaledCropHeight);
+        outW = Math.round(outH * cropAspect);
+      }
+      canvas.width = outW;
+      canvas.height = outH;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(
+        image,
+        cropX + offsetX,
+        cropY + offsetY,
+        scaledCropWidth,
+        scaledCropHeight,
+        0,
+        0,
+        outW,
+        outH,
+      );
+      return await new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/webp', quality);
+      });
+    };
+
+    // Cloudinary free permite hasta 10MB; tomamos margen de seguridad: 5MB.
+    const MAX_BYTES = 5 * 1024 * 1024;
+    const attempts = [
+      { maxSide: 1600, quality: 0.85 },
+      { maxSide: 1400, quality: 0.82 },
+      { maxSide: 1200, quality: 0.78 },
+      { maxSide: 1000, quality: 0.75 },
+      { maxSide: 800,  quality: 0.72 },
+      { maxSide: 640,  quality: 0.70 },
+    ];
+    let blob = null;
+    for (const opt of attempts) {
+      blob = await renderAndExport(opt.maxSide, opt.quality);
+      if (blob && blob.size <= MAX_BYTES) break;
+    }
+    if (!blob) return null;
+    return new File([blob], 'question-image.webp', { type: 'image/webp' });
   }, [completedCrop, scale]);
   
   const uploadToCloudinary = async (file) => {
@@ -6344,6 +6402,18 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   
   // Image Crop Modal
   if (showImageCrop) {
+    const aspectPresets = [
+      { id: "free",     label: "Original",    value: null,   icon: "↕↔" },
+      { id: "square",   label: "Cuadrado",    value: 1,      icon: "■" },
+      { id: "h43",      label: "Horizontal",  value: 4 / 3,  icon: "▭" },
+      { id: "h169",     label: "Panorámico",  value: 16 / 9, icon: "▬" },
+      { id: "v34",      label: "Vertical",    value: 3 / 4,  icon: "▯" },
+      { id: "v916",     label: "Retrato",     value: 9 / 16, icon: "│" },
+    ];
+    const activePreset = aspectPresets.find(p =>
+      (p.value === null && aspectRatio === null) ||
+      (p.value !== null && aspectRatio !== null && Math.abs(p.value - aspectRatio) < 0.01)
+    );
     return createPortal(
       <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowImageCrop(false)} />
@@ -6351,16 +6421,41 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
             <h3 className="text-white font-semibold flex items-center gap-2">
               <Camera className="w-5 h-5" />
-              Recortar imagen (cuadrado)
+              Recortar imagen
+              {activePreset && (
+                <span className="text-xs font-normal opacity-80 ml-1">· {activePreset.label}</span>
+              )}
             </h3>
           </div>
           <div className="p-4">
+            {/* Aspect ratio chips */}
+            <div className="flex flex-wrap gap-1.5 mb-3" data-testid="image-crop-aspects">
+              {aspectPresets.map(p => {
+                const active = activePreset?.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyAspect(p.value)}
+                    disabled={uploading}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                      active
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-700"
+                    }`}
+                    data-testid={`image-crop-aspect-${p.id}`}
+                  >
+                    <span className="mr-1 opacity-70">{p.icon}</span>{p.label}
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[300px]">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
+                aspect={aspectRatio || undefined}
                 className="max-h-[350px]"
               >
                 <img
