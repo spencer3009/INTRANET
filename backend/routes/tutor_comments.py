@@ -339,12 +339,19 @@ async def bulk_tutor_comments(
     ).to_list(500)
     comments_map = {c["student_id"]: c.get("comment", "") for c in comments_docs}
 
-    # Conducta existente (letra AD/A/B/C por alumno en este bimestre)
+    # Conducta existente (letra AD/A/B/C + padres_letra opcional por alumno en este bimestre)
     conduct_docs = await db.conduct_grades.find(
         {"school_id": school_id, "student_id": {"$in": student_ids}, "period_id": period_id},
-        {"_id": 0, "student_id": 1, "letra": 1},
+        {"_id": 0, "student_id": 1, "letra": 1, "padres_letra": 1},
     ).to_list(500)
     conduct_map = {c["student_id"]: c.get("letra") for c in conduct_docs}
+    padres_map = {c["student_id"]: c.get("padres_letra") for c in conduct_docs}
+
+    # School-level flag: show "Nota a Padres" column?
+    school = await db.schools.find_one(
+        {"id": school_id}, {"_id": 0, "show_padres_grade": 1}
+    ) or {}
+    show_padres_grade = bool(school.get("show_padres_grade", False))
 
     # Bimestre cerrado por alumno (snapshots)
     closed_docs = await db.report_cards_snapshots.find(
@@ -363,6 +370,7 @@ async def bulk_tutor_comments(
             "student_code": s.get("student_code") or s.get("codigo"),
             "comment": comments_map.get(s["id"], ""),
             "conduct_letra": conduct_map.get(s["id"]),
+            "padres_letra": padres_map.get(s["id"]),
             "is_closed": s["id"] in closed_set,
         })
 
@@ -371,4 +379,5 @@ async def bulk_tutor_comments(
         "students": rows,
         "total_students": len(rows),
         "closed_count": len(closed_set),
+        "show_padres_grade": show_padres_grade,
     }

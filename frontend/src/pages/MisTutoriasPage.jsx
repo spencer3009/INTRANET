@@ -313,6 +313,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
   const [rows, setRows] = useState([]);
   const [periodInfo, setPeriodInfo] = useState(null);
   const [savingMap, setSavingMap] = useState({});
+  const [showPadresGrade, setShowPadresGrade] = useState(false);
   const timersRef = useRef({});
 
   const load = useCallback(async () => {
@@ -325,6 +326,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
       });
       setRows(r.data?.students || []);
       setPeriodInfo(r.data?.period || null);
+      setShowPadresGrade(!!r.data?.show_padres_grade);
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo cargar la información del bimestre.");
     } finally {
@@ -362,7 +364,11 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
         toast.info("La conducta no puede dejarse vacía. Elige AD, A, B o C.");
         return;
       }
-      await axios.put(`${API}/conduct`, { student_id, period_id: periodId, letra }, { headers });
+      // Preserve existing padres_letra so we don't blow it away.
+      const existingPadres = rows.find(r => r.student_id === student_id)?.padres_letra || null;
+      const body = { student_id, period_id: periodId, letra };
+      if (existingPadres) body.padres_letra = existingPadres;
+      await axios.put(`${API}/conduct`, body, { headers });
       setSavingMap(prev => ({ ...prev, [student_id + "_c"]: "saved" }));
       setTimeout(() => setSavingMap(prev => { const n = { ...prev }; delete n[student_id + "_c"]; return n; }), 1500);
     } catch (err) {
@@ -370,6 +376,30 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
       setSavingMap(prev => ({ ...prev, [student_id + "_c"]: "error" }));
       if (err.response?.status === 423) toast.error("Bimestre cerrado. No se puede modificar la conducta.");
       else toast.error(err.response?.data?.detail || "No se pudo guardar la conducta.");
+    }
+  };
+
+  const savePadres = async (student_id, padres_letra) => {
+    const row = rows.find(r => r.student_id === student_id);
+    const prevPadres = row?.padres_letra;
+    setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, padres_letra: padres_letra || null } : r));
+    setSavingMap(prev => ({ ...prev, [student_id + "_p"]: "saving" }));
+    try {
+      // Conduct upsert requires `letra`. Fall back to existing conduct_letra or default "A" if blank.
+      const body = {
+        student_id,
+        period_id: periodId,
+        letra: row?.conduct_letra || "A",
+        padres_letra: padres_letra || null,
+      };
+      await axios.put(`${API}/conduct`, body, { headers });
+      setSavingMap(prev => ({ ...prev, [student_id + "_p"]: "saved" }));
+      setTimeout(() => setSavingMap(prev => { const n = { ...prev }; delete n[student_id + "_p"]; return n; }), 1500);
+    } catch (err) {
+      setRows(prev => prev.map(r => r.student_id === student_id ? { ...r, padres_letra: prevPadres || null } : r));
+      setSavingMap(prev => ({ ...prev, [student_id + "_p"]: "error" }));
+      if (err.response?.status === 423) toast.error("Bimestre cerrado. No se puede modificar la nota a padres.");
+      else toast.error(err.response?.data?.detail || "No se pudo guardar la nota a padres.");
     }
   };
 
@@ -399,6 +429,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
                 <th className="px-3 py-2.5 text-left w-72">APELLIDOS Y NOMBRES</th>
                 <th className="px-3 py-2.5 text-left">COMENTARIO DEL TUTOR — {periodInfo?.nombre}</th>
                 <th className="px-3 py-2.5 text-center w-28">CONDUCTA</th>
+                {showPadresGrade && <th className="px-3 py-2.5 text-center w-28">PADRES</th>}
                 <th className="px-3 py-2.5 text-center w-32">LIBRETA</th>
               </tr>
             </thead>
@@ -450,6 +481,27 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
                           : condStatus === "saved" ? <span className="text-emerald-700">✓ guardado</span> : null}
                       </div>
                     </td>
+                    {showPadresGrade && (
+                      <td className="px-3 py-2 text-center align-top">
+                        <select
+                          value={r.padres_letra || ""}
+                          onChange={(e) => savePadres(r.student_id, e.target.value)}
+                          disabled={closed}
+                          className={`px-2 py-1.5 text-sm border rounded-lg w-20 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 font-semibold text-center ${closed ? "bg-slate-100 text-slate-400 cursor-not-allowed" : r.padres_letra ? "bg-violet-50 text-violet-800 border-violet-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+                          data-testid={`tutoria-padres-${r.number}`}
+                        >
+                          <option value="">—</option>
+                          <option value="AD">AD</option>
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                        </select>
+                        <div className="h-4 mt-1 text-[11px]">
+                          {savingMap[r.student_id + "_p"] === "saving" ? <span className="text-slate-500 inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> guardando</span>
+                            : savingMap[r.student_id + "_p"] === "saved" ? <span className="text-emerald-700">✓ guardado</span> : null}
+                        </div>
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-center align-top">
                       <a
                         href={`/${user?.subdomain || "elroble"}/libreta/${r.student_id}?period_id=${periodId}`}
