@@ -953,6 +953,51 @@ async def update_task_register_linkage(
             # Race: someone else won the slot between validation and insert
             raise HTTPException(status_code=409, detail=f"La columna {new_column} ya fue asignada. Actualice la página e intente de nuevo.")
 
+    # If this re-link moves the task from an OLD column to a different
+    # one (and/or to a different period), clear the previous column so we
+    # don't leave orphan grades behind. Matches the user's "sobrescribe"
+    # contract: only one slot per task at any time.
+    old_column = task.get("register_column")
+    old_period_id = task.get("period_id")
+    cleared = 0
+    if old_column and (old_column != new_column or old_period_id != new_period_id):
+        old_field = COLUMN_FIELD_MAP.get(old_column)
+        # Only clear cells that came from this task's submissions. We do
+        # this per-student to avoid wiping unrelated values that happened
+        # to live in that column.
+        for sub in task.get("submissions", []) or []:
+            sid = sub.get("student_id")
+            if not sid:
+                continue
+            try:
+                if old_field:
+                    # Static column → top-level field
+                    await db.student_grades.update_many(
+                        {
+                            "school_id": school_id,
+                            "subject_id": subject_id,
+                            "section_id": section_id,
+                            "student_id": sid,
+                            "period_id": old_period_id,
+                        },
+                        {"$unset": {old_field: ""}}
+                    )
+                else:
+                    # Dynamic column → grades_dynamic.<key>
+                    await db.student_grades.update_many(
+                        {
+                            "school_id": school_id,
+                            "subject_id": subject_id,
+                            "section_id": section_id,
+                            "student_id": sid,
+                            "period_id": old_period_id,
+                        },
+                        {"$unset": {f"grades_dynamic.{old_column}": ""}}
+                    )
+                cleared += 1
+            except Exception as e:
+                logger.warning(f"[task-linkage] clear old column failed for student={sid}: {e}")
+
     # Re-sync existing graded submissions into the new column (best-effort).
     synced = 0
     if new_column:
@@ -975,6 +1020,7 @@ async def update_task_register_linkage(
         "period_id": new_period_id,
         "period_name": period_doc.get("nombre"),
         "resynced_submissions": synced,
+        "cleared_old_column": cleared,
     }
 
 
