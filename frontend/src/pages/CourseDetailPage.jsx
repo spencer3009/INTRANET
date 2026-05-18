@@ -3156,7 +3156,12 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
   useEffect(() => {
     if (isOpen && task) {
       setTitle(task.title || "");
-      setDescription(task.content || "");
+      // Si el contenido previo era el string auto-generado de metadata
+      // (legado del bug que sobrescribía las instrucciones), iniciamos el
+      // textarea vacío para que el docente pueda escribirlas ahora.
+      const isLegacyMetaContent = typeof task.content === "string"
+        && /^Tipo de entrega:.*\n\nFecha de entrega:/i.test((task.content || "").trim());
+      setDescription(isLegacyMetaContent ? "" : (task.content || ""));
       
       // Extract delivery type from content or metadata
       const deliveryTypeFromMetadata = task.metadata?.delivery_type;
@@ -3297,7 +3302,18 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       
       // Build content with delivery type info
       const deliveryTypeLabel = deliveryType === 'text' ? 'Texto en línea' : deliveryType === 'files' ? 'Archivos' : 'Texto y archivos';
-      const content = `Tipo de entrega: ${deliveryTypeLabel}${points ? ` | Puntos: ${points}` : ''}${!showToStudents ? ' | (Oculto para estudiantes)' : ''}\n\nFecha de entrega: ${new Date(dueDateTime).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' })}`;
+      // Bug fix (Feb 2026): antes EDIT sobrescribía SIEMPRE el content con el
+      // string de metadata, perdiendo las instrucciones del profesor. Ahora
+      // respetamos lo que el docente escribió; solo usamos el fallback de
+      // metadata si la descripción quedó vacía (idéntico a la lógica de
+      // creación). Además detectamos si el `task.content` previo era el
+      // string auto-generado para que, al re-editar una tarea legacy, el
+      // textarea no muestre la metadata como si fuese la descripción.
+      const isLegacyMetaContent = (s) =>
+        typeof s === "string" && /^Tipo de entrega:.*\n\nFecha de entrega:/i.test(s.trim());
+      const cleanDescription = isLegacyMetaContent(description) ? "" : (description || "").trim();
+      const fallbackMeta = `Tipo de entrega: ${deliveryTypeLabel}${points ? ` | Puntos: ${points}` : ''}${!showToStudents ? ' | (Oculto para estudiantes)' : ''}\n\nFecha de entrega: ${new Date(dueDateTime).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' })}`;
+      const content = cleanDescription || fallbackMeta;
       
       const updateData = {
         title: title.trim(),

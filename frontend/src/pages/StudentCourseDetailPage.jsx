@@ -2266,13 +2266,25 @@ function TasksContent({ tasks, studentId, onSubmitTask, onRetractSubmission, stu
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h1 className="text-2xl font-bold text-slate-800 mb-4">{selectedTask.title}</h1>
               
-              {/* Task Content */}
+              {/* Task Content — oculta el string auto-generado de metadata
+                  (legado del bug Feb 2026) y muestra un placeholder claro si
+                  no hay instrucciones reales del profesor. */}
               <div className="prose prose-slate max-w-none">
-                <div 
-                  dangerouslySetInnerHTML={{ 
-                    __html: selectedTask.content || 'Sin contenido adicional' 
-                  }}
-                />
+                {(() => {
+                  const raw = (selectedTask.content || "").trim();
+                  const isMetaOnly = /^Tipo de entrega:.*\n\nFecha de entrega:/i.test(raw)
+                    || /^Tipo de entrega:[^\n]*$/i.test(raw);
+                  if (!raw || isMetaOnly) {
+                    return (
+                      <p className="text-slate-400 italic" data-testid="student-task-no-instructions">
+                        El profesor aún no agregó instrucciones para esta tarea.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div dangerouslySetInnerHTML={{ __html: raw }} data-testid="student-task-instructions" />
+                  );
+                })()}
               </div>
 
               {/* File attachment if exists - supports both Cloudinary and Google Drive */}
