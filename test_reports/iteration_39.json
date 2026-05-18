@@ -86,7 +86,7 @@
     "admin_email": "admin.prueba@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "base_url": "https://section-tutors.preview.emergentagent.com"
+    "base_url": "https://teacher-grades-fix.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - used existing test users",

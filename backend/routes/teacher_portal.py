@@ -560,10 +560,138 @@ class GradeEntry(BaseModel):
 class SaveGradesRequest(BaseModel):
     subject_id: str
     section_id: str
+    period_id: str
     grades: List[GradeEntry]
 
 @router.post("/teacher/grades")
 async def save_teacher_grades(data: SaveGradesRequest, current_user = Depends(get_current_user)):
+    """Save bimester average grades directly to the consolidado.
+
+    Esta página es un atajo: el profesor introduce el PROMEDIO BIMESTRAL final
+    de cada alumno (por curso + bimestre) sin pasar por el Registro Auxiliar
+    columna por columna. La nota se persiste en `student_grades.final_grade_manual`,
+    que el endpoint del consolidado prioriza sobre el `final_grade` auto-calculado
+    del Registro Auxiliar.
+
+    Esto permite dos workflows convivientes:
+      - Profesor A: usa Registro Auxiliar → final_grade se calcula desde columnas.
+      - Profesor B: usa esta página → final_grade_manual gana en el consolidado.
+      - Profesor C: usa ambos → manual tiene precedencia mientras exista.
+
+    Quitar la nota manual (`grade=null`) hace `$unset` del campo manual,
+    revirtiendo automáticamente al `final_grade` auto-calculado si lo hubiera.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para profesores")
+
+    school_id = user.get("school_id")
+
+    # Verify teacher has access
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": user["id"],
+        "subject_id": data.subject_id,
+        "section_id": data.section_id,
+    })
+    if not assignment:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este curso/sección")
+
+    # Validate period
+    period = await db.academic_periods.find_one({"id": data.period_id, "school_id": school_id})
+    if not period:
+        raise HTTPException(status_code=400, detail="Bimestre no válido")
+
+    now = datetime.now(timezone.utc).isoformat()
+    saved = 0
+    for entry in data.grades:
+        # Validate range
+        if entry.grade is not None and (entry.grade < 0 or entry.grade > 20):
+            raise HTTPException(status_code=400, detail=f"Nota inválida: {entry.grade}")
+        flt = {
+            "school_id": school_id,
+            "student_id": entry.student_id,
+            "subject_id": data.subject_id,
+            "section_id": data.section_id,
+            "period_id": data.period_id,
+        }
+        if entry.grade is None:
+            # Clear manual override → revert to auto-computed
+            await db.student_grades.update_many(
+                flt,
+                {"$unset": {"final_grade_manual": "", "manual_grade_updated_by": "", "manual_grade_updated_at": ""}}
+            )
+        else:
+            # Set manual override
+            await db.student_grades.update_many(
+                flt,
+                {
+                    "$set": {
+                        "final_grade_manual": entry.grade,
+                        "manual_grade_updated_by": user["id"],
+                        "manual_grade_updated_at": now,
+                        "updated_at": now,
+                    },
+                    "$setOnInsert": {
+                        "id": str(uuid.uuid4()),
+                        "school_id": school_id,
+                        "student_id": entry.student_id,
+                        "subject_id": data.subject_id,
+                        "section_id": data.section_id,
+                        "period_id": data.period_id,
+                        "created_at": now,
+                    }
+                },
+                upsert=True,
+            )
+        saved += 1
+
+    return {"message": f"{saved} notas guardadas", "saved": saved}
+
+
+@router.get("/teacher/grades")
+async def get_teacher_grades(
+    subject_id: str,
+    section_id: str,
+    period_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get grades (manual override + auto-computed) for the quick grading page."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para profesores")
+
+    school_id = user.get("school_id")
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": user["id"],
+        "subject_id": subject_id,
+        "section_id": section_id,
+    })
+    if not assignment:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este curso/sección")
+
+    docs = await db.student_grades.find(
+        {"school_id": school_id, "subject_id": subject_id, "section_id": section_id, "period_id": period_id},
+        {"_id": 0, "student_id": 1, "final_grade": 1, "final_grade_manual": 1}
+    ).to_list(2000)
+    grades = [
+        {
+            "student_id": d.get("student_id"),
+            "grade": d.get("final_grade_manual") if d.get("final_grade_manual") is not None else d.get("final_grade"),
+            "manual_grade": d.get("final_grade_manual"),
+            "computed_grade": d.get("final_grade"),
+            "source": "manual" if d.get("final_grade_manual") is not None else ("computed" if d.get("final_grade") is not None else None),
+        }
+        for d in docs
+    ]
+    return {"grades": grades}
+
     """Save grades for students in a subject/section."""
     user = await resolve_user_from_token(current_user)
     if not user:
