@@ -1,0 +1,31 @@
+{
+  "summary": "Backend validation of new Entregas-page Registro Auxiliar linkage (GET /api/course/tasks/{id}/submissions extended + PUT /api/course/tasks/{id}/register-linkage). 13/13 pytest cases pass against the live preview backend. Idempotency, invalid-column (400), conflict (409 vs other task), unlink (null), active-period fallback, explicit period switching, RBAC (parent 403, teacher OK), and deep re-sync (seeded graded submission → student_grades.grades_dynamic.<col> updated to vigesimal value) all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_task_register_linkage.py",
+    "/app/test_reports/pytest/pytest_task_register_linkage.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/courses.py L827-978: PUT register-linkage is correct — validates column via get_valid_task_columns_for_school, uniqueness via register_column_assignments (excluding self for idempotency), blocks when target column has manual grades EXCEPT when slot is the task's own (same_slot escape hatch L918-922), persists period_id+register_column, rewrites assignment row, and re-syncs all graded submissions via sync_single_student_task.",
+    "routes/courses.py L771-816: GET submissions correctly enriches with register_column, register_column_label (resolved from active template's criterio→sub), period_id, period_name, subject_id, section_id. period_name fallback to 'Bimestre {orden}' is sensible.",
+    "Idempotent re-save works because the conflict filter excludes source_id == task_id (L898). Verified.",
+    "Re-sync count returned in `resynced_submissions` matches the count of submissions with grade != None. Verified end-to-end by seeding a graded submission and checking student_grades.grades_dynamic was upserted with the correct vigesimal value (15/20 → 15).",
+    "Minor: when unlinking, the previous student_grades values in the old column are intentionally left untouched (no $unset). This matches the documented behavior and the user's choice 4a (sobrescribe al guardar) — but consider documenting it in the response message so callers aren't confused.",
+    "Minor: services/register_sync.py sync_single_student_task does NOT clear the OLD column when register_column is changed. So if a task was originally synced to column A and gets re-pointed to column B, both A and B will end up with the value. This is consistent with the rest of the codebase but could surprise teachers — confirm with product whether old column should be cleared on re-link."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_task_register_linkage.py (created)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "n/a"},
+  "test_credentials": "admin@elroble.edu/1234abc8 (owner); sonia3009@gmail.com/teacher123 (teacher); maria.peres@gmail.com/1234abc8 (parent for 403 checks)",
+  "seed_data_creation": "TestResyncWithSeededGradedSubmission temporarily injects a submission for student_id='TEST_resync_student_xyz' into task e6009ab7-bf55-4e42-b23b-7b27a37d3f4b, runs PUT linkage to a second valid column (criterio_mo361cxa_sub_1776445937421 → 'SEM3'), validates student_grades.grades_dynamic, then cleans up (pulls submission, deletes student_grades doc, restores original column). State is restored even on failure via try/finally.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Known linked task = e6009ab7-bf55-4e42-b23b-7b27a37d3f4b (subject 97ef0442 Ciencias Naturales, section 11f50cbc, school b9f27249, period 093a0bee BIMESTRE I). It has 0 real submissions, so re-sync count tests with real data must seed via mongo (template provided in TestResyncWithSeededGradedSubmission). Plantilla 'PLANTILLA 1' (7e98aa42) carries the custom columns criterio_mo361cxa_sub_* — note its estado='borrador' but it still validates because get_valid_task_columns_for_school iterates all non-deleted templates regardless of estado. No 'activa' plantilla exists for this school; OK because the fallback covers it.",
+  "rca of the issue": "N/A — no bugs found. Endpoint contract behaves exactly as specified in the review_request. Manual curl checks by main agent are confirmed by automated suite."
+}

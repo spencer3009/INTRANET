@@ -766,20 +766,217 @@ async def get_task_submissions(
     
     # Sort by submitted_at (most recent first)
     enriched_submissions.sort(key=lambda x: x.get("submitted_at", ""), reverse=True)
-    
+
+    # Enrich with register linkage info (period + column) so the Entregas UI
+    # can show the user which slot in the Registro Auxiliar will receive the
+    # grades. Resolves the period name and a friendly label for the column.
+    register_column = task.get("register_column")
+    period_id = task.get("period_id")
+    period_name = None
+    if period_id:
+        period_doc = await db.academic_periods.find_one(
+            {"id": period_id, "school_id": school_id},
+            {"_id": 0, "nombre": 1, "orden": 1, "activo": 1},
+        )
+        if period_doc:
+            period_name = period_doc.get("nombre") or (f"Bimestre {period_doc.get('orden')}" if period_doc.get("orden") else None)
+    register_column_label = None
+    if register_column:
+        # Try to resolve the column's human label from the active template.
+        try:
+            from services.register_sync import get_active_template_for_school
+            tpl = await get_active_template_for_school(db, school_id)
+            for cri in (tpl or {}).get("criterios", []) or []:
+                for sub in cri.get("subcolumnas", []) or []:
+                    key = sub.get("field_key") or sub.get("id")
+                    if str(key) == str(register_column):
+                        register_column_label = f"{cri.get('nombre','')} → {sub.get('label') or sub.get('id')}"
+                        break
+                if register_column_label:
+                    break
+        except Exception:
+            pass
+        if not register_column_label:
+            register_column_label = register_column
+
     return {
         "task_id": task_id,
         "task_title": task.get("title"),
+        "subject_id": task.get("subject_id"),
+        "section_id": task.get("section_id"),
         "max_grade": task.get("max_grade") or task.get("metadata", {}).get("points", 20),
         "due_date": task.get("due_date") or task.get("metadata", {}).get("due_date"),
         "submissions_count": len(submissions),
         "graded_count": sum(1 for s in submissions if s.get("grade") is not None),
+        "register_column": register_column,
+        "register_column_label": register_column_label,
+        "period_id": period_id,
+        "period_name": period_name,
         "submissions": enriched_submissions
     }
 
 class GradeSubmissionRequest(BaseModel):
     grade: Optional[float] = None
     feedback: Optional[str] = None
+
+class TaskRegisterLinkageRequest(BaseModel):
+    register_column: Optional[str] = None  # column id/field_key; null to unlink
+    period_id: Optional[str] = None        # bimestre id (must exist in school)
+
+
+@router.put("/course/tasks/{task_id}/register-linkage")
+async def update_task_register_linkage(
+    task_id: str,
+    data: TaskRegisterLinkageRequest,
+    current_user = Depends(get_current_user)
+):
+    """Update or set the (period_id, register_column) linkage of an existing task.
+
+    Behavior:
+      - Validates the column exists in the school's active Registro Auxiliar
+        template (legacy P1/P2/P3 fallback is honoured).
+      - Validates uniqueness via `register_column_assignments` so two
+        exams/tasks don't collide on the same slot.
+      - Validates the column is not already filled with manual grades in
+        the chosen period.
+      - Updates `course_posts.{period_id, register_column}` and rewrites
+        the `register_column_assignments` row to point at this task.
+      - Triggers a sync of all existing graded submissions to the new
+        column so the Registro Auxiliar reflects the change immediately.
+      - Passing `register_column=None` unlinks the task (removes the
+        assignment doc; existing notes in the previous column are left
+        untouched but new grades won't sync).
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden actualizar la vinculación")
+
+    task = await db.course_posts.find_one(
+        {"id": task_id, "school_id": school_id, "$or": [{"post_type": "task"}, {"type": "task"}]},
+        {"_id": 0},
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+
+    subject_id = task.get("subject_id")
+    section_id = task.get("section_id")
+    new_period_id = data.period_id
+    new_column = data.register_column
+
+    # Resolve period (use active when caller didn't pass one)
+    if new_period_id:
+        period_doc = await db.academic_periods.find_one(
+            {"id": new_period_id, "school_id": school_id},
+            {"_id": 0, "id": 1, "nombre": 1, "orden": 1},
+        )
+        if not period_doc:
+            raise HTTPException(status_code=400, detail="Bimestre no válido")
+    else:
+        period_doc = await db.academic_periods.find_one(
+            {"school_id": school_id, "activo": True},
+            {"_id": 0, "id": 1, "nombre": 1, "orden": 1},
+        )
+        if not period_doc:
+            raise HTTPException(status_code=400, detail="No hay un periodo académico activo. Configure uno en Años Académicos.")
+        new_period_id = period_doc["id"]
+
+    # Validate column (only when linking; null = unlink)
+    if new_column:
+        valid_cols = await get_valid_task_columns_for_school(db, school_id)
+        if new_column not in valid_cols:
+            raise HTTPException(status_code=400, detail="Esta columna no existe o no está habilitada para tareas en la plantilla activa del Registro Auxiliar.")
+
+        # Uniqueness — excluding this same task (idempotent re-saves allowed)
+        conflict = await db.register_column_assignments.find_one({
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": new_period_id,
+            "register_column": new_column,
+            "source_id": {"$ne": task_id},
+        }, {"_id": 0})
+        if conflict:
+            ctype = conflict.get("source_type", "exam")
+            ctitle = conflict.get("source_title", "")
+            label = "examen" if ctype == "exam" else "tarea"
+            raise HTTPException(status_code=409, detail=f"La columna {new_column} ya fue asignada al {label} '{ctitle}'.")
+
+        # Block when the target field already has manual grades in this period
+        field = COLUMN_FIELD_MAP.get(new_column)
+        if field:
+            manual_count = await db.student_grades.count_documents({
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "period_id": new_period_id,
+                field: {"$ne": None},
+            })
+            if manual_count > 0:
+                # Tolerate the case where the grades came from this same task
+                # (i.e. the user is just re-pointing the same column to itself).
+                same_slot = (
+                    task.get("register_column") == new_column
+                    and task.get("period_id") == new_period_id
+                )
+                if not same_slot:
+                    raise HTTPException(status_code=409, detail=f"La columna {new_column} ya tiene notas registradas manualmente en el Registro Auxiliar.")
+
+    # Persist on the task
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {"$set": {
+            "register_column": new_column,
+            "period_id": new_period_id,
+            "section_id": section_id,
+            "sync_status": "pending" if new_column else "not_linked",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+
+    # Rewrite assignment registry: remove old, add new (only if column set)
+    await db.register_column_assignments.delete_many({"source_id": task_id})
+    if new_column:
+        try:
+            await db.register_column_assignments.insert_one({
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "section_id": section_id,
+                "period_id": new_period_id,
+                "register_column": new_column,
+                "source_type": "task",
+                "source_id": task_id,
+                "source_title": task.get("title", ""),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            # Race: someone else won the slot between validation and insert
+            raise HTTPException(status_code=409, detail=f"La columna {new_column} ya fue asignada. Actualice la página e intente de nuevo.")
+
+    # Re-sync existing graded submissions into the new column (best-effort).
+    synced = 0
+    if new_column:
+        for sub in task.get("submissions", []) or []:
+            if sub.get("grade") is None:
+                continue
+            student_id = sub.get("student_id")
+            if not student_id:
+                continue
+            try:
+                await sync_single_student_task(db, task_id, student_id, sub.get("grade"))
+                synced += 1
+            except Exception as e:
+                logger.warning(f"[task-linkage] resync failed for student={student_id}: {e}")
+
+    return {
+        "message": "Vinculación al Registro Auxiliar actualizada",
+        "task_id": task_id,
+        "register_column": new_column,
+        "period_id": new_period_id,
+        "period_name": period_doc.get("nombre"),
+        "resynced_submissions": synced,
+    }
+
 
 @router.put("/course/tasks/{task_id}/submissions/{submission_id}/grade")
 async def grade_task_submission(

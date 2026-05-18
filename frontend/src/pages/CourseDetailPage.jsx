@@ -32,7 +32,7 @@ import {
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
   Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw,
-  Grid3X3, Monitor, Key
+  Grid3X3, Monitor, Key, Save
 } from "lucide-react";
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import CloneActivityModal from "../components/course/CloneActivityModal";
@@ -8654,7 +8654,106 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   
   // State for task submissions data from API
   const [taskSubmissionsData, setTaskSubmissionsData] = useState(null);
-  
+
+  // Linkage editor state for the Entregas (submissions) view
+  const [linkagePeriods, setLinkagePeriods] = useState([]);
+  const [linkageColumns, setLinkageColumns] = useState([]); // [{field_key, label, criterio_nombre, available, blocked_reason}]
+  const [linkagePeriodId, setLinkagePeriodId] = useState("");
+  const [linkageColumn, setLinkageColumn] = useState("");
+  const [linkageSaving, setLinkageSaving] = useState(false);
+  const [linkageLoading, setLinkageLoading] = useState(false);
+
+  // Helper: derive subcolumna list from /register/availability columns response
+  const _toLinkageColumns = (cols) => {
+    if (!Array.isArray(cols)) return [];
+    return cols
+      .filter((c) => c.type === "input") // tareas → solo inputs (no columnas_finales)
+      .map((c) => ({
+        field_key: c.field_key || c.id,
+        label: c.label,
+        criterio_nombre: c.criterion_label || c.criterion || "",
+        available: c.available !== false,
+        blocked_reason: c.blocked_reason || null,
+        blocked_by: c.blocked_by || null,
+      }));
+  };
+
+  // Load periods + columns when entering submissions view
+  useEffect(() => {
+    if (viewMode !== "submissions" || !selectedTask) return;
+    let cancelled = false;
+    (async () => {
+      setLinkageLoading(true);
+      try {
+        const periodsRes = await axios.get(`${API}/academic/periods`, { headers });
+        if (cancelled) return;
+        const allPeriods = Array.isArray(periodsRes.data) ? periodsRes.data : [];
+        setLinkagePeriods(allPeriods);
+        // Pre-select: task's existing period, else active period
+        const existing = taskSubmissionsData?.period_id;
+        const active = allPeriods.find((p) => p.activo);
+        const pid = existing || active?.id || (allPeriods[0]?.id || "");
+        setLinkagePeriodId(pid);
+        setLinkageColumn(taskSubmissionsData?.register_column || "");
+      } catch (e) {
+        console.error("Error loading periods:", e);
+      } finally {
+        if (!cancelled) setLinkageLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, selectedTask?.id, taskSubmissionsData?.task_id]);
+
+  // Load availability whenever linkagePeriodId changes
+  useEffect(() => {
+    if (viewMode !== "submissions" || !selectedTask || !linkagePeriodId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = new URLSearchParams({
+          subject_id: subjectId,
+          period_id: linkagePeriodId,
+        });
+        const res = await axios.get(`${API}/register/availability?${params}`, { headers });
+        if (cancelled) return;
+        setLinkageColumns(_toLinkageColumns(res.data?.columns || []));
+      } catch (e) {
+        console.error("Error loading availability:", e);
+        setLinkageColumns([]);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkagePeriodId, viewMode, selectedTask?.id]);
+
+  // Save linkage to backend
+  const handleSaveLinkage = async () => {
+    if (!selectedTask) return;
+    setLinkageSaving(true);
+    try {
+      const res = await axios.put(
+        `${API}/course/tasks/${selectedTask.id}/register-linkage`,
+        {
+          register_column: linkageColumn || null,
+          period_id: linkagePeriodId || null,
+        },
+        { headers }
+      );
+      toast.success(
+        res.data?.resynced_submissions
+          ? `Vinculación actualizada. ${res.data.resynced_submissions} notas re-sincronizadas al Registro Auxiliar.`
+          : "Vinculación al Registro Auxiliar actualizada."
+      );
+      // Refresh submissions to pull updated period_name/register_column_label
+      await loadSubmissions();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo actualizar la vinculación");
+    } finally {
+      setLinkageSaving(false);
+    }
+  };
+
   // Load real submissions from API
   const loadSubmissions = async () => {
     if (!selectedTask) return;
@@ -9048,6 +9147,122 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
             )}
           </div>
         </div>
+
+        {/* ═══════ Register Linkage Banner ═══════ */}
+        {taskSubmissionsData && (
+          <div
+            data-testid="entregas-linkage-banner"
+            className={`rounded-2xl border p-4 ${
+              taskSubmissionsData.register_column
+                ? "bg-emerald-50/70 border-emerald-200"
+                : "bg-amber-50 border-amber-200"
+            }`}
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart3 className={`w-5 h-5 ${taskSubmissionsData.register_column ? "text-emerald-600" : "text-amber-600"}`} />
+                  <h3 className={`font-semibold ${taskSubmissionsData.register_column ? "text-emerald-800" : "text-amber-800"}`}>
+                    {taskSubmissionsData.register_column
+                      ? "Esta tarea está vinculada al Registro Auxiliar"
+                      : "Esta tarea aún no se vincula al Registro Auxiliar"}
+                  </h3>
+                </div>
+                <p className={`text-xs ${taskSubmissionsData.register_column ? "text-emerald-700" : "text-amber-700"}`}>
+                  {taskSubmissionsData.register_column ? (
+                    <>
+                      Las notas se sincronizan automáticamente a:{" "}
+                      <span className="font-semibold">
+                        {taskSubmissionsData.period_name || "—"} → {taskSubmissionsData.register_column_label || taskSubmissionsData.register_column}
+                      </span>
+                    </>
+                  ) : (
+                    "Elige bimestre y columna del Registro Auxiliar donde debe entrar la nota. Al guardar, sobrescribirá la columna elegida con las notas ya calificadas."
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-[200px_1fr_auto] gap-3 items-end">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Bimestre</label>
+                <select
+                  value={linkagePeriodId}
+                  onChange={(e) => setLinkagePeriodId(e.target.value)}
+                  disabled={linkageLoading || linkageSaving}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  data-testid="entregas-linkage-period"
+                >
+                  <option value="">— Bimestre —</option>
+                  {linkagePeriods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre || p.name || "Bimestre"}{p.activo ? " (activo)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Columna del Registro Auxiliar</label>
+                <select
+                  value={linkageColumn}
+                  onChange={(e) => setLinkageColumn(e.target.value)}
+                  disabled={linkageLoading || linkageSaving || !linkagePeriodId}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  data-testid="entregas-linkage-column"
+                >
+                  <option value="">— Sin vinculación —</option>
+                  {linkageColumns.map((c) => {
+                    const isCurrent = c.field_key === taskSubmissionsData.register_column;
+                    return (
+                      <option
+                        key={c.field_key}
+                        value={c.field_key}
+                        disabled={!c.available && !isCurrent}
+                      >
+                        {c.criterio_nombre ? `${c.criterio_nombre} → ` : ""}{c.label}
+                        {!c.available && !isCurrent
+                          ? ` (${c.blocked_reason === "manual" ? "tiene notas manuales" : "ya asignada"})`
+                          : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const changed =
+                    (linkageColumn || null) !== (taskSubmissionsData.register_column || null) ||
+                    (linkagePeriodId || null) !== (taskSubmissionsData.period_id || null);
+                  if (!changed) {
+                    toast.info("No hay cambios para aplicar.");
+                    return;
+                  }
+                  // Confirm if overwriting an already-linked task
+                  if (taskSubmissionsData.register_column && linkageColumn !== taskSubmissionsData.register_column) {
+                    const ok = window.confirm(
+                      "Esta tarea ya estaba vinculada a otra columna. Al cambiarla, las notas calificadas se moverán a la nueva columna y sobrescribirán cualquier valor previo. ¿Continuar?"
+                    );
+                    if (!ok) return;
+                  } else if (linkageColumn && taskSubmissionsData.graded_count > 0) {
+                    const ok = window.confirm(
+                      `Las ${taskSubmissionsData.graded_count} notas ya calificadas se sincronizarán al Registro Auxiliar en la columna seleccionada. ¿Continuar?`
+                    );
+                    if (!ok) return;
+                  }
+                  handleSaveLinkage();
+                }}
+                disabled={linkageSaving || linkageLoading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                data-testid="entregas-linkage-save"
+              >
+                {linkageSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Aplicar al Registro Auxiliar
+              </button>
+            </div>
+          </div>
+        )}
+        {/* ═══════ END Register Linkage Banner ═══════ */}
         
         {/* Submissions Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
