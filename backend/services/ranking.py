@@ -87,13 +87,14 @@ async def compute_ranking(
                 "period_id": period_id,
                 "subject_id": {"$in": subject_ids},
             },
-            {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1},
+            {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1},
         ).to_list(20000)
 
     grades_lookup: Dict[str, Dict[str, Optional[float]]] = {}
     for g in all_grades:
         sid = g["student_id"]
-        grades_lookup.setdefault(sid, {})[g["subject_id"]] = g.get("final_grade")
+        manual = g.get("final_grade_manual")
+        grades_lookup.setdefault(sid, {})[g["subject_id"]] = manual if manual is not None else g.get("final_grade")
 
     # 4) Calcular puntaje, promedio, desaprobados por alumno
     rows: List[Dict] = []

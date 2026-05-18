@@ -43,6 +43,9 @@ class ConductUpsert(BaseModel):
     letra: Optional[str] = None
     score_numeric: Optional[float] = Field(default=None, ge=0, le=20)
     observation: Optional[str] = None
+    # Optional: parent participation grade (only used when school has show_padres_grade=True)
+    padres_letra: Optional[str] = None
+    padres_score_numeric: Optional[float] = Field(default=None, ge=0, le=20)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -211,6 +214,14 @@ async def upsert_conduct(
         raise HTTPException(status_code=404, detail="No se encontró el bimestre indicado")
 
     final_letra = _validate_letra_score(body.letra, body.score_numeric)
+    # Optional: validate parent grade if provided
+    final_padres_letra = None
+    if body.padres_letra is not None or body.padres_score_numeric is not None:
+        try:
+            final_padres_letra = _validate_letra_score(body.padres_letra, body.padres_score_numeric)
+        except HTTPException as e:
+            # Re-raise with clearer prefix
+            raise HTTPException(status_code=e.status_code, detail=f"Nota a padres: {e.detail}")
     now = datetime.now(timezone.utc).isoformat()
     section_id = student.get("seccion_id") or student.get("section_id")
 
@@ -234,6 +245,8 @@ async def upsert_conduct(
         "letra": final_letra,
         "score_numeric": body.score_numeric,
         "observation": body.observation,
+        "padres_letra": final_padres_letra,
+        "padres_score_numeric": body.padres_score_numeric,
         "updated_by": user["id"],
         "updated_at": now,
         "section_id": section_id,
@@ -286,18 +299,21 @@ async def delete_conduct(
 async def get_conduct_payload_for_libreta(
     school_id: str, student_id: str, period_ids: List[str]
 ) -> dict:
-    """Devuelve {period_id: {letra, score_numeric, observation} | None}."""
+    """Devuelve {period_id: {letra, score_numeric, observation, padres_letra, padres_score_numeric} | None}."""
     docs = await db.conduct_grades.find(
         {
             "school_id": school_id,
             "student_id": student_id,
             "period_id": {"$in": period_ids},
-        }, {"_id": 0, "period_id": 1, "letra": 1, "score_numeric": 1, "observation": 1},
+        }, {"_id": 0, "period_id": 1, "letra": 1, "score_numeric": 1, "observation": 1,
+            "padres_letra": 1, "padres_score_numeric": 1},
     ).to_list(20)
     by_period = {d["period_id"]: {
         "letra": d.get("letra"),
         "score_numeric": d.get("score_numeric"),
         "observation": d.get("observation"),
+        "padres_letra": d.get("padres_letra"),
+        "padres_score_numeric": d.get("padres_score_numeric"),
     } for d in docs}
     return {pid: by_period.get(pid) for pid in period_ids}
 

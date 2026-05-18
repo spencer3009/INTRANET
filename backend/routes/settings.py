@@ -128,6 +128,9 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     settings["restrict_parent_login_if_debt"] = school.get("restrict_parent_login_if_debt", False)
     settings["permitir_acceso_estudiantes_pendientes"] = school.get("permitir_acceso_estudiantes_pendientes", False)
     settings["allow_admin_broadcast"] = school.get("allow_admin_broadcast", False)
+    # Feature flag: extra "Nota a Padres" (Participación) column in conduct/libreta.
+    # Off by default. Most schools don't use it.
+    settings["show_padres_grade"] = bool(school.get("show_padres_grade", False))
     # Feature flag: birthday module (popup + slider + calendar events).
     # Default True for new/legacy schools without the field.
     settings["birthday_module_enabled"] = bool(school.get("birthday_module_enabled", True))
@@ -226,7 +229,7 @@ async def update_role_settings(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Update allowed fields only
-    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt", "restrict_parent_login_if_debt", "permitir_acceso_estudiantes_pendientes", "allow_admin_broadcast", "birthday_module_enabled"]
+    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt", "restrict_parent_login_if_debt", "permitir_acceso_estudiantes_pendientes", "allow_admin_broadcast", "birthday_module_enabled", "show_padres_grade"]
     update_data = {}
     for field in allowed_fields:
         if field in data:
@@ -240,7 +243,7 @@ async def update_role_settings(
         )
     
     # Get updated school
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1, "restrict_parent_login_if_debt": 1, "permitir_acceso_estudiantes_pendientes": 1, "allow_admin_broadcast": 1, "birthday_module_enabled": 1})
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1, "restrict_parent_login_if_debt": 1, "permitir_acceso_estudiantes_pendientes": 1, "allow_admin_broadcast": 1, "birthday_module_enabled": 1, "show_padres_grade": 1})
     
     logger.info(f"Role settings updated for school {school_id}: {update_data}")
     
@@ -252,6 +255,7 @@ async def update_role_settings(
         "permitir_acceso_estudiantes_pendientes": school.get("permitir_acceso_estudiantes_pendientes", False),
         "allow_admin_broadcast": school.get("allow_admin_broadcast", False),
         "birthday_module_enabled": bool(school.get("birthday_module_enabled", True)),
+        "show_padres_grade": bool(school.get("show_padres_grade", False)),
     }
 
 

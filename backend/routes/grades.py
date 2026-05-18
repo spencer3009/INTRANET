@@ -562,16 +562,19 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
     # Get all grades for this section/period
     all_grades = await db.student_grades.find(
         {"school_id": school_id, "section_id": section_id, "period_id": period_id, "subject_id": {"$in": subject_ids}},
-        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1}
+        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1}
     ).to_list(5000)
 
     # Build grades lookup: {student_id: {subject_id: final_grade}}
+    # Teacher's manual override (final_grade_manual) takes precedence over the auto-computed
+    # final_grade coming from the Registro Auxiliar.
     grades_lookup = {}
     for g in all_grades:
         sid = g["student_id"]
         if sid not in grades_lookup:
             grades_lookup[sid] = {}
-        grades_lookup[sid][g["subject_id"]] = g.get("final_grade")
+        manual = g.get("final_grade_manual")
+        grades_lookup[sid][g["subject_id"]] = manual if manual is not None else g.get("final_grade")
 
     # Build consolidated data
     consolidated = []
@@ -756,15 +759,17 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
     # Get all grades
     all_grades = await db.student_grades.find(
         {"school_id": school_id, "section_id": section_id, "period_id": period_id, "subject_id": {"$in": subject_ids}},
-        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1}
+        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1}
     ).to_list(10000)
 
+    # Teacher manual override (final_grade_manual) takes precedence over auto-computed final_grade.
     grades_lookup = {}
     for g in all_grades:
         sid = g["student_id"]
         if sid not in grades_lookup:
             grades_lookup[sid] = {}
-        grades_lookup[sid][g["subject_id"]] = g.get("final_grade")
+        manual = g.get("final_grade_manual")
+        grades_lookup[sid][g["subject_id"]] = manual if manual is not None else g.get("final_grade")
 
     # Build student rows with computed fields
     # Ranking, puntaje, promedio, tercio y desaprobados provienen del helper

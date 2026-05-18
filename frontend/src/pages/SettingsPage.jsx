@@ -65,6 +65,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowPendingStudents, setAllowPendingStudents] = useState(false);
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [birthdayModuleEnabled, setBirthdayModuleEnabled] = useState(true);
+  const [showPadresGrade, setShowPadresGrade] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Health & Wellness permissions state
@@ -138,6 +139,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
         // Birthday module flag defaults to TRUE for new/legacy schools.
         setBirthdayModuleEnabled(res.data.birthday_module_enabled !== false);
+        // "Nota a Padres" column flag defaults to FALSE (most schools don't use it).
+        setShowPadresGrade(!!res.data.show_padres_grade);
         // Load health permissions
         try {
           const hpRes = await axios.get(`${API}/settings/health-permissions`, { headers });
@@ -543,6 +546,23 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       } catch (_) { /* non-fatal */ }
     } catch (err) {
       setError(err.response?.data?.detail || "Error al actualizar el módulo de cumpleaños");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleTogglePadresGrade = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !showPadresGrade;
+      await axios.put(`${API}/settings/roles`, { show_padres_grade: newValue }, { headers });
+      setShowPadresGrade(newValue);
+      setSuccess(newValue
+        ? "Columna 'Nota a Padres' activada en la libreta"
+        : "Columna 'Nota a Padres' desactivada en la libreta");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar la columna 'Nota a Padres'");
     } finally {
       setSavingRoles(false);
     }
@@ -1568,6 +1588,49 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       <span
                         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
                           birthdayModuleEnabled ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                      {savingRoles && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* "Nota a Padres" Column Section (Owner-only) */}
+              <section className="mt-8" data-testid="padres-grade-section">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-slate-800 mb-1">Columna "Nota a Padres" en Libreta</h2>
+                  <p className="text-sm text-slate-500 mb-6">
+                    Activa una columna extra en la sección de Conducta para calificar la <strong>participación de los padres</strong> (AD / A / B / C). La mayoría de colegios no la usa, por eso viene desactivada.
+                  </p>
+
+                  <div className="flex items-center justify-between p-4 bg-violet-50 border border-violet-200 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-violet-200">
+                        <span className="text-violet-600 font-bold text-sm">P</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Nota a Padres (Participación)</h3>
+                        <p className="text-sm text-slate-500">
+                          Cuando se activa, aparece una fila adicional "PADRES" debajo de "CONDUCTA" en la libreta de cada estudiante.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTogglePadresGrade}
+                      disabled={savingRoles}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+                        showPadresGrade ? 'bg-violet-500' : 'bg-slate-300'
+                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-padres-grade"
+                      aria-label="Activar o desactivar la columna 'Nota a Padres'"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          showPadresGrade ? 'translate-x-8' : 'translate-x-1'
                         }`}
                       />
                       {savingRoles && (

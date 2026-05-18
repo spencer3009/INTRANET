@@ -49,14 +49,43 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
+  // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
+  const showPadresGrade = !!data?.metadata?.show_padres_grade;
 
   const saveConduct = async (period_id, letra) => {
     try {
-      await axios.put(`${API}/conduct`, { student_id: data.student.id, period_id, letra }, { headers });
+      // Send both fields so we don't blow away the parent grade when saving conducta
+      const existing = conduct[period_id] || {};
+      const body = {
+        student_id: data.student.id,
+        period_id,
+        letra,
+      };
+      if (existing.padres_letra) body.padres_letra = existing.padres_letra;
+      await axios.put(`${API}/conduct`, body, { headers });
       toast.success("Conducta actualizada");
     } catch (err) {
       if (err.response?.status === 423) toast.error("Bimestre cerrado. No se puede modificar la conducta.");
       else toast.error(err.response?.data?.detail || "No se pudo guardar la conducta.");
+      onReload && onReload();
+    }
+  };
+
+  const savePadresGrade = async (period_id, padres_letra) => {
+    try {
+      const existing = conduct[period_id] || {};
+      const body = {
+        student_id: data.student.id,
+        period_id,
+        // Conducta letra is required by the upsert validator. Keep the current one if present.
+        letra: existing.letra || "A",
+        padres_letra,
+      };
+      await axios.put(`${API}/conduct`, body, { headers });
+      toast.success("Nota a padres actualizada");
+    } catch (err) {
+      if (err.response?.status === 423) toast.error("Bimestre cerrado. No se puede modificar la nota a padres.");
+      else toast.error(err.response?.data?.detail || "No se pudo guardar la nota a padres.");
       onReload && onReload();
     }
   };
@@ -273,14 +302,14 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           <table className="lr-info" data-testid="libreta-conducta-table">
             <thead>
               <tr>
-                <th>CONDUCTA</th>
+                <th>{showPadresGrade ? "CONDUCTA / PADRES" : "CONDUCTA"}</th>
                 {periods.map(p => <th key={p.id}>{romano(p.orden)}</th>)}
                 <th>N.F.</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="lr-label">PROMEDIO</td>
+                <td className="lr-label">{showPadresGrade ? "CONDUCTA" : "PROMEDIO"}</td>
                 {periods.map(p => {
                   const c = conduct[p.id];
                   const closed = closedSet.has(p.id);
@@ -312,6 +341,44 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
                   return avg >= 3.5 ? "AD" : avg >= 2.5 ? "A" : avg >= 1.5 ? "B" : "C";
                 })()}</td>
               </tr>
+              {showPadresGrade && (
+                <tr data-testid="libreta-padres-row">
+                  <td className="lr-label">PADRES</td>
+                  {periods.map(p => {
+                    const c = conduct[p.id];
+                    const closed = closedSet.has(p.id);
+                    if (canEdit && !closed) {
+                      return (
+                        <td key={p.id} style={{ padding: 0 }}>
+                          <select
+                            value={c?.padres_letra || ""}
+                            onChange={(e) => {
+                              const v = e.target.value || null;
+                              setConduct(prev => ({
+                                ...prev,
+                                [p.id]: { ...(prev[p.id] || {}), padres_letra: v },
+                              }));
+                              if (v) savePadresGrade(p.id, v);
+                            }}
+                            data-testid={`libreta-padres-${p.orden}`}
+                          >
+                            <option value="">-</option>
+                            {LETRAS.map(L => <option key={L} value={L}>{L}</option>)}
+                          </select>
+                        </td>
+                      );
+                    }
+                    return <td key={p.id} title={closed ? "Bimestre cerrado" : ""}>{c?.padres_letra || "-"}</td>;
+                  })}
+                  <td style={{ fontWeight: "bold" }}>{(() => {
+                    const ls = periods.map(p => conduct[p.id]?.padres_letra).filter(Boolean);
+                    if (!ls.length) return "-";
+                    const order = { AD: 4, A: 3, B: 2, C: 1 };
+                    const avg = ls.reduce((s, l) => s + (order[l] || 0), 0) / ls.length;
+                    return avg >= 3.5 ? "AD" : avg >= 2.5 ? "A" : avg >= 1.5 ? "B" : "C";
+                  })()}</td>
+                </tr>
+              )}
             </tbody>
           </table>
 

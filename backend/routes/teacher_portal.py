@@ -517,42 +517,6 @@ async def get_teacher_tasks(current_user = Depends(get_current_user)):
     
     return {"tasks": enriched_tasks}
 
-@router.get("/teacher/grades")
-async def get_teacher_grades(
-    subject_id: str,
-    section_id: str,
-    current_user = Depends(get_current_user)
-):
-    """Get grades for a specific subject/section."""
-    user = await resolve_user_from_token(current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    if user.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="Este endpoint es solo para profesores")
-    
-    school_id = user.get("school_id")
-    
-    # Verify teacher has access to this subject/section
-    assignment = await db.academic_assignments.find_one({
-        "school_id": school_id,
-        "teacher_id": user["id"],
-        "subject_id": subject_id,
-        "section_id": section_id
-    })
-    
-    if not assignment:
-        raise HTTPException(status_code=403, detail="No tienes acceso a este curso/sección")
-    
-    # Get grades
-    grades = await db.grades.find({
-        "school_id": school_id,
-        "subject_id": subject_id,
-        "section_id": section_id
-    }, {"_id": 0}).to_list(500)
-    
-    return {"grades": grades}
-
 class GradeEntry(BaseModel):
     student_id: str
     grade: Optional[float] = None
@@ -691,66 +655,6 @@ async def get_teacher_grades(
         for d in docs
     ]
     return {"grades": grades}
-
-    """Save grades for students in a subject/section."""
-    user = await resolve_user_from_token(current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    if user.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="Este endpoint es solo para profesores")
-    
-    school_id = user.get("school_id")
-    
-    # Verify teacher has access
-    assignment = await db.academic_assignments.find_one({
-        "school_id": school_id,
-        "teacher_id": user["id"],
-        "subject_id": data.subject_id,
-        "section_id": data.section_id
-    })
-    
-    if not assignment:
-        raise HTTPException(status_code=403, detail="No tienes acceso a este curso/sección")
-    
-    # Save each grade
-    for entry in data.grades:
-        if entry.grade is None:
-            # Delete grade if null
-            await db.grades.delete_one({
-                "school_id": school_id,
-                "subject_id": data.subject_id,
-                "section_id": data.section_id,
-                "student_id": entry.student_id
-            })
-        else:
-            # Upsert grade
-            await db.grades.update_one(
-                {
-                    "school_id": school_id,
-                    "subject_id": data.subject_id,
-                    "section_id": data.section_id,
-                    "student_id": entry.student_id
-                },
-                {
-                    "$set": {
-                        "grade": entry.grade,
-                        "teacher_id": user["id"],
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    },
-                    "$setOnInsert": {
-                        "id": str(uuid.uuid4()),
-                        "school_id": school_id,
-                        "subject_id": data.subject_id,
-                        "section_id": data.section_id,
-                        "student_id": entry.student_id,
-                        "created_at": datetime.now(timezone.utc).isoformat()
-                    }
-                },
-                upsert=True
-            )
-    
-    return {"message": "Notas guardadas correctamente", "count": len(data.grades)}
 
 
 @router.get("/teacher/my-sections")
