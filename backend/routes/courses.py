@@ -122,7 +122,7 @@ async def get_course_posts(
     # Projection: exclude heavy fields (submissions[]) from list view
     list_projection = {
         "_id": 0,
-        "id": 1, "subject_id": 1, "school_id": 1, "title": 1, "content": 1,
+        "id": 1, "subject_id": 1, "section_id": 1, "school_id": 1, "title": 1, "content": 1,
         "post_type": 1, "type": 1, "status": 1, "author_id": 1,
         "created_at": 1, "updated_at": 1, "image_url": 1,
         "file_url": 1, "file_name": 1,
@@ -130,7 +130,12 @@ async def get_course_posts(
         "file_type": 1, "file_size": 1, "storage_type": 1,
         "mime_type": 1, "due_date": 1, "metadata": 1,
         "cloudinary_data": 1,
-        "tipo_material": 1, "url": 1, "video_id": 1
+        "tipo_material": 1, "url": 1, "video_id": 1,
+        # Registro Auxiliar linkage — required by the Editar Tarea modal
+        # and by the Entregas linkage banner to pre-select the saved
+        # bimestre + column. Excluding these fields made the UI always
+        # render "Sin vinculación" for tasks that actually were linked.
+        "register_column": 1, "period_id": 1, "sync_status": 1,
     }
 
     # 1. Get posts + total count in parallel

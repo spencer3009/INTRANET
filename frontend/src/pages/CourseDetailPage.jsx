@@ -3688,6 +3688,13 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
                   data-testid="edit-task-column-select"
                 >
                   <option value="">— Sin vinculación —</option>
+                  {/* Always show the currently-saved column even if availability omits it
+                      (e.g. legacy column id no longer in template). Without this, the
+                      select would render "Sin vinculación" for tasks that are actually
+                      linked, confusing the teacher. */}
+                  {initialColumn && !editColumns.find((c) => c.field_key === initialColumn) && (
+                    <option value={initialColumn}>(Vinculación actual: {initialColumn})</option>
+                  )}
                   {editColumns.map((c) => {
                     const isCurrent = c.field_key === initialColumn;
                     return (
