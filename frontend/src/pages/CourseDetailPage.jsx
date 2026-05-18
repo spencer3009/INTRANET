@@ -3149,7 +3149,16 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
-  
+
+  // Register Auxiliar linkage
+  const [editPeriodId, setEditPeriodId] = useState("");
+  const [editColumn, setEditColumn] = useState("");
+  const [editPeriods, setEditPeriods] = useState([]);
+  const [editColumns, setEditColumns] = useState([]); // [{field_key,label,criterio_nombre,available,blocked_reason}]
+  const [editLoadingCols, setEditLoadingCols] = useState(false);
+  const [initialPeriodId, setInitialPeriodId] = useState(null);
+  const [initialColumn, setInitialColumn] = useState(null);
+
   const headers = { Authorization: `Bearer ${token}` };
   
   // Populate form with task data when modal opens
@@ -3213,8 +3222,71 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       
       setFile(null);
       setError("");
+
+      // Initialize Registro Auxiliar linkage state
+      const tPid = task.period_id || null;
+      const tCol = task.register_column || null;
+      setEditPeriodId(tPid || "");
+      setEditColumn(tCol || "");
+      setInitialPeriodId(tPid);
+      setInitialColumn(tCol);
     }
   }, [isOpen, task]);
+
+  // Load periods when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API}/academic/periods`, { headers });
+        if (cancelled) return;
+        const all = Array.isArray(r.data) ? r.data : [];
+        setEditPeriods(all);
+        // If task has no period_id, pre-select the active one (editable).
+        if (!task?.period_id) {
+          const active = all.find((p) => p.activo);
+          if (active?.id) setEditPeriodId(active.id);
+        }
+      } catch (e) {
+        console.error("Error loading periods (edit):", e);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, task?.id]);
+
+  // Load columns whenever the chosen period changes
+  useEffect(() => {
+    if (!isOpen || !editPeriodId || !task?.subject_id) {
+      setEditColumns([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setEditLoadingCols(true);
+      try {
+        const params = new URLSearchParams({ subject_id: task.subject_id, period_id: editPeriodId });
+        const res = await axios.get(`${API}/register/availability?${params}`, { headers });
+        if (cancelled) return;
+        const cols = (res.data?.columns || []).filter((c) => c.type === "input").map((c) => ({
+          field_key: c.field_key || c.id,
+          label: c.label,
+          criterio_nombre: c.criterion_label || c.criterion || "",
+          available: c.available !== false,
+          blocked_reason: c.blocked_reason || null,
+        }));
+        setEditColumns(cols);
+      } catch (e) {
+        console.error("Error loading availability (edit):", e);
+        setEditColumns([]);
+      } finally {
+        if (!cancelled) setEditLoadingCols(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editPeriodId, task?.subject_id]);
   
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files?.[0];
@@ -3330,9 +3402,37 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       };
       
       const res = await axios.put(`${API}/course/posts/${task.id}`, updateData, { headers });
+
+      // If linkage changed, update it via dedicated endpoint
+      const linkageChanged =
+        (editColumn || null) !== (initialColumn || null) ||
+        (editPeriodId || null) !== (initialPeriodId || null);
+      let linkageResp = null;
+      if (linkageChanged) {
+        try {
+          const lr = await axios.put(
+            `${API}/course/tasks/${task.id}/register-linkage`,
+            {
+              register_column: editColumn || null,
+              period_id: editPeriodId || null,
+            },
+            { headers }
+          );
+          linkageResp = lr.data;
+        } catch (lerr) {
+          // Surface the linkage error but keep the rest of the changes saved
+          const detail = lerr.response?.data?.detail || "No se pudo actualizar la vinculación al Registro Auxiliar";
+          setError(detail);
+          setSubmitting(false);
+          setUploadProgress(0);
+          return;
+        }
+      }
       
       // Build the updated task with the new data
       // Ensure metadata.due_date is correctly set for the UI to display
+      const finalRegisterColumn = linkageResp?.register_column ?? (linkageChanged ? (editColumn || null) : task.register_column);
+      const finalPeriodId = linkageResp?.period_id ?? (linkageChanged ? (editPeriodId || null) : task.period_id);
       const updatedTask = {
         ...task,
         title: title.trim(),
@@ -3340,6 +3440,8 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
         file_url: fileUrl,
         file_name: fileName,
         file_type: fileType,
+        register_column: finalRegisterColumn,
+        period_id: finalPeriodId,
         metadata: {
           ...(task.metadata || {}),
           delivery_type: deliveryType,
@@ -3549,7 +3651,59 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">pts</span>
             </div>
           </div>
-          
+
+          {/* Register Auxiliar Linkage */}
+          <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4" data-testid="edit-task-linkage-block">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 className="w-4 h-4 text-emerald-700" />
+              <h4 className="font-semibold text-slate-800 text-sm">Vinculación al Registro Auxiliar</h4>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Elige el bimestre y la columna donde se registrarán automáticamente las notas de esta tarea. Si dejas la columna en "Sin vinculación", las notas no pasarán al Registro Auxiliar.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Bimestre</label>
+                <select
+                  value={editPeriodId}
+                  onChange={(e) => setEditPeriodId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  data-testid="edit-task-period-select"
+                >
+                  <option value="">— Bimestre —</option>
+                  {editPeriods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre || p.name || "Bimestre"}{p.activo ? " (activo)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Columna del Registro Auxiliar</label>
+                <select
+                  value={editColumn}
+                  onChange={(e) => setEditColumn(e.target.value)}
+                  disabled={!editPeriodId || editLoadingCols}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  data-testid="edit-task-column-select"
+                >
+                  <option value="">— Sin vinculación —</option>
+                  {editColumns.map((c) => {
+                    const isCurrent = c.field_key === initialColumn;
+                    return (
+                      <option key={c.field_key} value={c.field_key} disabled={!c.available && !isCurrent}>
+                        {c.criterio_nombre ? `${c.criterio_nombre} → ` : ""}{c.label}
+                        {!c.available && !isCurrent
+                          ? ` (${c.blocked_reason === "manual" ? "tiene notas" : "ya asignada"})`
+                          : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Visibility Toggle */}
           <div className="mb-5 p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between">
