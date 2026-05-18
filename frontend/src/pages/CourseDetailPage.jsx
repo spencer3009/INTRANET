@@ -3450,6 +3450,18 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
               data-testid="edit-task-title-input"
             />
           </div>
+
+          {/* Instrucciones */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Instrucciones <span className="text-slate-400 font-normal">(opcional pero recomendado)</span>
+            </label>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Describe las instrucciones y requisitos de la tarea para que los alumnos sepan qué hacer..."
+            />
+          </div>
           
           {/* Date and Time Row */}
           <div className="grid grid-cols-2 gap-4 mb-5">
