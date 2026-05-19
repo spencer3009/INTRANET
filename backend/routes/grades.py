@@ -1592,3 +1592,124 @@ async def create_unique_grades_index(current_user=Depends(get_current_user)):
         logger.exception(f"[GRADES MAINT] create-index falló: {e}")
         raise HTTPException(500, f"No se pudo crear el índice: {str(e)[:200]}")
 
+
+
+@router.get("/grades/raw-dump/{subject_id}/{section_id}")
+async def dump_raw_student_grades(
+    subject_id: str,
+    section_id: str,
+    period_id: Optional[str] = Query(None),
+    current_user = Depends(get_current_user),
+):
+    """Diagnostic endpoint: dumps the raw student_grades rows in MongoDB for
+    a given subject + section (optionally filtered by period). Lets admins
+    verify whether grades actually exist in the database vs. just not being
+    rendered by the frontend (template column-id mismatch, period selector
+    bug, etc.).
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user) and not has_role(user, ["teacher", "coordinator", "auxiliar"]):
+        raise HTTPException(status_code=403, detail="Solo administradores y staff pueden ejecutar este diagnóstico")
+
+    school_id = user["school_id"]
+    q = {"school_id": school_id, "subject_id": subject_id, "section_id": section_id}
+    if period_id:
+        q["period_id"] = period_id
+
+    docs = await db.student_grades.find(q, {"_id": 0}).to_list(2000)
+
+    student_ids = list({d.get("student_id") for d in docs if d.get("student_id")})
+    students = await db.users.find(
+        {"id": {"$in": student_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1},
+    ).to_list(2000) if student_ids else []
+    name_by_id = {s["id"]: f"{s.get('name','')} {s.get('last_name','')}".strip() for s in students}
+
+    periods = await db.academic_periods.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "is_active": 1}
+    ).to_list(50)
+    name_by_period = {p["id"]: p.get("name") for p in periods}
+
+    per_period_counts: Dict[str, dict] = {}
+    dynamic_keys_seen: set = set()
+    rows = []
+    for d in docs:
+        pid = d.get("period_id")
+        per_period_counts.setdefault(pid, {
+            "period_name": name_by_period.get(pid),
+            "rows": 0, "with_dynamic_data": 0, "with_static_data": 0, "with_final_grade": 0,
+        })
+        per_period_counts[pid]["rows"] += 1
+
+        gd = d.get("grades_dynamic") or {}
+        gd = {k: v for k, v in gd.items() if v is not None}
+        if gd:
+            per_period_counts[pid]["with_dynamic_data"] += 1
+            dynamic_keys_seen.update(gd.keys())
+
+        static_values = {k: v for k, v in d.items() if k.startswith(("act_", "rf_", "comp_", "part_", "exam_")) and v is not None}
+        if static_values:
+            per_period_counts[pid]["with_static_data"] += 1
+        if d.get("final_grade") is not None or d.get("final_grade_manual") is not None:
+            per_period_counts[pid]["with_final_grade"] += 1
+
+        rows.append({
+            "student_id": d.get("student_id"),
+            "student_name": name_by_id.get(d.get("student_id"), "?"),
+            "period_id": pid,
+            "period_name": name_by_period.get(pid),
+            "final_grade": d.get("final_grade"),
+            "final_grade_manual": d.get("final_grade_manual"),
+            "grades_dynamic_count": len(gd),
+            "grades_dynamic": gd,
+            "static_values": static_values,
+            "updated_at": d.get("updated_at"),
+        })
+
+    rows.sort(key=lambda r: ((r.get("period_name") or ""), (r.get("student_name") or "")))
+
+    from services.register_sync import get_active_template_for_school
+    template = await get_active_template_for_school(db, school_id)
+    template_info = None
+    if template:
+        cols = []
+        for cri in template.get("criterios") or []:
+            for sub in cri.get("subcolumnas") or []:
+                tipo = (sub.get("tipo") or "input").lower()
+                if tipo not in ("promedio_auto", "promedio", "promedio_manual", "auto"):
+                    cols.append({
+                        "id": sub.get("id"),
+                        "field_key": sub.get("field_key"),
+                        "label": sub.get("label"),
+                        "criterio": cri.get("nombre"),
+                    })
+        template_info = {
+            "id": template.get("id"),
+            "nombre": template.get("nombre"),
+            "es_sistema": template.get("es_sistema"),
+            "input_columns": cols,
+        }
+
+    # Highlight keys that are stored on disk but no longer match any column id
+    # in the currently active template (= orphan keys after template edits).
+    active_ids = set()
+    if template_info:
+        for c in template_info["input_columns"]:
+            if c.get("id"): active_ids.add(c["id"])
+            if c.get("field_key"): active_ids.add(c["field_key"])
+    orphan_keys = sorted(k for k in dynamic_keys_seen if k not in active_ids) if active_ids else []
+
+    return {
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "section_id": section_id,
+        "period_filter": period_id,
+        "total_rows": len(docs),
+        "per_period_counts": per_period_counts,
+        "dynamic_keys_seen": sorted(dynamic_keys_seen),
+        "orphan_dynamic_keys": orphan_keys,
+        "template": template_info,
+        "rows": rows,
+    }
