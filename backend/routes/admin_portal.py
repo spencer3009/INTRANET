@@ -561,7 +561,7 @@ async def submit_task(
     task_id: str,
     text_content: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
-    files: Optional[List[UploadFile]] = File(None),
+    files: List[UploadFile] = File(default_factory=list),
     current_user = Depends(get_current_user)
 ):
     """Submit a task as a student. Supports multiple file attachments."""
