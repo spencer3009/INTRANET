@@ -185,7 +185,20 @@ async def get_unified_register_availability(
     # Resolve the active template — drives the column list shown to teachers
     plantilla = await get_active_template_for_school(db, school_id)
 
-    # Build the canonical column list from the plantilla
+    # Build the canonical column list from the plantilla.
+    # IMPORTANT: We normalise the `field_key` here defensively so the
+    # response is consistent regardless of how the plantilla doc was
+    # serialized in MongoDB. Some legacy plantillas leaked the python
+    # `None` as the literal string `"None"` which would otherwise be
+    # truthy and propagate as a real (wrong) field_key.
+    def _norm_fkey(raw):
+        if raw is None:
+            return None
+        s = str(raw).strip()
+        if s in ("", "None", "null", "NULL"):
+            return None
+        return s
+
     columns_meta: list[dict] = []
     if plantilla:
         for cri in plantilla.get("criterios", []) or []:
@@ -195,7 +208,7 @@ async def get_unified_register_availability(
                 if sub.get("tipo") != "input":
                     continue
                 sid = sub.get("id")
-                fkey = sub.get("field_key") or sid
+                fkey = _norm_fkey(sub.get("field_key")) or sid
                 columns_meta.append({
                     "id": sid,
                     "field_key": fkey,
@@ -206,7 +219,7 @@ async def get_unified_register_availability(
                 })
         for col in plantilla.get("columnas_finales", []) or []:
             cid = col.get("id")
-            fkey = col.get("field_key") or cid
+            fkey = _norm_fkey(col.get("field_key")) or cid
             columns_meta.append({
                 "id": cid,
                 "field_key": fkey,

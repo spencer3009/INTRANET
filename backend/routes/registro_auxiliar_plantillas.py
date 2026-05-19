@@ -114,6 +114,43 @@ def clean_doc(doc: dict) -> dict:
     return doc
 
 
+def _normalize_fkey(raw):
+    """Return a clean field_key or None.
+
+    Defends against legacy serialization bugs where Python `None` got
+    persisted as the literal string ``"None"`` in MongoDB. We treat any
+    of {None, "", "None", "null", "NULL", "undefined"} as absent so the
+    frontend can fall back to `sub.id` consistently.
+    """
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if s in ("", "None", "null", "NULL", "undefined"):
+        return None
+    return s
+
+
+def normalize_plantilla_doc(doc):
+    """Sanitize a plantilla dict before returning it to the client.
+
+    Walks every subcolumna in `criterios` and every `columnas_finales`
+    entry, rewriting `field_key` so the response is always either a
+    real string or `null`. Does not mutate MongoDB — the caller can
+    pair this with a one-shot migration if they want to persist the
+    cleanup.
+    """
+    if not doc:
+        return doc
+    for cri in doc.get("criterios", []) or []:
+        for sub in cri.get("subcolumnas", []) or []:
+            if "field_key" in sub:
+                sub["field_key"] = _normalize_fkey(sub.get("field_key"))
+    for col in doc.get("columnas_finales", []) or []:
+        if "field_key" in col:
+            col["field_key"] = _normalize_fkey(col.get("field_key"))
+    return doc
+
+
 # ── Seed ────────────────────────────────────────────────────────
 
 SYSTEM_TEMPLATE = {
@@ -221,8 +258,8 @@ async def list_plantillas(school_id: str, estado: Optional[str] = None, current_
 
     result = []
     if system_template:
-        result.append(system_template)
-    result.extend(school_templates)
+        result.append(normalize_plantilla_doc(system_template))
+    result.extend(normalize_plantilla_doc(t) for t in school_templates)
 
     return {"plantillas": result, "total": len(result)}
 
@@ -243,7 +280,7 @@ async def get_plantilla(school_id: str, plantilla_id: str, current_user=Depends(
     )
     if not doc:
         raise HTTPException(404, "Plantilla no encontrada")
-    return doc
+    return normalize_plantilla_doc(doc)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -694,3 +731,91 @@ async def update_system_template_texts(
     updated = await db.registro_auxiliar_plantillas.find_one({"es_sistema": True}, {"_id": 0})
     logger.info(f"[PLANTILLAS] System template texts updated by {current_user.get('id')}")
     return updated
+
+
+# ══════════════════════════════════════════════════════════════════
+#  MIGRATION: fix legacy plantillas where field_key was persisted as
+#  the literal string "None"/"null". Idempotent — safe to run multiple
+#  times. Returns counts so the caller can audit the change.
+# ══════════════════════════════════════════════════════════════════
+
+@router.post("/admin/maintenance/fix-plantilla-field-keys")
+async def fix_plantilla_field_keys(current_user=Depends(require_role(["owner", "director", "admin"]))):
+    """Normalize ``field_key`` in every plantilla of the current school.
+
+    Walks all `criterios.subcolumnas` and `columnas_finales` of every
+    plantilla owned by the caller's school (plus the system template if
+    corrupted somehow) and rewrites any `field_key` that is the literal
+    string ``"None"``, ``""``, ``"null"`` or similar to a real Python
+    ``None``. Idempotent: a clean plantilla is left untouched.
+    """
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(403, "Sin colegio asociado")
+
+    LEGACY_KEYS = ("None", "null", "NULL", "undefined", "")
+
+    docs = await db.registro_auxiliar_plantillas.find(
+        {"$or": [{"school_id": school_id}, {"es_sistema": True}]},
+        {"_id": 0, "id": 1, "es_sistema": 1, "criterios": 1, "columnas_finales": 1, "nombre": 1},
+    ).to_list(50)
+
+    plantillas_touched = 0
+    subs_fixed = 0
+    cols_fixed = 0
+
+    for doc in docs:
+        changed = False
+        new_criterios = []
+        for cri in doc.get("criterios", []) or []:
+            new_subs = []
+            for sub in cri.get("subcolumnas", []) or []:
+                fk = sub.get("field_key")
+                if isinstance(fk, str) and fk.strip() in LEGACY_KEYS:
+                    sub = {**sub, "field_key": None}
+                    subs_fixed += 1
+                    changed = True
+                new_subs.append(sub)
+            new_criterios.append({**cri, "subcolumnas": new_subs})
+
+        new_finales = []
+        for col in doc.get("columnas_finales", []) or []:
+            fk = col.get("field_key")
+            if isinstance(fk, str) and fk.strip() in LEGACY_KEYS:
+                col = {**col, "field_key": None}
+                cols_fixed += 1
+                changed = True
+            new_finales.append(col)
+
+        if changed:
+            await db.registro_auxiliar_plantillas.update_one(
+                {"id": doc["id"]},
+                {"$set": {
+                    "criterios": new_criterios,
+                    "columnas_finales": new_finales,
+                    "updated_at": now_iso(),
+                }},
+            )
+            plantillas_touched += 1
+            logger.info(f"[PLANTILLAS] Migration cleaned plantilla {doc.get('id')} ({doc.get('nombre')})")
+
+    # Also clean grades_dynamic.None / .null buckets in student_grades for the
+    # caller's school. These were created when a corrupted plantilla forced
+    # the gradebook to write every column onto the same key.
+    sg_cleaned = await db.student_grades.update_many(
+        {"school_id": school_id, "grades_dynamic.None": {"$exists": True}},
+        {"$unset": {"grades_dynamic.None": ""}},
+    )
+    sg_cleaned_null = await db.student_grades.update_many(
+        {"school_id": school_id, "grades_dynamic.null": {"$exists": True}},
+        {"$unset": {"grades_dynamic.null": ""}},
+    )
+
+    return {
+        "message": "Plantillas y notas dinámicas normalizadas",
+        "plantillas_touched": plantillas_touched,
+        "subcolumnas_fixed": subs_fixed,
+        "columnas_finales_fixed": cols_fixed,
+        "student_grades_None_bucket_cleared": sg_cleaned.modified_count,
+        "student_grades_null_bucket_cleared": sg_cleaned_null.modified_count,
+    }

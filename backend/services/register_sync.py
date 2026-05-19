@@ -275,7 +275,25 @@ async def get_active_template_for_school(db, school_id: str) -> dict:
       2. School's `estado == "activa"` (and not system)
       3. The system template (`es_sistema: True`)
       4. None — caller must fallback (legacy)
+
+    Also normalizes legacy `field_key: "None"` (string) into a real Python
+    `None`, so every downstream caller sees a consistent shape regardless
+    of how the doc was serialized on disk.
     """
+    def _normalize(p):
+        if not p:
+            return p
+        for cri in p.get("criterios", []) or []:
+            for sub in cri.get("subcolumnas", []) or []:
+                fk = sub.get("field_key")
+                if isinstance(fk, str) and fk.strip() in ("", "None", "null", "NULL", "undefined"):
+                    sub["field_key"] = None
+        for col in p.get("columnas_finales", []) or []:
+            fk = col.get("field_key")
+            if isinstance(fk, str) and fk.strip() in ("", "None", "null", "NULL", "undefined"):
+                col["field_key"] = None
+        return p
+
     try:
         plantillas = await db.registro_auxiliar_plantillas.find(
             {"$or": [{"school_id": school_id}, {"es_sistema": True}]},
@@ -291,7 +309,7 @@ async def get_active_template_for_school(db, school_id: str) -> dict:
             None,
         )
         if predeterminada:
-            return predeterminada
+            return _normalize(predeterminada)
 
         activa = next(
             (p for p in plantillas
@@ -301,11 +319,11 @@ async def get_active_template_for_school(db, school_id: str) -> dict:
             None,
         )
         if activa:
-            return activa
+            return _normalize(activa)
 
         sistema = next((p for p in plantillas if p.get("es_sistema")), None)
         if sistema:
-            return sistema
+            return _normalize(sistema)
     except Exception as e:
         logger.warning(f"[register] active-template lookup failed for {school_id}: {e}")
 
