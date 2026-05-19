@@ -740,7 +740,7 @@ async def update_system_template_texts(
 # ══════════════════════════════════════════════════════════════════
 
 @router.post("/admin/maintenance/fix-plantilla-field-keys")
-async def fix_plantilla_field_keys(current_user=Depends(require_role(["owner", "director", "admin"]))):
+async def fix_plantilla_field_keys(current_user=Depends(require_role(["owner", "director", "admin", "support"]))):
     """Normalize ``field_key`` in every plantilla of the current school.
 
     Walks all `criterios.subcolumnas` and `columnas_finales` of every
