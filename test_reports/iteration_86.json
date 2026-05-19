@@ -75,7 +75,7 @@
     },
     "test_subject_id": "97ef0442-551b-413f-8bf8-b5c2e31aee41",
     "test_period_id_bimestre_1": "093a0bee-92c4-449c-b82c-942f16847759",
-    "api_base": "https://teacher-grades-fix.preview.emergentagent.com"
+    "api_base": "https://multi-file-submit.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - used existing course 'Ciencias Naturales' and academic periods",

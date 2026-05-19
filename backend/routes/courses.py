@@ -758,6 +758,7 @@ async def get_task_submissions(
                 "roll_number": student.get("roll_number") if student else None
             },
             "text_content": sub.get("text_content"),
+            "attachments": sub.get("attachments") or [],
             "file_url": sub.get("file_url"),
             "file_name": sub.get("file_name"),
             "file_type": sub.get("file_type"),

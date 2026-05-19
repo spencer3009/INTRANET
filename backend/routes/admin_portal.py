@@ -24,7 +24,9 @@ from .core import (
     ADMIN_ROLES, STAFF_ROLES, ROLE_HIERARCHY,
     ACADEMIC_STUDENT_FILTER, ACADEMIC_STUDENT_FILTER_WITH_PENDING,
     PERU_TZ, to_peru_hhmm,
+    MIME_TYPE_MAP,
 )
+from .exams import get_drive_service
 
 import jwt
 import io
@@ -506,57 +508,100 @@ async def update_admin_task_status(
     return {"message": f"Estado de tarea actualizado a {data.status}"}
 
 # Student Task Submission Endpoint
+async def _upload_submission_file_to_drive(
+    service,
+    submissions_folder_id: str,
+    student_id: str,
+    file_name: str,
+    file_type: Optional[str],
+    content: bytes,
+):
+    """Upload a single submission file to Google Drive. Returns drive_file_id."""
+    file_ext = file_name.split(".")[-1].lower() if "." in file_name else ""
+    mime_type = MIME_TYPE_MAP.get(file_ext, file_type or "application/octet-stream")
+
+    file_metadata = {
+        'name': f"{student_id}_{file_name}",
+        'parents': [submissions_folder_id]
+    }
+    media = MediaIoBaseUpload(
+        io.BytesIO(content),
+        mimetype=mime_type,
+        resumable=True
+    )
+    drive_file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id, name'
+    ).execute()
+    return drive_file.get('id')
+
+
+async def _ensure_submissions_folder(service, materials_folder_id: str) -> str:
+    """Find or create the 'Entregas' subfolder under materials_folder_id."""
+    submissions_folder_query = (
+        f"name='Entregas' and '{materials_folder_id}' in parents and "
+        f"mimeType='application/vnd.google-apps.folder' and trashed=false"
+    )
+    results = service.files().list(q=submissions_folder_query, fields="files(id)").execute()
+    submissions_folders = results.get('files', [])
+    if submissions_folders:
+        return submissions_folders[0]['id']
+    folder_metadata = {
+        'name': 'Entregas',
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [materials_folder_id]
+    }
+    folder = service.files().create(body=folder_metadata, fields='id').execute()
+    return folder.get('id')
+
+
 @router.post("/course/tasks/{task_id}/submit")
 async def submit_task(
     task_id: str,
     text_content: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
+    files: Optional[List[UploadFile]] = File(None),
     current_user = Depends(get_current_user)
 ):
-    """Submit a task as a student."""
+    """Submit a task as a student. Supports multiple file attachments."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
+
     school_id = user["school_id"]
     student_id = user["id"]
-    
+
     # Find the task - support both "type" (old system) and "post_type" (new system)
     task = await db.course_posts.find_one({
-        "id": task_id, 
-        "school_id": school_id, 
+        "id": task_id,
+        "school_id": school_id,
         "$or": [{"post_type": "task"}, {"type": "task"}]
     })
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
-    
+
     # Check if task deadline has passed
     due_date = task.get("due_date") or task.get("metadata", {}).get("due_date")
     if due_date:
         try:
-            # Parse due date and compare with current time
             if isinstance(due_date, str):
                 deadline = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
             else:
                 deadline = due_date
-            
             now = datetime.now(timezone.utc)
-            
-            # Check if task allows late submissions
             allow_late = task.get("metadata", {}).get("allow_late_submissions", False)
-            
             if deadline < now and not allow_late:
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail="El plazo para entregar esta tarea ha vencido. No se permiten entregas tardías."
                 )
+        except HTTPException:
+            raise
         except (ValueError, TypeError):
             pass  # If date parsing fails, allow submission
-    
-    # Check if already submitted — allow replacing the existing
-    # submission while the task is still open and NOT yet graded. This
-    # lets students fix mistakes before the deadline. Once the teacher
-    # assigns a grade, the submission is locked.
+
+    # Check if already submitted — allow replacing while task open and not graded.
     existing_submission = None
     existing_index = None
     for idx, sub in enumerate(task.get("submissions", []) or []):
@@ -570,122 +615,118 @@ async def submit_task(
             status_code=400,
             detail="Tu entrega ya fue calificada y no puede modificarse",
         )
-    
-    # Validate that at least one of text or file is provided
-    if not text_content and not file:
-        raise HTTPException(status_code=400, detail="Debes proporcionar texto o archivo")
-    
-    # Handle file upload if provided
-    file_url = None
-    file_name = None
-    file_type = None
-    drive_file_id = None
-    storage_type = None
-    
-    if file:
-        # Read file content
-        content = await file.read()
-        file_name = file.filename
-        file_type = file.content_type
-        
-        # Check if school has Google Drive connected
-        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
-        use_google_drive = school and school.get("google_drive_connected")
-        
-        if use_google_drive:
-            # Upload to Google Drive
-            try:
-                service = await get_drive_service(school_id)
-                
-                # Get or create submissions folder
-                materials_folder_id = school.get("google_drive_materials_folder_id")
-                if materials_folder_id:
-                    # Create a subfolder for submissions if it doesn't exist
-                    submissions_folder_query = f"name='Entregas' and '{materials_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                    results = service.files().list(q=submissions_folder_query, fields="files(id)").execute()
-                    submissions_folders = results.get('files', [])
-                    
-                    if submissions_folders:
-                        submissions_folder_id = submissions_folders[0]['id']
-                    else:
-                        # Create submissions folder
-                        folder_metadata = {
-                            'name': 'Entregas',
-                            'mimeType': 'application/vnd.google-apps.folder',
-                            'parents': [materials_folder_id]
-                        }
-                        folder = service.files().create(body=folder_metadata, fields='id').execute()
-                        submissions_folder_id = folder.get('id')
-                    
-                    # Upload file to Drive
-                    file_ext = file_name.split(".")[-1].lower() if "." in file_name else ""
-                    mime_type = MIME_TYPE_MAP.get(file_ext, file_type or "application/octet-stream")
-                    
-                    file_metadata = {
-                        'name': f"{student_id}_{file_name}",
-                        'parents': [submissions_folder_id]
-                    }
-                    
-                    media = MediaIoBaseUpload(
-                        io.BytesIO(content),
-                        mimetype=mime_type,
-                        resumable=True
-                    )
-                    
-                    drive_file = service.files().create(
-                        body=file_metadata,
-                        media_body=media,
-                        fields='id, name'
-                    ).execute()
-                    
-                    drive_file_id = drive_file.get('id')
-                    storage_type = 'google_drive'
-                    logger.info(f"Student submission uploaded to Drive: {file_name} for task {task_id}")
-                else:
-                    raise Exception("No materials folder configured")
-                    
-            except Exception as e:
-                logger.warning(f"Failed to upload to Drive, falling back to Cloudinary: {e}")
+
+    # Normalize incoming files into a single list (supports both `file` legacy
+    # field and the new `files` list field). Filter out empty/blank entries
+    # FastAPI may sometimes pass when no file was selected on the form.
+    incoming_files: List[UploadFile] = []
+    if files:
+        for f in files:
+            if f and getattr(f, "filename", None):
+                incoming_files.append(f)
+    if file and getattr(file, "filename", None):
+        incoming_files.append(file)
+
+    # Validate that at least text or one file is provided
+    if not text_content and not incoming_files:
+        raise HTTPException(status_code=400, detail="Debes proporcionar texto o al menos un archivo")
+
+    # Limit number of files per submission to avoid abuse / timeouts.
+    MAX_FILES_PER_SUBMISSION = 20
+    if len(incoming_files) > MAX_FILES_PER_SUBMISSION:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No puedes adjuntar más de {MAX_FILES_PER_SUBMISSION} archivos por entrega",
+        )
+
+    # Resolve school's Google Drive config once for the whole batch.
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0}) if incoming_files else None
+    use_google_drive = bool(school and school.get("google_drive_connected"))
+    drive_service = None
+    submissions_folder_id = None
+    if use_google_drive and incoming_files:
+        try:
+            drive_service = await get_drive_service(school_id)
+            materials_folder_id = school.get("google_drive_materials_folder_id")
+            if materials_folder_id:
+                submissions_folder_id = await _ensure_submissions_folder(drive_service, materials_folder_id)
+            else:
                 use_google_drive = False
-        
-        # Fallback to Cloudinary if Drive is not available or failed
-        if not use_google_drive or not drive_file_id:
+        except Exception as e:
+            logger.warning(f"Failed to init Drive for submissions, falling back to Cloudinary: {e}")
+            use_google_drive = False
+
+    # Process each file
+    attachments: List[dict] = []
+    for up in incoming_files:
+        content = await up.read()
+        f_name = up.filename
+        f_type = up.content_type
+        f_size = len(content) if content is not None else 0
+
+        att = {
+            "id": str(uuid.uuid4()),
+            "file_name": f_name,
+            "file_type": f_type,
+            "file_size": f_size,
+            "file_url": None,
+            "drive_file_id": None,
+            "storage_type": None,
+        }
+
+        uploaded = False
+        if use_google_drive and submissions_folder_id:
+            try:
+                drive_id = await _upload_submission_file_to_drive(
+                    drive_service, submissions_folder_id,
+                    student_id, f_name, f_type, content,
+                )
+                att["drive_file_id"] = drive_id
+                att["storage_type"] = "google_drive"
+                uploaded = True
+                logger.info(f"Submission file uploaded to Drive: {f_name} for task {task_id}")
+            except Exception as e:
+                logger.warning(f"Drive upload failed for {f_name}, fallback to Cloudinary: {e}")
+
+        if not uploaded:
             try:
                 import cloudinary.uploader
                 result = cloudinary.uploader.upload(
                     content,
                     folder=f"edunet/submissions/{task_id}",
                     resource_type="auto",
-                    public_id=f"{student_id}_{file_name}"
+                    public_id=f"{student_id}_{att['id']}_{f_name}"
                 )
-                file_url = result.get("secure_url")
-                storage_type = 'cloudinary'
+                att["file_url"] = result.get("secure_url")
+                att["storage_type"] = "cloudinary"
             except Exception as e:
-                logger.error(f"Cloudinary upload failed: {e}")
-                raise HTTPException(status_code=500, detail="Error al subir el archivo")
-    
+                logger.error(f"Cloudinary upload failed for {f_name}: {e}")
+                raise HTTPException(status_code=500, detail=f"Error al subir el archivo {f_name}")
+
+        attachments.append(att)
+
     now = datetime.now(timezone.utc).isoformat()
-    
-    # Create submission object — reuse the previous submission id when
-    # replacing so that any download links remembered by the student
-    # (and the auditable history kept by the teacher's view) stay
-    # stable.
+
+    # Legacy single-file fields are populated from the first attachment so old
+    # clients/views that read `file_url`/`drive_file_id` keep working.
+    first = attachments[0] if attachments else {}
     submission = {
         "id": (existing_submission or {}).get("id") or str(uuid.uuid4()),
         "student_id": student_id,
         "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
         "text_content": text_content,
-        "file_url": file_url,
-        "file_name": file_name,
-        "file_type": file_type,
-        "drive_file_id": drive_file_id,
-        "storage_type": storage_type,
+        "attachments": attachments,
+        # Legacy single-file fields (kept for backward compatibility)
+        "file_url": first.get("file_url"),
+        "file_name": first.get("file_name"),
+        "file_type": first.get("file_type"),
+        "drive_file_id": first.get("drive_file_id"),
+        "storage_type": first.get("storage_type"),
         "submitted_at": now,
         "grade": None,
-        "feedback": None
+        "feedback": None,
     }
-    
-    # Add or replace submission in the embedded array.
+
     if existing_submission is not None:
         await db.course_posts.update_one(
             {"id": task_id},
@@ -698,11 +739,12 @@ async def submit_task(
             {"$push": {"submissions": submission}}
         )
         message = "Tarea entregada exitosamente"
-    
+
     return {
         "message": message,
         "submission_id": submission["id"],
-        "storage_type": storage_type,
+        "storage_type": first.get("storage_type"),
+        "attachments_count": len(attachments),
         "replaced": existing_submission is not None,
     }
 
@@ -816,9 +858,16 @@ async def retract_task_submission(
 async def download_submission_file(
     task_id: str,
     submission_id: str,
+    attachment_index: Optional[int] = Query(None, ge=0),
+    attachment_id: Optional[str] = Query(None),
     current_user = Depends(get_current_user)
 ):
-    """Download a student's submission file (works with both Google Drive and Cloudinary)."""
+    """Download a student's submission file.
+
+    Supports multi-attachment submissions: pass `attachment_index` (0-based) or
+    `attachment_id` to fetch a specific file. Without those params, falls back
+    to legacy single-file fields for backward compatibility.
+    """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -851,12 +900,34 @@ async def download_submission_file(
     
     if not is_admin and not is_owner:
         raise HTTPException(status_code=403, detail="No tienes permiso para descargar este archivo")
-    
-    # Check storage type
-    storage_type = submission.get("storage_type")
-    drive_file_id = submission.get("drive_file_id")
-    file_url = submission.get("file_url")
-    file_name = submission.get("file_name", "archivo")
+
+    # Pick the target file: either a specific attachment from the new
+    # `attachments` array, or fall back to the legacy single-file fields.
+    attachments = submission.get("attachments") or []
+    target = None
+    if attachment_id and attachments:
+        target = next((a for a in attachments if a.get("id") == attachment_id), None)
+        if not target:
+            raise HTTPException(status_code=404, detail="Archivo adjunto no encontrado")
+    elif attachment_index is not None and attachments:
+        if attachment_index >= len(attachments):
+            raise HTTPException(status_code=404, detail="Índice de adjunto inválido")
+        target = attachments[attachment_index]
+    elif attachments:
+        # No specific attachment requested: default to the first one in the new array
+        target = attachments[0]
+
+    if target:
+        storage_type = target.get("storage_type")
+        drive_file_id = target.get("drive_file_id")
+        file_url = target.get("file_url")
+        file_name = target.get("file_name", "archivo")
+    else:
+        # Legacy single-file submission
+        storage_type = submission.get("storage_type")
+        drive_file_id = submission.get("drive_file_id")
+        file_url = submission.get("file_url")
+        file_name = submission.get("file_name", "archivo")
     
     if storage_type == "google_drive" and drive_file_id:
         # Download from Google Drive

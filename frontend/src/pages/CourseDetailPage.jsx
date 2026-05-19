@@ -8936,8 +8936,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         status: sub.status === 'a_tiempo' ? 'A tiempo' : 'Tarde',
         file: sub.file_name,
         file_url: sub.file_url,
+        file_name: sub.file_name,
         drive_file_id: sub.drive_file_id,
         storage_type: sub.storage_type,
+        attachments: sub.attachments || [],
         teacherComment: sub.feedback || '',
         grade: sub.grade !== null ? sub.grade : ''
       }));
@@ -9195,32 +9197,46 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   // State for viewing a full submission in a modal
   const [viewingSubmission, setViewingSubmission] = useState(null);
   
-  // Download submission file
-  const handleDownloadSubmissionFile = async (submission) => {
-    setDownloadingFile(submission.id);
+  // Download submission file (supports multi-attachment via optional attachment param)
+  const handleDownloadSubmissionFile = async (submission, attachment = null, attachmentIndex = null) => {
+    // Build a unique key so we can show per-attachment loading state.
+    const downloadKey = attachment ? `${submission.id}::${attachment.id || attachmentIndex}` : submission.id;
+    setDownloadingFile(downloadKey);
     try {
-      if (submission.storage_type === 'google_drive' && submission.drive_file_id) {
-        // Download from Google Drive via our backend
+      // Resolve target's storage info from the attachment if provided,
+      // otherwise fall back to the submission's legacy single-file fields.
+      const storageType = attachment?.storage_type || submission.storage_type;
+      const driveFileId = attachment?.drive_file_id || submission.drive_file_id;
+      const fileUrl = attachment?.file_url || submission.file_url;
+      const fileName = attachment?.file_name || submission.file || submission.file_name || 'archivo';
+
+      if (storageType === 'google_drive' && driveFileId) {
+        // Download from Google Drive via our backend (with optional attachment selector)
+        const params = {};
+        if (attachment?.id) params.attachment_id = attachment.id;
+        else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
+
         const response = await axios.get(
           `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
-          { 
+          {
             headers,
-            responseType: 'blob'
+            params,
+            responseType: 'blob',
           }
         );
-        
+
         const blob = new Blob([response.data]);
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = submission.file || 'archivo';
+        link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-      } else if (submission.file_url) {
+      } else if (fileUrl) {
         // Direct download for Cloudinary or other URLs
-        window.open(submission.file_url, '_blank');
+        window.open(fileUrl, '_blank');
       }
     } catch (err) {
       console.error('Error downloading file:', err);
@@ -9495,18 +9511,34 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     </div>
                     {/* MOBILE: File + view */}
                     <div className="flex items-center gap-2 md:hidden">
-                      {submission.file ? (
-                        <button
-                          onClick={() => handleDownloadSubmissionFile(submission)}
-                          disabled={downloadingFile === submission.id}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70"
-                        >
-                          {downloadingFile === submission.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                          Ver archivo
-                        </button>
-                      ) : (
-                        <span className="text-xs text-slate-400">Sin archivo</span>
-                      )}
+                      {(() => {
+                        const atts = submission.attachments || [];
+                        const hasMany = atts.length > 1;
+                        const hasAny = atts.length > 0 || !!submission.file;
+                        if (!hasAny) return <span className="text-xs text-slate-400">Sin archivo</span>;
+                        if (hasMany) {
+                          return (
+                            <button
+                              onClick={() => setViewingSubmission(submission)}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors"
+                              data-testid={`view-files-mobile-${submission.id}`}
+                            >
+                              <FileText className="w-3 h-3" />
+                              Ver {atts.length} archivos
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => handleDownloadSubmissionFile(submission, atts[0] || null, atts.length ? 0 : null)}
+                            disabled={downloadingFile === submission.id}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70"
+                          >
+                            {downloadingFile === submission.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                            Ver archivo
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => setViewingSubmission(submission)}
                         className="ml-auto w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition-colors"
@@ -9597,27 +9629,43 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     
                     {/* DESKTOP: File/Response */}
                     <div className="hidden md:block col-span-2">
-                      {submission.file ? (
-                        <button 
-                          onClick={() => handleDownloadSubmissionFile(submission)}
-                          disabled={downloadingFile === submission.id}
-                          className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait whitespace-nowrap"
-                        >
-                          {downloadingFile === submission.id ? (
-                            <>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              <span className="hidden sm:inline">Cargando...</span>
-                            </>
-                          ) : (
-                            <>
+                      {(() => {
+                        const atts = submission.attachments || [];
+                        const hasMany = atts.length > 1;
+                        const hasAny = atts.length > 0 || !!submission.file;
+                        if (!hasAny) return <span className="text-slate-400 text-xs">Sin archivo</span>;
+                        if (hasMany) {
+                          return (
+                            <button
+                              onClick={() => setViewingSubmission(submission)}
+                              className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                              data-testid={`view-files-desktop-${submission.id}`}
+                            >
                               <FileText className="w-3 h-3" />
-                              VER ARCHIVO
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400 text-xs">Sin archivo</span>
-                      )}
+                              VER {atts.length} ARCHIVOS
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => handleDownloadSubmissionFile(submission, atts[0] || null, atts.length ? 0 : null)}
+                            disabled={downloadingFile === submission.id}
+                            className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait whitespace-nowrap"
+                          >
+                            {downloadingFile === submission.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span className="hidden sm:inline">Cargando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-3 h-3" />
+                                VER ARCHIVO
+                              </>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </div>
                     
                     {/* DESKTOP: Teacher Comment */}
@@ -9767,29 +9815,54 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                   )}
                 </div>
 
-                {/* Attached file */}
-                {viewingSubmission.file && (
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Archivo adjunto</p>
-                    <button
-                      onClick={() => handleDownloadSubmissionFile(viewingSubmission)}
-                      disabled={downloadingFile === viewingSubmission.id}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-semibold transition-colors disabled:opacity-70 active:scale-95"
-                      data-testid="submission-file-download"
-                    >
-                      {downloadingFile === viewingSubmission.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Descargando…
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="w-4 h-4" />
-                          {viewingSubmission.file_name || viewingSubmission.file || "Ver archivo"}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+                {/* Attached files */}
+                {(() => {
+                  const atts = viewingSubmission.attachments && viewingSubmission.attachments.length > 0
+                    ? viewingSubmission.attachments
+                    : (viewingSubmission.file
+                        ? [{
+                            id: null,
+                            file_name: viewingSubmission.file_name || viewingSubmission.file,
+                            file_url: viewingSubmission.file_url,
+                            drive_file_id: viewingSubmission.drive_file_id,
+                            storage_type: viewingSubmission.storage_type,
+                          }]
+                        : []);
+                  if (atts.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                        {atts.length === 1 ? 'Archivo adjunto' : `Archivos adjuntos (${atts.length})`}
+                      </p>
+                      <div className="space-y-2" data-testid="submission-files-list">
+                        {atts.map((att, idx) => {
+                          const key = `${viewingSubmission.id}::${att.id || idx}`;
+                          const isLoading = downloadingFile === key;
+                          return (
+                            <button
+                              key={att.id || `${att.file_name}-${idx}`}
+                              onClick={() => handleDownloadSubmissionFile(viewingSubmission, att, idx)}
+                              disabled={isLoading}
+                              className="w-full inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-semibold transition-colors disabled:opacity-70 active:scale-95"
+                              data-testid={`submission-file-download-${idx}`}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" /> Descargando…
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="w-4 h-4" />
+                                  <span className="truncate">{att.file_name || `Archivo ${idx + 1}`}</span>
+                                </>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Footer */}

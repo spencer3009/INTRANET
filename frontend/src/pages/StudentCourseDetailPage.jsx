@@ -1579,7 +1579,7 @@ function RichTextEditor({ content, onChange, placeholder }) {
 // Task Submission Form Component
 function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingSubmission }) {
   const [textContent, setTextContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   // When the student already has a submission, we show a read-only
@@ -1629,24 +1629,41 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
   const allowsText = deliveryType === 'Texto en linea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
   const allowsFiles = deliveryType === 'Archivos' || deliveryType === 'Texto y archivos';
 
+  const MAX_FILES = 20;
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
+
   const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('El archivo no puede superar los 10MB');
+    const incoming = Array.from(e.target.files || []);
+    if (!incoming.length) return;
+
+    // Validate each file's size
+    for (const f of incoming) {
+      if (f.size > MAX_FILE_SIZE) {
+        setError(`El archivo "${f.name}" supera el límite de 10MB`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-      setSelectedFile(file);
-      setError('');
     }
+
+    // Combine with already selected, dedupe by name+size, and cap at MAX_FILES
+    setSelectedFiles((prev) => {
+      const merged = [...prev];
+      for (const f of incoming) {
+        const dup = merged.find((m) => m.name === f.name && m.size === f.size);
+        if (!dup) merged.push(f);
+      }
+      if (merged.length > MAX_FILES) {
+        setError(`Solo puedes adjuntar hasta ${MAX_FILES} archivos por entrega`);
+        return merged.slice(0, MAX_FILES);
+      }
+      return merged;
+    });
+    setError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeFileAt = (idx) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async () => {
@@ -1664,17 +1681,19 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
       return !div.textContent?.trim();
     };
 
+    const hasFiles = selectedFiles.length > 0;
+
     // Validate based on delivery type
     if (allowsText && !allowsFiles && isContentEmpty(textContent)) {
       setError('Por favor, escribe tu respuesta');
       return;
     }
-    if (allowsFiles && !allowsText && !selectedFile) {
-      setError('Por favor, selecciona un archivo');
+    if (allowsFiles && !allowsText && !hasFiles) {
+      setError('Por favor, selecciona al menos un archivo');
       return;
     }
-    if (deliveryType === 'Texto y archivos' && isContentEmpty(textContent) && !selectedFile) {
-      setError('Por favor, escribe tu respuesta o adjunta un archivo');
+    if (deliveryType === 'Texto y archivos' && isContentEmpty(textContent) && !hasFiles) {
+      setError('Por favor, escribe tu respuesta o adjunta al menos un archivo');
       return;
     }
 
@@ -1685,7 +1704,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
       // Call the submit function with the submission data
       await onSubmit(task, {
         text_content: textContent,
-        file: selectedFile
+        files: selectedFiles,
       });
     } catch (err) {
       setError(err.message || 'Error al entregar la tarea');
@@ -1711,13 +1730,28 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
   const isGraded = existingSubmission && existingSubmission.grade !== null && existingSubmission.grade !== undefined;
   const canEditExisting = !!existingSubmission && !isGraded && !isExpired;
   if (existingSubmission && !isEditing) {
-    const fileIcon = getFileTypeIcon(existingSubmission.file_name || '');
     const submittedAt = existingSubmission.submitted_at ? new Date(existingSubmission.submitted_at) : null;
     const apiBase = process.env.REACT_APP_BACKEND_URL;
-    const downloadUrl = existingSubmission.file_url
-      || (existingSubmission.id
-            ? `${apiBase}/api/course/tasks/${task.id}/submissions/${existingSubmission.id}/download`
-            : null);
+    // Build the list of attachments to display. Prefer the new
+    // `attachments` array; fall back to the legacy single-file fields.
+    const existingAttachments = (existingSubmission.attachments && existingSubmission.attachments.length > 0)
+      ? existingSubmission.attachments
+      : (existingSubmission.file_name
+          ? [{
+              id: null,
+              file_name: existingSubmission.file_name,
+              file_type: existingSubmission.file_type,
+              file_url: existingSubmission.file_url,
+              drive_file_id: existingSubmission.drive_file_id,
+              storage_type: existingSubmission.storage_type,
+            }]
+          : []);
+    const buildAttachmentDownloadUrl = (att, idx) => {
+      if (att.file_url) return att.file_url;
+      if (!existingSubmission.id) return null;
+      const params = att.id ? `?attachment_id=${encodeURIComponent(att.id)}` : `?attachment_index=${idx}`;
+      return `${apiBase}/api/course/tasks/${task.id}/submissions/${existingSubmission.id}/download${params}`;
+    };
     return (
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-testid="existing-submission-card">
         {/* Header */}
@@ -1756,30 +1790,44 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
             </div>
           )}
 
-          {/* File attached */}
-          {existingSubmission.file_name && (
+          {/* Files attached */}
+          {existingAttachments.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700">Archivo entregado</label>
-              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex items-center gap-4" data-testid="existing-submission-file">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${fileIcon.color}`}>
-                  <FileIcon className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-800 truncate">{existingSubmission.file_name}</p>
-                  <p className="text-sm text-slate-500">{fileIcon.label}</p>
-                </div>
-                {downloadUrl && (
-                  <a
-                    href={downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                    data-testid="existing-submission-download-btn"
-                  >
-                    <Download className="w-4 h-4" />
-                    Ver archivo
-                  </a>
-                )}
+              <label className="block text-sm font-semibold text-slate-700">
+                {existingAttachments.length === 1 ? 'Archivo entregado' : `Archivos entregados (${existingAttachments.length})`}
+              </label>
+              <div className="space-y-2" data-testid="existing-submission-files">
+                {existingAttachments.map((att, idx) => {
+                  const icon = getFileTypeIcon(att.file_name || '');
+                  const url = buildAttachmentDownloadUrl(att, idx);
+                  return (
+                    <div
+                      key={att.id || `${att.file_name}-${idx}`}
+                      className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex items-center gap-4"
+                      data-testid={`existing-submission-file-${idx}`}
+                    >
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${icon.color}`}>
+                        <FileIcon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate">{att.file_name}</p>
+                        <p className="text-sm text-slate-500">{icon.label}</p>
+                      </div>
+                      {url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                          data-testid={`existing-submission-download-btn-${idx}`}
+                        >
+                          <Download className="w-4 h-4" />
+                          Ver
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1822,7 +1870,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
                   onClick={() => {
                     setIsEditing(true);
                     setTextContent(existingSubmission.text_content || '');
-                    setSelectedFile(null);
+                    setSelectedFiles([]);
                     setError('');
                   }}
                   className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/25"
@@ -2000,7 +2048,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
         {allowsFiles && (
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700">
-              📎 Adjuntar archivo
+              📎 Adjuntar archivos {selectedFiles.length > 0 && <span className="text-slate-500 font-normal">({selectedFiles.length}/{MAX_FILES})</span>}
             </label>
             
             {/* Google Drive indicator */}
@@ -2014,62 +2062,62 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
                 <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
               </svg>
               <span className="text-sm text-blue-700 font-medium">
-                Tu archivo se guardará en Google Drive del colegio
+                Tus archivos se guardarán en Google Drive del colegio
               </span>
             </div>
-            
-            {!selectedFile ? (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors"
-                data-testid="file-upload-zone"
-              >
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8 text-slate-400" />
-                </div>
-                <p className="text-slate-600 font-medium">Haz clic para seleccionar un archivo</p>
-                <p className="text-sm text-slate-400 mt-1">
-                  PDF, Word, Excel, PowerPoint, Imágenes (máx. 10MB)
-                </p>
+
+            {/* Drop / picker zone — always visible so the student can keep adding more files */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors"
+              data-testid="file-upload-zone"
+            >
+              <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Upload className="w-7 h-7 text-slate-400" />
               </div>
-            ) : (
-              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getFileTypeIcon(selectedFile.name).color}`}>
-                    <FileIcon className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{selectedFile.name}</p>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <span>{(selectedFile.size / 1024).toFixed(1)} KB • {getFileTypeIcon(selectedFile.name).label}</span>
-                      <span className="text-blue-500 flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                          <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                          <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                          <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                          <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                          <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                          <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                        </svg>
-                        Drive
-                      </span>
+              <p className="text-slate-600 font-medium">
+                {selectedFiles.length === 0
+                  ? 'Haz clic para seleccionar archivos'
+                  : 'Haz clic para agregar más archivos'}
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                PDF, Word, Excel, PowerPoint, Imágenes (máx. 10MB por archivo, hasta {MAX_FILES})
+              </p>
+            </div>
+
+            {/* Selected files list */}
+            {selectedFiles.length > 0 && (
+              <div className="space-y-2" data-testid="selected-files-list">
+                {selectedFiles.map((f, idx) => (
+                  <div key={`${f.name}-${f.size}-${idx}`} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFileTypeIcon(f.name).color}`}>
+                        <FileIcon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate text-sm">{f.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span>{(f.size / 1024).toFixed(1)} KB • {getFileTypeIcon(f.name).label}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFileAt(idx)}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Quitar archivo"
+                        data-testid={`remove-file-btn-${idx}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={removeFile}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Eliminar archivo"
-                    data-testid="remove-file-btn"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                ))}
               </div>
             )}
-            
+
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               onChange={handleFileSelect}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
               className="hidden"
@@ -2090,10 +2138,10 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           <p className="text-sm text-slate-500">
             {allowsText && allowsFiles 
-              ? "Puedes escribir una respuesta y/o adjuntar un archivo"
+              ? "Puedes escribir una respuesta y/o adjuntar uno o más archivos"
               : allowsText 
                 ? "Escribe tu respuesta en el editor de texto"
-                : "Adjunta un archivo con tu trabajo"
+                : "Adjunta uno o más archivos con tu trabajo"
             }
           </p>
           <div className="flex items-center gap-3">
@@ -2102,7 +2150,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
                 onClick={() => {
                   setIsEditing(false);
                   setTextContent('');
-                  setSelectedFile(null);
+                  setSelectedFiles([]);
                   setError('');
                 }}
                 disabled={uploading}
@@ -5022,8 +5070,12 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
           formData.append('text_content', submissionData.text_content);
         }
         
-        if (submissionData.file) {
-          formData.append('file', submissionData.file);
+        // Support both legacy single `file` and the new `files` array
+        const filesToSend = Array.isArray(submissionData.files)
+          ? submissionData.files
+          : (submissionData.file ? [submissionData.file] : []);
+        for (const f of filesToSend) {
+          if (f) formData.append('files', f);
         }
         
         // Call the API to submit the task

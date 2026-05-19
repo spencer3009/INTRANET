@@ -1,0 +1,56 @@
+{
+  "summary": "Tested the new multi-file task submissions feature (POST /api/course/tasks/{task_id}/submit with `files: List[UploadFile]`). CRITICAL BUG FOUND: the new `files` field is completely non-functional — every request (1 file or more) returns 422 due to a Pydantic v2 validation failure ('Input should be a valid list'). The legacy `file` (single) field still works end-to-end (storage falls back to Cloudinary as expected since Google Drive is not connected). Frontend code is correct (multiple attribute, formData.append('files', f), all data-testids present) but is blocked by the backend bug. Did not run Playwright E2E because backend submission fails before UI flow can complete.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/course/tasks/{task_id}/submit",
+        "issue": "Sending the new `files` form field (single or multiple) returns 422 with Pydantic error: type=list_type, msg='Input should be a valid list'. Each individual UploadFile is being validated against the list type instead of being collected into a list. Root cause: signature `files: Optional[List[UploadFile]] = File(None)` is incompatible with FastAPI + Pydantic v2 multipart parsing. Fix: change to `files: List[UploadFile] = File(default_factory=list)` (or `= File([])`). This single-line change makes the entire multi-file feature non-functional in its current state.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/schools/create",
+        "issue": "Unrelated pre-existing bug: `create_system_support_user(db, school_id)` takes 1 positional argument but 2 were given (backend.err.log). Blocks creation of new test schools via /api/auth/register flow — testing agents must reuse the existing admin@elroble.edu school."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Student multi-file task submission",
+        "issue": "Frontend code (StudentCourseDetailPage.jsx handleSubmitTask, line ~5074-5079) correctly composes FormData with `files` field for both single legacy fallback and array. However, every submission attempt fails with 422 from backend due to the critical backend bug above. End-user impact: student CANNOT submit any task that uses the new flow; only legacy single-file submissions via the old `file` field would work (and only if the frontend kept using it, which it doesn't).",
+        "affected_selectors": ["[data-testid='file-input']", "[data-testid='selected-files-list']", "[data-testid='submit-task-btn']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_task_submissions_multi_file.py",
+    "/app/test_reports/pytest/multi_file_results.xml"
+  ],
+  "action_items": [
+    "FIX BACKEND: /app/backend/routes/admin_portal.py line 564 — change `files: Optional[List[UploadFile]] = File(None)` to `files: List[UploadFile] = File(default_factory=list)`. This unblocks the entire multi-file feature.",
+    "After backend fix, re-run /app/backend/tests/test_task_submissions_multi_file.py to validate all 12 scenarios (validation, single via new field, multi (3) files, replacement keeping submission_id, GET returns attachments array, download by index/id, 404 on out-of-range index, legacy `file` field still works, retract).",
+    "Separately address the unrelated /api/auth/register → /api/schools/create regression (`create_system_support_user` signature mismatch) so future tests can spin up isolated schools.",
+    "After fix, also run a quick Playwright pass on StudentCourseDetailPage (login as the test student created by tests, attach 2-3 files, submit) and CourseDetailPage teacher modal showing 'VER N ARCHIVOS'."
+  ],
+  "critical_code_review_comments": [
+    "admin_portal.py line 564: Use `List[UploadFile] = File(default_factory=list)` for multi-file form fields. The `Optional[List[...]] = File(None)` pattern is known to mis-validate under Pydantic v2.",
+    "admin_portal.py 619-632: The merge of legacy `file` + new `files` into a single `incoming_files` list, plus the 'Drive→Cloudinary fallback per-file' logic is well structured. Validation (no text + no files → 400, >20 files → 400) is correct.",
+    "admin_portal.py 712-728: Population of legacy single-file submission fields from `attachments[0]` is correct and preserves backward compat. Good.",
+    "admin_portal.py 905-918 (download): the index/id selection logic looks correct; 404 on out-of-range index is properly handled.",
+    "Frontend StudentCourseDetailPage.jsx 5073-5079: Correctly appends multiple 'files' parts. No client-side fix needed once backend is patched."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_task_submissions_multi_file.py (new test file)"
+  ],
+  "success_rate": {"backend": "8% (1 of 12 multi-file tests pass — only no_text_no_files_400; legacy `file` path also works in manual probe)", "frontend": "not tested E2E (blocked by backend 422)"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 used. Test students created with prefix TEST_stu_multi_* and TEST_probe_* (password test123456). These are leftover seed data — feel free to delete.",
+  "seed_data_creation": "Created 2 TEST_ prefixed student users + 2 test tasks under existing elroble subjects during probing/testing. Harmless but can be cleaned up.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend has a one-line fix needed (admin_portal.py:564). After main agent fixes it, just re-run `REACT_APP_BACKEND_URL=<preview-url> pytest /app/backend/tests/test_task_submissions_multi_file.py -v`. All 12 tests should pass. Then do Playwright E2E: login as a fresh student (use admin@elroble.edu to create one or reuse TEST_stu_multi_*), navigate to Cursos → pick a course → open a task with delivery_type 'Texto y archivos' → attach 2-3 files via [data-testid='file-input'] → verify [data-testid='selected-files-list'] shows them → click submit → verify [data-testid='existing-submission-files'] appears with 'Archivos entregados (N)' and individual [data-testid='existing-submission-download-btn-N']. As teacher/admin, open CourseDetailPage and verify [data-testid='view-files-desktop-{submission.id}'] opens a modal with [data-testid='submission-file-download-N'] per file. Note: Google Drive is NOT connected — submissions must end with storage_type='cloudinary' (verified in probe).",
+  "rca of the issue": "Root cause: FastAPI signature `files: Optional[List[UploadFile]] = File(None)` is incompatible with how Pydantic v2 validates multipart form fields. When the request contains one or more 'files' parts, Pydantic receives each as a single UploadFile and tries to validate it against the List type, producing 422 `{'type':'list_type','loc':['body','files'],'msg':'Input should be a valid list','input':{'filename':'a.txt',...}}`. Reproduction: `curl -X POST .../submit -F 'files=@a.txt'` returns 422. Mitigation/Fix (one-line): change line 564 in /app/backend/routes/admin_portal.py to `files: List[UploadFile] = File(default_factory=list),` (and keep the existing `if files:` check, which is already there). This is the canonical FastAPI pattern for optional-multiple-files. The legacy `file: Optional[UploadFile] = File(None)` (singular) still works and is unaffected."
+}

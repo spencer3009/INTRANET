@@ -32,7 +32,7 @@
   "seed_data_creation": "None. Only used existing data.",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "Sonia (id=8ef00841-049e-46cd-8b94-1a5921aa65fe) has 3 active subject assignments: subject_id a67a0eac-97f4-4148-b70e-c27235baf599 over sections 18dd37fa-79d6-4b38-b5a2-46deeb1b00fe, 1e052145-8aa3-4df8-a28c-b9adb0689e15, 9b2fc9bf-6e9c-4a1a-bed2-2b10f77c259f — these sections currently have 0 enrolled students. Real students are in 'test-seccion-stress' (35) and 11f50cbc-f5f6-422a-a989-87b2af6027f1 (22). Active period id at test time: 093a0bee-92c4-449c-b82c-942f16847759. /api/users does not honour role/seccion_id filters — must filter client-side. The conduct PUT for the chosen student/period returned 423 (period closed via snapshot), so the test_put_conduct_with_padres_letra_A was skipped; pick a non-snapshotted student/period to retest live.",
+  "context_for_next_testing_agent": "Sonia (id=multi-file-submit) has 3 active subject assignments: subject_id a67a0eac-97f4-4148-b70e-c27235baf599 over sections 18dd37fa-79d6-4b38-b5a2-46deeb1b00fe, 1e052145-8aa3-4df8-a28c-b9adb0689e15, 9b2fc9bf-6e9c-4a1a-bed2-2b10f77c259f — these sections currently have 0 enrolled students. Real students are in 'test-seccion-stress' (35) and 11f50cbc-f5f6-422a-a989-87b2af6027f1 (22). Active period id at test time: 093a0bee-92c4-449c-b82c-942f16847759. /api/users does not honour role/seccion_id filters — must filter client-side. The conduct PUT for the chosen student/period returned 423 (period closed via snapshot), so the test_put_conduct_with_padres_letra_A was skipped; pick a non-snapshotted student/period to retest live.",
   "executed_tests": {
     "passed": [
       "TestHealth.test_health",
