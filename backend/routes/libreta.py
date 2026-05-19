@@ -384,7 +384,10 @@ async def get_libreta(
         ).to_list(50)
         areas_map = {a["id"]: a for a in area_docs}
 
-    # 6) Notas del alumno (todas las del año)
+    # 6) Notas del alumno (todas las del año) — fetch full row so we can
+    # recompute final_grade on-the-fly when the school uses a CUSTOM
+    # (dynamic) Registro Auxiliar template. Without this, the libreta
+    # appears empty for any subject whose grades live in `grades_dynamic`.
     student_grade_docs: List[dict] = []
     if subject_ids and period_ids:
         student_grade_docs = await db.student_grades.find(
@@ -394,13 +397,26 @@ async def get_libreta(
                 "subject_id": {"$in": subject_ids},
                 "period_id": {"$in": period_ids},
             },
-            {"_id": 0, "subject_id": 1, "period_id": 1, "final_grade": 1},
+            {"_id": 0},
         ).to_list(2000)
+
+    # Pre-load active template + helpers for the on-the-fly recompute path.
+    from services.register_sync import get_active_template_for_school
+    from routes.grades import calculate_final_grade, GRADE_SUB_FIELDS
+    libreta_template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(libreta_template and not libreta_template.get("es_sistema"))
 
     # Lookup: notes[subject_id][period_id] = final_grade
     notes_lookup: Dict[str, Dict[str, Optional[float]]] = {}
     for g in student_grade_docs:
-        notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = g.get("final_grade")
+        final_val = g.get("final_grade")
+        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                final_val = calculate_final_grade(g, {}, template=libreta_template)
+            except Exception as e:
+                logger.warning(f"[LIBRETA] on-the-fly recompute failed for student={student_id} subj={g.get('subject_id')}: {e}")
+                final_val = None
+        notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = final_val
 
     # 7) Tutor de la sección
     tutor = await _get_active_tutor(school_id, section_id)
