@@ -15,6 +15,7 @@ import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/DashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
 import UsersPage from "@/pages/UsersPage";
+import DiagRegistroAuxiliarPage from "@/pages/DiagRegistroAuxiliarPage";
 import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
@@ -3099,6 +3100,22 @@ function App() {
             }
           />
           
+          {/* ════════════════════════════════════════════════════════════════════
+              TEMPORARY DIAGNOSTIC TOOL - Read-only, owner/support only
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/diag/registro-auxiliar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={false} requireEmailVerified={false}>
+                {(user?.is_owner || user?.role === "owner" || isSupportGlobal(user)) ? (
+                  <DiagRegistroAuxiliarPage />
+                ) : (
+                  <Navigate to="/login" replace />
+                )}
+              </ProtectedRoute>
+            }
+          />
+
           {/* ════════════════════════════════════════════════════════════════════
               SUPPORT PANEL - Global support admin only
           ════════════════════════════════════════════════════════════════════ */}
