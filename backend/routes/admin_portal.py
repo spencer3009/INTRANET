@@ -30,7 +30,7 @@ from .exams import get_drive_service
 
 import jwt
 import io
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -932,42 +932,49 @@ async def download_submission_file(
         file_name = submission.get("file_name", "archivo")
     
     if storage_type == "google_drive" and drive_file_id:
-        # Download from Google Drive
+        # Download from Google Drive — buffer the whole file and return it as
+        # a single Response. Streaming chunk-by-chunk has been flaky in
+        # production (some chunks silently truncate the response on the
+        # client), buffering is more reliable for the size of files students
+        # typically upload.
         try:
             service = await get_drive_service(school_id)
-            
+
             # Get file metadata
             file_metadata = service.files().get(fileId=drive_file_id, fields='mimeType, size').execute()
             mime_type = file_metadata.get('mimeType', 'application/octet-stream')
-            
-            # Stream the file
+
+            # Download fully into memory
             request = service.files().get_media(fileId=drive_file_id)
-            
-            def generate():
-                downloader = MediaIoBaseDownload(io.BytesIO(), request, chunksize=1024*1024)
-                fh = io.BytesIO()
-                downloader = MediaIoBaseDownload(fh, request)
-                done = False
-                while not done:
-                    status, done = downloader.next_chunk()
-                    if status:
-                        fh.seek(0)
-                        yield fh.read()
-                        fh.seek(0)
-                        fh.truncate()
-                fh.seek(0)
-                yield fh.read()
-            
-            return StreamingResponse(
-                generate(),
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request, chunksize=2 * 1024 * 1024)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+            content = fh.getvalue()
+
+            # URL-encode the filename so non-ASCII names don't break headers
+            from urllib.parse import quote
+            safe_name = quote(file_name or "archivo")
+            return Response(
+                content=content,
                 media_type=mime_type,
                 headers={
-                    "Content-Disposition": f'attachment; filename="{file_name}"'
-                }
+                    "Content-Disposition": f'attachment; filename="{file_name}"; filename*=UTF-8\'\'{safe_name}',
+                    "Content-Length": str(len(content)),
+                },
             )
         except Exception as e:
-            logger.error(f"Error downloading from Drive: {e}")
-            raise HTTPException(status_code=500, detail="Error al descargar desde Google Drive")
+            logger.error(
+                f"[DRIVE-DOWNLOAD] Failed for task={task_id} submission={submission_id} "
+                f"drive_file_id={drive_file_id} school={school_id}: {type(e).__name__}: {e}",
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=f"Error al descargar desde Google Drive ({type(e).__name__}). "
+                       f"Vuelve a intentarlo. Si persiste, contacta al administrador.",
+            )
     
     elif file_url:
         # Redirect to Cloudinary URL or return the URL

@@ -9197,32 +9197,36 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   // State for viewing a full submission in a modal
   const [viewingSubmission, setViewingSubmission] = useState(null);
   
-  // Download submission file (supports multi-attachment via optional attachment param)
+  // Download submission file (supports multi-attachment via optional attachment param).
+  //
+  // Strategy:
+  //   1. Resolve the target's storage info from the attachment if provided,
+  //      otherwise fall back to the submission's legacy single-file fields.
+  //   2. Always TRY the backend (axios + responseType=blob) first because
+  //      that path keeps auth, gives us a real spinner and works perfectly
+  //      for Google Drive (streamed by the backend) and for Cloudinary
+  //      files that the backend can redirect to with CORS allowed.
+  //   3. If the blob path fails (e.g. CORS on cross-origin Cloudinary
+  //      redirect, or any other transient error) AND we have a public
+  //      file_url, fall back to opening it in a new tab so the user still
+  //      gets the file. Only show the error modal if both fail.
   const handleDownloadSubmissionFile = async (submission, attachment = null, attachmentIndex = null) => {
-    // Build a unique key so we can show per-attachment loading state.
     const downloadKey = attachment ? `${submission.id}::${attachment.id || attachmentIndex}` : submission.id;
     setDownloadingFile(downloadKey);
+
+    const fileName = attachment?.file_name || submission.file || submission.file_name || 'archivo';
+    const fallbackUrl = attachment?.file_url || submission.file_url || null;
+
+    const params = {};
+    if (attachment?.id) params.attachment_id = attachment.id;
+    else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
+
+    let blobError = null;
     try {
-      const fileName = attachment?.file_name || submission.file || submission.file_name || 'archivo';
-
-      // Always go through our backend with responseType=blob, so we get a
-      // single async flow (and a visible spinner) regardless of whether
-      // the file actually lives on Google Drive or Cloudinary. The backend
-      // streams Drive files directly and redirects Cloudinary URLs — axios
-      // follows the redirect and gives us the blob either way.
-      const params = {};
-      if (attachment?.id) params.attachment_id = attachment.id;
-      else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
-
       const response = await axios.get(
         `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
-        {
-          headers,
-          params,
-          responseType: 'blob',
-        }
+        { headers, params, responseType: 'blob', timeout: 120000 }
       );
-
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -9233,11 +9237,25 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Error downloading file:', err);
-      showNotification('error', 'Error al descargar', 'No se pudo descargar el archivo. Inténtalo de nuevo.');
-    } finally {
-      setDownloadingFile(null);
+      blobError = err;
+      console.warn('Blob download failed, will try fallback:', err);
     }
+
+    if (blobError) {
+      if (fallbackUrl) {
+        // Last-resort fallback: open the direct URL in a new tab. Works for
+        // Cloudinary when CORS prevents the in-page blob fetch.
+        try {
+          window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        } catch (_) {
+          showNotification('error', 'Error al descargar', 'No se pudo descargar el archivo. Inténtalo de nuevo.');
+        }
+      } else {
+        showNotification('error', 'Error al descargar', 'No se pudo descargar el archivo. Inténtalo de nuevo.');
+      }
+    }
+
+    setDownloadingFile(null);
   };
   
   // Submissions View
