@@ -106,18 +106,29 @@ export const STATIC_GRADE_FIELDS = new Set([
 
 /** True si la subcolumna se almacena top-level; false si va a grades_dynamic. */
 export function isStaticSubcolumn(sub) {
-  return !!(sub && sub.field_key && STATIC_GRADE_FIELDS.has(sub.field_key));
+  // Defensive: treat the python-stringified "None" as null. Some legacy
+  // templates serialized `field_key: None` as the literal string "None"
+  // when stored in MongoDB, which causes truthy checks to pass and the
+  // gradebook to read from the wrong key.
+  const fk = sub && sub.field_key;
+  const realFk = fk && fk !== "None" && fk !== "" ? fk : null;
+  return !!(realFk && STATIC_GRADE_FIELDS.has(realFk));
 }
 
 export function getGradeValue(student, sub) {
   if (!student || !sub) return undefined;
+  // Normalise field_key — strip the literal string "None" that some
+  // legacy plantillas leak from python serialization.
+  const rawFk = sub.field_key;
+  const fk = rawFk && rawFk !== "None" && rawFk !== "" ? rawFk : null;
   // Static sub: read from top-level field
-  if (isStaticSubcolumn(sub) && student[sub.field_key] !== undefined && student[sub.field_key] !== null) {
-    return student[sub.field_key];
+  if (fk && STATIC_GRADE_FIELDS.has(fk) && student[fk] !== undefined && student[fk] !== null) {
+    return student[fk];
   }
   // Dynamic sub: read from grades_dynamic[<field_key|id>]
-  // Custom plantillas may have field_key === id (UUID-style).
-  const dynKey = sub.field_key || sub.id;
+  // Custom plantillas may have field_key === id (UUID-style) or no
+  // field_key at all (use `sub.id`).
+  const dynKey = fk || sub.id;
   return student.grades_dynamic?.[dynKey];
 }
 

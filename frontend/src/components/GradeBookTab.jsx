@@ -214,6 +214,14 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
        field on the student row.
      - Otherwise (custom plantilla — `field_key` may be UUID-style and equal to
        `id`, or absent): write to `grades_dynamic[<field_key|id>]`. */
+  const _subDynKey = (sub) => {
+    // Defensive: treat the python-stringified "None" as null. Some legacy
+    // plantillas leaked `field_key: "None"` (string) from MongoDB which
+    // would collapse every column onto the same key.
+    const fk = sub && sub.field_key;
+    const realFk = fk && fk !== "None" && fk !== "" ? fk : null;
+    return realFk || sub.id;
+  };
   const handleGradeChange = useCallback((idx, sub, value) => {
     if (status !== "open") return;
     const max = plantilla?.escala_maxima || 20;
@@ -225,7 +233,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       if (isStaticSubcolumn(sub)) {
         row[sub.field_key] = val;
       } else {
-        const dynKey = sub.field_key || sub.id;
+        const dynKey = _subDynKey(sub);
         row.grades_dynamic = { ...(row.grades_dynamic || {}), [dynKey]: val };
       }
       row.final_grade = calcularPromedioBimestral(row, plantilla);
@@ -251,7 +259,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             // Legacy slot: send even when null so the backend can clear it.
             entry[sub.field_key] = s[sub.field_key] ?? null;
           } else {
-            const dynKey = sub.field_key || sub.id;
+            const dynKey = _subDynKey(sub);
             const val = s.grades_dynamic?.[dynKey];
             // Send `null` to clear; only skip when truly never touched.
             if (val !== undefined) dynamicEntry[dynKey] = val;

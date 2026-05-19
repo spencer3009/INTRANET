@@ -219,7 +219,13 @@ async def get_valid_task_columns_for_school(db, school_id: str) -> set:
             for sub in cri.get("subcolumnas", []) or []:
                 if sub.get("tipo") != "input":
                     continue
-                key = sub.get("field_key") or sub.get("id")
+                # Defensive: ignore the python-stringified "None" / empty
+                # field_keys that some legacy plantillas leaked. Treat them
+                # as absent so we fall back to `sub.id` (always unique).
+                fk = sub.get("field_key")
+                if fk in (None, "", "None"):
+                    fk = None
+                key = fk or sub.get("id")
                 if key:
                     out.add(key)
                     out.add(str(key).upper())
@@ -323,7 +329,11 @@ async def get_valid_exam_columns_for_school(db, school_id: str) -> set:
             for sub in cri.get("subcolumnas", []) or []:
                 if sub.get("tipo") != "input":
                     continue
-                key = sub.get("field_key") or sub.get("id")
+                # Defensive: same "None" string handling as _extract above.
+                fk = sub.get("field_key")
+                if fk in (None, "", "None"):
+                    fk = None
+                key = fk or sub.get("id")
                 if key:
                     out.add(key)
                     out.add(str(key).upper())
@@ -335,7 +345,10 @@ async def get_valid_exam_columns_for_school(db, school_id: str) -> set:
                     out.add(str(label).lower())
         # columnas_finales: implicit input (no `tipo` field) — always include
         for col in (plantilla or {}).get("columnas_finales", []) or []:
-            key = col.get("field_key") or col.get("id")
+            fk = col.get("field_key")
+            if fk in (None, "", "None"):
+                fk = None
+            key = fk or col.get("id")
             if key:
                 out.add(key)
                 out.add(str(key).upper())
