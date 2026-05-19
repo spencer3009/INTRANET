@@ -77,7 +77,8 @@ async def compute_ranking(
         ).to_list(200)
     subject_ids = [s["id"] for s in subjects]
 
-    # 3) Notas finales de los alumnos
+    # 3) Notas finales de los alumnos — fetch full row so we can recompute
+    # final_grade on-the-fly when a school uses a CUSTOM dynamic template.
     all_grades: List[dict] = []
     if subject_ids:
         all_grades = await db.student_grades.find(
@@ -87,14 +88,29 @@ async def compute_ranking(
                 "period_id": period_id,
                 "subject_id": {"$in": subject_ids},
             },
-            {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1},
+            {"_id": 0},
         ).to_list(20000)
+
+    # Pre-load active template + fallback recomputer for custom (dynamic) schools.
+    from services.register_sync import get_active_template_for_school
+    from routes.grades import calculate_final_grade, GRADE_SUB_FIELDS
+    template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(template and not template.get("es_sistema"))
 
     grades_lookup: Dict[str, Dict[str, Optional[float]]] = {}
     for g in all_grades:
         sid = g["student_id"]
         manual = g.get("final_grade_manual")
-        grades_lookup.setdefault(sid, {})[g["subject_id"]] = manual if manual is not None else g.get("final_grade")
+        if manual is not None:
+            grades_lookup.setdefault(sid, {})[g["subject_id"]] = manual
+            continue
+        final_val = g.get("final_grade")
+        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                final_val = calculate_final_grade(g, {}, template=template)
+            except Exception:
+                final_val = None
+        grades_lookup.setdefault(sid, {})[g["subject_id"]] = final_val
 
     # 4) Calcular puntaje, promedio, desaprobados por alumno
     rows: List[Dict] = []

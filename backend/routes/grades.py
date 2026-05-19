@@ -99,9 +99,101 @@ def _avg(values):
         return None
     return round(sum(nums) / len(nums), 1)
 
-def calculate_final_grade(grade: dict, config: dict) -> Optional[float]:
-    """Calculate final bimestral grade from sub-fields using weighted averages."""
-    # Calculate category averages from sub-fields
+def calculate_final_grade_from_template(grade: dict, template: dict) -> Optional[float]:
+    """Compute final bimestral grade using a CUSTOM (dynamic) Registro Auxiliar template.
+
+    For each criterio in the template:
+      - Collect values from its `input`/`examen` subcolumnas (skips
+        `promedio_auto`/`promedio_manual` which are derived display-only).
+      - For each subcolumna, value lookup priority:
+          1. grade['grades_dynamic'][sub.id]
+          2. grade['grades_dynamic'][sub.field_key]
+          3. grade[sub.field_key] — if field_key matches a static slot name
+          4. grade[COLUMN_FIELD_MAP[sub.field_key]] — short-key aliases
+          5. grade[COLUMN_FIELD_MAP[sub.id]] — short-key aliases on id
+      - Compute the criterio average (mean of non-None values).
+      - Apply criterio.porcentaje (0-100) as weight.
+    Returns None if no criterio has any data. Normalizes when total weights
+    sum to less than 1.0 so partial registers still produce a meaningful grade.
+    """
+    if not template:
+        return None
+    criterios = template.get("criterios") or []
+    if not criterios:
+        return None
+
+    grades_dyn = grade.get("grades_dynamic") or {}
+
+    total_weighted = 0.0
+    total_weight = 0.0
+
+    for cri in criterios:
+        pct = cri.get("porcentaje")
+        try:
+            weight = float(pct) / 100.0 if pct is not None else 0.0
+        except (TypeError, ValueError):
+            weight = 0.0
+        if weight <= 0:
+            continue
+
+        values = []
+        for sub in cri.get("subcolumnas") or []:
+            tipo = (sub.get("tipo") or "input").lower()
+            # Skip derived/display columns — they're not inputs.
+            if tipo in ("promedio_auto", "promedio", "promedio_manual", "auto"):
+                continue
+            sub_id = sub.get("id")
+            field_key = sub.get("field_key")
+            val = None
+            # 1. dynamic by id
+            if sub_id and sub_id in grades_dyn:
+                val = grades_dyn.get(sub_id)
+            # 2. dynamic by field_key
+            if val is None and field_key and field_key in grades_dyn:
+                val = grades_dyn.get(field_key)
+            # 3. static slot directly via field_key
+            if val is None and field_key:
+                if field_key in grade:
+                    val = grade.get(field_key)
+                elif field_key in COLUMN_FIELD_MAP:
+                    val = grade.get(COLUMN_FIELD_MAP[field_key])
+            # 4. static slot via id (legacy templates may use short col key as id)
+            if val is None and sub_id:
+                if sub_id in grade and sub_id not in ("id", "subcolumnas"):
+                    val = grade.get(sub_id)
+                elif sub_id in COLUMN_FIELD_MAP:
+                    val = grade.get(COLUMN_FIELD_MAP[sub_id])
+            if val is not None:
+                try:
+                    values.append(float(val))
+                except (TypeError, ValueError):
+                    pass
+
+        if not values:
+            continue
+        crit_avg = sum(values) / len(values)
+        total_weighted += crit_avg * weight
+        total_weight += weight
+
+    if total_weight <= 0:
+        return None
+    # Normalize partial pesos so a register with only some criterios still
+    # produces a meaningful grade (same behaviour as the static algorithm).
+    result = total_weighted / total_weight if total_weight < 0.999 else total_weighted
+    return round(result, 1)
+
+
+def calculate_final_grade(grade: dict, config: dict, template: Optional[dict] = None) -> Optional[float]:
+    """Calculate final bimestral grade from sub-fields using weighted averages.
+
+    If a CUSTOM (non-system) template is provided, delegate to the dynamic
+    template-driven algorithm. Otherwise fall back to the legacy hardcoded
+    static-fields algorithm (used by the Plantilla del Sistema).
+    """
+    if template and not template.get("es_sistema"):
+        return calculate_final_grade_from_template(grade, template)
+
+    # Legacy static-fields algorithm (Plantilla del Sistema)
     act_avg = _avg([grade.get("act_co"), grade.get("act_re")])
     rf_avg = _avg([grade.get("rf_r1"), grade.get("rf_r2"), grade.get("rf_r3"), grade.get("rf_r4"), grade.get("rf_r5")])
     comp_avg = _avg([grade.get("comp_c1"), grade.get("comp_c2")])
@@ -371,6 +463,13 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
             "participation_weight": 0.25, "monthly_exam_weight": 0.15, "bimestral_exam_weight": 0.20,
         }
 
+    # Fetch the school's ACTIVE Registro Auxiliar template once. When it's a
+    # CUSTOM template, `calculate_final_grade` needs it to know which dynamic
+    # columns to aggregate. We resolve it once to avoid N queries inside the loop.
+    from services.register_sync import get_active_template_for_school
+    template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(template and not template.get("es_sistema"))
+
     saved_count = 0
     for entry in data.grades:
         grade_data = {}
@@ -396,8 +495,29 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
                     )
                 set_payload[f"grades_dynamic.{col_id}"] = val
 
-        # Calculate final grade
-        final = calculate_final_grade(grade_data, config)
+        # Calculate final grade. For custom templates we need to merge the
+        # incoming dynamic cells with what's already on disk so the criterio
+        # averages are computed from the WHOLE register row, not just the
+        # cells the teacher touched in this request.
+        if is_custom_template:
+            existing = await db.student_grades.find_one(
+                {
+                    "school_id": school_id,
+                    "student_id": entry.student_id,
+                    "subject_id": data.subject_id,
+                    "section_id": data.section_id,
+                    "period_id": data.period_id,
+                },
+                {"_id": 0},
+            ) or {}
+            merged_dynamic = dict(existing.get("grades_dynamic") or {})
+            if entry.grades_dynamic:
+                for k, v in entry.grades_dynamic.items():
+                    merged_dynamic[k] = v
+            merged_grade = {**existing, **grade_data, "grades_dynamic": merged_dynamic}
+            final = calculate_final_grade(merged_grade, config, template=template)
+        else:
+            final = calculate_final_grade(grade_data, config, template=template)
         grade_data["final_grade"] = final
         grade_data["updated_at"] = now_iso()
         grade_data["updated_by"] = user["id"]
@@ -566,11 +686,21 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
             {"_id": 0, "id": 1, "name": 1, "last_name": 1}
         ).sort([("last_name", 1), ("name", 1)]).to_list(200)
 
-    # Get all grades for this section/period
+    # Get all grades for this section/period — include grades_dynamic so we
+    # can recompute final_grade on-the-fly for legacy rows persisted before
+    # the dynamic-template aggregation fix, and for rows written by
+    # task/exam sync (which never touches final_grade).
     all_grades = await db.student_grades.find(
         {"school_id": school_id, "section_id": section_id, "period_id": period_id, "subject_id": {"$in": subject_ids}},
-        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1}
+        {"_id": 0}
     ).to_list(5000)
+
+    # If the school's active template is CUSTOM, pre-load it so we can
+    # recompute final_grade for any row that's missing it. The system
+    # template path keeps using whatever final_grade was persisted by save.
+    from services.register_sync import get_active_template_for_school
+    template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(template and not template.get("es_sistema"))
 
     # Build grades lookup: {student_id: {subject_id: final_grade}}
     # Teacher's manual override (final_grade_manual) takes precedence over the auto-computed
@@ -581,7 +711,19 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
         if sid not in grades_lookup:
             grades_lookup[sid] = {}
         manual = g.get("final_grade_manual")
-        grades_lookup[sid][g["subject_id"]] = manual if manual is not None else g.get("final_grade")
+        if manual is not None:
+            grades_lookup[sid][g["subject_id"]] = manual
+            continue
+        final_val = g.get("final_grade")
+        # Fallback: if final_grade missing but the row has dynamic data
+        # (or static data) AND we have a custom template, recompute now.
+        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                final_val = calculate_final_grade(g, {}, template=template)
+            except Exception as e:
+                logger.warning(f"[CONSOLIDADO] on-the-fly recompute failed for student={sid} subj={g.get('subject_id')}: {e}")
+                final_val = None
+        grades_lookup[sid][g["subject_id"]] = final_val
 
     # Build consolidated data
     consolidated = []
@@ -763,11 +905,18 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
             {"_id": 0, "id": 1, "name": 1, "last_name": 1}
         ).sort([("last_name", 1), ("name", 1)]).to_list(200)
 
-    # Get all grades
+    # Get all grades — include full row so we can recompute final_grade
+    # on-the-fly for legacy rows / dynamic-template schools.
     all_grades = await db.student_grades.find(
         {"school_id": school_id, "section_id": section_id, "period_id": period_id, "subject_id": {"$in": subject_ids}},
-        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1, "final_grade_manual": 1}
+        {"_id": 0}
     ).to_list(10000)
+
+    # If the active template is CUSTOM, recompute final_grade for any row
+    # missing it (legacy rows or rows updated by task/exam sync).
+    from services.register_sync import get_active_template_for_school
+    template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(template and not template.get("es_sistema"))
 
     # Teacher manual override (final_grade_manual) takes precedence over auto-computed final_grade.
     grades_lookup = {}
@@ -776,7 +925,17 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
         if sid not in grades_lookup:
             grades_lookup[sid] = {}
         manual = g.get("final_grade_manual")
-        grades_lookup[sid][g["subject_id"]] = manual if manual is not None else g.get("final_grade")
+        if manual is not None:
+            grades_lookup[sid][g["subject_id"]] = manual
+            continue
+        final_val = g.get("final_grade")
+        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                final_val = calculate_final_grade(g, {}, template=template)
+            except Exception as e:
+                logger.warning(f"[CONSOLIDADO-REPORT] on-the-fly recompute failed for student={sid} subj={g.get('subject_id')}: {e}")
+                final_val = None
+        grades_lookup[sid][g["subject_id"]] = final_val
 
     # Build student rows with computed fields
     # Ranking, puntaje, promedio, tercio y desaprobados provienen del helper
