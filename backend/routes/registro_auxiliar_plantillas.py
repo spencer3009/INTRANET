@@ -256,6 +256,35 @@ async def list_plantillas(school_id: str, estado: Optional[str] = None, current_
     # Always include system template
     system_template = await db.registro_auxiliar_plantillas.find_one({"es_sistema": True}, {"_id": 0})
 
+    # Auto-promote: if there is NO `es_predeterminada` template and exactly
+    # ONE active custom template exists, mark it as default automatically.
+    # This handles legacy schools that created a custom plantilla but never
+    # explicitly clicked "marcar predeterminada" — without this, the gradebook
+    # falls back to the system template and ignores user-defined columns
+    # (SEM1, SEM2, …) silently.
+    try:
+        has_predeterminada = any(
+            t.get("es_predeterminada") and not t.get("es_sistema")
+            for t in school_templates
+        )
+        active_customs = [
+            t for t in school_templates
+            if not t.get("es_sistema") and t.get("estado") == "activa"
+        ]
+        if not has_predeterminada and len(active_customs) == 1:
+            target = active_customs[0]
+            await db.registro_auxiliar_plantillas.update_one(
+                {"id": target["id"]},
+                {"$set": {"es_predeterminada": True, "updated_at": now_iso()}},
+            )
+            target["es_predeterminada"] = True
+            logger.info(
+                f"[PLANTILLAS] Auto-promoted plantilla '{target.get('nombre')}' "
+                f"(id={target['id']}) as default for school {school_id}"
+            )
+    except Exception as e:
+        logger.warning(f"[PLANTILLAS] auto-promote failed for school {school_id}: {e}")
+
     result = []
     if system_template:
         result.append(normalize_plantilla_doc(system_template))
