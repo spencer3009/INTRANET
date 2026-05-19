@@ -978,6 +978,126 @@ async def download_submission_file(
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
 
+@router.get("/course/tasks/{task_id}/submissions/{submission_id}/download-all")
+async def download_all_submission_files(
+    task_id: str,
+    submission_id: str,
+    current_user = Depends(get_current_user),
+):
+    """Download ALL attachments of a submission bundled into a single ZIP.
+
+    Useful when a student uploads multiple files and the teacher wants a
+    one-click download. Supports both Google Drive (streamed via API) and
+    Cloudinary (fetched via HTTPS). Falls back gracefully if any file is
+    unavailable — that file is replaced inside the zip by a small `.txt`
+    note so the rest still arrives.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    task = await db.course_posts.find_one({
+        "id": task_id,
+        "school_id": school_id,
+        "$or": [{"post_type": "task"}, {"type": "task"}],
+    }, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+
+    submission = next((s for s in task.get("submissions", []) if s.get("id") == submission_id), None)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Entrega no encontrada")
+
+    # Same auth rule as single-file download.
+    is_admin = is_admin_user(user)
+    is_owner = submission.get("student_id") == user.get("id")
+    is_school_staff = is_staff(user) and user.get("school_id") == school_id
+    if not (is_admin or is_owner or is_school_staff):
+        raise HTTPException(status_code=403, detail="No tienes permiso para descargar estos archivos")
+
+    # Resolve the attachment list (multi) or fall back to legacy single-file fields.
+    attachments = submission.get("attachments") or []
+    if not attachments and (submission.get("file_name") or submission.get("file_url") or submission.get("drive_file_id")):
+        attachments = [{
+            "id": None,
+            "file_name": submission.get("file_name") or "archivo",
+            "file_type": submission.get("file_type"),
+            "file_url": submission.get("file_url"),
+            "drive_file_id": submission.get("drive_file_id"),
+            "storage_type": submission.get("storage_type"),
+        }]
+    if not attachments:
+        raise HTTPException(status_code=404, detail="Esta entrega no tiene archivos para descargar")
+
+    import zipfile
+    import requests as _http
+
+    # Pre-resolve Drive service if any attachment uses it (so we hit the
+    # auth flow at most once for the whole batch).
+    drive_service = None
+    if any((a.get("storage_type") == "google_drive" and a.get("drive_file_id")) for a in attachments):
+        try:
+            drive_service = await get_drive_service(school_id)
+        except Exception as e:
+            logger.warning(f"Drive service init failed for zip download: {e}")
+
+    def _safe_name(name: str) -> str:
+        return re.sub(r'[\\/:*?"<>|]+', "_", (name or "archivo")).strip() or "archivo"
+
+    used_names = {}
+    def _unique(name: str) -> str:
+        # avoid collisions when several attachments share the same filename
+        if name not in used_names:
+            used_names[name] = 1
+            return name
+        used_names[name] += 1
+        if "." in name:
+            base, ext = name.rsplit(".", 1)
+            return f"{base} ({used_names[name]}).{ext}"
+        return f"{name} ({used_names[name]})"
+
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for idx, att in enumerate(attachments):
+            fname = _unique(_safe_name(att.get("file_name") or f"archivo_{idx + 1}"))
+            content: Optional[bytes] = None
+            try:
+                if att.get("storage_type") == "google_drive" and att.get("drive_file_id") and drive_service:
+                    req = drive_service.files().get_media(fileId=att["drive_file_id"])
+                    fh = io.BytesIO()
+                    downloader = MediaIoBaseDownload(fh, req)
+                    done = False
+                    while not done:
+                        _, done = downloader.next_chunk()
+                    content = fh.getvalue()
+                elif att.get("file_url"):
+                    r = _http.get(att["file_url"], timeout=30)
+                    if r.status_code == 200:
+                        content = r.content
+                    else:
+                        logger.warning(f"Cloudinary fetch failed for zip: {att['file_url']} -> {r.status_code}")
+            except Exception as e:
+                logger.warning(f"Skipping attachment {fname} in zip: {e}")
+
+            if content is None:
+                zf.writestr(
+                    fname + ".NO_DISPONIBLE.txt",
+                    f"No se pudo recuperar este archivo ({att.get('storage_type') or 'unknown'}).",
+                )
+            else:
+                zf.writestr(fname, content)
+
+    zip_buf.seek(0)
+    student_name = submission.get("student_name") or "entrega"
+    zip_filename = _safe_name(f"{student_name}_entrega.zip")
+    return StreamingResponse(
+        iter([zip_buf.getvalue()]),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
+    )
+
+
 # Admin Exams Endpoints
 @router.get("/admin/exams")
 async def get_admin_exams(

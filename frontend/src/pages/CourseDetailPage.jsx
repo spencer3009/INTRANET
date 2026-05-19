@@ -9829,11 +9829,51 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                           }]
                         : []);
                   if (atts.length === 0) return null;
+                  const zipKey = `${viewingSubmission.id}::__all__`;
+                  const isZipLoading = downloadingFile === zipKey;
+                  const downloadAllAsZip = async () => {
+                    setDownloadingFile(zipKey);
+                    try {
+                      const response = await axios.get(
+                        `${API}/course/tasks/${selectedTask.id}/submissions/${viewingSubmission.id}/download-all`,
+                        { headers, responseType: 'blob' }
+                      );
+                      const blob = new Blob([response.data], { type: 'application/zip' });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      const studentName = (viewingSubmission.student?.name || 'entrega').replace(/[\\/:*?"<>|]+/g, '_');
+                      link.download = `${studentName}_entrega.zip`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error('Error downloading zip:', err);
+                      showNotification('error', 'Error al descargar', 'No se pudo descargar el ZIP. Inténtalo de nuevo.');
+                    } finally {
+                      setDownloadingFile(null);
+                    }
+                  };
                   return (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                        {atts.length === 1 ? 'Archivo adjunto' : `Archivos adjuntos (${atts.length})`}
-                      </p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          {atts.length === 1 ? 'Archivo adjunto' : `Archivos adjuntos (${atts.length})`}
+                        </p>
+                        {atts.length > 1 && (
+                          <button
+                            onClick={downloadAllAsZip}
+                            disabled={isZipLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-70"
+                            data-testid="download-all-zip-btn"
+                            title="Descargar todos los archivos en un ZIP"
+                          >
+                            {isZipLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                            Descargar todo (ZIP)
+                          </button>
+                        )}
+                      </div>
                       <div className="space-y-2" data-testid="submission-files-list">
                         {atts.map((att, idx) => {
                           const key = `${viewingSubmission.id}::${att.id || idx}`;

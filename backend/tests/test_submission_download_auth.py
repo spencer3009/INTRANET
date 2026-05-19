@@ -157,3 +157,74 @@ def test_teacher_can_download(ctx):
 def test_other_student_forbidden(ctx):
     r = _download(ctx, ctx["student_other_token"])
     assert r.status_code == 403, f"non-owner student must be forbidden: {r.status_code} {r.text[:200]}"
+
+
+def test_multi_file_submission_and_zip_download(ctx):
+    """End-to-end: student uploads 3 files, teacher downloads each individually
+    and also the ZIP bundle. Validates the whole multi-file pipeline."""
+    # Replace the existing submission with three files
+    files = [
+        ("files", ("nota1.txt", io.BytesIO(b"primer archivo"), "text/plain")),
+        ("files", ("nota2.txt", io.BytesIO(b"segundo archivo"), "text/plain")),
+        ("files", ("nota3.txt", io.BytesIO(b"tercer archivo, tres lineas"), "text/plain")),
+    ]
+    r = requests.post(
+        f"{BASE_URL}/api/course/tasks/{ctx['task_id']}/submit",
+        files=files,
+        headers={"Authorization": f"Bearer {ctx['student_owner_token']}"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["attachments_count"] == 3, body
+    assert body["replaced"] is True, "Should have replaced the previous single-file submission"
+
+    # Refresh the attachment list as admin
+    r = requests.get(
+        f"{BASE_URL}/api/course/tasks/{ctx['task_id']}/submissions",
+        headers={"Authorization": f"Bearer {ctx['admin_token']}"},
+    )
+    assert r.status_code == 200
+    subs = r.json()["submissions"]
+    sub = next(s for s in subs if s["student_id"] == ctx["users"]["student_s1"]["id"])
+    atts = sub["attachments"]
+    assert len(atts) == 3, atts
+    assert sorted(a["file_name"] for a in atts) == ["nota1.txt", "nota2.txt", "nota3.txt"]
+
+    # Teacher downloads each attachment individually
+    teacher_headers = {"Authorization": f"Bearer {ctx['teacher_token']}"}
+    for idx, att in enumerate(atts):
+        r = requests.get(
+            f"{BASE_URL}/api/course/tasks/{ctx['task_id']}/submissions/{sub['id']}/download",
+            params={"attachment_id": att["id"]},
+            headers=teacher_headers,
+            allow_redirects=True,
+        )
+        assert r.status_code == 200, f"Failed to download {att['file_name']}: {r.status_code}"
+        assert r.content, f"Empty body for {att['file_name']}"
+
+    # Teacher downloads the ZIP bundle
+    r = requests.get(
+        f"{BASE_URL}/api/course/tasks/{ctx['task_id']}/submissions/{sub['id']}/download-all",
+        headers=teacher_headers,
+    )
+    assert r.status_code == 200, f"ZIP download failed: {r.status_code} {r.text[:200]}"
+    assert r.headers.get("content-type", "").startswith("application/zip"), r.headers
+
+    # Verify the ZIP contains all three files (and only those)
+    import zipfile as _z
+    zf = _z.ZipFile(io.BytesIO(r.content))
+    names = sorted(zf.namelist())
+    assert names == ["nota1.txt", "nota2.txt", "nota3.txt"], names
+    # And each file has its original content
+    assert zf.read("nota1.txt") == b"primer archivo"
+    assert zf.read("nota2.txt") == b"segundo archivo"
+    assert zf.read("nota3.txt") == b"tercer archivo, tres lineas"
+
+
+def test_zip_download_forbidden_for_outsider(ctx):
+    """Outsider student must NOT be able to download the ZIP either."""
+    r = requests.get(
+        f"{BASE_URL}/api/course/tasks/{ctx['task_id']}/submissions/{ctx['submission_id']}/download-all",
+        headers={"Authorization": f"Bearer {ctx['student_other_token']}"},
+    )
+    assert r.status_code == 403, f"outsider must be forbidden from zip: {r.status_code}"
