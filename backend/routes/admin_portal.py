@@ -1143,6 +1143,110 @@ async def get_admin_exams(
     
     return {"exams": enriched, "total": len(enriched)}
 
+@router.get("/admin/drive/diagnose")
+async def diagnose_drive_connection(current_user = Depends(get_current_user)):
+    """Diagnostic endpoint that checks the school's Google Drive connection.
+
+    Returns a structured report so admins can see exactly which step is
+    broken (auth, refresh token, materials folder, submissions folder, list
+    permissions). Designed to be called when a teacher reports a 500 on
+    submission download — it tells you WHY before having to dig through logs.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar este diagnóstico")
+
+    school_id = user["school_id"]
+    report: dict = {
+        "school_id": school_id,
+        "checked_at": now_iso(),
+        "drive_connected_flag": False,
+        "has_refresh_token": False,
+        "materials_folder_id": None,
+        "service_initialized": False,
+        "materials_folder_reachable": False,
+        "submissions_folder_id": None,
+        "submissions_folder_reachable": False,
+        "list_sample_count": None,
+        "errors": [],
+        "status": "unknown",
+    }
+
+    try:
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
+        report["drive_connected_flag"] = bool(school.get("google_drive_connected"))
+        report["has_refresh_token"] = bool(school.get("google_drive_refresh_token"))
+        report["materials_folder_id"] = school.get("google_drive_materials_folder_id")
+
+        if not report["drive_connected_flag"]:
+            report["errors"].append("school.google_drive_connected is False — el colegio no tiene Drive conectado en la BD")
+        if not report["has_refresh_token"]:
+            report["errors"].append("school.google_drive_refresh_token está vacío — no se puede autenticar con Drive")
+        if not report["materials_folder_id"]:
+            report["errors"].append("school.google_drive_materials_folder_id está vacío — no se sabe dónde están las carpetas")
+
+        try:
+            service = await get_drive_service(school_id)
+            report["service_initialized"] = True
+        except Exception as e:
+            report["errors"].append(f"get_drive_service falló: {type(e).__name__}: {e}")
+            report["status"] = "drive_auth_failed"
+            return report
+
+        # Materials folder reachable?
+        if report["materials_folder_id"]:
+            try:
+                meta = service.files().get(
+                    fileId=report["materials_folder_id"],
+                    fields="id, name, trashed",
+                ).execute()
+                report["materials_folder_reachable"] = not meta.get("trashed", False)
+                if meta.get("trashed"):
+                    report["errors"].append("La carpeta de materiales está en la papelera de Drive")
+            except Exception as e:
+                report["errors"].append(f"No se puede acceder a la carpeta de materiales: {type(e).__name__}: {e}")
+
+        # Submissions folder exists?
+        if report["materials_folder_reachable"]:
+            try:
+                q = (
+                    f"name='Entregas' and '{report['materials_folder_id']}' in parents "
+                    f"and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                )
+                results = service.files().list(q=q, fields="files(id, name)").execute()
+                folders = results.get("files", [])
+                if folders:
+                    report["submissions_folder_id"] = folders[0]["id"]
+                    report["submissions_folder_reachable"] = True
+                    # Try listing a few files in it
+                    files = service.files().list(
+                        q=f"'{folders[0]['id']}' in parents and trashed=false",
+                        fields="files(id, name)",
+                        pageSize=5,
+                    ).execute()
+                    report["list_sample_count"] = len(files.get("files", []))
+                else:
+                    report["errors"].append("La subcarpeta 'Entregas' aún no existe (se crea al primer upload)")
+            except Exception as e:
+                report["errors"].append(f"Error al listar carpeta de entregas: {type(e).__name__}: {e}")
+
+        if not report["errors"]:
+            report["status"] = "ok"
+        elif report["service_initialized"]:
+            report["status"] = "partially_ok"
+        else:
+            report["status"] = "broken"
+    except Exception as e:
+        report["errors"].append(f"Excepción inesperada: {type(e).__name__}: {e}")
+        report["status"] = "exception"
+        logger.exception("[DRIVE-DIAGNOSE] unexpected error")
+
+    return report
+
+
+
 @router.get("/admin/exams/summary")
 async def get_admin_exams_summary(current_user = Depends(get_current_user)):
     """Get exams summary for admin dashboard."""
