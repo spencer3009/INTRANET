@@ -1,0 +1,36 @@
+{
+  "summary": "E2E validated: Exam → Auto-grade → sync to Registro Auxiliar WORKS for DYNAMIC columns from a custom plantilla (continuation of iter_204 which covered STATIC columns). Created /app/backend/tests/test_exam_to_register_dynamic.py — 7 tests, all green. Flow exercised end-to-end against the real preview env: (1) Listed templates for school Roble (b9f27249-…); created a new active custom plantilla 'TEST_DYN Plantilla …' with 1 criterio (EVALUACION CONTINUA 100%) and 4 dynamic input subcolumnas (P1..P4) — assigned UUID-style ids like 'criterio_7ab4578a_col_9605f85c'. Set it predeterminada. (2) GET /api/exams/register-availability for Música (e04de272-…) / section 11f50…/ BIMESTRE I returned all 4 dynamic UUIDs as available alongside the legacy static keys. (3) Created an exam linked to one dynamic UUID, added 1 multiple-choice question, published. (4) Student Magno (mickycalle65@gmail.com) started attempt → saved correct answer → submitted. Submit response: score=10.0 max_score=10.0 percentage=100.0 correct_count=1 passed=true. (5) GET /api/grades/register/{subject}/{section}/{period} returned the student row with `grades_dynamic.criterio_7ab4578a_col_9605f85c = 20` (vigesimal). (6) Cleanup: POST .../plantillas/usar-sistema reverted school to system template (deactivated_count=1). Result: register_sync.py get_storage_field → ('dynamic', '<uuid>') path works correctly; _build_grade_update writes to grades_dynamic.<uuid>; sync_single_student_exam awaited inline so the value is visible immediately after submit. NO BUG.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Admin UI nav to Registro Auxiliar", "issue": "Same as iter_204: owner login lands on /elroble/dashboard and the desktop sidebar to Cursos/Registro Auxiliar is icon-only (no labels) and direct URLs like /elroble/admin/grades, /elroble/admin/registro-auxiliar, /elroble/curso/{subject_id} redirect back to dashboard. Could not visually capture the Registro Auxiliar table with the dynamic column. Backend GET /api/grades/register confirms the value 20 is present in grades_dynamic.<uuid> for Magno's row.", "affected_selectors": ["[data-testid='nav-registro-auxiliar']", "[data-testid='nav-cursos']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_exam_to_register_dynamic.py",
+    "/app/test_reports/pytest/exam_dynamic_e2e.xml"
+  ],
+  "action_items": [
+    "Backend dynamic-column sync is fully functional — NO main-agent fix required for this feature.",
+    "(Optional, carried from iter_204) Surface a stable desktop sidebar nav entry / deep-link route to the Registro Auxiliar so screenshots & sub-1-click access are possible for owner role. Today only mobile bottom nav has the 'Cursos' label.",
+    "(Housekeeping) Magno's student_grades row now has grades_dynamic.criterio_7ab4578a_col_9605f85c=20 left over from this test. The custom plantilla itself was reverted to 'borrador' via usar-sistema, so the system template will be used by UI again and that dynamic field will simply not be displayed. If desired, run db.student_grades.update_one({student_id:'4d30c475-c1cf-42d1-9485-620b556ecf72', period_id:'093a0bee-92c4-449c-b82c-942f16847759'}, {$unset:{'grades_dynamic.criterio_7ab4578a_col_9605f85c':''}}) — but it is harmless."
+  ],
+  "critical_code_review_comments": [
+    "register_sync.get_storage_field correctly resolves dynamic columns by scanning ANY non-deleted school template + system template; key check uses {id, field_key, label} with case-insensitive fallback. Robust.",
+    "register_sync._build_grade_update returns {f'grades_dynamic.{col_id}': value} for dynamic columns and Mongo's dot-notation correctly upserts the nested subdoc. Confirmed by GET round-trip.",
+    "exam_score_to_vigesimal(100) == 20 (round(100*20/100)). Math is right and integer.",
+    "Possible edge case (not blocking): if the school later DELETES the custom plantilla (estado=eliminada) while exams remain linked to its dynamic column UUIDs, get_storage_field will skip the eliminada plantilla but still find the column via the system-template fallback only if the id collides — which it never will for UUIDs. So future re-grades silently no-op (sync_status='column_unknown'). Worth a follow-up: prevent plantilla deletion if any exam/task still references one of its dynamic columns (or migrate them). NOT a current bug, just a forward-looking concern.",
+    "registro_auxiliar_plantillas POST creates with estado='activa' AND auto-sets es_predeterminada=true when it's the first active template. Good UX. PATCH /predeterminada is idempotent. Confirmed working.",
+    "Frontend register screen response correctly emits BOTH the static legacy fields and a `grades_dynamic` dict on each row — this is what GradeBookTab.jsx uses to merge into the active template's cells. Confirmed by row keys observed in the test."
+  ],
+  "updated_files": ["/app/backend/tests/test_exam_to_register_dynamic.py"],
+  "success_rate": {"backend": "100% (7/7 dynamic-column E2E tests pass)", "frontend": "N/A — UI screenshot of dynamic column NOT captured (owner admin routes redirect to dashboard, same blocker as iter_204). Backend GET that powers the UI returns the value 20 in grades_dynamic.<uuid> immediately after submit."},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (owner). Student Magno: mickycalle65@gmail.com / 91616119. School Roble id=b9f27249-6568-49ae-94d3-e1f16750d7d9. Subject Música=e04de272-54ec-4af9-868a-bc7604e2b4b4, Section 11f50cbc-f5f6-422a-a989-87b2af6027f1, Active period BIMESTRE I=093a0bee-92c4-449c-b82c-942f16847759.",
+  "seed_data_creation": "Test created a temporary custom plantilla 'TEST_DYN Plantilla <ts>' (now estado=borrador after cleanup via usar-sistema), one exam 'TEST_E2E_DYN ExamSync <ts>' (de3a8783-3c74-4802-9801-41f233c506f2) with 1 question, and one completed attempt by Magno (e7960cc2-…). Magno's student_grades row gained grades_dynamic.criterio_7ab4578a_col_9605f85c=20.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use /app/backend/tests/test_exam_to_register_dynamic.py as the regression for DYNAMIC columns (custom plantilla). Run with REACT_APP_BACKEND_URL exported (pytest from /app doesn't auto-load frontend/.env): `cd /app && REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL frontend/.env | cut -d= -f2) python -m pytest backend/tests/test_exam_to_register_dynamic.py -v -s`. The test is idempotent: it creates a new plantilla each run (because it picks the first active custom one or makes a new one) and cleans up via usar-sistema. Static-column regression remains /app/backend/tests/test_exam_to_register_e2e.py from iter_204.",
+  "rca of the issue": "N/A — feature works as designed. For dynamic columns: submit_exam_attempt awaits sync_single_student_exam → register_column not in COLUMN_FIELD_MAP → get_storage_field scans school's plantillas, finds the column via sub.id match → returns ('dynamic', '<uuid>') → _build_grade_update returns {'grades_dynamic.<uuid>': 20} → upsert into student_grades. GET /api/grades/register returns the row with grades_dynamic intact. Verified end-to-end."
+}
