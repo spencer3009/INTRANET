@@ -894,11 +894,13 @@ async def download_submission_file(
     if not submission:
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     
-    # Check if user has permission (admin/teacher or the student who submitted)
+    # Check if user has permission: admins, staff (teachers/coordinators/etc.)
+    # of the same school, or the student who owns the submission.
     is_admin = is_admin_user(user)
     is_owner = submission.get("student_id") == user.get("id")
-    
-    if not is_admin and not is_owner:
+    is_school_staff = is_staff(user) and user.get("school_id") == school_id
+
+    if not (is_admin or is_owner or is_school_staff):
         raise HTTPException(status_code=403, detail="No tienes permiso para descargar este archivo")
 
     # Pick the target file: either a specific attachment from the new
