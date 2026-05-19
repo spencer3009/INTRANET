@@ -18,6 +18,7 @@ from .core import (
     ADMIN_ROLES, STAFF_ROLES, ACADEMIC_STUDENT_FILTER,
 )
 from services.ranking import compute_ranking
+from services.register_sync import COLUMN_FIELD_MAP
 
 import jwt
 
@@ -317,6 +318,12 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
         "locked_by_name": reg_status.get("locked_by_name") if reg_status else None,
         "subject_name": subject.get("name", "") if subject else "",
         "period_name": period.get("nombre", "") if period else "",
+        # Single-source-of-truth mapping for the frontend so it can resolve
+        # legacy plantillas (Plantilla del Sistema: sub.id="io" / "re" / "t1"
+        # …) against the actual top-level fields where the notes live (act_co
+        # / act_re / rf_r1 …). Custom modern plantillas with UUID-style ids
+        # won't appear here and are read from `grades_dynamic[sub.id]`.
+        "legacy_field_map": dict(COLUMN_FIELD_MAP),
     }
 
 

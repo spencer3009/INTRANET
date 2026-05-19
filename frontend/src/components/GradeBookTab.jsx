@@ -4,12 +4,11 @@ import { Save, Lock, Unlock, Loader2, AlertTriangle, CheckCircle, ClipboardList 
 import { toast } from "sonner";
 import {
   PLANTILLA_SISTEMA_FALLBACK,
-  assignFieldKeys,
   calcularPromedioInput,
   calcularPromedioBimestral,
   calcularPromedioCriterio,
   getGradeValue,
-  isStaticSubcolumn,
+  resolveSubLocation,
 } from "../utils/registroAuxiliarUtils";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -66,6 +65,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   const [plantilla, setPlantilla] = useState(null);
   const [plantillaLoading, setPlantillaLoading] = useState(true);
   const [plantillaNombre, setPlantillaNombre] = useState("Por defecto");
+  // Single source of truth for legacy id → static-field mapping. Filled
+  // from the backend response (`legacy_field_map`) so this component and
+  // the resolver in `registroAuxiliarUtils` stay in lock-step with
+  // `register_sync.COLUMN_FIELD_MAP`.
+  const [legacyFieldMap, setLegacyFieldMap] = useState({});
 
   // Responsive column sizing
   const [anchoNombre, setAnchoNombre] = useState(() => {
@@ -147,18 +151,26 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         const sistema = plantillas.find(p => p.es_sistema);
 
         if (activa) {
-          setPlantilla(assignFieldKeys(activa));
+          // IMPORTANT: do NOT pass through `assignFieldKeys`. That helper
+          // existed as a legacy rescue for plantillas that had
+          // `field_key === null` on every input, but it would overwrite
+          // valid `sub.id` references in modern custom plantillas (e.g.
+          // SEM1 → "criterio_mo4bg500_c1") with stale system slot names
+          // like "act_co", breaking the read of dynamic grades.
+          // Today the resolver in `getGradeValue` handles both shapes
+          // using the `legacy_field_map` we receive from the backend.
+          setPlantilla(activa);
           setPlantillaNombre(activa.nombre);
         } else if (sistema) {
-          setPlantilla(assignFieldKeys(sistema));
+          setPlantilla(sistema);
           setPlantillaNombre(sistema.nombre || "Plantilla del sistema");
         } else {
-          setPlantilla(assignFieldKeys(PLANTILLA_SISTEMA_FALLBACK));
+          setPlantilla(PLANTILLA_SISTEMA_FALLBACK);
           setPlantillaNombre("Por defecto");
         }
       } catch (err) {
         console.error("Error loading plantilla, using fallback:", err);
-        setPlantilla(assignFieldKeys(PLANTILLA_SISTEMA_FALLBACK));
+        setPlantilla(PLANTILLA_SISTEMA_FALLBACK);
         setPlantillaNombre("Por defecto (fallback)");
       } finally {
         setPlantillaLoading(false);
@@ -194,6 +206,9 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         setStatus(res.data.status || "open");
         setSubjectName(res.data.subject_name || "");
         setPeriodName(res.data.period_name || "");
+        // Legacy id → static field map (single source of truth from backend).
+        // Empty object is fine — every sub then falls back to grades_dynamic.
+        setLegacyFieldMap(res.data.legacy_field_map || {});
       } catch (err) { console.error("Error loading register:", err); }
       finally { setLoading(false); }
     };
@@ -210,18 +225,10 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   /* ── Grade change handler ──
      Routing rule (must match getGradeValue / handleSave):
-     - Static subcolumn (legacy slot in STATIC_GRADE_FIELDS): write to top-level
-       field on the student row.
-     - Otherwise (custom plantilla — `field_key` may be UUID-style and equal to
-       `id`, or absent): write to `grades_dynamic[<field_key|id>]`. */
-  const _subDynKey = (sub) => {
-    // Defensive: treat the python-stringified "None" as null. Some legacy
-    // plantillas leaked `field_key: "None"` (string) from MongoDB which
-    // would collapse every column onto the same key.
-    const fk = sub && sub.field_key;
-    const realFk = fk && fk !== "None" && fk !== "" ? fk : null;
-    return realFk || sub.id;
-  };
+     Uses the same `resolveSubLocation(sub, legacyFieldMap)` resolver
+     used by the renderer so reads and writes always agree:
+       - resolver returns {kind:"static", key} → write top-level row[key]
+       - resolver returns {kind:"dynamic", key} → write grades_dynamic[key] */
   const handleGradeChange = useCallback((idx, sub, value) => {
     if (status !== "open") return;
     const max = plantilla?.escala_maxima || 20;
@@ -230,18 +237,22 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     setStudents(prev => {
       const updated = [...prev];
       const row = { ...updated[idx] };
-      if (isStaticSubcolumn(sub)) {
-        row[sub.field_key] = val;
-      } else {
-        const dynKey = _subDynKey(sub);
-        row.grades_dynamic = { ...(row.grades_dynamic || {}), [dynKey]: val };
+      const loc = resolveSubLocation(sub, legacyFieldMap);
+      if (!loc.key) {
+        // Shouldn't happen — bail out silently to avoid corrupting the row.
+        return prev;
       }
-      row.final_grade = calcularPromedioBimestral(row, plantilla);
+      if (loc.kind === "static") {
+        row[loc.key] = val;
+      } else {
+        row.grades_dynamic = { ...(row.grades_dynamic || {}), [loc.key]: val };
+      }
+      row.final_grade = calcularPromedioBimestral(row, plantilla, legacyFieldMap);
       updated[idx] = row;
       return updated;
     });
     setDirty(true);
-  }, [status, plantilla]);
+  }, [status, plantilla, legacyFieldMap]);
 
   /* ── Save ── */
   const handleSave = async (isAuto = false) => {
@@ -250,19 +261,21 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     try {
       // Build the payload by iterating the full plantilla so EVERY visible
       // cell (including ones that started empty and were just filled) makes
-      // it into the request. Routing must match handleGradeChange exactly.
+      // it into the request. Routing must match handleGradeChange exactly
+      // via `resolveSubLocation`.
       const grades = students.map(s => {
         const entry = { student_id: s.student_id };
         const dynamicEntry = {};
         const writeSub = (sub) => {
-          if (isStaticSubcolumn(sub)) {
+          const loc = resolveSubLocation(sub, legacyFieldMap);
+          if (!loc.key) return;
+          if (loc.kind === "static") {
             // Legacy slot: send even when null so the backend can clear it.
-            entry[sub.field_key] = s[sub.field_key] ?? null;
+            entry[loc.key] = s[loc.key] ?? null;
           } else {
-            const dynKey = _subDynKey(sub);
-            const val = s.grades_dynamic?.[dynKey];
+            const val = s.grades_dynamic?.[loc.key];
             // Send `null` to clear; only skip when truly never touched.
-            if (val !== undefined) dynamicEntry[dynKey] = val;
+            if (val !== undefined) dynamicEntry[loc.key] = val;
           }
         };
         for (const criterio of plantilla.criterios) {
@@ -475,7 +488,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             <tbody>
               {hasStudents ? students.map((student, idx) => {
                 const rowBg = idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA";
-                const final = calcularPromedioBimestral(student, plantilla);
+                const final = calcularPromedioBimestral(student, plantilla, legacyFieldMap);
                 return (
                   <tr key={student.student_id} style={{ background: rowBg }}>
                     <td style={{ ...S.tdNum, ...S.stickyNum, background: rowBg }}>{student.number}</td>
@@ -487,7 +500,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                       <React.Fragment key={`${student.student_id}_${c.id}`}>
                         {c.subcolumnas.map(sub => {
                           if (sub.tipo === "promedio_auto") {
-                            const avg = calcularPromedioCriterio(student, c);
+                            const avg = calcularPromedioCriterio(student, c, legacyFieldMap);
                             return (
                               <td key={sub.id} style={S.tdAvg}>{avg != null ? Math.round(avg) : ""}</td>
                             );
@@ -499,11 +512,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                                 min="0"
                                 max={plantilla.escala_maxima || 20}
                                 step="1"
-                                value={getGradeValue(student, sub) ?? ""}
+                                value={getGradeValue(student, sub, legacyFieldMap) ?? ""}
                                 onChange={e => handleGradeChange(idx, sub, e.target.value)}
                                 disabled={isLocked}
                                 style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
-                                data-testid={`grade-${student.student_id}-${sub.field_key || sub.id}`}
+                                data-testid={`grade-${student.student_id}-${sub.id || sub.field_key}`}
                               />
                             </td>
                           );
@@ -518,11 +531,11 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                           min="0"
                           max={plantilla.escala_maxima || 20}
                           step="1"
-                          value={getGradeValue(student, col) ?? ""}
+                          value={getGradeValue(student, col, legacyFieldMap) ?? ""}
                           onChange={e => handleGradeChange(idx, col, e.target.value)}
                           disabled={isLocked}
                           style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
-                          data-testid={`grade-${student.student_id}-${col.field_key || col.id}`}
+                          data-testid={`grade-${student.student_id}-${col.id || col.field_key}`}
                         />
                       </td>
                     ))}

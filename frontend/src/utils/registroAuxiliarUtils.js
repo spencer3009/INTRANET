@@ -115,21 +115,53 @@ export function isStaticSubcolumn(sub) {
   return !!(realFk && STATIC_GRADE_FIELDS.has(realFk));
 }
 
-export function getGradeValue(student, sub) {
-  if (!student || !sub) return undefined;
-  // Normalise field_key — strip the literal string "None" that some
-  // legacy plantillas leak from python serialization.
+/**
+ * Resolve the effective storage location for a subcolumna, **without**
+ * mutating the plantilla.
+ *
+ * Three cases, evaluated in order:
+ *   1. `sub.field_key` is truthy → keep the legacy behaviour: if the key
+ *      lives in STATIC_GRADE_FIELDS it's a top-level cell, otherwise
+ *      it's a dynamic key. This path is taken by `PLANTILLA_SISTEMA_FALLBACK`
+ *      and any plantilla that explicitly persisted its `field_key`.
+ *   2. `sub.field_key` is falsy AND `sub.id` is a key in `legacyMap`
+ *      (the Plantilla del Sistema uses `sub.id = "io"` / "re" / "t1"…)
+ *      → map it to the static top-level field (`act_co` / `act_re`…).
+ *      This preserves the Plantilla del Sistema behaviour after we stop
+ *      mutating the plantilla via assignFieldKeys.
+ *   3. Otherwise → modern custom plantilla; read/write from
+ *      `grades_dynamic[sub.id]`.
+ *
+ * @param sub        — subcolumna definition from the plantilla
+ * @param legacyMap  — `legacy_field_map` returned by the backend
+ *                     (e.g. {"io":"act_co","re":"act_re","t1":"rf_r1"…}).
+ *                     Pass `{}` or `undefined` to disable the legacy path.
+ * @returns {kind: "static" | "dynamic", key: string}
+ */
+export function resolveSubLocation(sub, legacyMap) {
+  if (!sub) return { kind: "dynamic", key: undefined };
   const rawFk = sub.field_key;
   const fk = rawFk && rawFk !== "None" && rawFk !== "" ? rawFk : null;
-  // Static sub: read from top-level field
-  if (fk && STATIC_GRADE_FIELDS.has(fk) && student[fk] !== undefined && student[fk] !== null) {
-    return student[fk];
+
+  if (fk) {
+    if (STATIC_GRADE_FIELDS.has(fk)) return { kind: "static", key: fk };
+    return { kind: "dynamic", key: fk };
   }
-  // Dynamic sub: read from grades_dynamic[<field_key|id>]
-  // Custom plantillas may have field_key === id (UUID-style) or no
-  // field_key at all (use `sub.id`).
-  const dynKey = fk || sub.id;
-  return student.grades_dynamic?.[dynKey];
+  if (legacyMap && sub.id && Object.prototype.hasOwnProperty.call(legacyMap, sub.id)) {
+    return { kind: "static", key: legacyMap[sub.id] };
+  }
+  return { kind: "dynamic", key: sub.id };
+}
+
+export function getGradeValue(student, sub, legacyMap) {
+  if (!student || !sub) return undefined;
+  const loc = resolveSubLocation(sub, legacyMap);
+  if (loc.kind === "static") {
+    const v = student[loc.key];
+    return v !== undefined && v !== null ? v : undefined;
+  }
+  if (!loc.key) return undefined;
+  return student.grades_dynamic?.[loc.key];
 }
 
 /** Promedio de valores no-null. Retorna null si todos son null/undefined/"". */
@@ -176,22 +208,22 @@ export function assignFieldKeys(plantilla) {
 }
 
 /** Promedio ponderado de un criterio para un alumno. */
-export function calcularPromedioCriterio(student, criterio) {
+export function calcularPromedioCriterio(student, criterio, legacyMap) {
   const inputSubs = criterio.subcolumnas.filter(s => s.tipo === "input");
-  return calcularPromedioInput(inputSubs.map(s => getGradeValue(student, s)));
+  return calcularPromedioInput(inputSubs.map(s => getGradeValue(student, s, legacyMap)));
 }
 
 /**
  * Calcula el promedio bimestral (nota final) usando los pesos de la plantilla.
  * Replica la logica de calculate_final_grade del backend.
  */
-export function calcularPromedioBimestral(student, plantilla) {
+export function calcularPromedioBimestral(student, plantilla, legacyMap) {
   if (!plantilla) return null;
   let totalWeighted = 0;
   let totalWeight = 0;
 
   for (const criterio of plantilla.criterios) {
-    const avg = calcularPromedioCriterio(student, criterio);
+    const avg = calcularPromedioCriterio(student, criterio, legacyMap);
     if (avg !== null) {
       const w = (criterio.porcentaje || 0) / 100;
       totalWeighted += avg * w;
@@ -200,7 +232,7 @@ export function calcularPromedioBimestral(student, plantilla) {
   }
 
   for (const col of plantilla.columnas_finales) {
-    const val = getGradeValue(student, col);
+    const val = getGradeValue(student, col, legacyMap);
     if (val !== null && val !== undefined) {
       const w = (col.porcentaje || 0) / 100;
       totalWeighted += Number(val) * w;
