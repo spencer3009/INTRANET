@@ -1145,12 +1145,12 @@ async def get_admin_exams(
 
 @router.get("/admin/drive/diagnose")
 async def diagnose_drive_connection(current_user = Depends(get_current_user)):
-    """Diagnostic endpoint that checks the school's Google Drive connection.
+    """Diagnostic endpoint that checks the school's Google Drive connection AND
+    reports a breakdown of where existing task submissions actually live
+    (Google Drive vs Cloudinary vs unknown).
 
-    Returns a structured report so admins can see exactly which step is
-    broken (auth, refresh token, materials folder, submissions folder, list
-    permissions). Designed to be called when a teacher reports a 500 on
-    submission download — it tells you WHY before having to dig through logs.
+    Designed to be called when a teacher reports a 500 on submission
+    download — it tells you WHY before having to dig through logs.
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
@@ -1172,6 +1172,8 @@ async def diagnose_drive_connection(current_user = Depends(get_current_user)):
         "list_sample_count": None,
         "errors": [],
         "status": "unknown",
+        "submission_storage_stats": None,
+        "recent_submissions": [],
     }
 
     try:
@@ -1186,6 +1188,52 @@ async def diagnose_drive_connection(current_user = Depends(get_current_user)):
             report["errors"].append("school.google_drive_refresh_token está vacío — no se puede autenticar con Drive")
         if not report["materials_folder_id"]:
             report["errors"].append("school.google_drive_materials_folder_id está vacío — no se sabe dónde están las carpetas")
+
+        # Storage stats: para cada entrega de cada tarea del colegio,
+        # cuenta el storage_type tanto del array `attachments` (nuevo
+        # multi-archivo) como del campo legacy single-file.
+        stats = {"google_drive": 0, "cloudinary": 0, "unknown": 0, "no_storage": 0}
+        recent = []
+        task_cursor = db.course_posts.find(
+            {"school_id": school_id, "$or": [{"post_type": "task"}, {"type": "task"}]},
+            {"_id": 0, "id": 1, "title": 1, "submissions": 1, "created_at": 1},
+        )
+        async for task in task_cursor:
+            for sub in (task.get("submissions") or []):
+                # Build per-submission storage breakdown
+                atts = sub.get("attachments") or []
+                sub_storages = []
+                if atts:
+                    for a in atts:
+                        st = a.get("storage_type") or "unknown"
+                        stats[st if st in stats else "unknown"] = stats.get(st if st in stats else "unknown", 0) + 1
+                        sub_storages.append(st)
+                else:
+                    # Legacy single-file fields
+                    st = sub.get("storage_type")
+                    if st:
+                        stats[st if st in stats else "unknown"] = stats.get(st if st in stats else "unknown", 0) + 1
+                        sub_storages.append(st)
+                    elif sub.get("file_url") or sub.get("drive_file_id") or sub.get("file_name"):
+                        stats["unknown"] += 1
+                        sub_storages.append("unknown")
+                    else:
+                        stats["no_storage"] += 1
+                        sub_storages.append("no_storage")
+                # Add to recent list (we'll trim later)
+                recent.append({
+                    "task_title": task.get("title"),
+                    "task_id": task.get("id"),
+                    "submission_id": sub.get("id"),
+                    "student_name": sub.get("student_name"),
+                    "submitted_at": sub.get("submitted_at"),
+                    "attachments_count": len(atts) if atts else (1 if sub.get("file_name") else 0),
+                    "storage_types": sub_storages,
+                })
+        # Keep only the most recent 10 by submitted_at for readability
+        recent.sort(key=lambda x: (x.get("submitted_at") or ""), reverse=True)
+        report["recent_submissions"] = recent[:10]
+        report["submission_storage_stats"] = stats
 
         try:
             service = await get_drive_service(school_id)
@@ -1220,7 +1268,6 @@ async def diagnose_drive_connection(current_user = Depends(get_current_user)):
                 if folders:
                     report["submissions_folder_id"] = folders[0]["id"]
                     report["submissions_folder_reachable"] = True
-                    # Try listing a few files in it
                     files = service.files().list(
                         q=f"'{folders[0]['id']}' in parents and trashed=false",
                         fields="files(id, name)",
