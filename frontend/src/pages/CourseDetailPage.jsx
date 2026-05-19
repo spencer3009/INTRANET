@@ -9203,41 +9203,35 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     const downloadKey = attachment ? `${submission.id}::${attachment.id || attachmentIndex}` : submission.id;
     setDownloadingFile(downloadKey);
     try {
-      // Resolve target's storage info from the attachment if provided,
-      // otherwise fall back to the submission's legacy single-file fields.
-      const storageType = attachment?.storage_type || submission.storage_type;
-      const driveFileId = attachment?.drive_file_id || submission.drive_file_id;
-      const fileUrl = attachment?.file_url || submission.file_url;
       const fileName = attachment?.file_name || submission.file || submission.file_name || 'archivo';
 
-      if (storageType === 'google_drive' && driveFileId) {
-        // Download from Google Drive via our backend (with optional attachment selector)
-        const params = {};
-        if (attachment?.id) params.attachment_id = attachment.id;
-        else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
+      // Always go through our backend with responseType=blob, so we get a
+      // single async flow (and a visible spinner) regardless of whether
+      // the file actually lives on Google Drive or Cloudinary. The backend
+      // streams Drive files directly and redirects Cloudinary URLs — axios
+      // follows the redirect and gives us the blob either way.
+      const params = {};
+      if (attachment?.id) params.attachment_id = attachment.id;
+      else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
 
-        const response = await axios.get(
-          `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
-          {
-            headers,
-            params,
-            responseType: 'blob',
-          }
-        );
+      const response = await axios.get(
+        `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
+        {
+          headers,
+          params,
+          responseType: 'blob',
+        }
+      );
 
-        const blob = new Blob([response.data]);
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else if (fileUrl) {
-        // Direct download for Cloudinary or other URLs
-        window.open(fileUrl, '_blank');
-      }
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error downloading file:', err);
       showNotification('error', 'Error al descargar', 'No se pudo descargar el archivo. Inténtalo de nuevo.');
@@ -9528,14 +9522,21 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                             </button>
                           );
                         }
+                        // Single-file: build the same downloadKey that handleDownloadSubmissionFile sets
+                        // so the spinner ACTUALLY reflects the in-flight request.
+                        const singleAtt = atts[0] || null;
+                        const singleKey = singleAtt
+                          ? `${submission.id}::${singleAtt.id || 0}`
+                          : submission.id;
+                        const isLoading = downloadingFile === singleKey;
                         return (
                           <button
-                            onClick={() => handleDownloadSubmissionFile(submission, atts[0] || null, atts.length ? 0 : null)}
-                            disabled={downloadingFile === submission.id}
+                            onClick={() => handleDownloadSubmissionFile(submission, singleAtt, singleAtt ? 0 : null)}
+                            disabled={isLoading}
                             className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70"
                           >
-                            {downloadingFile === submission.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                            Ver archivo
+                            {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                            {isLoading ? 'Descargando…' : 'Ver archivo'}
                           </button>
                         );
                       })()}
@@ -9646,16 +9647,26 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                             </button>
                           );
                         }
+                        // Single-file: use the SAME downloadKey that handleDownloadSubmissionFile
+                        // sets so the spinner stays visible the whole time the request is
+                        // in flight (the bug before was a mismatch between submission.id
+                        // and `${submission.id}::${att.id}`).
+                        const singleAtt = atts[0] || null;
+                        const singleKey = singleAtt
+                          ? `${submission.id}::${singleAtt.id || 0}`
+                          : submission.id;
+                        const isLoading = downloadingFile === singleKey;
                         return (
                           <button
-                            onClick={() => handleDownloadSubmissionFile(submission, atts[0] || null, atts.length ? 0 : null)}
-                            disabled={downloadingFile === submission.id}
+                            onClick={() => handleDownloadSubmissionFile(submission, singleAtt, singleAtt ? 0 : null)}
+                            disabled={isLoading}
                             className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait whitespace-nowrap"
+                            data-testid={`download-single-file-${submission.id}`}
                           >
-                            {downloadingFile === submission.id ? (
+                            {isLoading ? (
                               <>
                                 <Loader2 className="w-3 h-3 animate-spin" />
-                                <span className="hidden sm:inline">Cargando...</span>
+                                <span>DESCARGANDO…</span>
                               </>
                             ) : (
                               <>
