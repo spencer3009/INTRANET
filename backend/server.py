@@ -58,6 +58,7 @@ from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
+from routes.diag_registro import router as diag_registro_router
 from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
 from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
@@ -101,7 +102,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://multi-file-submit.preview.emergentagent.com",
+        "https://grades-diagnostics.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -195,6 +196,8 @@ async def subscription_restriction_middleware(request: Request, call_next):
 # ══════════════════════════════════════════════════════════════════════════════
 
 app.include_router(monitoring_router)   # /api/health and /api/health/db FIRST — readiness probe for Emergent
+app.include_router(diag_registro_router)   # Temporary read-only diagnostic tool
+
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(student_portal_router)

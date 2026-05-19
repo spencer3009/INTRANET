@@ -27,7 +27,7 @@
   ],
   "updated_files": ["/app/backend/tests/test_exam_to_register_dynamic.py"],
   "success_rate": {"backend": "100% (7/7 dynamic-column E2E tests pass)", "frontend": "N/A — UI screenshot of dynamic column NOT captured (owner admin routes redirect to dashboard, same blocker as iter_204). Backend GET that powers the UI returns the value 20 in grades_dynamic.<uuid> immediately after submit."},
-  "test_credentials": "admin@elroble.edu / 1234abc8 (owner). Student Magno: mickycalle65@gmail.com / 91616119. School Roble id=b9f27249-6568-49ae-94d3-e1f16750d7d9. Subject Música=e04de272-54ec-4af9-868a-bc7604e2b4b4, Section 11f50cbc-f5f6-422a-a989-87b2af6027f1, Active period BIMESTRE I=093a0bee-92c4-449c-b82c-942f16847759.",
+  "test_credentials": "admin@elroble.edu / 1234abc8 (owner). Student Magno: mickycalle65@gmail.com / 91616119. School Roble id=grades-diagnostics. Subject Música=grades-diagnostics, Section 11f50cbc-f5f6-422a-a989-87b2af6027f1, Active period BIMESTRE I=grades-diagnostics.",
   "seed_data_creation": "Test created a temporary custom plantilla 'TEST_DYN Plantilla <ts>' (now estado=borrador after cleanup via usar-sistema), one exam 'TEST_E2E_DYN ExamSync <ts>' (de3a8783-3c74-4802-9801-41f233c506f2) with 1 question, and one completed attempt by Magno (e7960cc2-…). Magno's student_grades row gained grades_dynamic.criterio_7ab4578a_col_9605f85c=20.",
   "retest_needed": false,
   "should_main_agent_self_test": false,
