@@ -44,6 +44,74 @@ const ANCHO_NOMBRE_DEFAULT = 220;
 const ANCHO_COL_MIN = 40;
 
 /* ═══════════════════════════════════════════════════════════════
+   LEGACY FORMAT — Estructura de columnas planas previa a las
+   plantillas dinámicas. Solo lectura: se usa para visualizar
+   bimestres calificados antes de la migración. NO se edita.
+   ═══════════════════════════════════════════════════════════════ */
+const LEGACY_FIELD_LIST = [
+  "act_co", "act_re",
+  "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+  "comp_c1", "comp_c2",
+  "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+  "exam_mensual", "exam_bimestral",
+];
+
+const LEGACY_STRUCTURE = [
+  {
+    id: "actitud",
+    nombre: "Actitud",
+    color: "#FFD700",
+    subcolumnas: [
+      { field: "act_co", label: "Comportamiento" },
+      { field: "act_re", label: "Responsabilidad" },
+    ],
+  },
+  {
+    id: "rev_fichas",
+    nombre: "Revisión de Fichas",
+    color: "#A9D18E",
+    subcolumnas: [
+      { field: "rf_r1", label: "Ficha 1" },
+      { field: "rf_r2", label: "Ficha 2" },
+      { field: "rf_r3", label: "Ficha 3" },
+      { field: "rf_r4", label: "Ficha 4" },
+      { field: "rf_r5", label: "Ficha 5" },
+    ],
+  },
+  {
+    id: "competencia",
+    nombre: "Competencia",
+    color: "#9DC3E6",
+    subcolumnas: [
+      { field: "comp_c1", label: "Competencia 1" },
+      { field: "comp_c2", label: "Competencia 2" },
+    ],
+  },
+  {
+    id: "participacion",
+    nombre: "Participación",
+    color: "#F4B084",
+    subcolumnas: [
+      { field: "part_p1", label: "Participación 1" },
+      { field: "part_p2", label: "Participación 2" },
+      { field: "part_p3", label: "Participación 3" },
+      { field: "part_exp", label: "Exposición" },
+      { field: "part_tg", label: "Trabajo Grupal" },
+      { field: "part_p",  label: "Promedio Part." },
+    ],
+  },
+  {
+    id: "examenes",
+    nombre: "Exámenes",
+    color: "#FF7C80",
+    subcolumnas: [
+      { field: "exam_mensual",   label: "Examen Mensual" },
+      { field: "exam_bimestral", label: "Examen Bimestral" },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════ */
 export default function GradeBookTab({ subjectId, sectionId, token, user }) {
@@ -96,6 +164,29 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, [plantilla]);
+
+  /* ── Detect legacy-formatted register ──
+     A register is in "legacy format" when every loaded student has an
+     empty `grades_dynamic` AND at least one of them has a non-null value
+     in a flat legacy field (act_co, rf_r*, comp_c*, part_*, exam_*).
+     This means the bimester was graded with the old static schema and
+     must be rendered read-only with the legacy column structure. */
+  const isLegacyRegister = useMemo(() => {
+    if (!students || students.length === 0) return false;
+    let anyDynamic = false;
+    let anyLegacy = false;
+    for (const s of students) {
+      const gd = s.grades_dynamic || {};
+      for (const v of Object.values(gd)) {
+        if (v !== null && v !== undefined) { anyDynamic = true; break; }
+      }
+      if (anyDynamic) break;
+      for (const f of LEGACY_FIELD_LIST) {
+        if (s[f] !== null && s[f] !== undefined) { anyLegacy = true; break; }
+      }
+    }
+    return !anyDynamic && anyLegacy;
+  }, [students]);
 
   /* ── Derived columns from plantilla ── */
   const totalSubCols = useMemo(() => {
@@ -257,6 +348,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   /* ── Save ── */
   const handleSave = async (isAuto = false) => {
     if (!selectedPeriod || students.length === 0 || !plantilla) return;
+    if (isLegacyRegister) return; // Legacy registers are read-only.
     setSaving(true);
     try {
       // Build the payload by iterating the full plantilla so EVERY visible
@@ -308,6 +400,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   /* ── Lock / Unlock ── */
   const handleLock = async () => {
+    if (isLegacyRegister) return; // Legacy registers are read-only.
     if (!window.confirm("Cerrar el registro? Las notas ya no se podran editar.")) return;
     try {
       await axios.post(`${API}/api/grades/lock_period`, {
@@ -352,6 +445,26 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>{subjectName} - {periodName}</p>
             <p style={{ fontSize: 11, color: "#94a3b8", margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
               <ClipboardList size={12} /> Plantilla: {plantillaNombre}
+              {isLegacyRegister && (
+                <span
+                  data-testid="legacy-format-badge"
+                  title="Este bimestre fue calificado con la estructura anterior. Solo lectura."
+                  style={{
+                    marginLeft: 8,
+                    padding: "2px 8px",
+                    background: "#FEF3C7",
+                    color: "#92400E",
+                    border: "1px solid #F59E0B",
+                    borderRadius: 999,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.3px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Formato anterior
+                </span>
+              )}
             </p>
           </div>
           <select
@@ -374,12 +487,20 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
           )}
           {!isLocked && (
             <>
-              <button onClick={() => handleSave(false)} disabled={saving || !dirty} data-testid="save-grades-btn"
-                style={{ padding: "6px 14px", background: dirty ? "#4f46e5" : "#d1d5db", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: dirty ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4 }}>
+              <button
+                onClick={() => handleSave(false)}
+                disabled={saving || !dirty || isLegacyRegister}
+                data-testid="save-grades-btn"
+                title={isLegacyRegister ? "Registro en formato anterior — solo lectura" : ""}
+                style={{ padding: "6px 14px", background: (dirty && !isLegacyRegister) ? "#4f46e5" : "#d1d5db", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: (dirty && !isLegacyRegister) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 4, opacity: isLegacyRegister ? 0.6 : 1 }}>
                 <Save size={13} /> Guardar
               </button>
-              <button onClick={handleLock} data-testid="lock-btn"
-                style={{ padding: "6px 14px", background: "#dc2626", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <button
+                onClick={handleLock}
+                disabled={isLegacyRegister}
+                data-testid="lock-btn"
+                title={isLegacyRegister ? "Registro en formato anterior — solo lectura" : ""}
+                style={{ padding: "6px 14px", background: isLegacyRegister ? "#d1d5db" : "#dc2626", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: isLegacyRegister ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4, opacity: isLegacyRegister ? 0.6 : 1 }}>
                 <Lock size={13} /> Cerrar
               </button>
             </>
@@ -406,7 +527,26 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         </div>
       )}
 
+      {/* ── LEGACY FORMAT BANNER ── */}
+      {isLegacyRegister && hasStudents && (
+        <div
+          style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 8, padding: "12px 18px", display: "flex", alignItems: "center", gap: 12 }}
+          data-testid="legacy-format-banner"
+        >
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#FDE68A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle size={16} style={{ color: "#B45309" }} />
+          </div>
+          <div style={{ fontSize: 12.5, color: "#78350F", lineHeight: 1.5 }}>
+            <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#78350F" }}>
+              Este bimestre se calificó con la estructura anterior.
+            </strong>
+            Se muestra en modo de solo lectura con las columnas originales. El promedio bimestral ya está calculado y no requiere recalcularse.
+          </div>
+        </div>
+      )}
+
       {/* ── EXCEL TABLE (dynamic from plantilla) ── */}
+      {!isLegacyRegister && (
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table ref={tablaRef} style={{ ...S.table, tableLayout: "fixed", width: useFixedLayout ? "100%" : tableMinWidth, minWidth: tableMinWidth }} data-testid="grade-table">
@@ -571,6 +711,100 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
           </table>
         </div>
       </div>
+      )}
+
+      {/* ── LEGACY TABLE (read-only, flat fields) ── */}
+      {isLegacyRegister && (
+        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }} data-testid="legacy-grade-table-wrap">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ ...S.table, tableLayout: "fixed", minWidth: 1200, width: "100%" }} data-testid="legacy-grade-table">
+              <colgroup>
+                <col style={{ width: ANCHO_NUM }} />
+                <col style={{ width: anchoNombre }} />
+                {LEGACY_STRUCTURE.flatMap(group =>
+                  group.subcolumnas.map(sub => (
+                    <col key={`lc_${sub.field}`} style={{ width: 70 }} />
+                  ))
+                )}
+                <col style={{ width: 80 }} />
+              </colgroup>
+              <thead>
+                {/* ROW 1 — Top header */}
+                <tr>
+                  <th rowSpan={3} style={{ ...S.thTop, ...S.stickyNumHeader }}>N°</th>
+                  <th rowSpan={3} style={{ ...S.thTop, ...S.stickyNameHeader, left: ANCHO_NUM, position: "sticky", zIndex: 4 }}>
+                    APELLIDOS Y NOMBRES
+                  </th>
+                  <th
+                    colSpan={LEGACY_STRUCTURE.reduce((a, g) => a + g.subcolumnas.length, 0)}
+                    style={S.thTop}
+                  >
+                    CRITERIOS DE EVALUACIÓN (FORMATO ANTERIOR)
+                  </th>
+                  <th rowSpan={2} style={{ ...S.thFinal, background: "#FFD700", color: "#000", writingMode: "horizontal-tb", transform: "none", height: "auto", fontSize: 12, fontWeight: 800 }}>100%</th>
+                </tr>
+                {/* ROW 2 — Group names */}
+                <tr>
+                  {LEGACY_STRUCTURE.map(group => (
+                    <th
+                      key={group.id}
+                      colSpan={group.subcolumnas.length}
+                      style={{ ...S.thGroup, background: `${group.color}55` }}
+                    >
+                      {group.nombre}
+                    </th>
+                  ))}
+                </tr>
+                {/* ROW 3 — Sub-column labels */}
+                <tr style={{ height: 80 }}>
+                  {LEGACY_STRUCTURE.flatMap(group =>
+                    group.subcolumnas.map(sub => (
+                      <th key={`lh_${sub.field}`} style={S.thSub}>
+                        {sub.label}
+                      </th>
+                    ))
+                  )}
+                  <th style={S.thFinal}>TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, idx) => {
+                  const rowBg = idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA";
+                  const final = student.final_grade;
+                  return (
+                    <tr key={`leg_${student.student_id}`} style={{ background: rowBg }}>
+                      <td style={{ ...S.tdNum, ...S.stickyNum, background: rowBg }}>{student.number}</td>
+                      <td style={{ ...S.tdName, ...S.stickyName, left: ANCHO_NUM, background: idx % 2 === 0 ? "#FFFFDD" : "#FFFFC8" }} title={student.student_name}>
+                        {student.student_name}
+                      </td>
+                      {LEGACY_STRUCTURE.flatMap(group =>
+                        group.subcolumnas.map(sub => {
+                          const v = student[sub.field];
+                          return (
+                            <td
+                              key={`leg_${student.student_id}_${sub.field}`}
+                              style={{ ...S.tdInput, background: "#F8F8F8", padding: "4px 0", fontWeight: 600, fontSize: 12, color: "#1f2937" }}
+                              data-testid={`legacy-grade-${student.student_id}-${sub.field}`}
+                            >
+                              {v != null ? Math.round(v) : ""}
+                            </td>
+                          );
+                        })
+                      )}
+                      <td
+                        style={{ ...S.tdFinal, background: final != null && final < 11 ? "#FECACA" : final != null && final >= 14 ? "#BBF7D0" : "#D6E4F0", color: final != null && final < 11 ? "#991B1B" : final != null && final >= 14 ? "#166534" : "#1F3864" }}
+                        data-testid={`legacy-final-${student.student_id}`}
+                      >
+                        {final != null ? Math.round(final) : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
