@@ -345,45 +345,79 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     setDirty(true);
   }, [status, plantilla, legacyFieldMap]);
 
+  /* ── Legacy grade change handler ──
+     For registers in legacy format, writes directly to the flat static
+     fields (act_co, rf_r1…, etc.). The backend treats these as the
+     pre-template schema and recomputes `final_grade` via
+     `calculate_final_grade` (legacy branch). */
+  const handleLegacyGradeChange = useCallback((idx, field, value) => {
+    if (status !== "open") return;
+    const val = value === "" ? null : parseInt(value, 10);
+    if (val !== null && (isNaN(val) || val < 0 || val > 20)) return;
+    setStudents(prev => {
+      const updated = [...prev];
+      const row = { ...updated[idx] };
+      row[field] = val;
+      updated[idx] = row;
+      return updated;
+    });
+    setDirty(true);
+  }, [status]);
+
   /* ── Save ── */
   const handleSave = async (isAuto = false) => {
-    if (!selectedPeriod || students.length === 0 || !plantilla) return;
-    if (isLegacyRegister) return; // Legacy registers are read-only.
+    if (!selectedPeriod || students.length === 0) return;
+    if (!isLegacyRegister && !plantilla) return;
     setSaving(true);
     try {
-      // Build the payload by iterating the full plantilla so EVERY visible
-      // cell (including ones that started empty and were just filled) makes
-      // it into the request. Routing must match handleGradeChange exactly
-      // via `resolveSubLocation`.
-      const grades = students.map(s => {
-        const entry = { student_id: s.student_id };
-        const dynamicEntry = {};
-        const writeSub = (sub) => {
-          const loc = resolveSubLocation(sub, legacyFieldMap);
-          if (!loc.key) return;
-          if (loc.kind === "static") {
-            // Legacy slot: send even when null so the backend can clear it.
-            entry[loc.key] = s[loc.key] ?? null;
-          } else {
-            const val = s.grades_dynamic?.[loc.key];
-            // Send `null` to clear; only skip when truly never touched.
-            if (val !== undefined) dynamicEntry[loc.key] = val;
+      let grades;
+      if (isLegacyRegister) {
+        // Legacy register payload: send the flat static fields the backend
+        // already knows how to process via `calculate_final_grade` (legacy
+        // algorithm branch). No `grades_dynamic` sent — keep this register
+        // in the same legacy shape it was loaded in.
+        grades = students.map(s => {
+          const entry = { student_id: s.student_id };
+          for (const f of LEGACY_FIELD_LIST) {
+            entry[f] = s[f] ?? null;
           }
-        };
-        for (const criterio of plantilla.criterios) {
-          for (const sub of criterio.subcolumnas) {
-            if (sub.tipo !== "input") continue;
-            writeSub(sub);
+          return entry;
+        });
+      } else {
+        // Build the payload by iterating the full plantilla so EVERY visible
+        // cell (including ones that started empty and were just filled) makes
+        // it into the request. Routing must match handleGradeChange exactly
+        // via `resolveSubLocation`.
+        grades = students.map(s => {
+          const entry = { student_id: s.student_id };
+          const dynamicEntry = {};
+          const writeSub = (sub) => {
+            const loc = resolveSubLocation(sub, legacyFieldMap);
+            if (!loc.key) return;
+            if (loc.kind === "static") {
+              // Legacy slot: send even when null so the backend can clear it.
+              entry[loc.key] = s[loc.key] ?? null;
+            } else {
+              const val = s.grades_dynamic?.[loc.key];
+              // Send `null` to clear; only skip when truly never touched.
+              if (val !== undefined) dynamicEntry[loc.key] = val;
+            }
+          };
+          for (const criterio of plantilla.criterios) {
+            for (const sub of criterio.subcolumnas) {
+              if (sub.tipo !== "input") continue;
+              writeSub(sub);
+            }
           }
-        }
-        for (const col of plantilla.columnas_finales) {
-          writeSub(col);
-        }
-        if (Object.keys(dynamicEntry).length > 0) {
-          entry.grades_dynamic = dynamicEntry;
-        }
-        return entry;
-      });
+          for (const col of plantilla.columnas_finales) {
+            writeSub(col);
+          }
+          if (Object.keys(dynamicEntry).length > 0) {
+            entry.grades_dynamic = dynamicEntry;
+          }
+          return entry;
+        });
+      }
       await axios.post(`${API}/api/grades/${isAuto ? "autosave" : "save"}`, {
         subject_id: subjectId, section_id: sectionId,
         period_id: selectedPeriod, grades,
@@ -391,6 +425,15 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       setDirty(false);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus(null), 3000);
+      // Refresh from server so the freshly computed `final_grade` (and any
+      // server-side normalization) is reflected in the table.
+      try {
+        const res = await axios.get(
+          `${API}/api/grades/register/${subjectId}/${sectionId}/${selectedPeriod}`,
+          { headers }
+        );
+        setStudents(res.data.students || []);
+      } catch (e) { /* non-fatal */ }
     } catch (err) {
       console.error("Error saving:", err);
       setSaveStatus("error");
@@ -400,7 +443,6 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   /* ── Lock / Unlock ── */
   const handleLock = async () => {
-    if (isLegacyRegister) return; // Legacy registers are read-only.
     if (!window.confirm("Cerrar el registro? Las notas ya no se podran editar.")) return;
     try {
       await axios.post(`${API}/api/grades/lock_period`, {
@@ -448,7 +490,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
               {isLegacyRegister && (
                 <span
                   data-testid="legacy-format-badge"
-                  title="Este bimestre fue calificado con la estructura anterior. Solo lectura."
+                  title="Este bimestre fue calificado con la estructura anterior."
                   style={{
                     marginLeft: 8,
                     padding: "2px 8px",
@@ -489,18 +531,15 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             <>
               <button
                 onClick={() => handleSave(false)}
-                disabled={saving || !dirty || isLegacyRegister}
+                disabled={saving || !dirty}
                 data-testid="save-grades-btn"
-                title={isLegacyRegister ? "Registro en formato anterior — solo lectura" : ""}
-                style={{ padding: "6px 14px", background: (dirty && !isLegacyRegister) ? "#4f46e5" : "#d1d5db", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: (dirty && !isLegacyRegister) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 4, opacity: isLegacyRegister ? 0.6 : 1 }}>
+                style={{ padding: "6px 14px", background: dirty ? "#4f46e5" : "#d1d5db", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: dirty ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4 }}>
                 <Save size={13} /> Guardar
               </button>
               <button
                 onClick={handleLock}
-                disabled={isLegacyRegister}
                 data-testid="lock-btn"
-                title={isLegacyRegister ? "Registro en formato anterior — solo lectura" : ""}
-                style={{ padding: "6px 14px", background: isLegacyRegister ? "#d1d5db" : "#dc2626", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: isLegacyRegister ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4, opacity: isLegacyRegister ? 0.6 : 1 }}>
+                style={{ padding: "6px 14px", background: "#dc2626", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <Lock size={13} /> Cerrar
               </button>
             </>
@@ -540,7 +579,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
             <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#78350F" }}>
               Este bimestre se calificó con la estructura anterior.
             </strong>
-            Se muestra en modo de solo lectura con las columnas originales. El promedio bimestral ya está calculado y no requiere recalcularse.
+            Se muestra con las columnas originales. Puedes editar y guardar notas con normalidad — el promedio bimestral se recalcula automáticamente al guardar.
           </div>
         </div>
       )}
@@ -783,10 +822,19 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                           return (
                             <td
                               key={`leg_${student.student_id}_${sub.field}`}
-                              style={{ ...S.tdInput, background: "#F8F8F8", padding: "4px 0", fontWeight: 600, fontSize: 12, color: "#1f2937" }}
-                              data-testid={`legacy-grade-${student.student_id}-${sub.field}`}
+                              style={{ ...S.tdInput, background: rowBg }}
                             >
-                              {v != null ? Math.round(v) : ""}
+                              <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                step="1"
+                                value={v != null ? v : ""}
+                                onChange={e => handleLegacyGradeChange(idx, sub.field, e.target.value)}
+                                disabled={isLocked}
+                                style={{ ...S.input, background: isLocked ? "#f1f5f9" : "transparent", cursor: isLocked ? "not-allowed" : "text" }}
+                                data-testid={`legacy-grade-${student.student_id}-${sub.field}`}
+                              />
                             </td>
                           );
                         })

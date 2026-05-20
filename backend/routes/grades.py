@@ -510,12 +510,43 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
                 },
                 {"_id": 0},
             ) or {}
-            merged_dynamic = dict(existing.get("grades_dynamic") or {})
-            if entry.grades_dynamic:
-                for k, v in entry.grades_dynamic.items():
-                    merged_dynamic[k] = v
-            merged_grade = {**existing, **grade_data, "grades_dynamic": merged_dynamic}
-            final = calculate_final_grade(merged_grade, config, template=template)
+            # Legacy-formatted row detection: the doc on disk has NO dynamic
+            # data and the incoming entry didn't send any either, yet flat
+            # legacy fields are populated. This is the case of bimesters that
+            # were graded before the school migrated to a custom template
+            # (e.g. 1st bimester at Precursores TJ). For these rows the
+            # template-driven algorithm would produce `None` because the
+            # plantilla maps to columns that simply don't exist on the doc.
+            # Compute final_grade via the legacy algorithm instead (no
+            # changes to `calculate_final_grade` itself — just route to its
+            # legacy branch by passing `template=None`).
+            existing_dynamic = existing.get("grades_dynamic") or {}
+            entry_has_dynamic = bool(entry.grades_dynamic) and any(
+                v is not None for v in entry.grades_dynamic.values()
+            )
+            existing_has_dynamic = any(
+                v is not None for v in existing_dynamic.values()
+            )
+            has_any_legacy = any(
+                grade_data.get(f) is not None for f in GRADE_SUB_FIELDS
+            ) or any(
+                existing.get(f) is not None for f in GRADE_SUB_FIELDS
+            )
+            is_legacy_row = (
+                not entry_has_dynamic
+                and not existing_has_dynamic
+                and has_any_legacy
+            )
+            if is_legacy_row:
+                merged_legacy = {**existing, **grade_data}
+                final = calculate_final_grade(merged_legacy, config, template=None)
+            else:
+                merged_dynamic = dict(existing_dynamic)
+                if entry.grades_dynamic:
+                    for k, v in entry.grades_dynamic.items():
+                        merged_dynamic[k] = v
+                merged_grade = {**existing, **grade_data, "grades_dynamic": merged_dynamic}
+                final = calculate_final_grade(merged_grade, config, template=template)
         else:
             final = calculate_final_grade(grade_data, config, template=template)
         grade_data["final_grade"] = final
