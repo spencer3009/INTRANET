@@ -8,6 +8,7 @@ import RightDrawer from "@/components/RightDrawer";
 import AdminCurricularAreasPage from "@/pages/AdminCurricularAreasPage";
 import AdminCierreBimestrePage from "@/pages/AdminCierreBimestrePage";
 import BulkLibretaZipButton from "@/components/libreta/BulkLibretaZipButton";
+import LibretasUploadDrawer from "@/components/LibretasUploadDrawer";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,11 +26,24 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(null); // 'areas' | 'cierre' | null
+  const [libretasDrawerOpen, setLibretasDrawerOpen] = useState(false);
+  const [reportCardSource, setReportCardSource] = useState("generated");
   const [closedPeriodIds, setClosedPeriodIds] = useState([]); // bimestres recién cerrados
   const tableRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
   const canManageAreas = ["owner", "admin", "director"].includes(user?.role);
   const canCloseBim = user?.role === "owner";
+  const canUploadLibretas = user?.is_owner || ["owner", "admin", "director"].includes(user?.role);
+
+  useEffect(() => {
+    const loadReportCardSettings = async () => {
+      try {
+        const r = await axios.get(`${API}/api/report-cards/settings`, { headers });
+        setReportCardSource(r.data?.report_card_source || "generated");
+      } catch { /* keep default */ }
+    };
+    loadReportCardSettings();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -215,6 +229,16 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     }}
                     size="md"
                   />
+                )}
+                {canUploadLibretas && reportCardSource === "pdf_upload" && (
+                  <button
+                    type="button"
+                    onClick={() => setLibretasDrawerOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-700 text-white text-sm font-medium hover:bg-violet-800 transition-colors"
+                    data-testid="open-libretas-upload-btn"
+                  >
+                    <FileText className="w-4 h-4" /> Cargar libretas
+                  </button>
                 )}
               </div>
             </div>
@@ -604,6 +628,20 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
           }}
         />
       </RightDrawer>
+
+      <LibretasUploadDrawer
+        open={libretasDrawerOpen}
+        onClose={() => setLibretasDrawerOpen(false)}
+        token={token}
+        levels={levels}
+        grades={grades}
+        sections={sections}
+        periods={periods}
+        defaultLevelId={selectedLevel}
+        defaultGradeId={selectedGrade}
+        defaultSectionId={selectedSection}
+        defaultPeriodId={selectedPeriod}
+      />
     </div>
   );
 }

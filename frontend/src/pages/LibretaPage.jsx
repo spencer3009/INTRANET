@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ChevronLeft, Printer, Download, AlertTriangle, Loader2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import LibretaCard from "@/components/libreta/LibretaCard";
+import OfficialReportCardBanner from "@/components/OfficialReportCardBanner";
 import { downloadLibretaPdf, safeFilename } from "@/utils/libretaPdf";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -177,6 +178,11 @@ export default function LibretaPage({ user, token, onLogout }) {
 
       {/* Contenedor imprimible */}
       <div ref={printRef} className="libreta-printable">
+        <OfficialReportCardBanner
+          studentId={student_id}
+          periodId={selectedPeriodId || data?.period_active?.id}
+          token={token}
+        />
         {isSnapshot && (
           <div className="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 flex items-start gap-2" data-testid="libreta-snapshot-banner">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 import RegistroAuxiliarPlantillasTab from "@/components/RegistroAuxiliarPlantillasTab";
+import LibretasSettingsTab from "@/components/LibretasSettingsTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -35,6 +36,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     : [
         { id: "general", label: "General", icon: Settings },
         { id: "registro_auxiliar", label: "Registro Auxiliar", icon: ClipboardList },
+        { id: "libretas", label: "Libretas", icon: ClipboardList },
         { id: "himno", label: "Himno del Colegio", icon: Music },
       ];
   const [activeSettingsTab, setActiveSettingsTab] = useState(availableTabs[0].id);
@@ -961,6 +963,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           {/* Tab Content: Registro Auxiliar */}
           {activeSettingsTab === "registro_auxiliar" && (
             <RegistroAuxiliarPlantillasTab user={user} token={token} schoolId={user?.school_id} subdomain={subdomain} />
+          )}
+
+          {activeSettingsTab === "libretas" && (
+            <LibretasSettingsTab token={token} />
           )}
 
           {/* Tab Content: General Settings */}
