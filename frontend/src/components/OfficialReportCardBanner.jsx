@@ -8,9 +8,14 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 /**
  * Banner that surfaces the official PDF report card (uploaded to Drive
  * by the admin) when the school has switched report cards to PDF mode.
- * Used inside LibretaPage. Renders nothing when no PDF is available.
+ * Used inside ParentGradesPage and LibretaPage.
+ *
+ * Behavior:
+ *   - reportCardSource !== "pdf_upload" → renders nothing (legacy generated mode)
+ *   - reportCardSource === "pdf_upload" + items === 0 → informational banner
+ *   - reportCardSource === "pdf_upload" + items > 0 → list with "Ver libreta" / Descargar
  */
-export default function OfficialReportCardBanner({ studentId, periodId, token }) {
+export default function OfficialReportCardBanner({ studentId, periodId, token, reportCardSource = "pdf_upload" }) {
   const [items, setItems] = useState([]);
   const [downloading, setDownloading] = useState(null);
   const [viewing, setViewing] = useState(null);

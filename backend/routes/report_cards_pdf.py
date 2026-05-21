@@ -76,6 +76,33 @@ async def _ensure_libretas_folder(service, materials_folder_id: str, period_name
     return bim_id
 
 
+async def _parent_is_linked_to_student(user: dict, student_id: str, school_id: str) -> bool:
+    """Determine whether a `parent`-role user is linked to a given student.
+    Mirrors the logic of /api/parent/me which considers both directions:
+      1. Reverse: student doc has padre_id/parent_id == parent.id
+      2. Forward: parent doc has student_id in children / children_ids / student_ids
+    """
+    # 1) Reverse lookup on the student doc
+    found = await db.users.find_one(
+        {
+            "id": student_id,
+            "role": "student",
+            "school_id": school_id,
+            "$or": [{"padre_id": user["id"]}, {"parent_id": user["id"]}],
+        },
+        {"_id": 0, "id": 1},
+    )
+    if found:
+        return True
+    # 2) Forward array on the parent doc
+    linked_ids = (
+        (user.get("children") or [])
+        + (user.get("children_ids") or [])
+        + (user.get("student_ids") or [])
+    )
+    return student_id in linked_ids
+
+
 # ───────────────────────── Settings switch ─────────────────────────
 
 
@@ -322,18 +349,14 @@ async def download_report_card(report_card_id: str, current_user=Depends(get_cur
         raise HTTPException(status_code=404, detail="Libreta no encontrada")
 
     # Authorization: admin/owner; the student themself; a parent linked
-    # to the student via children/children_ids/student_ids.
+    # to the student (either via student.padre_id/parent_id reverse lookup
+    # or via parent.children/children_ids/student_ids forward array).
     allowed = is_owner or role in ADMIN_ROLES
     if not allowed:
         if role == "student" and user.get("id") == rc["student_id"]:
             allowed = True
         elif role == "parent":
-            linked_ids = (
-                (user.get("children") or [])
-                + (user.get("children_ids") or [])
-                + (user.get("student_ids") or [])
-            )
-            allowed = rc["student_id"] in linked_ids
+            allowed = await _parent_is_linked_to_student(user, rc["student_id"], school_id)
     if not allowed:
         raise HTTPException(status_code=403, detail="No autorizado para descargar esta libreta")
 
@@ -363,12 +386,7 @@ async def get_student_report_cards(
         if role == "student" and user.get("id") == student_id:
             allowed = True
         elif role == "parent":
-            linked_ids = (
-                (user.get("children") or [])
-                + (user.get("children_ids") or [])
-                + (user.get("student_ids") or [])
-            )
-            allowed = student_id in linked_ids
+            allowed = await _parent_is_linked_to_student(user, student_id, school_id)
         elif role == "teacher":
             # Teachers don't need to see PDFs directly; deny.
             allowed = False
