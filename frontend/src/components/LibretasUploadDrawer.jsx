@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { X, FileText, Upload, Check, AlertTriangle, Trash2, Loader2, CloudOff, Settings as SettingsIcon } from "lucide-react";
+import { X, FileText, Upload, Check, AlertTriangle, Trash2, Loader2, CloudOff, Settings as SettingsIcon, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -33,6 +33,7 @@ export default function LibretasUploadDrawer({
   const [driveConnected, setDriveConnected] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [viewingId, setViewingId] = useState(null);
   const fileInputs = useRef({});
 
   const authHeaders = { Authorization: `Bearer ${token}` };
@@ -103,6 +104,27 @@ export default function LibretasUploadDrawer({
       setError(err?.response?.data?.detail || "Error al subir la libreta");
     } finally {
       setUploadingId(null);
+    }
+  };
+
+  const handleView = async (row) => {
+    if (!row.report_card_id) return;
+    setViewingId(row.report_card_id);
+    setError("");
+    try {
+      const r = await axios.get(`${API}/api/report-cards/download/${row.report_card_id}`, {
+        headers: authHeaders,
+        responseType: "blob",
+      });
+      const blob = new Blob([r.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+      if (!win) setError("El navegador bloqueó la ventana emergente. Permite popups y vuelve a intentarlo.");
+    } catch (err) {
+      setError(err?.response?.data?.detail || "No se pudo abrir la libreta");
+    } finally {
+      setViewingId(null);
     }
   };
 
@@ -295,6 +317,18 @@ export default function LibretasUploadDrawer({
                         <><Upload className="w-3.5 h-3.5" /> Subir PDF</>
                       )}
                     </button>
+                    {r.uploaded && (
+                      <button
+                        type="button"
+                        onClick={() => handleView(r)}
+                        disabled={viewingId === r.report_card_id}
+                        className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                        title="Ver libreta"
+                        data-testid={`libreta-view-btn-${r.student_id}`}
+                      >
+                        {viewingId === r.report_card_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    )}
                     {r.uploaded && (
                       <button
                         type="button"
