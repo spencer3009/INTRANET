@@ -55,25 +55,36 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   // Defaults to "letters" to preserve legacy behavior when the school hasn't
   // set the option yet.
   const gradeFormat = data?.metadata?.libreta_grade_format || "letters";
+  const isMixed = gradeFormat === "mixed";
 
   // Render helpers — keep cell DOM stable regardless of mode.
   const formatNum = (n) => (n === null || n === undefined ? "" : Number.isInteger(n) ? n : Math.round(n));
-  const renderCellContent = (cell, opts = {}) => {
+  const renderCellContent = (cell) => {
     if (!cell) return "-";
     const num = cell.numeric ?? cell.number;
     const letter = cell.letter;
     if (gradeFormat === "numeric") return formatNum(num) || "-";
-    if (gradeFormat === "letters") return letter || "-";
-    // Mixed: number on top, letter below — same <td>, two stacked spans.
-    if (num === null || num === undefined) {
-      return letter || "-";
+    return letter || "-"; // default to letters (legacy)
+  };
+  /**
+   * Render one or two <td> cells for a grade slot.
+   * - numeric / letters → 1 td
+   * - mixed             → 2 td (Nota | Nivel de logro)
+   * `keyBase` must be unique within the row.
+   */
+  const renderGradeCells = (cell, baseClass, keyBase, extraStyle) => {
+    const num = cell?.numeric ?? cell?.number;
+    const letter = cell?.letter;
+    const letterMod = letterModifier(letter);
+    if (isMixed) {
+      return (
+        <Fragment key={keyBase}>
+          <td className={`${baseClass} ${letterMod}`} style={extraStyle}>{num !== null && num !== undefined ? formatNum(num) : "-"}</td>
+          <td className={`${baseClass} ${letterMod}`} style={extraStyle}>{letter || "-"}</td>
+        </Fragment>
+      );
     }
-    return (
-      <span className="lr-mixed-cell">
-        <span className="lr-mixed-num">{formatNum(num)}</span>
-        {letter && <span className="lr-mixed-letter">{letter}</span>}
-      </span>
-    );
+    return <td key={keyBase} className={`${baseClass} ${letterMod}`} style={extraStyle}>{renderCellContent(cell)}</td>;
   };
 
   const saveConduct = async (period_id, letra) => {
@@ -183,11 +194,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         return (
           <tr key={area.id}>
             <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold" }}>{area.name}</td>
-            {periods.map(p => {
-              const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
-            })}
-            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
+            {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
+            {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
           </tr>
         );
       }
@@ -196,11 +204,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <tr key={area.id}>
           <td className="lr-area" style={{ textAlign: "left", paddingLeft: 6 }}>{area.name}</td>
           <td className="lr-asig">{s.name}</td>
-          {periods.map(p => {
-            const cell = s.grades?.[p.id] || {};
-            return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
-          })}
-          <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
+          {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
+          {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
         </tr>
       );
     }
@@ -214,20 +219,14 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
               <td className="lr-area" rowSpan={subs.length + 1}>{area.name}</td>
             )}
             <td className="lr-asig">{s.name}</td>
-            {periods.map(p => {
-              const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
-            })}
-            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
+            {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${s.id}-${p.id}`))}
+            {renderGradeCells(s.promedio_final, "lr-grade-final", `${s.id}-final`)}
           </tr>
         ))}
         <tr className="lr-prom-row">
           <td className="lr-asig lr-prom-area">Promedio Área:</td>
-          {periods.map(p => {
-            const av = area.promedio_area?.[p.id] || {};
-            return <td key={p.id} className={`lr-grade ${letterModifier(av.letter)}`} style={{ fontWeight: "bold" }}>{renderCellContent(av)}</td>;
-          })}
-          <td className={`lr-grade-final ${letterModifier(area.promedio_area?.final?.letter)}`}>{renderCellContent(area.promedio_area?.final)}</td>
+          {periods.map(p => renderGradeCells(area.promedio_area?.[p.id] || {}, "lr-grade", `${area.id}-prom-${p.id}`, { fontWeight: "bold" }))}
+          {renderGradeCells(area.promedio_area?.final, "lr-grade-final", `${area.id}-prom-final`)}
         </tr>
       </Fragment>
     );
@@ -286,15 +285,40 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       ) : (
         <table className="lr-grades" data-testid="libreta-grades-table">
           <thead>
-            <tr>
-              <th rowSpan={2} className="lr-col-areas">ÁREAS</th>
-              <th rowSpan={2} className="lr-col-asig">ASIGNATURAS</th>
-              <th colSpan={periods.length}>BIMESTRES</th>
-              <th rowSpan={2} className="lr-col-final">Promedio<br/>Final</th>
-            </tr>
-            <tr>
-              {periods.map(p => <th key={p.id} className="lr-col-bim">{romano(p.orden)}</th>)}
-            </tr>
+            {isMixed ? (
+              <>
+                <tr>
+                  <th rowSpan={3} className="lr-col-areas">ÁREAS</th>
+                  <th rowSpan={3} className="lr-col-asig">ASIGNATURAS</th>
+                  <th colSpan={periods.length * 2}>BIMESTRES</th>
+                  <th colSpan={2} className="lr-col-final">Promedio<br/>Final</th>
+                </tr>
+                <tr>
+                  {periods.map(p => <th key={p.id} colSpan={2} className="lr-col-bim">{romano(p.orden)}</th>)}
+                  <th colSpan={2} />
+                </tr>
+                <tr>
+                  {periods.flatMap(p => [
+                    <th key={`${p.id}-num`} className="lr-col-bim-sub">Nota</th>,
+                    <th key={`${p.id}-let`} className="lr-col-bim-sub">Nivel de logro</th>,
+                  ])}
+                  <th className="lr-col-bim-sub">Nota</th>
+                  <th className="lr-col-bim-sub">Nivel de logro</th>
+                </tr>
+              </>
+            ) : (
+              <>
+                <tr>
+                  <th rowSpan={2} className="lr-col-areas">ÁREAS</th>
+                  <th rowSpan={2} className="lr-col-asig">ASIGNATURAS</th>
+                  <th colSpan={periods.length}>BIMESTRES</th>
+                  <th rowSpan={2} className="lr-col-final">Promedio<br/>Final</th>
+                </tr>
+                <tr>
+                  {periods.map(p => <th key={p.id} className="lr-col-bim">{romano(p.orden)}</th>)}
+                </tr>
+              </>
+            )}
           </thead>
           <tbody>
             {areasList.map(renderArea)}

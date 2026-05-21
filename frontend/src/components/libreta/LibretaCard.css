@@ -158,3 +158,12 @@
   font-size: 0.78em;
   opacity: 0.85;
 }
+
+/* Sub-headers (modo "mixto") — letras pequeñas debajo del bimestre */
+.lr-col-bim-sub {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 3px 2px !important;
+  background: #f9fafb;
+}
