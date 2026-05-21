@@ -169,10 +169,15 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
      A register is in "legacy format" when every loaded student has an
      empty `grades_dynamic` AND at least one of them has a non-null value
      in a flat legacy field (act_co, rf_r*, comp_c*, part_*, exam_*).
-     This means the bimester was graded with the old static schema and
-     must be rendered read-only with the legacy column structure. */
+     IMPORTANT: this only fires when the school's active template is
+     CUSTOM (es_sistema=false). When the active template is the SYSTEM
+     template, it natively reads the legacy flat fields, so the regular
+     dynamic render works perfectly and the read-only banner must NOT
+     appear. */
   const isLegacyRegister = useMemo(() => {
     if (!students || students.length === 0) return false;
+    // System templates already render legacy fields correctly — skip detection.
+    if (!plantilla || plantilla.es_sistema) return false;
     let anyDynamic = false;
     let anyLegacy = false;
     for (const s of students) {
@@ -186,7 +191,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
       }
     }
     return !anyDynamic && anyLegacy;
-  }, [students]);
+  }, [students, plantilla]);
 
   /* ── Derived columns from plantilla ── */
   const totalSubCols = useMemo(() => {
