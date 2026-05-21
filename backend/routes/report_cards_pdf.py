@@ -147,10 +147,10 @@ async def list_report_cards_by_section(
     if not period:
         raise HTTPException(status_code=404, detail="Bimestre no encontrado")
 
-    students = await db.students.find(
-        {"school_id": school_id, "section_id": section_id, "status": {"$ne": "inactivo"}},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "second_last_name": 1, "photo_url": 1, "code": 1},
-    ).to_list(500)
+    students = await db.users.find(
+        {"school_id": school_id, "role": "student", "seccion_id": section_id, "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "second_last_name": 1, "photo_url": 1, "student_code": 1, "codigo": 1},
+    ).to_list(1000)
     students.sort(key=lambda s: ((s.get("last_name") or "") + " " + (s.get("second_last_name") or "") + " " + (s.get("name") or "")).lower())
 
     uploads = await db.student_report_cards_pdf.find(
@@ -165,7 +165,7 @@ async def list_report_cards_by_section(
         rows.append({
             "student_id": s["id"],
             "student_name": f"{s.get('last_name','')} {s.get('second_last_name','')} {s.get('name','')}".strip(),
-            "code": s.get("code"),
+            "code": s.get("student_code") or s.get("codigo"),
             "photo_url": s.get("photo_url"),
             "uploaded": bool(u),
             "report_card_id": u["id"] if u else None,
@@ -197,13 +197,14 @@ async def upload_report_card_pdf(
     user = await _require_admin(current_user)
     school_id = user.get("school_id")
 
-    # Validate ownership
-    student = await db.students.find_one(
-        {"id": student_id, "school_id": school_id}, {"_id": 0, "id": 1, "section_id": 1, "name": 1, "last_name": 1}
+    # Validate ownership (students live in `users` with role='student')
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "seccion_id": 1, "name": 1, "last_name": 1},
     )
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
-    if student.get("section_id") != section_id:
+    if student.get("seccion_id") != section_id:
         raise HTTPException(status_code=400, detail="El alumno no pertenece a esta sección")
 
     period = await db.academic_periods.find_one(
@@ -320,17 +321,19 @@ async def download_report_card(report_card_id: str, current_user=Depends(get_cur
     if not rc:
         raise HTTPException(status_code=404, detail="Libreta no encontrada")
 
-    # Authorization: admin/owner; the student themself; a parent of the student.
+    # Authorization: admin/owner; the student themself; a parent linked
+    # to the student via children/children_ids/student_ids.
     allowed = is_owner or role in ADMIN_ROLES
     if not allowed:
-        if role == "student" and user.get("student_id") == rc["student_id"]:
+        if role == "student" and user.get("id") == rc["student_id"]:
             allowed = True
         elif role == "parent":
-            link = await db.parent_student_relations.find_one(
-                {"parent_id": user["id"], "student_id": rc["student_id"]},
-                {"_id": 0, "student_id": 1},
+            linked_ids = (
+                (user.get("children") or [])
+                + (user.get("children_ids") or [])
+                + (user.get("student_ids") or [])
             )
-            allowed = bool(link)
+            allowed = rc["student_id"] in linked_ids
     if not allowed:
         raise HTTPException(status_code=403, detail="No autorizado para descargar esta libreta")
 
@@ -357,14 +360,15 @@ async def get_student_report_cards(
     # AuthZ
     allowed = is_owner or role in ADMIN_ROLES
     if not allowed:
-        if role == "student" and user.get("student_id") == student_id:
+        if role == "student" and user.get("id") == student_id:
             allowed = True
         elif role == "parent":
-            link = await db.parent_student_relations.find_one(
-                {"parent_id": user["id"], "student_id": student_id},
-                {"_id": 0, "student_id": 1},
+            linked_ids = (
+                (user.get("children") or [])
+                + (user.get("children_ids") or [])
+                + (user.get("student_ids") or [])
             )
-            allowed = bool(link)
+            allowed = student_id in linked_ids
         elif role == "teacher":
             # Teachers don't need to see PDFs directly; deny.
             allowed = False

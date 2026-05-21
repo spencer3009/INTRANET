@@ -88,11 +88,11 @@ async def test_upload_without_drive_returns_409(token, db):
     instead of silently corrupting state."""
     student_id = f"DUMMY_RC_{uuid.uuid4().hex[:6]}"
     try:
-        # Seed a student in the section.
-        await db.students.insert_one({
-            "id": student_id, "school_id": SCHOOL_ID, "section_id": SECTION_ID,
-            "name": "Test", "last_name": "Alumno", "second_last_name": "PDF",
-            "status": "activo",
+        # Seed a student in `users` with role=student.
+        await db.users.insert_one({
+            "id": student_id, "school_id": SCHOOL_ID, "seccion_id": SECTION_ID,
+            "role": "student", "name": "Test", "last_name": "Alumno",
+            "is_active": True,
         })
         async with httpx.AsyncClient() as cli:
             files = {"file": ("libreta.pdf", b"%PDF-1.4 fake content", "application/pdf")}
@@ -105,17 +105,17 @@ async def test_upload_without_drive_returns_409(token, db):
             assert r.status_code == 409, r.text
             assert "drive" in r.text.lower()
     finally:
-        await db.students.delete_many({"id": student_id})
+        await db.users.delete_many({"id": student_id})
 
 
 @pytest.mark.asyncio
 async def test_upload_rejects_non_pdf_extension(token, db):
     student_id = f"DUMMY_RC_{uuid.uuid4().hex[:6]}"
     try:
-        await db.students.insert_one({
-            "id": student_id, "school_id": SCHOOL_ID, "section_id": SECTION_ID,
-            "name": "Test", "last_name": "Alumno",
-            "status": "activo",
+        await db.users.insert_one({
+            "id": student_id, "school_id": SCHOOL_ID, "seccion_id": SECTION_ID,
+            "role": "student", "name": "Test", "last_name": "Alumno",
+            "is_active": True,
         })
         async with httpx.AsyncClient() as cli:
             files = {"file": ("notes.txt", b"hello", "text/plain")}
@@ -128,17 +128,17 @@ async def test_upload_rejects_non_pdf_extension(token, db):
             assert r.status_code == 400, r.text
             assert "pdf" in r.text.lower()
     finally:
-        await db.students.delete_many({"id": student_id})
+        await db.users.delete_many({"id": student_id})
 
 
 @pytest.mark.asyncio
 async def test_upload_rejects_files_over_10mb(token, db):
     student_id = f"DUMMY_RC_{uuid.uuid4().hex[:6]}"
     try:
-        await db.students.insert_one({
-            "id": student_id, "school_id": SCHOOL_ID, "section_id": SECTION_ID,
-            "name": "Test", "last_name": "Alumno",
-            "status": "activo",
+        await db.users.insert_one({
+            "id": student_id, "school_id": SCHOOL_ID, "seccion_id": SECTION_ID,
+            "role": "student", "name": "Test", "last_name": "Alumno",
+            "is_active": True,
         })
         # 10.5 MB synthetic content
         huge = b"%PDF-1.4 " + (b"X" * (10 * 1024 * 1024 + 500_000))
@@ -154,19 +154,42 @@ async def test_upload_rejects_files_over_10mb(token, db):
             assert r.status_code == 400, r.text
             assert "10" in r.text or "límite" in r.text.lower() or "mb" in r.text.lower()
     finally:
-        await db.students.delete_many({"id": student_id})
+        await db.users.delete_many({"id": student_id})
 
 
 @pytest.mark.asyncio
-async def test_by_section_lists_students_with_upload_flags(token, db):
-    """Endpoint used by the modal: must list students of the section
-    with the 'uploaded' flag toggled correctly."""
+async def test_by_section_lists_real_students_in_users_collection(token, db):
+    """Regression for the production bug: students live in `users` with
+    role='student' and field `seccion_id`. Real section in preview has 36
+    students — the endpoint must list them (>=1) and include known ones."""
+    async with httpx.AsyncClient() as cli:
+        r = await cli.get(
+            f"{BACKEND_URL}/api/report-cards/by-section",
+            headers={"Authorization": f"Bearer {token}"},
+            params={"section_id": SECTION_ID, "period_id": PERIOD_ID},
+        )
+        assert r.status_code == 200
+        d = r.json()
+        assert "students" in d
+        assert "drive_connected" in d
+        # Section must have at least one real student.
+        assert len(d["students"]) > 0, "by-section returned 0 students — fix likely regressed"
+        # Each row has student_id + student_name + uploaded flag.
+        row = d["students"][0]
+        for key in ("student_id", "student_name", "uploaded"):
+            assert key in row
+
+
+@pytest.mark.asyncio
+async def test_by_section_with_seeded_student(token, db):
+    """Seed a synthetic student in the section and verify the endpoint
+    surfaces them with uploaded=False."""
     student_id = f"DUMMY_RC_{uuid.uuid4().hex[:6]}"
     try:
-        await db.students.insert_one({
-            "id": student_id, "school_id": SCHOOL_ID, "section_id": SECTION_ID,
-            "name": "ZZTest", "last_name": "Lista",
-            "status": "activo",
+        await db.users.insert_one({
+            "id": student_id, "school_id": SCHOOL_ID, "seccion_id": SECTION_ID,
+            "role": "student", "name": "ZZZTest", "last_name": "Lista",
+            "is_active": True,
         })
         async with httpx.AsyncClient() as cli:
             r = await cli.get(
@@ -176,14 +199,12 @@ async def test_by_section_lists_students_with_upload_flags(token, db):
             )
             assert r.status_code == 200
             d = r.json()
-            assert "students" in d
-            assert "drive_connected" in d
             ids = [s["student_id"] for s in d["students"]]
             assert student_id in ids
             row = next(s for s in d["students"] if s["student_id"] == student_id)
             assert row["uploaded"] is False
     finally:
-        await db.students.delete_many({"id": student_id})
+        await db.users.delete_many({"id": student_id})
 
 
 @pytest.mark.asyncio
