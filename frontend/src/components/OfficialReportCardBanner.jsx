@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -13,6 +13,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export default function OfficialReportCardBanner({ studentId, periodId, token }) {
   const [items, setItems] = useState([]);
   const [downloading, setDownloading] = useState(null);
+  const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
     if (!studentId) return;
@@ -29,6 +30,25 @@ export default function OfficialReportCardBanner({ studentId, periodId, token })
   }, [studentId, periodId, token]);
 
   if (!items || items.length === 0) return null;
+
+  const handleView = async (rc) => {
+    setViewing(rc.id);
+    try {
+      const r = await axios.get(`${API}/report-cards/download/${rc.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      const blob = new Blob([r.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+      if (!win) toast.error("El navegador bloqueó la pestaña. Permite popups y vuelve a intentarlo.");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "No se pudo abrir la libreta");
+    } finally {
+      setViewing(null);
+    }
+  };
 
   const handleDownload = async (rc) => {
     setDownloading(rc.id);
@@ -74,19 +94,31 @@ export default function OfficialReportCardBanner({ studentId, periodId, token })
                 <p className="text-sm font-semibold text-slate-900 truncate" title={rc.file_name}>{rc.period_name || "Bimestre"}</p>
                 <p className="text-[11px] text-slate-500 truncate">{rc.file_name}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleDownload(rc)}
-                disabled={downloading === rc.id}
-                className="px-3 py-1.5 rounded-lg bg-violet-700 hover:bg-violet-800 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60 flex-shrink-0"
-                data-testid={`official-pdf-download-btn-${rc.id}`}
-              >
-                {downloading === rc.id ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Descargando</>
-                ) : (
-                  <><Download className="w-3.5 h-3.5" /> Descargar PDF</>
-                )}
-              </button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleView(rc)}
+                  disabled={viewing === rc.id}
+                  className="px-3 py-1.5 rounded-lg bg-violet-700 hover:bg-violet-800 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60"
+                  data-testid={`official-pdf-view-btn-${rc.id}`}
+                >
+                  {viewing === rc.id ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Abriendo</>
+                  ) : (
+                    <><Eye className="w-3.5 h-3.5" /> Ver libreta</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(rc)}
+                  disabled={downloading === rc.id}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-violet-50 border border-violet-300 text-violet-800 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60"
+                  data-testid={`official-pdf-download-btn-${rc.id}`}
+                  title="Descargar"
+                >
+                  {downloading === rc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

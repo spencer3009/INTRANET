@@ -5,6 +5,7 @@ import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import OfficialReportCardBanner from "../components/OfficialReportCardBanner";
 import {
   Trophy, Loader2, BookOpen, TrendingUp, ChevronDown, ChevronUp,
   User, Star, BarChart3, Target, Award
@@ -26,6 +27,7 @@ export default function ParentGradesPage({ user, token, onLogout }) {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
+  const [reportCardSource, setReportCardSource] = useState("generated");
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(null);
   const [expandedCourse, setExpandedCourse] = useState(null);
@@ -49,11 +51,15 @@ export default function ParentGradesPage({ user, token, onLogout }) {
     const init = async () => {
       setLoading(true);
       try {
-        const [profileRes, settingsRes] = await Promise.all([
+        const [profileRes, settingsRes, rcSettingsRes] = await Promise.all([
           axios.get(`${API}/api/parent/me`, { headers }),
-          axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
+          axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
+          axios.get(`${API}/api/report-cards/settings`, { headers }).catch(() => ({ data: null })),
         ]);
         if (settingsRes.data) setSettings(settingsRes.data);
+        if (rcSettingsRes.data?.report_card_source) {
+          setReportCardSource(rcSettingsRes.data.report_card_source);
+        }
         const childrenList = profileRes.data.children || [];
         setChildren(childrenList);
         if (childrenList.length > 0) {
@@ -120,6 +126,11 @@ export default function ParentGradesPage({ user, token, onLogout }) {
               <p className="text-sm text-slate-500">{grades.length} evaluaciones registradas</p>
             </div>
           </div>
+
+          {/* Libreta PDF (solo si el switch está en 'pdf_upload') */}
+          {reportCardSource === "pdf_upload" && selectedChild && (
+            <OfficialReportCardBanner studentId={selectedChild.id} token={token} />
+          )}
 
           {/* Summary Cards */}
           {!loading && grades.length > 0 && (
