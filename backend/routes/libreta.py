@@ -328,7 +328,7 @@ async def get_libreta(
 
     school_doc = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1},
     ) or {}
 
     grade_doc = await db.grades.find_one(
@@ -675,6 +675,7 @@ async def get_libreta(
             "libreta_mode": libreta_mode,
             "closed_periods_count": len(closed_period_ids),
             "show_padres_grade": bool(school_doc.get("show_padres_grade", False)),
+            "libreta_grade_format": school_doc.get("libreta_grade_format") or "numeric",
         },
     }
 
@@ -881,6 +882,7 @@ async def close_period(
             "is_snapshot": False,
             "period_closed": False,
             "year_closed": False,
+            "libreta_grade_format": (payload.get("metadata") or {}).get("libreta_grade_format") or "numeric",
         }
 
         doc = {

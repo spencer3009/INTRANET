@@ -107,7 +107,8 @@ async def _parent_is_linked_to_student(user: dict, student_id: str, school_id: s
 
 
 class ReportCardSettingsUpdate(BaseModel):
-    report_card_source: str  # "generated" | "pdf_upload"
+    report_card_source: Optional[str] = None  # "generated" | "pdf_upload"
+    libreta_grade_format: Optional[str] = None  # "numeric" | "letters" | "mixed"
 
 
 @router.get("/api/report-cards/settings")
@@ -122,6 +123,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
     return {
         "school_id": school_id,
         "report_card_source": school.get("report_card_source") or "generated",
+        "libreta_grade_format": school.get("libreta_grade_format") or "numeric",
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -135,11 +137,26 @@ async def update_report_card_settings(
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=400, detail="Usuario sin colegio")
-    val = (body.report_card_source or "").strip().lower()
-    if val not in ("generated", "pdf_upload"):
-        raise HTTPException(status_code=400, detail="report_card_source debe ser 'generated' o 'pdf_upload'")
-    await db.schools.update_one({"id": school_id}, {"$set": {"report_card_source": val}})
-    return {"ok": True, "report_card_source": val}
+    update_fields: dict = {}
+    if body.report_card_source is not None:
+        src = body.report_card_source.strip().lower()
+        if src not in ("generated", "pdf_upload"):
+            raise HTTPException(status_code=400, detail="report_card_source debe ser 'generated' o 'pdf_upload'")
+        update_fields["report_card_source"] = src
+    if body.libreta_grade_format is not None:
+        fmt = body.libreta_grade_format.strip().lower()
+        if fmt not in ("numeric", "letters", "mixed"):
+            raise HTTPException(status_code=400, detail="libreta_grade_format debe ser 'numeric', 'letters' o 'mixed'")
+        update_fields["libreta_grade_format"] = fmt
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="Nada para actualizar")
+    await db.schools.update_one({"id": school_id}, {"$set": update_fields})
+    school = await _resolve_school(school_id)
+    return {
+        "ok": True,
+        "report_card_source": school.get("report_card_source") or "generated",
+        "libreta_grade_format": school.get("libreta_grade_format") or "numeric",
+    }
 
 
 # ───────────────────────── Listing per section ─────────────────────────

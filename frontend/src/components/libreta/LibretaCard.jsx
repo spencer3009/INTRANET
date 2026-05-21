@@ -51,6 +51,30 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
   // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
   const showPadresGrade = !!data?.metadata?.show_padres_grade;
+  // Grade rendering format ("numeric" | "letters" | "mixed").
+  // Defaults to "letters" to preserve legacy behavior when the school hasn't
+  // set the option yet.
+  const gradeFormat = data?.metadata?.libreta_grade_format || "letters";
+
+  // Render helpers — keep cell DOM stable regardless of mode.
+  const formatNum = (n) => (n === null || n === undefined ? "" : Number.isInteger(n) ? n : Math.round(n));
+  const renderCellContent = (cell, opts = {}) => {
+    if (!cell) return "-";
+    const num = cell.numeric ?? cell.number;
+    const letter = cell.letter;
+    if (gradeFormat === "numeric") return formatNum(num) || "-";
+    if (gradeFormat === "letters") return letter || "-";
+    // Mixed: number on top, letter below — same <td>, two stacked spans.
+    if (num === null || num === undefined) {
+      return letter || "-";
+    }
+    return (
+      <span className="lr-mixed-cell">
+        <span className="lr-mixed-num">{formatNum(num)}</span>
+        {letter && <span className="lr-mixed-letter">{letter}</span>}
+      </span>
+    );
+  };
 
   const saveConduct = async (period_id, letra) => {
     try {
@@ -161,9 +185,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold" }}>{area.name}</td>
             {periods.map(p => {
               const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
+              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
             })}
-            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
+            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
           </tr>
         );
       }
@@ -174,9 +198,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           <td className="lr-asig">{s.name}</td>
           {periods.map(p => {
             const cell = s.grades?.[p.id] || {};
-            return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
+            return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
           })}
-          <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
+          <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
         </tr>
       );
     }
@@ -192,18 +216,18 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             <td className="lr-asig">{s.name}</td>
             {periods.map(p => {
               const cell = s.grades?.[p.id] || {};
-              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{cell.letter || "-"}</td>;
+              return <td key={p.id} className={`lr-grade ${letterModifier(cell.letter)}`}>{renderCellContent(cell)}</td>;
             })}
-            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{s.promedio_final?.letter || "-"}</td>
+            <td className={`lr-grade-final ${letterModifier(s.promedio_final?.letter)}`}>{renderCellContent(s.promedio_final)}</td>
           </tr>
         ))}
         <tr className="lr-prom-row">
           <td className="lr-asig lr-prom-area">Promedio Área:</td>
           {periods.map(p => {
             const av = area.promedio_area?.[p.id] || {};
-            return <td key={p.id} className={`lr-grade ${letterModifier(av.letter)}`} style={{ fontWeight: "bold" }}>{av.letter || "-"}</td>;
+            return <td key={p.id} className={`lr-grade ${letterModifier(av.letter)}`} style={{ fontWeight: "bold" }}>{renderCellContent(av)}</td>;
           })}
-          <td className={`lr-grade-final ${letterModifier(area.promedio_area?.final?.letter)}`}>{area.promedio_area?.final?.letter || "-"}</td>
+          <td className={`lr-grade-final ${letterModifier(area.promedio_area?.final?.letter)}`}>{renderCellContent(area.promedio_area?.final)}</td>
         </tr>
       </Fragment>
     );

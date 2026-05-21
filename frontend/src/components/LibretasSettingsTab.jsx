@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -14,6 +14,7 @@ export default function LibretasSettingsTab({ token }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [source, setSource] = useState("generated");
+  const [gradeFormat, setGradeFormat] = useState("numeric");
   const [driveConnected, setDriveConnected] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -25,6 +26,7 @@ export default function LibretasSettingsTab({ token }) {
       try {
         const r = await axios.get(`${API}/report-cards/settings`, { headers });
         setSource(r.data?.report_card_source || "generated");
+        setGradeFormat(r.data?.libreta_grade_format || "numeric");
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -48,6 +50,22 @@ export default function LibretasSettingsTab({ token }) {
       setTimeout(() => setSuccess(""), 4000);
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al actualizar la configuración");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFormatChange = async (newFormat) => {
+    if (newFormat === gradeFormat) return;
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { libreta_grade_format: newFormat }, { headers });
+      setGradeFormat(newFormat);
+      setSuccess("Formato de notas actualizado.");
+      setTimeout(() => setSuccess(""), 3500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al actualizar el formato");
     } finally {
       setSaving(false);
     }
@@ -151,6 +169,66 @@ export default function LibretasSettingsTab({ token }) {
           <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
         </div>
       )}
+
+      {/* Formato de notas — aplica SOLO a la libreta generada (no al
+          Consolidado ni al Registro Auxiliar). */}
+      <section className="pt-2" data-testid="libreta-format-section">
+        <div className="mb-2 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Formato de notas en la libreta</h3>
+            <p className="text-xs text-slate-500">Decide cómo se muestran las notas en la libreta generada. Escala MINEDU: AD (18–20), A (14–17), B (11–13), C (0–10).</p>
+          </div>
+          {source !== "generated" && (
+            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+              Aplica solo en modo "Generar desde Consolidado"
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => handleFormatChange("numeric")}
+            disabled={saving}
+            className={`text-left rounded-xl border-2 p-4 transition-all disabled:opacity-50 ${gradeFormat === "numeric" ? "border-violet-600 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+            data-testid="libreta-format-numeric"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <Hash className={`w-5 h-5 ${gradeFormat === "numeric" ? "text-violet-700" : "text-slate-400"}`} />
+              {gradeFormat === "numeric" && <span className="text-[10px] uppercase tracking-wider font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">Activo</span>}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">Numérico</h4>
+            <p className="text-xs text-slate-600 mt-1">Solo números (18, 16, 11, …).</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleFormatChange("letters")}
+            disabled={saving}
+            className={`text-left rounded-xl border-2 p-4 transition-all disabled:opacity-50 ${gradeFormat === "letters" ? "border-violet-600 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+            data-testid="libreta-format-letters"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <Type className={`w-5 h-5 ${gradeFormat === "letters" ? "text-violet-700" : "text-slate-400"}`} />
+              {gradeFormat === "letters" && <span className="text-[10px] uppercase tracking-wider font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">Activo</span>}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">Letras</h4>
+            <p className="text-xs text-slate-600 mt-1">Solo nivel de logro (AD, A, B, C).</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleFormatChange("mixed")}
+            disabled={saving}
+            className={`text-left rounded-xl border-2 p-4 transition-all disabled:opacity-50 ${gradeFormat === "mixed" ? "border-violet-600 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+            data-testid="libreta-format-mixed"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <Layers className={`w-5 h-5 ${gradeFormat === "mixed" ? "text-violet-700" : "text-slate-400"}`} />
+              {gradeFormat === "mixed" && <span className="text-[10px] uppercase tracking-wider font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">Activo</span>}
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">Mixto</h4>
+            <p className="text-xs text-slate-600 mt-1">Número y nivel de logro juntos por bimestre.</p>
+          </button>
+        </div>
+      </section>
 
       <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs text-slate-600 leading-relaxed">
         <p className="font-semibold text-slate-800 mb-1">¿Cómo funciona "Cargar PDF"?</p>
