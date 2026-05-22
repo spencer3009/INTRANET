@@ -26,7 +26,7 @@
     "admin": "admin@elroble.edu / 1234abc8 (subdomain: elroble)",
     "psychologist": "ana.garcia@elroble.edu / Psico123! (subdomain: elroble)",
     "parent": "maria.peres@gmail.com (no known password - linked to student Magno Eduardo Calle Marquez)",
-    "app_url": "https://grades-diagnostics.preview.emergentagent.com"
+    "app_url": "https://pdf-reportcards.preview.emergentagent.com"
   },
   "seed_data_creation": "Test messages and templates created during backend testing - templates cleaned up after tests",
   "retest_needed": false,
