@@ -304,7 +304,22 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         setPeriodName(res.data.period_name || "");
         // Legacy id → static field map (single source of truth from backend).
         // Empty object is fine — every sub then falls back to grades_dynamic.
-        setLegacyFieldMap(res.data.legacy_field_map || {});
+        const rawMap = res.data.legacy_field_map || {};
+        // ─────────────────────────────────────────────────────────────
+        // TODO: Fix temporal. El backend (register_sync.py) mapea
+        // p4/p5/p6 a part_p4/part_p5/part_p6 que no existen en
+        // GRADE_SUB_FIELDS (routes/grades.py) y por eso se filtran y
+        // pierden silenciosamente al guardar. Las columnas que el
+        // colegio etiqueta como KP / TG / P deben persistir en los
+        // campos legacy reales: part_exp / part_tg / part_p.
+        // Cuando se haga refactor del backend, mover este mapeo a
+        // register_sync.COLUMN_FIELD_MAP y eliminar este override.
+        // Bug reportado en producción (edunet.pe) — 2026-02.
+        // ─────────────────────────────────────────────────────────────
+        const PATCH = { p4: "part_exp", P4: "part_exp",
+                        p5: "part_tg",  P5: "part_tg",
+                        p6: "part_p",   P6: "part_p" };
+        setLegacyFieldMap({ ...rawMap, ...PATCH });
       } catch (err) { console.error("Error loading register:", err); }
       finally { setLoading(false); }
     };

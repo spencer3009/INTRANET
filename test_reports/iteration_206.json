@@ -1,0 +1,36 @@
+{
+  "summary": "Validated P0 fix for KP/TG/P (p4/p5/p6) persistence in Registro Auxiliar. Backend pytest suite (4/4) PASS + in-browser E2E (login → GET register → save → GET verify) PASS. The frontend patch in GradeBookTab.jsx ({p4:'part_exp', p5:'part_tg', p6:'part_p'}) ensures KP/TG/P values land in fields present in GRADE_SUB_FIELDS and survive the legacy filter at /api/grades/save. P1/P2/P3 regression: OK. final_grade is computed (15.5 for the test row).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/grades/register/{subject}/{section}/{period}", "issue": "Returns legacy_field_map with broken mapping p4→part_p4, p5→part_p5, p6→part_p6 — those fields are NOT in GRADE_SUB_FIELDS, so a save with that mapping silently drops the values. The frontend now overrides this client-side, but the backend (register_sync.COLUMN_FIELD_MAP) should be aligned (or GRADE_SUB_FIELDS extended) to remove the workaround. Confirmed live: backend still returns p4=part_p4."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_grades_participacion_kp_tg_p_persist.py",
+    "/app/test_reports/pytest/iter_206_kp_tg_p.xml",
+    "/app/backend/tests/test_grades_legacy_editable.py"
+  ],
+  "action_items": [
+    "BACKEND CLEANUP (non-blocking, the P0 is fixed via frontend override): Align register_sync.COLUMN_FIELD_MAP so p4→part_exp, p5→part_tg, p6→part_p — then remove the PATCH constant in GradeBookTab.jsx (lines ~319-322). Alternative: add part_p4/p5/p6 to GRADE_SUB_FIELDS and migrate existing data. The TODO comment in the component already documents this technical debt."
+  ],
+  "critical_code_review_comments": [
+    "The PATCH override at GradeBookTab.jsx:319 is fragile: a future change in either /api/grades/register (legacy_field_map) or /api/grades/save (GRADE_SUB_FIELDS) could silently re-break this. Recommend adding a backend unit test that asserts every value in register_sync.COLUMN_FIELD_MAP is present in routes.grades.GRADE_SUB_FIELDS to catch the drift at CI time.",
+    "GradeBookTab.jsx is 879 lines — exceeds the 700-line guideline. Consider extracting the legacy-format table block (lines 776-875) into a separate <LegacyGradeTable/> component."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_grades_participacion_kp_tg_p_persist.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (read from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Tests use TEST_-prefixed student_ids and cleanup via db.student_grades.delete_many. In-browser E2E used real student 63cd034b... (Acuña Peralta Cesar) in BIMESTRE I — values were reset to null at the end of the script.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The frontend patch in GradeBookTab.jsx covers the P0. Backend still returns p4→part_p4 in legacy_field_map (verified live during testing) — this is the technical debt the TODO in the component refers to. New regression file: /app/backend/tests/test_grades_participacion_kp_tg_p_persist.py covers KP/TG/P persistence + P1/P2/P3 regression + final_grade computation.",
+  "rca_of_the_issue": "Root cause: register_sync.COLUMN_FIELD_MAP maps SYSTEM template ids p4/p5/p6 → part_p4/part_p5/part_p6, but routes/grades.GRADE_SUB_FIELDS only declares part_p1/p2/p3, part_exp, part_tg, part_p as persistable legacy slots. /api/grades/save filters every incoming key against GRADE_SUB_FIELDS, so part_p4/p5/p6 are silently discarded → the KP/TG/P columns appear to never save. Frontend fix (GradeBookTab.jsx, setLegacyFieldMap with PATCH override) remaps p4→part_exp, p5→part_tg, p6→part_p before resolveSubLocation reads it; resolveSubLocation now returns {kind:'static', key:'part_exp'} (etc) and handleSave posts those legitimate fields. Reproduction: previously, in UI type in KP/TG/P → save → F5 → values gone. After fix: values persist; verified by 4 pytest tests + in-browser E2E."
+}
