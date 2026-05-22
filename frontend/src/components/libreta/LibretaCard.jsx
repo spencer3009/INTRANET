@@ -167,11 +167,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const areasList = data.areas || [];
   const orphans = data.subjects_without_area || [];
 
-  // Solo mostramos un aviso de "huérfanas" para el personal interno del
-  // colegio. Las asignaturas sin área NUNCA se renderizan en la tabla
-  // de notas para mantener la libreta limpia para padres y alumnos.
+  // Las asignaturas sin área NUNCA se renderizan en la tabla de notas
+  // para mantener la libreta limpia para padres y alumnos.
   const isStaff = ["owner", "admin", "director"].includes(userRole);
-  const showOrphansWarning = isStaff && orphans.length > 0;
 
   // Subjects para multi-select de "cursos a recuperar"
   // (incluye huérfanas porque el staff debe poder marcarlas como recuperación
@@ -324,23 +322,6 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             {areasList.map(renderArea)}
           </tbody>
         </table>
-      )}
-
-      {/* Aviso solo para staff: hay asignaturas con notas sin área asignada */}
-      {showOrphansWarning && (
-        <div
-          className="mt-2 mb-1 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-amber-900 flex items-start gap-2"
-          style={{ fontSize: 9 }}
-          data-testid="libreta-orphans-warning"
-        >
-          <span style={{ fontSize: 14, lineHeight: 1, marginTop: 1 }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <strong>Visible solo para personal del colegio:</strong>{" "}
-            Este alumno tiene <strong>{orphans.length} asignatura{orphans.length === 1 ? "" : "s"}</strong> sin
-            área curricular asignada. No se muestran en la libreta de los padres.
-            Para incluirlas, vincúlalas a un área desde el módulo "Áreas Curriculares".
-          </div>
-        </div>
       )}
 
       {/* ── 2 columnas: Conducta+Asistencias | Estadística ── */}
