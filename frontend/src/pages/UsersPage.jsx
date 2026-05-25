@@ -2845,6 +2845,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       </button>
                     </>
                   )}
+                  {/* QR con plantilla para staff con QR personal (no teacher / no student) */}
+                  {['personal_mantenimiento','auxiliar','auxiliar_asistencia','auxiliar_alimentacion','auxiliar_movilidad','auxiliar_topico'].includes(selectedRole) && (
+                    <button
+                      onClick={() => setShowTemplateDrawer(true)}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      data-testid={`template-qr-btn-${selectedRole}`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="hidden sm:inline">QR con plantilla</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => handleAddUser(selectedRole)}
                     className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
@@ -5485,7 +5498,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         open={showTemplateDrawer}
         onClose={() => setShowTemplateDrawer(false)}
         token={token}
-        mode={selectedRole === "teacher" ? "teacher" : "student"}
+        mode={selectedRole === "student" ? "student" : selectedRole}
       />
       <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
 

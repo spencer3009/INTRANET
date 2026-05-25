@@ -13,6 +13,29 @@ from services.qr_templates.registry import list_templates, get_template
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["qr-templates"])
 
+# Staff roles (non-students) that can have a personal QR carnet. Used by the
+# generic preview/count/download endpoints so the "QR con plantilla" feature
+# works for any admin staff, not just teachers.
+STAFF_ROLES_WITH_QR = {
+    "teacher",
+    "personal_mantenimiento",
+    "auxiliar",
+    "auxiliar_asistencia",
+    "auxiliar_alimentacion",
+    "auxiliar_movilidad",
+    "auxiliar_topico",
+}
+
+STAFF_ROLE_LABELS = {
+    "teacher": "Docente",
+    "personal_mantenimiento": "Personal de Mantenimiento",
+    "auxiliar": "Auxiliar",
+    "auxiliar_asistencia": "Auxiliar de Asistencia",
+    "auxiliar_alimentacion": "Auxiliar de Alimentación",
+    "auxiliar_movilidad": "Auxiliar de Movilidad",
+    "auxiliar_topico": "Auxiliar de Tópico",
+}
+
 
 @router.get("/qr-templates/list")
 async def get_available_templates(current_user=Depends(get_current_user)):
@@ -151,6 +174,64 @@ async def count_teachers_with_qr(current_user=Depends(get_current_user)):
         "qr_token": {"$exists": True, "$ne": None},
     })
     return {"count": count}
+
+
+@router.get("/qr-templates/count-staff")
+async def count_staff_with_qr(
+    role: str = Query(...),
+    current_user=Depends(get_current_user),
+):
+    """Count any staff role (auxiliar_*, personal_mantenimiento, teacher) with QR."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    if role not in STAFF_ROLES_WITH_QR:
+        raise HTTPException(status_code=400, detail=f"Rol no soportado: {role}")
+    school_id = user.get("school_id")
+    count = await db.users.count_documents({
+        "school_id": school_id, "role": role,
+        "qr_token": {"$exists": True, "$ne": None},
+    })
+    return {"count": count}
+
+
+@router.get("/qr-templates/preview-staff")
+async def preview_staff_template(
+    role: str = Query(...),
+    current_user=Depends(get_current_user),
+):
+    """Return one staff user data for HTML preview in the drawer."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    if role not in STAFF_ROLES_WITH_QR:
+        raise HTTPException(status_code=400, detail=f"Rol no soportado: {role}")
+    school_id = user.get("school_id")
+
+    target = await db.users.find_one(
+        {"school_id": school_id, "role": role, "qr_token": {"$exists": True, "$ne": None}},
+        {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1},
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail=f"No hay {STAFF_ROLE_LABELS.get(role, role)} con QR")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "logo_url": 1})
+    school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
+    tenant = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1, "logo_url": 1})
+    display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+
+    return {
+        "student_name": f"{target.get('name', '')} {target.get('last_name', '')}".strip(),
+        "student_photo": target.get("photo_url"),
+        "student_initial": (target.get("name", "?")[:1]).upper(),
+        "qr_token": target.get("qr_token"),
+        "codigo_alumno": None,
+        "school_name": display_name,
+        "school_logo": (tenant or {}).get("logo_carnet_url") or (tenant or {}).get("logo_url") or (school or {}).get("logo_url"),
+        "nivel": STAFF_ROLE_LABELS.get(role, role),
+        "grado": "",
+        "seccion": "",
+    }
 
 
 

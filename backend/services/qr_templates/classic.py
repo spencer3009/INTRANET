@@ -45,10 +45,14 @@ class ClassicTemplate(BaseQRTemplate):
             return getattr(data, key, default)
 
         target_role = _get("role", "student")
-        if target_role == "teacher":
+        # Any non-student role is treated as "staff" → no academic filters,
+        # just the role itself. Supports teacher / personal_mantenimiento /
+        # auxiliar_* roles uniformly.
+        is_staff = target_role != "student"
+        if is_staff:
             student_filter = {
                 "school_id": school_id,
-                "role": "teacher",
+                "role": target_role,
                 "qr_token": {"$exists": True, "$ne": None},
             }
         else:
@@ -308,8 +312,19 @@ class ClassicTemplate(BaseQRTemplate):
             # Level - Grade - Section
             c.setFillColor(gray)
             c.setFont("Helvetica", 5.5 * sf)
-            if target_role == "teacher":
-                info_line = "Docente"
+            if is_staff:
+                # Map role → human label. Fallback to "Personal" so we never
+                # show "Docente" for an auxiliar.
+                _STAFF_LABELS = {
+                    "teacher": "Docente",
+                    "personal_mantenimiento": "Personal de Mantenimiento",
+                    "auxiliar": "Auxiliar",
+                    "auxiliar_asistencia": "Auxiliar de Asistencia",
+                    "auxiliar_alimentacion": "Auxiliar de Alimentación",
+                    "auxiliar_movilidad": "Auxiliar de Movilidad",
+                    "auxiliar_topico": "Auxiliar de Tópico",
+                }
+                info_line = _STAFF_LABELS.get(target_role, "Personal")
             else:
                 info_line = f"{nivel_name} - {curso_label}"
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)

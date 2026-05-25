@@ -31,9 +31,10 @@ class ModernaTemplate(BaseQRTemplate):
             return data.get(key, default) if isinstance(data, dict) else getattr(data, key, default)
 
         target_role = _get("role", "student")
-        if target_role == "teacher":
+        is_staff = target_role != "student"
+        if is_staff:
             student_filter = {
-                "school_id": school_id, "role": "teacher",
+                "school_id": school_id, "role": target_role,
                 "qr_token": {"$exists": True, "$ne": None},
             }
         else:
@@ -291,8 +292,17 @@ class ModernaTemplate(BaseQRTemplate):
 
             # Badge
             badge_y = name_y - 5 * mm
-            if target_role == "teacher":
-                badge_text = "Docente"
+            if is_staff:
+                _STAFF_LABELS = {
+                    "teacher": "Docente",
+                    "personal_mantenimiento": "Personal de Mantenimiento",
+                    "auxiliar": "Auxiliar",
+                    "auxiliar_asistencia": "Auxiliar de Asistencia",
+                    "auxiliar_alimentacion": "Auxiliar de Alimentación",
+                    "auxiliar_movilidad": "Auxiliar de Movilidad",
+                    "auxiliar_topico": "Auxiliar de Tópico",
+                }
+                badge_text = _STAFF_LABELS.get(target_role, "Personal")
             else:
                 badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
             c.setFont("Helvetica-Bold", 5)

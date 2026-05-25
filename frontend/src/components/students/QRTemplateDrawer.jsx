@@ -138,7 +138,33 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
   const [uploadingWatermark, setUploadingWatermark] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
-  const isTeacher = mode === "teacher";
+  // `mode` can now be "student", "teacher", or any staff role
+  // (personal_mantenimiento, auxiliar_*). Any non-student mode is treated as
+  // generic "staff" — no academic filters, list filtered by role.
+  const isStudent = mode === "student";
+  const isStaff = !isStudent;
+  const isTeacher = mode === "teacher"; // kept for backwards compat in drawer copy
+  // Role used by the staff endpoints (preview-staff/count-staff). For backwards
+  // compatibility we still let the teacher endpoints handle teacher previews.
+  const staffRole = isStaff ? mode : null;
+  const STAFF_TITLES = {
+    teacher: "Exportar Carnets QR Profesores",
+    personal_mantenimiento: "Exportar Carnets QR Mantenimiento",
+    auxiliar: "Exportar Carnets QR Auxiliares",
+    auxiliar_asistencia: "Exportar Carnets QR Aux. Asistencia",
+    auxiliar_alimentacion: "Exportar Carnets QR Aux. Alimentación",
+    auxiliar_movilidad: "Exportar Carnets QR Aux. Movilidad",
+    auxiliar_topico: "Exportar Carnets QR Aux. Tópico",
+  };
+  const STAFF_NOUNS = {
+    teacher: { sing: "profesor", plur: "profesores" },
+    personal_mantenimiento: { sing: "trabajador de mantenimiento", plur: "trabajadores de mantenimiento" },
+    auxiliar: { sing: "auxiliar", plur: "auxiliares" },
+    auxiliar_asistencia: { sing: "auxiliar de asistencia", plur: "auxiliares de asistencia" },
+    auxiliar_alimentacion: { sing: "auxiliar de alimentación", plur: "auxiliares de alimentación" },
+    auxiliar_movilidad: { sing: "auxiliar de movilidad", plur: "auxiliares de movilidad" },
+    auxiliar_topico: { sing: "auxiliar de tópico", plur: "auxiliares de tópico" },
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -148,7 +174,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
       axios.get(`${API}/api/qr-templates/saved-colors`, { headers }).catch(() => ({ data: {} })),
       axios.get(`${API}/api/qr-templates/watermark`, { headers }).catch(() => ({ data: {} })),
     ];
-    if (!isTeacher) {
+    if (isStudent) {
       commonLoads.unshift(
         axios.get(`${API}/api/academic/levels`, { headers }),
         axios.get(`${API}/api/academic/grades`, { headers }),
@@ -158,15 +184,15 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
     }
     Promise.all(commonLoads).then((results) => {
       let tpl, logo, colorsRes, wmRes;
-      if (isTeacher) {
-        [tpl, logo, colorsRes, wmRes] = results;
-      } else {
+      if (isStudent) {
         const [l, g, s, sh, ...rest] = results;
         [tpl, logo, colorsRes, wmRes] = rest;
         setLevels((l.data || []).filter(x => x.activo));
         setGrades((g.data || []).filter(x => x.activo));
         setSections((s.data || []).filter(x => x.activo));
         setShifts(sh.data || []);
+      } else {
+        [tpl, logo, colorsRes, wmRes] = results;
       }
       setTemplates(tpl.data.templates || []);
       if (tpl.data.templates?.length) setSelected(tpl.data.templates[0].id);
@@ -176,11 +202,21 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
       if (sc.moderna) { setColorPrincipal(sc.moderna.color_principal || "#1e3a5f"); setColorAcento(sc.moderna.color_acento || "#F5B800"); }
       setWatermarkUrl(wmRes.data?.watermark_url || null);
     }).catch(() => {});
-    if (isTeacher) {
+    if (isStaff) {
       setLoadingPreview(true);
+      // Teacher uses the legacy preview-teacher/count-teachers endpoints for
+      // backwards compatibility. Any other staff role uses the new generic
+      // preview-staff/count-staff endpoints with `?role=`.
+      const previewUrl = isTeacher
+        ? `${API}/api/qr-templates/preview-teacher`
+        : `${API}/api/qr-templates/preview-staff`;
+      const countUrl = isTeacher
+        ? `${API}/api/qr-templates/count-teachers`
+        : `${API}/api/qr-templates/count-staff`;
+      const params = isTeacher ? {} : { role: staffRole };
       Promise.all([
-        axios.get(`${API}/api/qr-templates/preview-teacher`, { headers }),
-        axios.get(`${API}/api/qr-templates/count-teachers`, { headers }),
+        axios.get(previewUrl, { headers, params }),
+        axios.get(countUrl, { headers, params }),
       ]).then(([prev, cnt]) => { setPreviewData(prev.data); setStudentCount(cnt.data?.count || 0); })
         .catch(() => {}).finally(() => setLoadingPreview(false));
     }
@@ -193,7 +229,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
   useEffect(() => { setSelSection(""); }, [selGrade]);
 
   useEffect(() => {
-    if (isTeacher) return; // Teacher mode loads preview separately
+    if (isStaff) return; // staff modes load preview separately
     if (!selLevel || !selGrade || !selSection) { setStudentCount(0); setPreviewData(null); return; }
     setLoadingPreview(true);
     const params = { nivel_id: selLevel, grado_id: selGrade, seccion_id: selSection };
@@ -288,11 +324,11 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
     try {
       const res = await axios.post(`${API}/api/qr-templates/download`, {
         formato, template: selected,
-        role: isTeacher ? "teacher" : "student",
-        nivel_id: isTeacher ? null : selLevel,
-        grado_id: isTeacher ? null : selGrade,
-        seccion_id: isTeacher ? null : selSection,
-        turno_id: isTeacher ? null : (selShift || null),
+        role: isStaff ? mode : "student",
+        nivel_id: isStaff ? null : selLevel,
+        grado_id: isStaff ? null : selGrade,
+        seccion_id: isStaff ? null : selSection,
+        turno_id: isStaff ? null : (selShift || null),
         incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
         color_principal: selectedTpl?.supports_custom_colors ? colorPrincipal : null,
         color_acento: selectedTpl?.supports_custom_colors ? colorAcento : null,
@@ -306,7 +342,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
 
   if (!open) return null;
 
-  const filtersComplete = isTeacher || (selLevel && selGrade && selSection);
+  const filtersComplete = isStaff || (selLevel && selGrade && selSection);
   const selectedTpl = templates.find(t => t.id === selected);
   const downloadLabel = formato === "zip" ? "Descargar ZIP" : formato === "pdf_lista" ? "Descargar PDF (lista)" : "Descargar PDF";
   const showTemplate = formato !== "zip";
@@ -321,7 +357,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center"><Palette className="w-4 h-4 text-teal-600" /></div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">{isTeacher ? "Exportar Carnets QR Profesores" : "Exportar Carnets QR"}</h2>
+              <h2 className="text-base font-bold text-slate-800">{isStaff ? (STAFF_TITLES[mode] || "Exportar Carnets QR") : "Exportar Carnets QR"}</h2>
               <p className="text-[11px] text-slate-500">Configura filtros, formato y descarga</p>
             </div>
           </div>
@@ -331,7 +367,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* 1. Filters (student mode only) */}
-          {!isTeacher ? (
+          {isStudent ? (
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">Filtros</p>
             <div className="grid grid-cols-2 gap-2">
@@ -369,7 +405,7 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
           </div>
           ) : (
           <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-            <p className="text-sm font-medium text-slate-800">{studentCount} profesor{studentCount !== 1 ? "es" : ""} con QR</p>
+            <p className="text-sm font-medium text-slate-800">{studentCount} {studentCount === 1 ? (STAFF_NOUNS[mode]?.sing || "usuario") : (STAFF_NOUNS[mode]?.plur || "usuarios")} con QR</p>
           </div>
           )}
 
