@@ -88,6 +88,19 @@ async def upload_message_attachment(
     school_id = user["school_id"]
     school = await _resolve_school(school_id)
 
+    # Validate payload BEFORE the Drive gate so size/type errors surface as
+    # 400 even when Drive isn't connected yet (helps onboarding clients).
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    if len(content) > MAX_ATTACHMENT_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail="El archivo supera el límite de 25 MB")
+
+    mime_type = file.content_type or "application/octet-stream"
+    if not any(mime_type.startswith(p) for p in ALLOWED_MIME_PREFIXES):
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {mime_type}")
+
+    # Drive connectivity gate
     if not school.get("google_drive_connected"):
         raise HTTPException(
             status_code=409,
@@ -99,16 +112,6 @@ async def upload_message_attachment(
             status_code=409,
             detail="Google Drive no tiene una carpeta de materiales configurada. Reconecta Drive desde Ajustes.",
         )
-
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Archivo vacío")
-    if len(content) > MAX_ATTACHMENT_SIZE_BYTES:
-        raise HTTPException(status_code=400, detail="El archivo supera el límite de 25 MB")
-
-    mime_type = file.content_type or "application/octet-stream"
-    if not any(mime_type.startswith(p) for p in ALLOWED_MIME_PREFIXES):
-        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {mime_type}")
 
     # Upload to Drive
     try:
