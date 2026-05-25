@@ -183,14 +183,10 @@ export default function LibretaPage({ user, token, onLogout }) {
           periodId={selectedPeriodId || data?.period_active?.id}
           token={token}
         />
-        {isSnapshot && (
-          <div className="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 flex items-start gap-2" data-testid="libreta-snapshot-banner">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>
-              <strong>Libreta cerrada.</strong> Esta es una versión cerrada del {(data?.period_requested?.nombre || data?.period_active?.nombre || "bimestre")}{data?.metadata?.closed_at ? `, registrada el ${formatFechaLarga(data.metadata.closed_at)}` : ""}. La información no puede modificarse.
-            </span>
-          </div>
-        )}
+        {/* Banner "Libreta cerrada" eliminado a pedido de usuarios (Feb 2026):
+            la información de cierre ya se ve en el selector de bimestre y en
+            otras vistas; mostrarla aquí ensuciaba la libreta y aparecía en el
+            PDF exportado. */}
 
         <LibretaCard data={data} token={token} canEdit={canEdit} userRole={user?.role} onReload={() => fetchLibreta(selectedPeriodId)} />
       </div>
