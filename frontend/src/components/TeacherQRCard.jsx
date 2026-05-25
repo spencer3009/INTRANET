@@ -6,13 +6,28 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
   const qrRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
 
+  // Etiqueta de rol mostrada en la tarjeta. La tarjeta se usa para profesores
+  // y para todos los staff con QR (mantenimiento + auxiliares). Si no hay
+  // mapeo conocido, fallback a "Personal" para evitar el bug histórico de
+  // mostrar "Docente" a un auxiliar.
+  const ROLE_LABEL_MAP = {
+    teacher: "Docente",
+    personal_mantenimiento: "Personal de Mantenimiento",
+    auxiliar: "Auxiliar",
+    auxiliar_asistencia: "Auxiliar de Asistencia",
+    auxiliar_alimentacion: "Auxiliar de Alimentación",
+    auxiliar_movilidad: "Auxiliar de Movilidad",
+    auxiliar_topico: "Auxiliar de Tópico",
+  };
+  const roleLabel = ROLE_LABEL_MAP[teacher?.role] || "Personal";
+
   if (!teacher?.qr_token) {
     return (
       <div className="p-8 text-center" data-testid="teacher-qr-no-token">
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <QrCode className="w-8 h-8 text-slate-400" />
         </div>
-        <p className="text-slate-600">Este profesor no tiene código QR generado.</p>
+        <p className="text-slate-600">Este usuario no tiene código QR generado.</p>
       </div>
     );
   }
@@ -107,7 +122,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
 
       ctx.fillStyle = "#64748b";
       ctx.font = "15px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillText("Docente", W / 2, y);
+      ctx.fillText(roleLabel, W / 2, y);
       y += 24;
 
       const svgData = new XMLSerializer().serializeToString(svg);
@@ -123,7 +138,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
         ctx.textAlign = "center";
         ctx.fillText("Personal e intransferible", W / 2, y);
         const link = document.createElement("a");
-        link.download = `Carnet_Prof_${fullName.replace(/\s+/g, "_")}.png`;
+        link.download = `Carnet_${fullName.replace(/\s+/g, "_")}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
         URL.revokeObjectURL(qrUrl);
@@ -168,7 +183,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
           ? `<img src="${teacher.photo_url}" alt="" class="photo" />`
           : `<div class="initial">${(teacher.name || "P").charAt(0)}</div>`}
         <div class="name">${fullName}</div>
-        <div class="role">Docente</div>
+        <div class="role">${roleLabel}</div>
         <div class="qr">${svgData}</div>
         <div class="footer">Personal e intransferible</div>
       </div></body></html>`);
@@ -198,7 +213,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
         <div className="text-center pt-3 pb-1">
           <p className="text-base font-bold text-[#001f4b] px-4">{fullName}</p>
           <p className="text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1">
-            <Briefcase className="w-3.5 h-3.5" /> Docente
+            <Briefcase className="w-3.5 h-3.5" /> {roleLabel}
           </p>
         </div>
         <div ref={qrRef} className="flex justify-center py-3">

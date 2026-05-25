@@ -5439,7 +5439,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <QrCode className="w-5 h-5 text-violet-600" />
-                Código QR del Profesor
+                {qrTeacher?.role === 'teacher' ? 'Código QR del Profesor' : `Código QR — ${({
+                  personal_mantenimiento: 'Personal de Mantenimiento',
+                  auxiliar: 'Auxiliar',
+                  auxiliar_asistencia: 'Auxiliar de Asistencia',
+                  auxiliar_alimentacion: 'Auxiliar de Alimentación',
+                  auxiliar_movilidad: 'Auxiliar de Movilidad',
+                  auxiliar_topico: 'Auxiliar de Tópico',
+                }[qrTeacher?.role] || 'Personal')}`}
               </h3>
               <button
                 onClick={() => {
