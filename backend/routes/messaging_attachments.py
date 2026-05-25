@@ -28,7 +28,7 @@ from .exams import get_drive_service
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["messaging-attachments"])
 
-MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB per file
+MAX_ATTACHMENT_SIZE_BYTES = 200 * 1024 * 1024  # 200 MB per file (videos)
 ALLOWED_MIME_PREFIXES = (
     "application/pdf",
     "application/vnd.openxmlformats-officedocument",  # docx/xlsx/pptx
@@ -36,6 +36,8 @@ ALLOWED_MIME_PREFIXES = (
     "application/vnd.ms-excel",
     "application/vnd.ms-powerpoint",
     "image/",
+    "video/",
+    "audio/",
     "text/",
     "application/zip",
 )
@@ -94,7 +96,7 @@ async def upload_message_attachment(
     if not content:
         raise HTTPException(status_code=400, detail="Archivo vacío")
     if len(content) > MAX_ATTACHMENT_SIZE_BYTES:
-        raise HTTPException(status_code=400, detail="El archivo supera el límite de 25 MB")
+        raise HTTPException(status_code=400, detail="El archivo supera el límite de 200 MB")
 
     mime_type = file.content_type or "application/octet-stream"
     if not any(mime_type.startswith(p) for p in ALLOWED_MIME_PREFIXES):

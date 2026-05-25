@@ -203,8 +203,8 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
     if (!files.length) return;
     setError("");
     for (const file of files) {
-      if (file.size > 25 * 1024 * 1024) {
-        setError(`"${file.name}" supera el límite de 25 MB.`);
+      if (file.size > 200 * 1024 * 1024) {
+        setError(`"${file.name}" supera el límite de 200 MB.`);
         continue;
       }
       setUploadingFile(true);
@@ -564,7 +564,7 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,text/*,.zip"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,video/*,audio/*,text/*,.zip"
             onChange={handleFileSelected}
             className="hidden"
             data-testid="compose-file-input"
