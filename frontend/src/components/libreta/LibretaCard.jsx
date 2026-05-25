@@ -481,7 +481,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <thead>
           <tr>
             <th style={{ width: 40 }}>BIM.</th>
-            <th>COMENTARIOS DE LA TUTORA</th>
+            <th>COMENTARIOS DEL TUTOR (A)</th>
           </tr>
         </thead>
         <tbody>
@@ -583,10 +583,10 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <div className="lr-signatures">
           <div className="lr-signature-box">
             {tutorFullName && <div className="lr-name">{tutorFullName}</div>}
-            <div className="lr-title">TUTORA</div>
+            <div className="lr-title">TUTOR (A)</div>
           </div>
           <div className="lr-signature-box">
-            <div className="lr-title">DIRECTORA</div>
+            <div className="lr-title">DIRECTOR (A)</div>
           </div>
         </div>
       </section>
