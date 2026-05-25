@@ -408,8 +408,19 @@ async def get_libreta(
     is_custom_template = bool(libreta_template and not libreta_template.get("es_sistema"))
 
     # Lookup: notes[subject_id][period_id] = final_grade
+    # Precedencia idéntica al Consolidado (routes/grades.py):
+    #   final_grade_manual (override del profesor desde el portal de notas) >
+    #   final_grade (calculado automáticamente desde el Registro Auxiliar) >
+    #   on-the-fly recompute (solo para plantillas custom).
+    # Sin esta precedencia, las notas que el profesor pone desde el "Manual de
+    # Notas" aparecen en el Consolidado pero NO en la libreta — bug P0
+    # reportado en producción (Señor de Gualamita, 2026-02).
     notes_lookup: Dict[str, Dict[str, Optional[float]]] = {}
     for g in student_grade_docs:
+        manual = g.get("final_grade_manual")
+        if manual is not None:
+            notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = manual
+            continue
         final_val = g.get("final_grade")
         if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
             try:

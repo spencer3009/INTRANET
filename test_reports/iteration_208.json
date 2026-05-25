@@ -1,0 +1,44 @@
+{
+  "summary": "P0 hotfix validated. Created dedicated pytest suite (7 tests, ALL PASSING) that proves GET /api/libreta/{student_id} now mirrors the same `final_grade_manual > final_grade > on-the-fly recompute` precedence used by GET /api/grades/consolidated-report. Bug reported by edunet.pe (Señor de Gualamita): teacher-typed grades from the 'Manual de Notas' portal were persisted in student_grades.final_grade_manual but the libreta read ONLY `final_grade`, so cells displayed '-' while the Consolidado showed the values correctly. Fix in routes/libreta.py (lines 410-432) is correct and ready for deploy.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_libreta_respects_final_grade_manual.py",
+    "/app/test_reports/pytest/pytest_libreta_final_grade_manual.xml"
+  ],
+  "action_items": [
+    "Safe to deploy the 4-line fix in /app/backend/routes/libreta.py to production (edunet.pe / Señor de Gualamita).",
+    "Optional: after deploy, run the new suite again in prod-like environment as a smoke test."
+  ],
+  "critical_code_review_comments": [
+    "Precedence implementation in routes/libreta.py is now byte-identical in spirit to routes/grades.py — same order, same on-the-fly recompute guard against custom templates with grades_dynamic. Good consolidation.",
+    "Display rounding differs intentionally between endpoints: consolidado rounds to int (line 1011, routes/grades.py) while libreta returns the raw float. This is by design (libreta needs decimals for promedios). Tests assert parity at the displayed-integer level.",
+    "Suggestion (non-blocking): extract the 4-line precedence block into a shared helper (e.g. services/grades_resolver.py: resolve_final_grade(row, template)) so future endpoints don't drift again. Same bug class is recurring."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_libreta_respects_final_grade_manual.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "N/A (backend-only request)"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (owner El Roble) — used to call /api/libreta and /api/grades/consolidated-report.",
+  "seed_data_creation": "Test seeds 3 controlled rows in `student_grades` via direct Mongo writes (motor) with marker `_test_mark=TEST_LIBRETA_FGM_HOTFIX`. The fixture restores the original docs (or deletes the inserts) in teardown. Verified post-run that 0 leftover rows remain.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Suite is `test_libreta_respects_final_grade_manual.py`. It picks any El Roble (subdomain=elroble) section with ≥3 active subjects + an enrolled student whose active-period libreta has no snapshot. Seeds 3 scenarios on student_grades, hits both endpoints, asserts the values and parity, then restores. Safe to re-run anytime — idempotent.",
+  "test_cases_covered": [
+    "1) final_grade_manual=18.5, final_grade=None  → libreta returns 18.5 / 'AD'  (PASS)",
+    "2) final_grade_manual=16,   final_grade=12    → libreta returns 16   / 'A'   (manual wins) (PASS)",
+    "3) final_grade_manual=None, final_grade=15    → libreta returns 15   / 'A'   (no regression) (PASS)",
+    "4) Custom-template / grades_dynamic on-the-fly recompute path still returns well-formed JSON (PASS)",
+    "5) Promedio_area + promedio_final reflect the new manual values (PASS)",
+    "6) PARITY with /api/grades/consolidated-report at the displayed-integer level (PASS)",
+    "7) Health endpoint reachable (PASS)"
+  ],
+  "rca of the issue": "GET /api/libreta/{student_id} (routes/libreta.py) was reading only `final_grade` from the `student_grades` collection. Meanwhile teachers using the 'Manual de Notas' portal (routes/teacher_portal.py) persist their override in `final_grade_manual` and leave `final_grade=None`. The Consolidado (routes/grades.py line 952-969) had already implemented the correct precedence (final_grade_manual > final_grade > on-the-fly recompute) — the libreta had not. Result: same student/bimestre, consolidated showed grades, libreta showed '-'. Fix applied: replicate the same precedence block in routes/libreta.py lines 410-432. Validated with 7 pytest cases including parity assertion against the consolidated endpoint."
+}
