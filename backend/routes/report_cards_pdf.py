@@ -109,6 +109,8 @@ async def _parent_is_linked_to_student(user: dict, student_id: str, school_id: s
 class ReportCardSettingsUpdate(BaseModel):
     report_card_source: Optional[str] = None  # "generated" | "pdf_upload"
     libreta_grade_format: Optional[str] = None  # "numeric" | "letters" | "mixed"
+    hide_conducta_in_libreta: Optional[bool] = None
+    hide_tutor_comments_in_libreta: Optional[bool] = None
 
 
 @router.get("/api/report-cards/settings")
@@ -124,6 +126,8 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "school_id": school_id,
         "report_card_source": school.get("report_card_source") or "generated",
         "libreta_grade_format": school.get("libreta_grade_format") or "numeric",
+        "hide_conducta_in_libreta": bool(school.get("hide_conducta_in_libreta")),
+        "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -148,6 +152,10 @@ async def update_report_card_settings(
         if fmt not in ("numeric", "letters", "mixed"):
             raise HTTPException(status_code=400, detail="libreta_grade_format debe ser 'numeric', 'letters' o 'mixed'")
         update_fields["libreta_grade_format"] = fmt
+    if body.hide_conducta_in_libreta is not None:
+        update_fields["hide_conducta_in_libreta"] = bool(body.hide_conducta_in_libreta)
+    if body.hide_tutor_comments_in_libreta is not None:
+        update_fields["hide_tutor_comments_in_libreta"] = bool(body.hide_tutor_comments_in_libreta)
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -156,6 +164,8 @@ async def update_report_card_settings(
         "ok": True,
         "report_card_source": school.get("report_card_source") or "generated",
         "libreta_grade_format": school.get("libreta_grade_format") or "numeric",
+        "hide_conducta_in_libreta": bool(school.get("hide_conducta_in_libreta")),
+        "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
     }
 
 

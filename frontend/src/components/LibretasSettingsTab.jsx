@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
 
@@ -16,6 +16,8 @@ export default function LibretasSettingsTab({ token }) {
   const [saving, setSaving] = useState(false);
   const [source, setSource] = useState("generated");
   const [gradeFormat, setGradeFormat] = useState("numeric");
+  const [hideConducta, setHideConducta] = useState(false);
+  const [hideTutorComments, setHideTutorComments] = useState(false);
   const [driveConnected, setDriveConnected] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -28,6 +30,8 @@ export default function LibretasSettingsTab({ token }) {
         const r = await axios.get(`${API}/report-cards/settings`, { headers });
         setSource(r.data?.report_card_source || "generated");
         setGradeFormat(r.data?.libreta_grade_format || "numeric");
+        setHideConducta(Boolean(r.data?.hide_conducta_in_libreta));
+        setHideTutorComments(Boolean(r.data?.hide_tutor_comments_in_libreta));
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -67,6 +71,22 @@ export default function LibretasSettingsTab({ token }) {
       setTimeout(() => setSuccess(""), 3500);
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al actualizar el formato");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Generic toggle saver — used for hide_conducta / hide_tutor_comments.
+  const handleVisibilityToggle = async (field, newValue, setter, label) => {
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { [field]: newValue }, { headers });
+      setter(newValue);
+      setSuccess(`${label} ${newValue ? "ocultado" : "visible"} en la libreta.`);
+      setTimeout(() => setSuccess(""), 3500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al actualizar la visibilidad");
     } finally {
       setSaving(false);
     }
@@ -229,6 +249,47 @@ export default function LibretasSettingsTab({ token }) {
             <p className="text-xs text-slate-600 mt-1">Número y nivel de logro juntos por bimestre.</p>
           </button>
         </div>
+      </section>
+
+      {/* ── Visibilidad de secciones en la libreta ────────────────────── */}
+      <section className="space-y-3 pt-4 border-t border-slate-200" data-testid="libreta-visibility-section">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <EyeOff className="w-4 h-4 text-violet-600" />
+            Secciones visibles en la libreta
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">Si tu colegio no usa alguna de estas secciones, ocúltala. Los datos quedan guardados — al volver a activar el toggle reaparecen.</p>
+        </div>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={hideConducta}
+            disabled={saving}
+            onChange={(e) => handleVisibilityToggle("hide_conducta_in_libreta", e.target.checked, setHideConducta, "Nota de conducta")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="libreta-hide-conducta-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Ocultar nota de conducta</div>
+            <p className="text-xs text-slate-500 mt-0.5">No se mostrará la fila <b>CONDUCTA</b> (ni la tabla extendida si la tienes activa). Útil para colegios que no califican conducta en la libreta.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={hideTutorComments}
+            disabled={saving}
+            onChange={(e) => handleVisibilityToggle("hide_tutor_comments_in_libreta", e.target.checked, setHideTutorComments, "Comentarios del tutor")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="libreta-hide-comments-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Ocultar comentarios del tutor</div>
+            <p className="text-xs text-slate-500 mt-0.5">No se mostrará la tabla <b>COMENTARIOS DEL TUTOR (A)</b> al final de la libreta. El tutor seguirá pudiendo escribirlos desde su portal — solo no se imprimen.</p>
+          </div>
+        </label>
       </section>
 
       <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs text-slate-600 leading-relaxed">

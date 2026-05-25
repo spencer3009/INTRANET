@@ -55,6 +55,12 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const extTemplate = data?.conducta_extendida?.template || { secciones: [] };
   const extByPeriod = data?.conducta_extendida?.by_period || {};
 
+  // Per-school visibility toggles set in Ajustes → Libretas. Both default to
+  // showing the section; the admin can hide each independently. Storage stays
+  // intact regardless — toggling them on/off only affects rendering.
+  const hideConducta = Boolean(data?.metadata?.hide_conducta_in_libreta);
+  const hideTutorComments = Boolean(data?.metadata?.hide_tutor_comments_in_libreta);
+
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
   // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
@@ -346,7 +352,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       <div className="lr-info-tables">
         <div>
           {/* Conducta */}
-          {!isExtendedMode && (
+          {!hideConducta && !isExtendedMode && (
           <table className="lr-info" data-testid="libreta-conducta-table">
             <thead>
               <tr>
@@ -432,7 +438,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           )}
 
           {/* Conducta Extendida (cuando el colegio activa el modo extendido) */}
-          {isExtendedMode && (extTemplate.secciones || []).map((sec) => (
+          {!hideConducta && isExtendedMode && (extTemplate.secciones || []).map((sec) => (
             <table
               key={sec.id}
               className="lr-info lr-conducta-ext"
@@ -568,6 +574,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       </div>
 
       {/* ── Comentarios de la tutora ── */}
+      {!hideTutorComments && (
       <table className="lr-comentarios" data-testid="libreta-comments-table">
         <thead>
           <tr>
@@ -597,6 +604,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           })}
         </tbody>
       </table>
+      )}
 
       {/* ── Situación final ── */}
       <table className="lr-situacion" data-testid="libreta-final-status-table">
