@@ -4104,7 +4104,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
               </button>
             )}
-            {(selectedRole === 'teacher' || selectedRole === 'personal_mantenimiento') && u.qr_token && (
+            {(selectedRole === 'teacher' || selectedRole === 'personal_mantenimiento' || selectedRole === 'auxiliar' || selectedRole === 'auxiliar_asistencia' || selectedRole === 'auxiliar_alimentacion' || selectedRole === 'auxiliar_movilidad' || selectedRole === 'auxiliar_topico') && u.qr_token && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

@@ -182,13 +182,34 @@ MAINTENANCE_ROLE_LABELS = {
     "otro": "Otro",
 }
 
+# Labels for auxiliary staff roles (when they show up in the Personal
+# Administrativo attendance flow).
+ROLE_LABELS = {
+    "personal_mantenimiento": "Personal de Mantenimiento",
+    "auxiliar": "Auxiliar",
+    "auxiliar_asistencia": "Auxiliar de Asistencia",
+    "auxiliar_alimentacion": "Auxiliar de Alimentación",
+    "auxiliar_movilidad": "Auxiliar de Movilidad",
+    "auxiliar_topico": "Auxiliar de Tópico",
+}
+
 def _maintenance_role_display(user_doc: dict) -> str:
-    """Return the human-readable role for a maintenance user."""
-    role = (user_doc or {}).get("maintenance_role")
-    if role == "otro":
-        custom = (user_doc.get("maintenance_role_custom") or "").strip()
-        return custom or "Otro"
-    return MAINTENANCE_ROLE_LABELS.get(role, "")
+    """Return the human-readable role for an admin-staff user.
+
+    - For `personal_mantenimiento` we use the sub-role stored in
+      `maintenance_role` (limpieza/vigilancia/…).
+    - For auxiliary staff (`auxiliar_*`) we use the canonical role label.
+    """
+    if not user_doc:
+        return ""
+    role = user_doc.get("role")
+    if role == "personal_mantenimiento":
+        sub = user_doc.get("maintenance_role")
+        if sub == "otro":
+            custom = (user_doc.get("maintenance_role_custom") or "").strip()
+            return custom or "Otro"
+        return MAINTENANCE_ROLE_LABELS.get(sub, "")
+    return ROLE_LABELS.get(role, "")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STUDENT ATTENDANCE
@@ -798,9 +819,21 @@ async def get_maintenance_for_attendance(
 
     school_id = user["school_id"]
 
-    # Get all maintenance personnel
+    # Roles included in the "Personal Administrativo" attendance flow.
+    # Mantenance personnel + all auxiliary staff. Each gets the same QR-based
+    # check-in (Escanear QR) and manual marking (Marcar Manual) experience.
+    ADMIN_STAFF_ROLES = [
+        "personal_mantenimiento",
+        "auxiliar",
+        "auxiliar_asistencia",
+        "auxiliar_alimentacion",
+        "auxiliar_movilidad",
+        "auxiliar_topico",
+    ]
+
+    # Get all maintenance personnel + auxiliares
     users_cursor = db.users.find(
-        {"school_id": school_id, "role": "personal_mantenimiento"},
+        {"school_id": school_id, "role": {"$in": ADMIN_STAFF_ROLES}},
         {"_id": 0, "password": 0, "verification_code": 0},
     )
     maintenance_users = await users_cursor.to_list(length=500)
@@ -2163,7 +2196,14 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
     
     school_id = user["school_id"]
     updated_count = 0
-    
+
+    # Roles for which we auto-issue QR codes (used for attendance scan-in).
+    QR_ELIGIBLE_ROLES = [
+        "student", "teacher", "personal_mantenimiento",
+        "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion",
+        "auxiliar_movilidad", "auxiliar_topico",
+    ]
+
     # Students without qr_id
     students = await db.users.find({
         "school_id": school_id, "role": "student",
@@ -2185,12 +2225,24 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
         qr_id, qr_url = await generate_user_qr(db)
         await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
         updated_count += 1
-    
+
+    # Admin staff (personal_mantenimiento + auxiliar_*) without qr_id
+    aux_roles = [r for r in QR_ELIGIBLE_ROLES if r not in ("student", "teacher")]
+    admin_staff = await db.users.find({
+        "school_id": school_id, "role": {"$in": aux_roles},
+        "$or": [{"qr_id": {"$exists": False}}, {"qr_id": None}],
+    }).to_list(None)
+    for u in admin_staff:
+        qr_id, qr_url = await generate_user_qr(db)
+        await db.users.update_one({"id": u["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
+        updated_count += 1
+
     return {
-        "message": f"QR generados para {updated_count} usuarios ({len(students)} estudiantes, {len(teachers)} profesores)",
+        "message": f"QR generados para {updated_count} usuarios ({len(students)} estudiantes, {len(teachers)} profesores, {len(admin_staff)} personal administrativo)",
         "updated_count": updated_count,
         "students_updated": len(students),
-        "teachers_updated": len(teachers)
+        "teachers_updated": len(teachers),
+        "admin_staff_updated": len(admin_staff),
     }
 
 
