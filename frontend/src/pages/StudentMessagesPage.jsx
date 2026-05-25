@@ -12,6 +12,7 @@ import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MobileBottomNav from "../components/MobileBottomNav";
 import MessagePagination from "../components/MessagePagination";
+import BroadcastAttachmentsList from "../components/BroadcastAttachmentsList";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
@@ -993,27 +994,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                     dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
                   />
                   
-                  {selectedMessage.attachments?.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                        Archivos adjuntos ({selectedMessage.attachments.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedMessage.attachments.map((att, idx) => (
-                          <a
-                            key={idx}
-                            href={att.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                          >
-                            <Paperclip className="w-5 h-5 text-gray-400" />
-                            <span className="text-sm text-gray-700">{att.name || "Archivo"}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <BroadcastAttachmentsList message={selectedMessage} token={token} />
                 </div>
               </>
             ) : (

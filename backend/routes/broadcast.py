@@ -34,10 +34,20 @@ router = APIRouter(prefix="/api")
 # BROADCAST (COMUNICADO MASIVO) MODULE
 # ══════════════════════════════════════════════════════════════════════════════
 
+class BroadcastAttachmentRef(BaseModel):
+    file_id: str
+    name: str
+    mime_type: str
+    size: int
+    drive_file_id: str
+    storage_type: str = "google_drive"
+
+
 class BroadcastCreate(BaseModel):
     subject: str
     body: str
     target_roles: List[str]  # ["teacher", "student", "parent", "admin"]
+    attachments: List[BroadcastAttachmentRef] = []
 
 async def check_broadcast_permission(user: dict) -> bool:
     """Check if user can send broadcast messages"""
@@ -134,6 +144,8 @@ async def send_broadcast(data: BroadcastCreate, background_tasks: BackgroundTask
         "message_type": "broadcast",
         "priority": "high",
         "status": "active",
+        "attachments": [a.dict() for a in (data.attachments or [])],
+        "has_attachments": bool(data.attachments),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     

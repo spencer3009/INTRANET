@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -12,6 +12,7 @@ import Sidebar from "../components/Sidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
 import DashboardHeader from "../components/DashboardHeader";
 import MessagePagination from "../components/MessagePagination";
+import BroadcastAttachmentsList from "../components/BroadcastAttachmentsList";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Loader2, Circle,
@@ -106,6 +107,12 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
   const [recipientCounts, setRecipientCounts] = useState({ teacher: 0, student: 0, parent: 0, admin: 0 });
   const [loadingCounts, setLoadingCounts] = useState(false);
 
+  // Attachments (Drive-backed). Only available in broadcast mode.
+  const [driveConnected, setDriveConnected] = useState(null); // null=unknown, true/false=loaded
+  const [attachments, setAttachments] = useState([]); // [{file_id, name, mime_type, size, drive_file_id}]
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
+
   const headers = { Authorization: `Bearer ${token}` };
 
   const BROADCAST_ROLE_LABELS = {
@@ -144,6 +151,20 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
     checkPermission();
   }, [isOpen, token]);
 
+  // Load drive connection status when broadcast mode enabled.
+  useEffect(() => {
+    if (!isBroadcast || !token) return;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/api/messaging/drive-status`, { headers });
+        setDriveConnected(Boolean(res.data?.connected && res.data?.materials_folder_configured));
+      } catch {
+        setDriveConnected(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBroadcast, token]);
+
   // Load recipient counts when broadcast mode enabled
   useEffect(() => {
     if (!isBroadcast || !token) return;
@@ -159,7 +180,53 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
       }
     };
     loadCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, token]);
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleAttachClick = () => {
+    if (driveConnected === false) {
+      setError("Google Drive no está conectado. Ve a Ajustes → Google Drive para conectarlo antes de adjuntar archivos.");
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // allow re-selecting same file later
+    if (!files.length) return;
+    setError("");
+    for (const file of files) {
+      if (file.size > 25 * 1024 * 1024) {
+        setError(`"${file.name}" supera el límite de 25 MB.`);
+        continue;
+      }
+      setUploadingFile(true);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await axios.post(`${API}/api/messaging/attachments/upload`, form, {
+          headers: { ...headers, "Content-Type": "multipart/form-data" },
+        });
+        setAttachments(prev => [...prev, res.data]);
+      } catch (err) {
+        setError(err.response?.data?.detail || `Error subiendo "${file.name}"`);
+        break;
+      } finally {
+        setUploadingFile(false);
+      }
+    }
+  };
+
+  const removeAttachment = (file_id) => {
+    setAttachments(prev => prev.filter(a => a.file_id !== file_id));
+  };
 
   useEffect(() => {
     if (replyTo) {
@@ -173,6 +240,8 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
     setError("");
     setIsBroadcast(false);
     setBroadcastRoles({ teacher: false, student: false, parent: false, admin: false });
+    setAttachments([]);
+    setDriveConnected(null);
   }, [replyTo, isOpen, editor]);
 
   const searchContacts = async (query) => {
@@ -228,7 +297,8 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
         await axios.post(`${API}/api/broadcast/send`, {
           subject: subject.trim(),
           body: bodyContent,
-          target_roles: selectedBroadcastRoles
+          target_roles: selectedBroadcastRoles,
+          attachments,
         }, { headers });
         onSent?.(true); // true = was broadcast
         onClose();
@@ -447,11 +517,69 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
               <EditorContent editor={editor} className="min-h-[200px] max-h-[300px] overflow-y-auto" />
             </div>
           </div>
+
+          {/* Drive-backed attachments (broadcast mode only) */}
+          {isBroadcast && selectedBroadcastRoles.length > 0 && (
+            <div data-testid="compose-attachments-section">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Archivos adjuntos:</label>
+
+              {driveConnected === false && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900 flex items-start gap-2" data-testid="drive-not-connected-warning">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold mb-1">Google Drive no está conectado</p>
+                    <p className="text-xs">Para adjuntar archivos a comunicados, conecta el Drive del colegio en <b>Ajustes → Google Drive</b>. Los archivos se almacenan en la carpeta "Comunicados" del Drive institucional.</p>
+                  </div>
+                </div>
+              )}
+
+              {attachments.length > 0 && (
+                <ul className="space-y-1.5 mt-2" data-testid="compose-attachments-list">
+                  {attachments.map(att => (
+                    <li key={att.file_id} className="flex items-center gap-3 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm">
+                      <Paperclip className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium text-gray-800">{att.name}</div>
+                        <div className="text-xs text-gray-500">{formatFileSize(att.size)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(att.file_id)}
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Quitar"
+                        data-testid={`remove-attachment-${att.file_id}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between flex-shrink-0">
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
-            <Paperclip className="w-4 h-4" />Adjuntar
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,text/*,.zip"
+            onChange={handleFileSelected}
+            className="hidden"
+            data-testid="compose-file-input"
+          />
+          <button
+            onClick={handleAttachClick}
+            disabled={!isBroadcast || selectedBroadcastRoles.length === 0 || uploadingFile || driveConnected === false}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!isBroadcast ? "Disponible solo para comunicados institucionales"
+              : driveConnected === false ? "Drive no conectado"
+              : "Adjuntar archivos al comunicado"}
+            data-testid="compose-attach-btn"
+          >
+            {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            {uploadingFile ? "Subiendo..." : "Adjuntar"}
           </button>
           <div className="flex gap-3">
             <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
@@ -1182,19 +1310,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: selectedMessage.body }} />
 
-                  {selectedMessage.attachments?.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Archivos adjuntos ({selectedMessage.attachments.length})</h4>
-                      <div className="space-y-2">
-                        {selectedMessage.attachments.map((att, idx) => (
-                          <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                            <Paperclip className="w-5 h-5 text-gray-400" />
-                            <span className="text-sm text-gray-700">{att.name || "Archivo"}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <BroadcastAttachmentsList message={selectedMessage} token={token} />
                 </div>
               </>
             ) : (

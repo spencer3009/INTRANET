@@ -13,6 +13,7 @@ import TeacherSidebar from "../components/TeacherSidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
 import StudentHeader from "../components/StudentHeader";
 import MessagePagination from "../components/MessagePagination";
+import BroadcastAttachmentsList from "../components/BroadcastAttachmentsList";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Loader2, Circle,
@@ -1055,28 +1056,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                       dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
                     />
                     
-                    {selectedMessage.attachments?.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-slate-100">
-                        <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                          <Paperclip className="w-4 h-4" />
-                          Archivos adjuntos ({selectedMessage.attachments.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {selectedMessage.attachments.map((att, idx) => (
-                            <a
-                              key={idx}
-                              href={att.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors"
-                            >
-                              <Paperclip className="w-5 h-5 text-slate-400" />
-                              <span className="text-sm text-slate-700 font-medium">{att.name || "Archivo"}</span>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <BroadcastAttachmentsList message={selectedMessage} token={token} />
                   </div>
                 </>
               ) : (

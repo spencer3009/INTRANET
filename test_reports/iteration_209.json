@@ -1,0 +1,42 @@
+{
+  "summary": "Backend-only validation of the new 'attachments to Comunicados Institucionales' feature (Google Drive backed). Created /app/backend/tests/test_broadcast_attachments.py — 14 tests, ALL PASSING. Covered: GET /api/messaging/drive-status (200 + shape, 401 unauth); POST /api/messaging/attachments/upload paths (409 Drive-not-connected for owner of El Roble, 403 for teacher, 403 for parent, 401 unauth); POST /api/broadcast/send with BroadcastAttachmentRef (happy-path persists attachments[] and has_attachments=True in db.broadcast_messages; 422 when required fields missing); GET /api/broadcast/inbox returns attachments to a recipient teacher; GET /api/messaging/attachments/{id}/{file_id} (404 unknown msg, 404 unknown file_id, 403 cross-school via doc school_id flip, and same-school permission gate reaches Drive layer — returns 500 because Drive disconnected, NOT 403/404).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/messaging/attachments/upload",
+        "issue": "Drive-connectivity check runs BEFORE the empty/size/MIME validations (lines 91-101 vs 103-111 in routes/messaging_attachments.py). Result: in any school without Drive connected, an empty/oversized/disallowed file still surfaces 409 instead of 400. Validations are correct in code, but unreachable for clients still onboarding Drive. Suggest reordering: validate the request first (cheap, 400), then check Drive state (409)."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_broadcast_attachments.py",
+    "/app/test_reports/pytest/pytest_broadcast_attachments.xml"
+  ],
+  "action_items": [
+    "(Optional / non-blocking) Reorder checks in routes/messaging_attachments.py upload_message_attachment so payload validations (empty/size/MIME) run before the Drive 409 gate. Otherwise size/type rejections can never be tested or surfaced for a school without Drive yet.",
+    "Once El Roble (or any test school) has Drive connected, run the same suite — the test_same_school_reaches_drive_layer test will flip from accepting 500 to 200 (download streams successfully). Consider tightening that assertion later."
+  ],
+  "critical_code_review_comments": [
+    "BroadcastAttachmentRef is correctly required end-to-end: pydantic rejects missing file_id/name/mime_type/size/drive_file_id with 422 (validated).",
+    "broadcast.py:147 spreads .dict() of each attachment into the doc — works fine on pydantic v1; if the project moves to pydantic v2 use .model_dump() to avoid DeprecationWarning.",
+    "download_message_attachment correctly falls back from broadcast_messages → institutional_messages (line 175-184). Good.",
+    "Permission gate on download is school_id equality (line 187) — appropriate; doesn't leak across tenants (validated by cross-school flip test).",
+    "Minor: the upload endpoint logs to logger.exception for any Drive failure (good), but the 500 message includes the raw exception text — fine for now but consider sanitising before exposing to clients in prod."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_broadcast_attachments.py (new, 14 tests)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "N/A (backend-only request)"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (owner, school has Drive NOT connected — perfect for 409 path), sonia3009@gmail.com / teacher123 (teacher, used for 403 and inbox tests), maria.peres@gmail.com / 1234abc8 (parent, used for 403 test).",
+  "seed_data_creation": "Test creates 1 real broadcast doc via POST /api/broadcast/send (subject prefix TEST_ATTACH_) plus its receivers, and 1 directly-injected broadcast doc with id prefix TEST_BCAST_ to exercise the download permission gate. Both are deleted in teardown via Mongo motor cleanup fixtures. Verified post-run: 0 leftovers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Suite is /app/backend/tests/test_broadcast_attachments.py. It is idempotent and re-runnable. The only test that mutates real seeded behaviour is the 403 cross-school test, which temporarily swaps the seeded doc's school_id and restores it in a try/finally inside the same loop. If El Roble ever gets google_drive_connected=true, the TestUploadAttachment::test_owner_drive_not_connected_returns_409 test will FAIL — update it to use a fresh school without Drive (e.g. create one via /api/auth/register-school in a fixture).",
+  "rca of the issue": "Not a bug — feature validation. The user reported the 'Adjuntar' button was decorative; the new router (messaging_attachments.py) plus broadcast.py BroadcastAttachmentRef now make it functional end-to-end. Verified at the API level: 409 path on Drive-not-connected (the customer's current state), proper 403 for non-admins, pydantic validation, attachment persistence on broadcast doc, propagation to recipient inbox, and download permission gate (404 unknown, 403 cross-school, same-school reaches Drive layer)."
+}

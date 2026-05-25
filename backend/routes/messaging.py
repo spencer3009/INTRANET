@@ -51,6 +51,16 @@ class SupportTicketStatus(str, Enum):
     responded = "responded"
     closed = "closed"
 
+class AttachmentRef(BaseModel):
+    """Reference to an attachment uploaded to Google Drive."""
+    file_id: str               # internal stable id (uuid)
+    name: str
+    mime_type: str
+    size: int
+    drive_file_id: str         # id in Google Drive
+    storage_type: str = "google_drive"
+
+
 class InstitutionalMessageCreate(BaseModel):
     title: str
     content: str
@@ -59,6 +69,7 @@ class InstitutionalMessageCreate(BaseModel):
     target_levels: List[str] = []
     target_grades: List[str] = []
     expires_at: Optional[str] = None
+    attachments: List[AttachmentRef] = []
     
 class SupportTicketCreate(BaseModel):
     subject: str
@@ -121,6 +132,8 @@ async def create_institutional_message(
         "target_levels": data.target_levels,
         "target_grades": data.target_grades,
         "expires_at": data.expires_at,
+        "attachments": [a.dict() for a in (data.attachments or [])],
+        "has_attachments": bool(data.attachments),
         "author_id": user["id"],
         "author_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
         "author_role": user.get("role"),

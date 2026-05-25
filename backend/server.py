@@ -44,6 +44,7 @@ from routes.libreta import router as libreta_router, ensure_libreta_indexes
 from routes.conduct import router as conduct_router, ensure_conduct_indexes
 from routes.conducta_extendida import router as conducta_extendida_router, ensure_conducta_extendida_indexes
 from routes.role_labels import router as role_labels_router
+from routes.messaging_attachments import router as messaging_attachments_router
 from routes.tutor_comments import router as tutor_comments_router, ensure_tutor_comments_indexes
 from routes.tutoring_admin import router as tutoring_admin_router
 from routes.teacher_observations import router as teacher_observations_router
@@ -226,6 +227,7 @@ app.include_router(libreta_router)
 app.include_router(conduct_router)
 app.include_router(conducta_extendida_router)
 app.include_router(role_labels_router)
+app.include_router(messaging_attachments_router)
 app.include_router(tutor_comments_router)
 app.include_router(tutoring_admin_router)
 app.include_router(teacher_observations_router)
