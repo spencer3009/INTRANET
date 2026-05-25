@@ -1782,6 +1782,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [editingPendingData, setEditingPendingData] = useState({});
   const [qrStudent, setQRStudent] = useState(null);
   const [qrTeacher, setQRTeacher] = useState(null);
+
+  // ════════ Per-school role label overrides (admin editable in header) ════════
+  // Right now only `auxiliar_asistencia` is editable; the schema is open so
+  // adding more roles in the future is just adding the role to backend
+  // EDITABLE_ROLES + DEFAULTS.
+  const [roleLabelOverrides, setRoleLabelOverrides] = useState({});
+  const [editingRoleLabel, setEditingRoleLabel] = useState(false);
+  const [roleLabelDraft, setRoleLabelDraft] = useState("");
+  const [roleLabelSaving, setRoleLabelSaving] = useState(false);
   
   // Photo upload modal
   const [photoModalUser, setPhotoModalUser] = useState(null);
@@ -2289,6 +2298,42 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     }
   }, [openMenuId]);
 
+  // Load per-school role label overrides (e.g., admin renamed "Aux. Asistencia"
+  // to something else). Endpoint is idempotent — safe to call on mount.
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await axios.get(`${API}/schools/role-labels`, { headers });
+        setRoleLabelOverrides(r.data?.labels || {});
+      } catch (e) {
+        // Non-blocking: fallback labels are already hardcoded.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save the inline-edited role label.
+  const saveRoleLabel = async (role, newLabel) => {
+    const trimmed = (newLabel || "").trim();
+    if (!trimmed || trimmed.length > 60) {
+      toast.error("El nombre debe tener entre 1 y 60 caracteres");
+      return false;
+    }
+    setRoleLabelSaving(true);
+    try {
+      await axios.put(`${API}/schools/role-labels`,
+        { role, label: trimmed }, { headers });
+      setRoleLabelOverrides(prev => ({ ...prev, [role]: trimmed }));
+      toast.success("Nombre actualizado");
+      return true;
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Error al guardar");
+      return false;
+    } finally {
+      setRoleLabelSaving(false);
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════════
   // STUDENT FILTER PERSISTENCE & COMPUTED VALUES
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2792,10 +2837,61 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <img src={roleConfig.image} alt={roleConfig.label} className="w-full h-full object-contain" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>{roleConfig.label}</h1>
+                  {/* Inline-editable title for editable roles (currently only
+                      `auxiliar_asistencia`). Hover shows underline + pencil;
+                      click to edit; Enter to save; Esc to cancel. The new
+                      label is applied to the QR carnet automatically because
+                      the backend stores the override per school. */}
+                  {selectedRole === "auxiliar_asistencia" ? (
+                    editingRoleLabel ? (
+                      <input
+                        autoFocus
+                        value={roleLabelDraft}
+                        onChange={(e) => setRoleLabelDraft(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter") {
+                            const ok = await saveRoleLabel("auxiliar_asistencia", roleLabelDraft);
+                            if (ok) setEditingRoleLabel(false);
+                          } else if (e.key === "Escape") {
+                            setEditingRoleLabel(false);
+                          }
+                        }}
+                        onBlur={async () => {
+                          if (roleLabelDraft.trim() && roleLabelDraft.trim() !== (roleLabelOverrides.auxiliar_asistencia || roleConfig.label)) {
+                            await saveRoleLabel("auxiliar_asistencia", roleLabelDraft);
+                          }
+                          setEditingRoleLabel(false);
+                        }}
+                        disabled={roleLabelSaving}
+                        maxLength={60}
+                        className="text-4xl font-bold mb-2 bg-white/20 backdrop-blur-sm border-2 border-white/40 rounded-lg px-3 py-1 text-white placeholder-white/60 outline-none focus:border-white w-full max-w-md"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                        placeholder="Aux. Asistencia"
+                        data-testid="role-label-input"
+                      />
+                    ) : (
+                      <h1
+                        onClick={() => {
+                          setRoleLabelDraft(roleLabelOverrides.auxiliar_asistencia || roleConfig.label);
+                          setEditingRoleLabel(true);
+                        }}
+                        className="text-4xl font-bold mb-2 cursor-text inline-flex items-center gap-2 px-1 -mx-1 rounded hover:bg-white/10 hover:underline decoration-dashed decoration-white/50 underline-offset-4 transition-colors group"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                        title="Clic para renombrar este rol en tu colegio"
+                        data-testid="role-label-editable"
+                      >
+                        {roleLabelOverrides.auxiliar_asistencia || roleConfig.label}
+                        <Pencil className="w-5 h-5 opacity-0 group-hover:opacity-70 transition-opacity" />
+                      </h1>
+                    )
+                  ) : (
+                    <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>{roleConfig.label}</h1>
+                  )}
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="px-4 py-1.5 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm">
-                      {usersToDisplay.length} {usersToDisplay.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}
+                      {usersToDisplay.length} {selectedRole === "auxiliar_asistencia"
+                        ? (roleLabelOverrides.auxiliar_asistencia || roleConfig.labelSingular)
+                        : (usersToDisplay.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase())}
                     </span>
                     <span className="w-2 h-2 rounded-full bg-white/50"></span>
                     <span className="text-white/80 text-sm">Gestión de personal</span>
@@ -5452,14 +5548,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <QrCode className="w-5 h-5 text-violet-600" />
-                {qrTeacher?.role === 'teacher' ? 'Código QR del Profesor' : `Código QR — ${({
-                  personal_mantenimiento: 'Personal de Mantenimiento',
-                  auxiliar: 'Auxiliar',
-                  auxiliar_asistencia: 'Auxiliar de Asistencia',
-                  auxiliar_alimentacion: 'Auxiliar de Alimentación',
-                  auxiliar_movilidad: 'Auxiliar de Movilidad',
-                  auxiliar_topico: 'Auxiliar de Tópico',
-                }[qrTeacher?.role] || 'Personal')}`}
+                {qrTeacher?.role === 'teacher' ? 'Código QR del Profesor' : `Código QR — ${
+                  (qrTeacher?.role === 'auxiliar_asistencia' && roleLabelOverrides.auxiliar_asistencia)
+                    ? roleLabelOverrides.auxiliar_asistencia
+                    : ({
+                      personal_mantenimiento: 'Personal de Mantenimiento',
+                      auxiliar: 'Auxiliar',
+                      auxiliar_asistencia: 'Auxiliar de Asistencia',
+                      auxiliar_alimentacion: 'Auxiliar de Alimentación',
+                      auxiliar_movilidad: 'Auxiliar de Movilidad',
+                      auxiliar_topico: 'Auxiliar de Tópico',
+                    }[qrTeacher?.role] || 'Personal')
+                }`}
               </h3>
               <button
                 onClick={() => {
@@ -5477,6 +5577,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 teacher={qrTeacher}
                 schoolName={settings?.system_name || "EduNet"}
                 logoUrl={logoUrl}
+                roleLabelOverride={qrTeacher?.role === 'auxiliar_asistencia' ? roleLabelOverrides.auxiliar_asistencia : undefined}
               />
             </div>
           </div>

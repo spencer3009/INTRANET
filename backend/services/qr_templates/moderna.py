@@ -32,6 +32,15 @@ class ModernaTemplate(BaseQRTemplate):
 
         target_role = _get("role", "student")
         is_staff = target_role != "student"
+        staff_role_label_override: str = ""
+        if is_staff:
+            try:
+                from routes.role_labels import resolve_role_label, DEFAULTS as _RL_DEFAULTS
+                staff_role_label_override = await resolve_role_label(
+                    school_id, target_role, _RL_DEFAULTS.get(target_role, "")
+                )
+            except Exception:
+                staff_role_label_override = ""
         if is_staff:
             student_filter = {
                 "school_id": school_id, "role": target_role,
@@ -302,7 +311,7 @@ class ModernaTemplate(BaseQRTemplate):
                     "auxiliar_movilidad": "Auxiliar de Movilidad",
                     "auxiliar_topico": "Auxiliar de Tópico",
                 }
-                badge_text = _STAFF_LABELS.get(target_role, "Personal")
+                badge_text = staff_role_label_override or _STAFF_LABELS.get(target_role, "Personal")
             else:
                 badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
             c.setFont("Helvetica-Bold", 5)

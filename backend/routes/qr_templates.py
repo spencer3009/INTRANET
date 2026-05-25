@@ -220,6 +220,12 @@ async def preview_staff_template(
     tenant = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_carnet_url": 1, "logo_url": 1})
     display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
 
+    # Per-school role label override (e.g., "Aux. Asistencia" → "Aux. Disciplina").
+    from .role_labels import resolve_role_label
+    role_label = await resolve_role_label(
+        school_id, role, STAFF_ROLE_LABELS.get(role, role)
+    )
+
     return {
         "student_name": f"{target.get('name', '')} {target.get('last_name', '')}".strip(),
         "student_photo": target.get("photo_url"),
@@ -228,7 +234,7 @@ async def preview_staff_template(
         "codigo_alumno": None,
         "school_name": display_name,
         "school_logo": (tenant or {}).get("logo_carnet_url") or (tenant or {}).get("logo_url") or (school or {}).get("logo_url"),
-        "nivel": STAFF_ROLE_LABELS.get(role, role),
+        "nivel": role_label,
         "grado": "",
         "seccion": "",
     }

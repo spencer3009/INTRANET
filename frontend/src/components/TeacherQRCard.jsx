@@ -2,14 +2,15 @@ import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Printer, QrCode, Briefcase } from "lucide-react";
 
-export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
+export default function TeacherQRCard({ teacher, schoolName, logoUrl, roleLabelOverride }) {
   const qrRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
 
   // Etiqueta de rol mostrada en la tarjeta. La tarjeta se usa para profesores
   // y para todos los staff con QR (mantenimiento + auxiliares). Si no hay
   // mapeo conocido, fallback a "Personal" para evitar el bug histórico de
-  // mostrar "Docente" a un auxiliar.
+  // mostrar "Docente" a un auxiliar. `roleLabelOverride` permite que el
+  // colegio sobreescriba el label desde Usuarios → cabecera editable.
   const ROLE_LABEL_MAP = {
     teacher: "Docente",
     personal_mantenimiento: "Personal de Mantenimiento",
@@ -19,7 +20,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
     auxiliar_movilidad: "Auxiliar de Movilidad",
     auxiliar_topico: "Auxiliar de Tópico",
   };
-  const roleLabel = ROLE_LABEL_MAP[teacher?.role] || "Personal";
+  const roleLabel = roleLabelOverride || ROLE_LABEL_MAP[teacher?.role] || "Personal";
 
   if (!teacher?.qr_token) {
     return (

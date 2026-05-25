@@ -49,6 +49,18 @@ class ClassicTemplate(BaseQRTemplate):
         # just the role itself. Supports teacher / personal_mantenimiento /
         # auxiliar_* roles uniformly.
         is_staff = target_role != "student"
+
+        # Per-school role label override (used when rendering the staff badge
+        # line below; falls back to the canonical Spanish label).
+        staff_role_label_override: str = ""
+        if is_staff:
+            try:
+                from routes.role_labels import resolve_role_label, DEFAULTS as _RL_DEFAULTS
+                staff_role_label_override = await resolve_role_label(
+                    school_id, target_role, _RL_DEFAULTS.get(target_role, "")
+                )
+            except Exception:
+                staff_role_label_override = ""
         if is_staff:
             student_filter = {
                 "school_id": school_id,
@@ -314,7 +326,8 @@ class ClassicTemplate(BaseQRTemplate):
             c.setFont("Helvetica", 5.5 * sf)
             if is_staff:
                 # Map role → human label. Fallback to "Personal" so we never
-                # show "Docente" for an auxiliar.
+                # show "Docente" for an auxiliar. School-level override
+                # (`role_label_overrides`) wins when set.
                 _STAFF_LABELS = {
                     "teacher": "Docente",
                     "personal_mantenimiento": "Personal de Mantenimiento",
@@ -324,7 +337,7 @@ class ClassicTemplate(BaseQRTemplate):
                     "auxiliar_movilidad": "Auxiliar de Movilidad",
                     "auxiliar_topico": "Auxiliar de Tópico",
                 }
-                info_line = _STAFF_LABELS.get(target_role, "Personal")
+                info_line = staff_role_label_override or _STAFF_LABELS.get(target_role, "Personal")
             else:
                 info_line = f"{nivel_name} - {curso_label}"
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)
