@@ -42,6 +42,7 @@ from routes.subjects import router as subjects_router
 from routes.curricular_areas import router as curricular_areas_router, ensure_curricular_subject_indexes
 from routes.libreta import router as libreta_router, ensure_libreta_indexes
 from routes.conduct import router as conduct_router, ensure_conduct_indexes
+from routes.conducta_extendida import router as conducta_extendida_router, ensure_conducta_extendida_indexes
 from routes.tutor_comments import router as tutor_comments_router, ensure_tutor_comments_indexes
 from routes.tutoring_admin import router as tutoring_admin_router
 from routes.teacher_observations import router as teacher_observations_router
@@ -222,6 +223,7 @@ app.include_router(subjects_router)
 app.include_router(curricular_areas_router)
 app.include_router(libreta_router)
 app.include_router(conduct_router)
+app.include_router(conducta_extendida_router)
 app.include_router(tutor_comments_router)
 app.include_router(tutoring_admin_router)
 app.include_router(teacher_observations_router)
@@ -419,6 +421,7 @@ async def _run_startup_tasks():
         await ensure_coordinacion_indexes()
         await ensure_libreta_indexes()
         await ensure_conduct_indexes()
+        await ensure_conducta_extendida_indexes()
         await ensure_tutor_comments_indexes()
         await ensure_final_status_indexes()
         await ensure_curricular_subject_indexes()

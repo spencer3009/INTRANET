@@ -26,6 +26,7 @@ from services.libreta_format import format_section_libreta
 from services.attendance_summary import summary_by_period
 from services.grades_literal import numerica_a_letra, promedio_numerico
 from .conduct import get_conduct_payload_for_libreta
+from .conducta_extendida import get_conducta_extendida_payload_for_libreta
 from .tutor_comments import get_comments_payload_for_libreta
 from .final_status import get_final_status_payload_for_libreta
 
@@ -572,6 +573,9 @@ async def get_libreta(
     conducta_payload = await get_conduct_payload_for_libreta(
         school_id, student_id, period_ids
     )
+    conducta_ext_payload = await get_conducta_extendida_payload_for_libreta(
+        school_id, student_id, period_ids
+    )
     comments_payload = await get_comments_payload_for_libreta(
         school_id, student_id, period_ids
     )
@@ -620,6 +624,8 @@ async def get_libreta(
                 asistencia_payload[pid] = {"presente": 0, "tardanza": 0, "falta": 0, "justificada": 0}
             conducta_payload[pid] = None
             comments_payload[pid] = None
+            if conducta_ext_payload.get("by_period") and pid in conducta_ext_payload["by_period"]:
+                conducta_ext_payload["by_period"][pid] = None
 
     return {
         "student": {
@@ -665,6 +671,7 @@ async def get_libreta(
         "ranking": ranking_payload,
         "asistencia": asistencia_payload,
         "conducta": conducta_payload,
+        "conducta_extendida": conducta_ext_payload,
         "tutor_comments": comments_payload,
         "final_status": final_status_payload,
         "metadata": {
@@ -676,6 +683,7 @@ async def get_libreta(
             "closed_periods_count": len(closed_period_ids),
             "show_padres_grade": bool(school_doc.get("show_padres_grade", False)),
             "libreta_grade_format": school_doc.get("libreta_grade_format") or "numeric",
+            "conducta_template_mode": conducta_ext_payload.get("mode") or "default",
         },
     }
 

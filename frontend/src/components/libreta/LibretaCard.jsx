@@ -47,6 +47,14 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     setFinalStatus(data.final_status || { situacion: null, cursos_para_recuperar: [] });
   }, [data]);
 
+  // Conducta Extendida (opt-in por colegio). Si el modo está "extended", la
+  // libreta muestra una tabla configurable de criterios (4+3 por defecto) en
+  // lugar de la fila CONDUCTA tradicional.
+  const conductaTemplateMode = data?.metadata?.conducta_template_mode || "default";
+  const isExtendedMode = conductaTemplateMode === "extended";
+  const extTemplate = data?.conducta_extendida?.template || { secciones: [] };
+  const extByPeriod = data?.conducta_extendida?.by_period || {};
+
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
   // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
@@ -59,6 +67,16 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
   // Render helpers — keep cell DOM stable regardless of mode.
   const formatNum = (n) => (n === null || n === undefined ? "" : Number.isInteger(n) ? n : Math.round(n));
+  // MINEDU scale: 0-10 → C | 11-13 → B | 14-17 → A | 18-20 → AD
+  const numToLetterMinedu = (n) => {
+    if (n === null || n === undefined || n === "") return "";
+    const v = Number(n);
+    if (Number.isNaN(v)) return "";
+    if (v >= 18) return "AD";
+    if (v >= 14) return "A";
+    if (v >= 11) return "B";
+    return "C";
+  };
   const renderCellContent = (cell) => {
     if (!cell) return "-";
     const num = cell.numeric ?? cell.number;
@@ -328,6 +346,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       <div className="lr-info-tables">
         <div>
           {/* Conducta */}
+          {!isExtendedMode && (
           <table className="lr-info" data-testid="libreta-conducta-table">
             <thead>
               <tr>
@@ -410,6 +429,78 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
               )}
             </tbody>
           </table>
+          )}
+
+          {/* Conducta Extendida (cuando el colegio activa el modo extendido) */}
+          {isExtendedMode && (extTemplate.secciones || []).map((sec) => (
+            <table
+              key={sec.id}
+              className="lr-info lr-conducta-ext"
+              style={{ marginBottom: 6 }}
+              data-testid={`libreta-conducta-ext-${sec.id}`}
+            >
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>{sec.nombre}</th>
+                  {periods.map(p => (
+                    isMixed ? (
+                      <Fragment key={p.id}>
+                        <th>{romano(p.orden)}</th>
+                        <th>NL</th>
+                      </Fragment>
+                    ) : (
+                      <th key={p.id}>{romano(p.orden)}</th>
+                    )
+                  ))}
+                  <th>PROM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(sec.criterios || []).map((crit) => {
+                  // Per-period values for this criterio
+                  const perPeriodVals = periods.map(p => {
+                    const scores = extByPeriod?.[p.id] || {};
+                    const v = scores ? scores[crit.id] : null;
+                    return (v === undefined || v === null || v === "") ? null : Number(v);
+                  });
+                  const nums = perPeriodVals.filter(n => n !== null && !Number.isNaN(n));
+                  const avg = nums.length ? (nums.reduce((s, n) => s + n, 0) / nums.length) : null;
+                  return (
+                    <tr key={crit.id}>
+                      <td className="lr-label" style={{ textAlign: "left" }}>{crit.nombre}</td>
+                      {periods.map((p, idx) => {
+                        const val = perPeriodVals[idx];
+                        const letter = val === null ? "" : numToLetterMinedu(val);
+                        const letterMod = letterModifier(letter);
+                        if (gradeFormat === "numeric") {
+                          return <td key={p.id} className={letterMod}>{val === null ? "-" : formatNum(val)}</td>;
+                        }
+                        if (gradeFormat === "letters") {
+                          return <td key={p.id} className={letterMod}>{letter || "-"}</td>;
+                        }
+                        // mixed
+                        return (
+                          <Fragment key={p.id}>
+                            <td className={letterMod}>{val === null ? "-" : formatNum(val)}</td>
+                            <td className={letterMod}>{letter || "-"}</td>
+                          </Fragment>
+                        );
+                      })}
+                      <td style={{ fontWeight: "bold" }}>
+                        {avg === null
+                          ? "-"
+                          : gradeFormat === "letters"
+                            ? numToLetterMinedu(avg)
+                            : gradeFormat === "mixed"
+                              ? `${formatNum(avg)} / ${numToLetterMinedu(avg)}`
+                              : formatNum(avg)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ))}
 
           {/* Asistencias y tardanzas */}
           <table className="lr-info" style={{ marginTop: 4 }} data-testid="libreta-attendance-table">

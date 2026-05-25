@@ -1,0 +1,34 @@
+{
+  "summary": "Validated Conducta Extendida feature end-to-end. Backend: 15/15 pytest PASS (template GET/PUT with all validations, scores list/save with admin permissions, libreta integration). Frontend: tutor portal renders 'Eval. Conductual Extendida' tab correctly with 2 sections (EVALUACIÓN CONDUCTUAL 4 criterios + PARTICIPACIÓN DE PP.FF. 3 criterios), PROM. column at the end (auto-calculated: 16.57 verified for Acuña Peralta Cesar with 18/18/16/19/15/14/16), 252 score inputs (36 alumnos × 7 criterios), Guardar button present. The libreta payload includes metadata.conducta_template_mode + conducta_extendida.{mode,template,by_period} as designed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/mis-tutorias > Eval. Conductual Extendida", "issues": ["Column header is 'PROM.' (abbreviated). The PRD said 'PROMEDIO'. Cosmetic — header is truncated for screen real estate, value rendering is correct."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_conducta_extendida.py",
+    "/app/test_reports/pytest/pytest_conducta_extendida.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/conducta_extendida.py uses `body.dict()` which is deprecated in Pydantic v2 (line 212) — prefer `model_dump()`. Works today via the compat shim, but emits DeprecationWarning. Low priority.",
+    "MisTutoriasPage.jsx is 1163 lines — over the 700-line guideline; consider extracting <SectionDashboard/> wrapper around the tab content area.",
+    "The `seccion_id` field on students appears to be hidden from /api/students/{id} (returns 404 for owner/admin). Not blocking the feature, but the test fixture had to fall back to /api/libreta to resolve section_id — this could trip up integrators who expect students CRUD to expose the section assignment."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_conducta_extendida.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 ; rafa@gmail.com / Tutor123! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Used pre-seeded student 63cd034b-1b68-446f-b8f7-6d3589a709f1 (Acuña Peralta Cesar) in BIMESTRE I (093a0bee-92c4-449c-b82c-942f16847759). Tests overwrite scores for that student; no orphan rows produced thanks to the unique index (school_id, student_id, period_id). admin can save into a closed bimestre (tutor cannot — verified by 423 in code path).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend regression file /app/backend/tests/test_conducta_extendida.py covers: template GET/PUT (mode + secciones + 4 validation 400s + persistence round-trip), list scores (200 happy path, 404 invalid section, 401 unauth), save scores (persist round-trip, out-of-range 400, unknown criterio dropped), libreta payload (metadata.conducta_template_mode + conducta_extendida.{mode,template,by_period}). UI E2E was done as tutor rafa@gmail.com — section 11f50cbc-f5f6-422a-a989-87b2af6027f1, INICIAL 3 años A — Eval. Conductual Extendida tab renders 36×7 table with PROM. column. The school admin@elroble.edu is in conducta_template_mode='extended'. To test LibretaCard render with mode=extended, log in as padre maria.peres@gmail.com (children listed in test_credentials.md) — children belong to the same school so conducta_extendida.template will be available in their libreta payload. Note that those students are not in section 11f50cbc, so they have no scores saved yet (by_period values will be null), but the UI should still show the extended table headers per design.",
+  "rca_of_the_issue": "N/A — additive feature, no bugs found. Backend smoke test by main agent matched pytest results; in-browser E2E confirmed the tutor capture UI works (table renders, scores hydrate from previous save, Guardar button enabled). The libreta payload correctly carries conducta_template_mode='extended' and the conducta_extendida block, so LibretaCard.jsx render path is wired up — only manual visual check pending for the padre view (didn't open a padre account in this run, but the data path is verified by test_libreta_includes_conducta_extendida)."
+}

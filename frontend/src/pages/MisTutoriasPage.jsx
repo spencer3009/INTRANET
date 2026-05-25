@@ -14,11 +14,13 @@ import {
   GraduationCap, Loader2, Lock, Save, AlertTriangle, ExternalLink,
   ArrowLeft, Users, MessageSquare, BarChart3, BookOpen, ChevronRight, RefreshCw,
   Bell, AlertCircle, Info, CheckCircle2, Send, X, Clock, Search,
+  ClipboardList,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import BulkLibretaZipButton from "@/components/libreta/BulkLibretaZipButton";
+import ConductaExtendidaTab from "@/components/tutor/ConductaExtendidaTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -267,6 +269,7 @@ function SectionDashboard({ user, headers, token, section, periods, selectedPeri
       {/* Tab nav */}
       <div className="bg-white rounded-2xl border border-slate-200 p-1.5 inline-flex flex-wrap gap-1" data-testid="dashboard-tabs">
         <TabButton id="comentarios" label="Conducta & Comentarios" icon={MessageSquare} active={activeTab === "comentarios"} onClick={() => onSwitchTab("comentarios")} />
+        <TabButton id="conducta-ext" label="Eval. Conductual Extendida" icon={ClipboardList} active={activeTab === "conducta-ext"} onClick={() => onSwitchTab("conducta-ext")} />
         <TabButton id="observaciones" label="Mensajes del profesor" icon={Bell} active={activeTab === "observaciones"} onClick={() => onSwitchTab("observaciones")} />
         <TabButton id="consolidado" label="Consolidado del salón" icon={BarChart3} active={activeTab === "consolidado"} onClick={() => onSwitchTab("consolidado")} />
         <TabButton id="libretas" label="Libretas individuales" icon={BookOpen} active={activeTab === "libretas"} onClick={() => onSwitchTab("libretas")} />
@@ -276,6 +279,9 @@ function SectionDashboard({ user, headers, token, section, periods, selectedPeri
       <div data-testid={`tab-content-${activeTab}`}>
         {activeTab === "comentarios" && (
           <BulkConductCommentsTab user={user} headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
+        )}
+        {activeTab === "conducta-ext" && (
+          <ConductaExtendidaTab headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
         )}
         {activeTab === "observaciones" && (
           <TutorObservationsInboxTab headers={headers} sectionId={section.section_id} user={user} />

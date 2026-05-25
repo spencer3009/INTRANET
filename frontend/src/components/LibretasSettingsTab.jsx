@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
+import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -238,6 +239,11 @@ export default function LibretasSettingsTab({ token }) {
           <li>Filtra por nivel, grado, sección y bimestre, y sube un PDF por alumno (máx. 10 MB).</li>
           <li>Los padres y alumnos verán la libreta disponible en su portal.</li>
         </ol>
+      </div>
+
+      {/* Conducta Extendida — editor de plantilla */}
+      <div className="pt-4 border-t border-slate-200">
+        <ConductaExtendidaEditor token={token} />
       </div>
     </div>
   );
