@@ -66,9 +66,10 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
   const showPadresGrade = !!data?.metadata?.show_padres_grade;
   // Grade rendering format ("numeric" | "letters" | "mixed").
-  // Defaults to "letters" to preserve legacy behavior when the school hasn't
-  // set the option yet.
-  const gradeFormat = data?.metadata?.libreta_grade_format || "letters";
+  // Defaults to "numeric" — matches backend default and prevents the bug where
+  // an undefined metadata field silently rendered letters when "Mixto" was
+  // selected by the school.
+  const gradeFormat = data?.metadata?.libreta_grade_format || "numeric";
   const isMixed = gradeFormat === "mixed";
 
   // Render helpers — keep cell DOM stable regardless of mode.

@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## Feb 26, 2026 - Fix P0: Libreta formato "Mixto" no se renderizaba ✅
+- **Root cause**: Cuando una libreta se cargaba desde snapshot (bimestre cerrado), el endpoint `GET /api/libreta/{student_id}` en `/app/backend/routes/libreta.py` (líneas 287-297) reemplazaba `metadata` por completo SIN incluir `libreta_grade_format`. El frontend entonces recibía `undefined` y aplicaba el fallback `"letters"` → solo se veían letras.
+- **Fix backend** (`libreta.py`):
+  - Snapshot **load**: ahora re-lee el doc de `schools` para incluir `libreta_grade_format`, `show_padres_grade`, `hide_conducta_in_libreta`, `hide_tutor_comments_in_libreta`, `libreta_mode` y `conducta_template_mode` en la metadata. Las configs de "display" siempre reflejan la config actual del colegio, no la del momento del cierre.
+  - Snapshot **create** (línea 901): preserva todos los campos relevantes desde `prev_meta` (no solo `libreta_grade_format`).
+- **Fix frontend** (`LibretaCard.jsx`): default de `gradeFormat` cambiado de `"letters"` → `"numeric"` para alinear con el default del backend (`/api/report-cards/settings` retorna `"numeric"` cuando el colegio no ha configurado nada).
+- **Verificación E2E**: con `libreta_grade_format=mixed` la tabla de libreta ahora renderiza correctamente 2 columnas por bimestre (Nota | Nivel de logro) — tanto para áreas/asignaturas como para Evaluación Conductual y Participación PP.FF.
+
+
 ## Feb 16, 2026 - Fork (Observaciones del Aula + Quick Wins) — COMPLETED ✅
 
 ### Feature: Módulo "Observaciones del Aula" (comunicación interna Profesor → Tutor)

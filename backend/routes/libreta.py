@@ -285,14 +285,30 @@ async def get_libreta(
             if not await _can_view_libreta(viewer, stu, sec_id):
                 raise HTTPException(status_code=403, detail="No tienes permisos para ver esta libreta")
             payload = snap.get("payload_json") or {}
+            prev_meta = payload.get("metadata") or {}
+            # Re-read the school doc so that "display" settings (grade format,
+            # hide toggles, etc.) ALWAYS reflect the current school config —
+            # snapshots only freeze grades, not how they're rendered.
+            snap_school = await db.schools.find_one(
+                {"id": stu.get("school_id")},
+                {"_id": 0, "libreta_grade_format": 1, "show_padres_grade": 1,
+                 "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1,
+                 "libreta_mode": 1},
+            ) or {}
             payload["metadata"] = {
-                "generated_at": (payload.get("metadata") or {}).get("generated_at"),
+                "generated_at": prev_meta.get("generated_at"),
                 "is_snapshot": True,
                 "period_closed": True,
                 "year_closed": False,
                 "closed_at": snap.get("closed_at"),
                 "closed_by": snap.get("closed_by"),
                 "snapshot_version": snap.get("snapshot_version", "1.0"),
+                "libreta_mode": snap_school.get("libreta_mode") or prev_meta.get("libreta_mode"),
+                "show_padres_grade": bool(snap_school.get("show_padres_grade", prev_meta.get("show_padres_grade", False))),
+                "libreta_grade_format": snap_school.get("libreta_grade_format") or prev_meta.get("libreta_grade_format") or "numeric",
+                "hide_conducta_in_libreta": bool(snap_school.get("hide_conducta_in_libreta", prev_meta.get("hide_conducta_in_libreta", False))),
+                "hide_tutor_comments_in_libreta": bool(snap_school.get("hide_tutor_comments_in_libreta", prev_meta.get("hide_tutor_comments_in_libreta", False))),
+                "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
             return payload
 
@@ -898,12 +914,18 @@ async def close_period(
             errors.append({"student_id": sid, "error": "Error interno"})
             continue
 
+        prev_meta = payload.get("metadata") or {}
         payload["metadata"] = {
             "generated_at": now,
             "is_snapshot": False,
             "period_closed": False,
             "year_closed": False,
-            "libreta_grade_format": (payload.get("metadata") or {}).get("libreta_grade_format") or "numeric",
+            "libreta_mode": prev_meta.get("libreta_mode"),
+            "show_padres_grade": bool(prev_meta.get("show_padres_grade", False)),
+            "libreta_grade_format": prev_meta.get("libreta_grade_format") or "numeric",
+            "hide_conducta_in_libreta": bool(prev_meta.get("hide_conducta_in_libreta", False)),
+            "hide_tutor_comments_in_libreta": bool(prev_meta.get("hide_tutor_comments_in_libreta", False)),
+            "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
         }
 
         doc = {
