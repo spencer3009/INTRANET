@@ -310,6 +310,66 @@ async def get_libreta(
                 "hide_tutor_comments_in_libreta": bool(snap_school.get("hide_tutor_comments_in_libreta", prev_meta.get("hide_tutor_comments_in_libreta", False))),
                 "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
+
+            # Filter snapshot payload to only show the requested bimester.
+            # The snapshot was generated with the FULL year payload, so it may
+            # contain grades from BIM II/III/IV that were already in the system
+            # when BIM I was closed. Blank them out so the libreta del BIM I
+            # solo muestre BIM I.
+            _blank_cell = {"numeric": None, "letter": None}
+            for area in payload.get("areas", []) or []:
+                for subj in area.get("subjects", []) or []:
+                    grades = subj.get("grades") or {}
+                    for pid in list(grades.keys()):
+                        if pid != period_id:
+                            grades[pid] = dict(_blank_cell)
+                    subj["promedio_final"] = dict(_blank_cell)
+                promedio_area = area.get("promedio_area") or {}
+                for pid in list(promedio_area.keys()):
+                    if pid == period_id or pid == "final":
+                        continue
+                    promedio_area[pid] = dict(_blank_cell)
+                if "final" in promedio_area:
+                    promedio_area["final"] = dict(_blank_cell)
+            for subj in payload.get("subjects_without_area", []) or []:
+                grades = subj.get("grades") or {}
+                for pid in list(grades.keys()):
+                    if pid != period_id:
+                        grades[pid] = dict(_blank_cell)
+                subj["promedio_final"] = dict(_blank_cell)
+            ranking = payload.get("ranking") or {}
+            for pid in list(ranking.keys()):
+                if pid != period_id:
+                    ranking[pid] = {
+                        "puntaje": None, "promedio": None,
+                        "orden_merito": None, "tercio": None,
+                        "cursos_desaprobados": 0,
+                    }
+            asistencia = payload.get("asistencia") or {}
+            for pid in list(asistencia.keys()):
+                if pid != period_id:
+                    asistencia[pid] = {"presente": 0, "tardanza": 0, "falta": 0, "justificada": 0}
+            conducta = payload.get("conducta") or {}
+            for pid in list(conducta.keys()):
+                if pid != period_id:
+                    conducta[pid] = None
+            tutor_comments = payload.get("tutor_comments") or {}
+            for pid in list(tutor_comments.keys()):
+                if pid != period_id:
+                    tutor_comments[pid] = None
+            conducta_ext = payload.get("conducta_extendida") or {}
+            by_period = conducta_ext.get("by_period") or {}
+            for pid in list(by_period.keys()):
+                if pid != period_id:
+                    by_period[pid] = None
+            # Hide year-level "situación final".
+            if isinstance(payload.get("final_status"), dict):
+                payload["final_status"] = {
+                    **payload["final_status"],
+                    "situacion": None,
+                    "promedio_anual": None,
+                    "cursos_a_recuperacion": [],
+                }
             return payload
 
     # 1) Cargar estudiante

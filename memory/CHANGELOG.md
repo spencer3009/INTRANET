@@ -1,5 +1,12 @@
 # EduNet - Changelog
 
+## Feb 26, 2026 - Fix P0 (parte 2): Filtro de bimestre también en snapshot read-through ✅
+- **Reportado en producción**: tras el primer fix, en `edunet.pe` el alumno Arohuanca Velarde (Precursores TJ) seguía mostrando notas del BIM II en la libreta filtrada por BIM I (ALGEBRA, VALORES, Promedio Matemáticas, Estadística).
+- **Root cause**: cuando viene `period_id` y existe un snapshot para `(student, period_id)`, el endpoint hacía read-through del `payload_json` del snapshot **sin filtrar**. Como el snapshot se guardó en una fecha donde ya existían notas del BIM II, el payload congelado contenía esas notas y se devolvían al frontend.
+- **Fix** (`/app/backend/routes/libreta.py`, líneas 313-371 nuevas): después de leer el snapshot, se aplica el mismo blanqueo a `areas[].subjects[].grades`, `promedio_area`, `promedio_final`, `subjects_without_area`, `ranking`, `asistencia`, `conducta`, `tutor_comments`, `conducta_extendida.by_period` y `final_status` para todos los `period_id != requested`.
+- **Verificación curl**: `GET /api/libreta/{id}?period_id=BIM_I` con `is_snapshot=true` ahora retorna `CLEAN — solo BIM I tiene datos`.
+
+
 ## Feb 26, 2026 - Fix P0: Libreta filtrada por bimestre mostraba notas de otros bimestres ✅
 - **Reportado en producción**: en el Consolidado seleccionando "1er bimestre" + abrir libreta de un alumno → la libreta mostraba el BIM I correctamente PERO también algunas notas dispersas del BIM II.
 - **Root cause** (`/app/backend/routes/libreta.py`, líneas 613-655 antes del fix): el bloque que limpia las notas de bimestres "no visibles" estaba envuelto en `if not period_id and closed_period_ids:`. Por lo tanto cuando el frontend pasaba `?period_id=<X>` desde el Consolidado, el bloque se saltaba y se devolvían las notas de TODOS los bimestres (que se cargaban con `period_ids: {"$in": [todos]}` en línea 415).
