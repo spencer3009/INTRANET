@@ -1,5 +1,19 @@
 # EduNet - Changelog
 
+## Feb 26, 2026 - Feature: Preview inline de adjuntos en comunicados ✅
+- Reescrito `/app/frontend/src/components/BroadcastAttachmentsList.jsx` (compartido por los 4 portales: admin, profesor, padre, alumno).
+- Detección por `mime_type` + extensión:
+  - **Imagen**: auto-load (instant) → `<img>` clicable que abre en pestaña.
+  - **Video**: botón "Reproducir video" → `<video controls>` con blob.
+  - **Audio**: botón "Reproducir audio" → `<audio controls>` con blob.
+  - **PDF**: botón "Ver PDF" → `<iframe>` embebido (600px).
+  - **Otros** (docx, xlsx, etc.): solo botón "Descargar".
+- Cada tarjeta tiene siempre un botón "Descargar" (descarga con `<a download>` el blob obtenido).
+- Blob URLs se revocan automáticamente al desmontar (no leaks).
+- Endpoint backend ya devolvía `Content-Disposition: inline` y `media_type` correcto → no requiere cambios.
+- Mantiene firma `<BroadcastAttachmentsList message token />` → ningún portal necesita ajuste.
+
+
 ## Feb 26, 2026 - Feature: Toggle "Ocultar asistencia" en la Libreta ✅
 - Nuevo flag `hide_asistencia_in_libreta` en schema de `schools`, expuesto vía:
   - `GET/PUT /api/report-cards/settings` (`report_cards_pdf.py`).
