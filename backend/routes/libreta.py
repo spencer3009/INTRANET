@@ -610,7 +610,13 @@ async def get_libreta(
         school_id, student_id, year_val
     )
 
-    # 16) Aplicar `school.libreta_mode` si NO se pidió un period_id específico.
+    # 16) Determinar qué bimestres mantener visibles:
+    #   • Si el usuario pidió un `period_id` específico (ej. al abrir libreta
+    #     desde el Consolidado filtrado por bimestre) → SOLO ese bimestre.
+    #   • Si no se pidió, aplicar `school.libreta_mode`:
+    #       - "bimestral":  solo el último bimestre cerrado.
+    #       - "acumulada":  todos los bimestres cerrados.
+    #   • Si no se pidió y no hay snapshots cerrados → mostrar todo.
     libreta_mode = (school_doc.get("libreta_mode") or "acumulada").lower()
     closed_snapshots = await db.report_cards_snapshots.find(
         {"school_id": school_id, "student_id": student_id,
@@ -619,16 +625,25 @@ async def get_libreta(
     ).to_list(20)
     closed_period_ids = {s["period_id"] for s in closed_snapshots}
 
-    if not period_id and closed_period_ids:
-        ordered_closed = sorted(
-            [p for p in all_periods if p["id"] in closed_period_ids],
-            key=lambda p: p.get("orden", 0),
-            reverse=True,
-        )
+    apply_filter = False
+    keep_ids: set = set()
+    if period_id:
+        # Vista por bimestre puntual: SOLO ese bimestre.
+        apply_filter = True
+        keep_ids = {period_id}
+    elif closed_period_ids:
+        apply_filter = True
         if libreta_mode == "bimestral":
+            ordered_closed = sorted(
+                [p for p in all_periods if p["id"] in closed_period_ids],
+                key=lambda p: p.get("orden", 0),
+                reverse=True,
+            )
             keep_ids = {ordered_closed[0]["id"]} if ordered_closed else set()
         else:
             keep_ids = closed_period_ids
+
+    if apply_filter:
         for p in all_periods:
             pid = p["id"]
             if pid in keep_ids:
@@ -653,6 +668,27 @@ async def get_libreta(
             comments_payload[pid] = None
             if conducta_ext_payload.get("by_period") and pid in conducta_ext_payload["by_period"]:
                 conducta_ext_payload["by_period"][pid] = None
+
+        # Cuando se filtra por bimestre puntual (no es vista acumulada de
+        # cerrados), los "promedios finales" (subject y área) pierden sentido
+        # porque solo hay datos de UN bimestre — los blanqueamos para que no
+        # se vea un promedio engañoso en la libreta filtrada.
+        if period_id:
+            for area in areas_list:
+                for subj in area.get("subjects", []):
+                    subj["promedio_final"] = {"numeric": None, "letter": None}
+                if "final" in area.get("promedio_area", {}):
+                    area["promedio_area"]["final"] = {"numeric": None, "letter": None}
+            for subj in subjects_without_area:
+                subj["promedio_final"] = {"numeric": None, "letter": None}
+            # final_status (situación final del año) tampoco aplica.
+            if isinstance(final_status_payload, dict):
+                final_status_payload = {
+                    **final_status_payload,
+                    "situacion": None,
+                    "promedio_anual": None,
+                    "cursos_a_recuperacion": [],
+                }
 
     return {
         "student": {

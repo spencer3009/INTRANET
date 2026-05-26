@@ -1,5 +1,16 @@
 # EduNet - Changelog
 
+## Feb 26, 2026 - Fix P0: Libreta filtrada por bimestre mostraba notas de otros bimestres ✅
+- **Reportado en producción**: en el Consolidado seleccionando "1er bimestre" + abrir libreta de un alumno → la libreta mostraba el BIM I correctamente PERO también algunas notas dispersas del BIM II.
+- **Root cause** (`/app/backend/routes/libreta.py`, líneas 613-655 antes del fix): el bloque que limpia las notas de bimestres "no visibles" estaba envuelto en `if not period_id and closed_period_ids:`. Por lo tanto cuando el frontend pasaba `?period_id=<X>` desde el Consolidado, el bloque se saltaba y se devolvían las notas de TODOS los bimestres (que se cargaban con `period_ids: {"$in": [todos]}` en línea 415).
+- **Fix**: refactorizado para calcular `keep_ids` y aplicar el blanqueo en un solo flujo:
+  - Si `period_id` en query → `keep_ids = {period_id}` (solo ese bimestre).
+  - Si no, y hay snapshots cerrados → modo "bimestral" (último cerrado) o "acumulada" (todos los cerrados).
+  - Si no, y no hay cerrados → mostrar todo.
+- **Extra**: cuando se filtra por bimestre puntual, también se blanquean los `promedio_final` (subject), `promedio_area.final` y `final_status` (situación final del año) — no tiene sentido mostrar promedios anuales con datos de un solo bimestre.
+- **Verificación curl**: `GET /api/libreta/{id}?period_id=BIM_I` ahora devuelve nota=16 solo en BIM I y `null` en BIM II/III/IV. `promedio_final=null` y `promedio_area.final=null`.
+
+
 ## Feb 26, 2026 - Fix P0: Libreta formato "Mixto" no se renderizaba ✅
 - **Root cause**: Cuando una libreta se cargaba desde snapshot (bimestre cerrado), el endpoint `GET /api/libreta/{student_id}` en `/app/backend/routes/libreta.py` (líneas 287-297) reemplazaba `metadata` por completo SIN incluir `libreta_grade_format`. El frontend entonces recibía `undefined` y aplicaba el fallback `"letters"` → solo se veían letras.
 - **Fix backend** (`libreta.py`):
