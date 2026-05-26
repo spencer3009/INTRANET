@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## Feb 26, 2026 - Feature: Toggle "Ocultar asistencia" en la Libreta ✅
+- Nuevo flag `hide_asistencia_in_libreta` en schema de `schools`, expuesto vía:
+  - `GET/PUT /api/report-cards/settings` (`report_cards_pdf.py`).
+  - Propagado a `metadata` en `/api/libreta/{id}` (compute path + snapshot read-through + snapshot create).
+- Nuevo switch "Ocultar asistencia" en `LibretasSettingsTab.jsx` (debajo de "Ocultar comentarios del tutor"), con `data-testid="libreta-hide-asistencia-toggle"`.
+- `LibretaCard.jsx` ahora condiciona el render de `libreta-attendance-table` a `!hideAsistencia`.
+- Verificado E2E: PUT/GET funcionales, metadata propagada, UI renderizada correctamente.
+
+
 ## Feb 26, 2026 - Fix P0 (parte 2): Filtro de bimestre también en snapshot read-through ✅
 - **Reportado en producción**: tras el primer fix, en `edunet.pe` el alumno Arohuanca Velarde (Precursores TJ) seguía mostrando notas del BIM II en la libreta filtrada por BIM I (ALGEBRA, VALORES, Promedio Matemáticas, Estadística).
 - **Root cause**: cuando viene `period_id` y existe un snapshot para `(student, period_id)`, el endpoint hacía read-through del `payload_json` del snapshot **sin filtrar**. Como el snapshot se guardó en una fecha donde ya existían notas del BIM II, el payload congelado contenía esas notas y se devolvían al frontend.

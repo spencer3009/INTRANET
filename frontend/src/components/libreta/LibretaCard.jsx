@@ -60,6 +60,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   // intact regardless — toggling them on/off only affects rendering.
   const hideConducta = Boolean(data?.metadata?.hide_conducta_in_libreta);
   const hideTutorComments = Boolean(data?.metadata?.hide_tutor_comments_in_libreta);
+  const hideAsistencia = Boolean(data?.metadata?.hide_asistencia_in_libreta);
 
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
@@ -510,6 +511,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           ))}
 
           {/* Asistencias y tardanzas */}
+          {!hideAsistencia && (
           <table className="lr-info" style={{ marginTop: 4 }} data-testid="libreta-attendance-table">
             <thead>
               <tr>
@@ -540,6 +542,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
               })}
             </tbody>
           </table>
+          )}
         </div>
 
         <div>

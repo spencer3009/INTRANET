@@ -18,6 +18,7 @@ export default function LibretasSettingsTab({ token }) {
   const [gradeFormat, setGradeFormat] = useState("numeric");
   const [hideConducta, setHideConducta] = useState(false);
   const [hideTutorComments, setHideTutorComments] = useState(false);
+  const [hideAsistencia, setHideAsistencia] = useState(false);
   const [driveConnected, setDriveConnected] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -32,6 +33,7 @@ export default function LibretasSettingsTab({ token }) {
         setGradeFormat(r.data?.libreta_grade_format || "numeric");
         setHideConducta(Boolean(r.data?.hide_conducta_in_libreta));
         setHideTutorComments(Boolean(r.data?.hide_tutor_comments_in_libreta));
+        setHideAsistencia(Boolean(r.data?.hide_asistencia_in_libreta));
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -288,6 +290,21 @@ export default function LibretasSettingsTab({ token }) {
           <div className="flex-1">
             <div className="text-sm font-semibold text-slate-800">Ocultar comentarios del tutor</div>
             <p className="text-xs text-slate-500 mt-0.5">No se mostrará la tabla <b>COMENTARIOS DEL TUTOR (A)</b> al final de la libreta. El tutor seguirá pudiendo escribirlos desde su portal — solo no se imprimen.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={hideAsistencia}
+            disabled={saving}
+            onChange={(e) => handleVisibilityToggle("hide_asistencia_in_libreta", e.target.checked, setHideAsistencia, "Asistencia")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="libreta-hide-asistencia-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Ocultar asistencia</div>
+            <p className="text-xs text-slate-500 mt-0.5">No se mostrará la tabla de <b>ASISTENCIA</b> (Presente / Tardanza / Falta / Justificada) en la libreta. El registro de asistencia diario se sigue tomando — solo no se imprime en la libreta.</p>
           </div>
         </label>
       </section>
