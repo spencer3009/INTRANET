@@ -932,6 +932,87 @@ async def list_closed_periods(
     }
 
 
+@router.get("/libreta/admin/closed-periods")
+async def list_closed_periods_admin(current_user=Depends(get_current_user)):
+    """For the owner: returns all closed (period × section) groups across the
+    school so the admin UI can show the full history and offer "Reabrir"
+    buttons even for closures done in previous sessions or by other admins."""
+    user = await _require_user(current_user)
+    if user.get("role") not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver el historial de cierres")
+    school_id = user["school_id"]
+
+    periods = await db.academic_periods.find(
+        {"school_id": school_id},
+        {"_id": 0, "id": 1, "nombre": 1, "orden": 1},
+    ).sort("orden", 1).to_list(20)
+    period_by_id = {p["id"]: p for p in periods}
+
+    snaps = await db.report_cards_snapshots.find(
+        {"school_id": school_id, "period_id": {"$in": list(period_by_id.keys())}},
+        {"_id": 0, "period_id": 1, "student_id": 1, "closed_at": 1, "closed_by": 1},
+    ).to_list(50000)
+    if not snaps:
+        return {"history": []}
+
+    # Map student → section
+    sids = list({s["student_id"] for s in snaps})
+    students = await db.users.find(
+        {"id": {"$in": sids}, "role": "student"},
+        {"_id": 0, "id": 1, "seccion_id": 1, "section_id": 1},
+    ).to_list(50000)
+    stu_section = {
+        s["id"]: (s.get("seccion_id") or s.get("section_id"))
+        for s in students
+    }
+
+    sections = await db.sections.find(
+        {"school_id": school_id},
+        {"_id": 0, "id": 1, "nombre": 1},
+    ).to_list(500)
+    section_name_by_id = {s["id"]: s.get("nombre") for s in sections}
+
+    closers = await db.users.find(
+        {"id": {"$in": list({s.get("closed_by") for s in snaps if s.get("closed_by")})}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1},
+    ).to_list(500)
+    closer_name_by_id = {
+        u["id"]: " ".join(filter(None, [u.get("name"), u.get("last_name")])) or u["id"]
+        for u in closers
+    }
+
+    # Group by (period_id, section_id)
+    groups: Dict[tuple, dict] = {}
+    for s in snaps:
+        pid = s["period_id"]
+        sec_id = stu_section.get(s["student_id"])
+        key = (pid, sec_id)
+        g = groups.setdefault(key, {
+            "period_id": pid,
+            "period_name": period_by_id.get(pid, {}).get("nombre"),
+            "orden": period_by_id.get(pid, {}).get("orden"),
+            "section_id": sec_id,
+            "section_name": section_name_by_id.get(sec_id) if sec_id else None,
+            "students": 0,
+            "closed_at": None,
+            "closed_by": None,
+            "closed_by_name": None,
+        })
+        g["students"] += 1
+        closed_at = s.get("closed_at")
+        if closed_at and (g["closed_at"] is None or closed_at > g["closed_at"]):
+            g["closed_at"] = closed_at
+            g["closed_by"] = s.get("closed_by")
+            g["closed_by_name"] = closer_name_by_id.get(s.get("closed_by"))
+
+    history = sorted(
+        groups.values(),
+        key=lambda x: (x.get("closed_at") or ""),
+        reverse=True,
+    )
+    return {"history": history}
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # ENDPOINTS — CIERRE POR BIMESTRE (Turno B+: corrección conceptual)
 # ════════════════════════════════════════════════════════════════════════════

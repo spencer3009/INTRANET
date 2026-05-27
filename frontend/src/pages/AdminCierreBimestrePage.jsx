@@ -47,24 +47,12 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      // No hay endpoint dedicado: agrupamos desde snapshots
-      const r = await axios.get(`${API}/libreta/closed-periods/${user?.id || ""}`, { headers })
-        .catch(() => ({ data: { closed_periods: [] } }));
-      // Histórico simple por consulta global (owner): pedir cada bimestre de cada sección
-      const all = [];
-      for (const sec of (sections || [])) {
-        for (const p of (periods || [])) {
-          try {
-            // Para histórico global, usar mongo directo no es posible desde UI; pedir count vía libreta closed-periods
-            // Mejor: dejar registro de "última fecha de cierre por sección+periodo" cuando el owner ejecuta cierres
-            // Por ahora, dejamos solo el resultado del último cierre realizado en esta sesión
-          } catch { /* ignore */ }
-        }
-      }
-      setHistory(all);
+      const r = await axios.get(`${API}/libreta/admin/closed-periods`, { headers })
+        .catch(() => ({ data: { history: [] } }));
+      setHistory(Array.isArray(r.data?.history) ? r.data.history : []);
     } finally { setLoadingHistory(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections, periods]);
+  }, []);
 
   useEffect(() => {
     loadPeriods();
@@ -72,7 +60,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { if (periods.length && sections.length) loadHistory(); /* eslint-disable-next-line */ }, [periods, sections]);
+  useEffect(() => { loadHistory(); /* eslint-disable-next-line */ }, []);
 
   const doClose = async (force = false) => {
     setRunning(true);
@@ -94,6 +82,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
     } finally {
       setRunning(false);
       setShowConfirm(false);
+      loadHistory();
     }
   };
 
@@ -113,6 +102,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
       setReopenTarget(null);
       setReopenReason("");
       setReopenConfirmed(false);
+      loadHistory();
     } catch (err) {
       setResult({ ok: false, message: err.response?.data?.detail || "Ocurrió un problema al reabrir el bimestre. Intenta nuevamente." });
     } finally { setRunning(false); }
@@ -331,9 +321,14 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                   <RotateCcw className="w-5 h-5 text-red-600" />
                   <h3 className="text-lg font-semibold text-slate-800">Reabrir {reopenTarget.period_name}</h3>
                 </div>
-                <p className="text-sm text-slate-600 mb-4">
-                  Esta acción borra la libreta cerrada y permite que el tutor edite nuevamente notas, conducta y comentarios. Queda registrada en el historial de auditoría.
-                </p>
+                <div className="mb-4 space-y-2 text-sm">
+                  <p className="text-slate-700">
+                    Esta acción <b>quita el candado</b> del bimestre para que el tutor pueda volver a editar notas, conducta y comentarios. Queda registrada en el historial de auditoría.
+                  </p>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-emerald-900">
+                    <b>Tus datos están a salvo:</b> NO se borran las notas, asistencia ni conducta. Solo se elimina la "foto" del cierre — todas las notas registradas siguen ahí intactas y se podrán seguir editando hasta que vuelvas a cerrar el bimestre.
+                  </div>
+                </div>
                 <textarea
                   value={reopenReason}
                   onChange={(e) => setReopenReason(e.target.value)}
@@ -362,7 +357,7 @@ export default function AdminCierreBimestrePage({ user, token, subdomain, onLogo
                 <p className="text-sm text-slate-500">Cargando…</p>
               ) : history.length === 0 ? (
                 <p className="text-sm text-slate-500 italic">
-                  Aún no hay cierres registrados en esta sesión. Para consultar el estado de un alumno específico, abre su libreta desde el menú de Alumnos.
+                  No hay bimestres cerrados en este colegio. Cuando cierres un bimestre, aparecerá aquí con un botón "Reabrir" por si necesitas revertirlo.
                 </p>
               ) : (
                 <table className="w-full text-sm">

@@ -1,5 +1,16 @@
 # EduNet - Changelog
 
+## Feb 27, 2026 - Feature: Historial de cierres visible para reabrir bimestres ✅
+- **Problema**: el usuario cerró un bimestre por error y no sabía cómo reabrirlo. El endpoint `DELETE /api/libreta/close-period` ya existía y la UI también — pero el "Historial de cierres" en `AdminCierreBimestrePage.jsx` estaba vacío (un TODO con loop que nunca llenaba `all = []`).
+- **Backend**: nuevo endpoint `GET /api/libreta/admin/closed-periods` que agrupa snapshots por (period_id, section_id) y devuelve `[{period_id, period_name, section_name, students, closed_at, closed_by_name}]`. Solo accesible para owner/admin del colegio.
+- **Frontend**:
+  - `loadHistory` ahora consume el nuevo endpoint en lugar del placeholder vacío.
+  - Se llama `loadHistory()` también después de cerrar y de reabrir → la tabla se mantiene fresca.
+  - Mensaje vacío mejorado: "No hay bimestres cerrados…" en lugar de "Aún no hay cierres en esta sesión".
+- Endpoint renombrado a `/libreta/admin/closed-periods` para evitar conflicto de routing con `/libreta/closed-periods/{student_id}` (FastAPI matcheaba la segunda con `student_id="closed-periods-admin"`).
+- Verificación curl: el endpoint devuelve los 3 snapshots del colegio El Roble con metadata completa (bimestre, sección, alumnos, fecha, autor).
+
+
 ## Feb 26, 2026 - Feature: Preview inline de adjuntos en comunicados ✅
 - Reescrito `/app/frontend/src/components/BroadcastAttachmentsList.jsx` (compartido por los 4 portales: admin, profesor, padre, alumno).
 - Detección por `mime_type` + extensión:
