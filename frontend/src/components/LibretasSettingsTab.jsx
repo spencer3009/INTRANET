@@ -108,6 +108,8 @@ export default function LibretasSettingsTab({ token }) {
   const [allBold, setAllBold] = useState(false);
   const [showGradesStudent, setShowGradesStudent] = useState(true);
   const [showGradesParent, setShowGradesParent] = useState(true);
+  const [showLibretaStudent, setShowLibretaStudent] = useState(true);
+  const [showLibretaParent, setShowLibretaParent] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -133,6 +135,8 @@ export default function LibretasSettingsTab({ token }) {
         setAllBold(Boolean(r.data?.all_bold));
         setShowGradesStudent(r.data?.show_grades_student !== false);
         setShowGradesParent(r.data?.show_grades_parent !== false);
+        setShowLibretaStudent(r.data?.show_libreta_student !== false);
+        setShowLibretaParent(r.data?.show_libreta_parent !== false);
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -328,18 +332,18 @@ export default function LibretasSettingsTab({ token }) {
     }
   };
 
-  // Show/hide the "Calificaciones" menu item in the student/parent portals.
-  const toggleShowGrades = async (field, value, setter, label) => {
+  // Show/hide the "Calificaciones" / "Mi Libreta" access in the portals.
+  const toggleShowGrades = async (field, value, setter, label, what = "Calificaciones") => {
     setter(value);  // optimistic
     setSaving(true);
     setError(""); setSuccess("");
     try {
       await axios.put(`${API}/report-cards/settings`, { [field]: value }, { headers });
-      setSuccess(`Calificaciones ${value ? "visible" : "oculto"} para ${label}.`);
+      setSuccess(`${what} ${value ? "visible" : "oculto"} para ${label}.`);
       setTimeout(() => setSuccess(""), 2500);
     } catch (e) {
       setter(!value);  // rollback
-      setError(e?.response?.data?.detail || "Error al actualizar el acceso a Calificaciones");
+      setError(e?.response?.data?.detail || "Error al actualizar el acceso");
     } finally {
       setSaving(false);
     }
@@ -584,9 +588,9 @@ export default function LibretasSettingsTab({ token }) {
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-violet-600" />
-            Acceso a "Calificaciones" en los portales
+            Acceso a Calificaciones y Libreta en los portales
           </h3>
-          <p className="text-xs text-slate-500 mt-1">Controla si el botón <b>Calificaciones</b> aparece en el menú del portal de alumnos y/o de padres. Si lo desactivas, la opción desaparece del menú de ese portal.</p>
+          <p className="text-xs text-slate-500 mt-1">Controla si los botones <b>Calificaciones</b> (menú) y <b>Mi Libreta</b> (dashboard) aparecen en el portal de alumnos y/o de padres. Si desactivas un interruptor, esa opción desaparece para ese portal.</p>
         </div>
 
         <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
@@ -620,6 +624,40 @@ export default function LibretasSettingsTab({ token }) {
               <Users className="w-4 h-4 text-slate-500" /> Mostrar Calificaciones a Padres de Familia
             </div>
             <p className="text-xs text-slate-500 mt-0.5">Si está activo, los padres verán el botón <b>Calificaciones</b> en su menú. Desactívalo para ocultarlo.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={showLibretaStudent}
+            disabled={saving}
+            onChange={(e) => toggleShowGrades("show_libreta_student", e.target.checked, setShowLibretaStudent, "alumnos", "Mi Libreta")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="show-libreta-student-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-slate-500" /> Mostrar "Mi Libreta" a Alumnos
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Si está activo, los alumnos verán la tarjeta <b>Mi Libreta del Estudiante</b> en su dashboard. Desactívalo para ocultar el acceso a la libreta.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={showLibretaParent}
+            disabled={saving}
+            onChange={(e) => toggleShowGrades("show_libreta_parent", e.target.checked, setShowLibretaParent, "padres", "Libreta")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="show-libreta-parent-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-slate-500" /> Mostrar Libreta del hijo/a a Padres de Familia
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Si está activo, los padres verán la tarjeta <b>Libreta</b> de su hijo/a en su dashboard. Desactívalo para ocultar el acceso a la libreta.</p>
           </div>
         </label>
       </section>

@@ -415,6 +415,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
           </div>
 
           {/* Mi Libreta — Quick Access (Fase 3 - Turno F1) */}
+          {settings?.show_libreta_student !== false && (
           <div
             onClick={() => navigateTo(`/libreta/${user?.id}`)}
             className="bg-white border border-slate-200 rounded-2xl px-5 py-4 mb-6 cursor-pointer group transition-all duration-200 hover:shadow-md hover:border-indigo-200"
@@ -431,6 +432,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
               <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
             </div>
           </div>
+          )}
 
           {/* Progress Bars - Progreso de Tareas y Asistencia */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

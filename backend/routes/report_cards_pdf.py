@@ -162,6 +162,8 @@ class ReportCardSettingsUpdate(BaseModel):
     all_bold: Optional[bool] = None
     show_grades_student: Optional[bool] = None
     show_grades_parent: Optional[bool] = None
+    show_libreta_student: Optional[bool] = None
+    show_libreta_parent: Optional[bool] = None
 
 
 # Defaults for the editable libreta header.
@@ -313,6 +315,8 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "all_bold": bool(school.get("libreta_all_bold")),
         "show_grades_student": school.get("show_grades_student", True) is not False,
         "show_grades_parent": school.get("show_grades_parent", True) is not False,
+        "show_libreta_student": school.get("show_libreta_student", True) is not False,
+        "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -401,6 +405,10 @@ async def update_report_card_settings(
         update_fields["show_grades_student"] = bool(body.show_grades_student)
     if body.show_grades_parent is not None:
         update_fields["show_grades_parent"] = bool(body.show_grades_parent)
+    if body.show_libreta_student is not None:
+        update_fields["show_libreta_student"] = bool(body.show_libreta_student)
+    if body.show_libreta_parent is not None:
+        update_fields["show_libreta_parent"] = bool(body.show_libreta_parent)
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -421,6 +429,8 @@ async def update_report_card_settings(
         "all_bold": bool(school.get("libreta_all_bold")),
         "show_grades_student": school.get("show_grades_student", True) is not False,
         "show_grades_parent": school.get("show_grades_parent", True) is not False,
+        "show_libreta_student": school.get("show_libreta_student", True) is not False,
+        "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
     }
 
 

@@ -650,7 +650,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           </div>
 
           {/* Libreta del Hijo — Quick Access (Fase 3 - Turno F1) */}
-          {selectedChild?.id && (
+          {selectedChild?.id && settings?.show_libreta_parent !== false && (
             <div
               onClick={() => navigateTo(`/libreta/${selectedChild.id}`)}
               className="bg-white border border-slate-200 rounded-2xl px-5 py-4 mb-5 cursor-pointer group transition-all duration-200 hover:shadow-md hover:border-indigo-200"

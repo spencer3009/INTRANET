@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Mostrar/Ocultar acceso a "Mi Libreta" en Alumnos y Padres ✅
+- **Pedido**: en la misma sección de Ajustes → Libretas, switches para mostrar/ocultar la tarjeta "Mi Libreta del Estudiante" (acceso a la libreta) — uno para alumnos y otro para padres.
+- **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `show_libreta_student` y `show_libreta_parent` (bool, default true); GET/PUT los persisten/devuelven.
+- **Backend** (`settings.py`): `/api/settings/public/{subdomain}` devuelve ambos flags.
+- **Frontend dashboards** (`StudentDashboardPage.jsx`, `ParentDashboardPage.jsx`): la tarjeta "Mi Libreta"/"Libreta de {hijo}" se renderiza solo si el flag respectivo (de `settings` público) no es false.
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): 2 toggles nuevos en la sección renombrada "Acceso a Calificaciones y Libreta en los portales"; handler `toggleShowGrades` generalizado para reusarse (Calificaciones/Libreta).
+- **Verificado E2E**: curl PUT/GET + endpoint público reflejan los flags; screenshot del dashboard de Padres confirma que la tarjeta "Libreta" desaparece al desactivar (mismo mecanismo en Alumnos). Flags restaurados a true tras la prueba.
+
 ## Feb 28, 2026 - Feature: Mostrar/Ocultar "Calificaciones" en el menú de Alumnos y Padres ✅
 - **Pedido**: dos interruptores en Ajustes → Libretas para mostrar/ocultar el botón "Calificaciones" del menú del portal de alumnos y del de padres (opción b: solo ocultar del menú, no bloquear URL).
 - **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `show_grades_student` y `show_grades_parent` (bool, default true). GET/PUT `/api/report-cards/settings` los persisten/devuelven (`schools.show_grades_student` / `show_grades_parent`).
