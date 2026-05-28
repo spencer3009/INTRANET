@@ -70,10 +70,11 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
     const rect = e.currentTarget.getBoundingClientRect();
     setOpen({
       zone,
-      // Position popover BELOW the clicked zone, anchored to its left edge.
-      // Adjust for scroll so absolute coords stay correct.
-      x: rect.left + window.scrollX,
-      y: rect.bottom + window.scrollY + 6,
+      // position: fixed → coords are relative to the VIEWPORT, NOT the document.
+      // Don't add scrollX/Y here or the popover will end up below the fold
+      // when the user scrolled to reach the editor.
+      x: rect.left,
+      y: rect.bottom + 6,
     });
   };
 
@@ -92,7 +93,9 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
   };
 
   // Common style props for clickable zones.
-  const clickable = "cursor-pointer transition-all hover:outline hover:outline-2 hover:outline-dashed hover:outline-pink-500 hover:outline-offset-1";
+  // The wrapping `.palette-zone` class adds a "Click para pintar" tooltip
+  // bubble on hover so the user knows what to do instead of just hovering.
+  const clickable = "palette-zone cursor-pointer transition-all hover:outline hover:outline-2 hover:outline-dashed hover:outline-pink-500 hover:outline-offset-1 relative";
 
   const handlePick = (hex) => {
     if (open) {
@@ -103,6 +106,27 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
 
   return (
     <section className="space-y-4 pt-4 border-t border-slate-200" data-testid="libreta-palette-editor">
+      {/* Tooltip rule that appears next to the cursor on hover of every zone.
+          Pure CSS — no extra JS state needed. */}
+      <style>{`
+        .palette-zone:hover::after {
+          content: "👆 Click para pintar";
+          position: absolute;
+          top: -22px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #db2777;
+          color: white;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 6px;
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 10;
+          box-shadow: 0 4px 10px -4px rgba(0,0,0,0.4);
+        }
+      `}</style>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-pink-100 text-pink-700">
@@ -110,8 +134,9 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900">Paleta de colores</h3>
-            <p className="text-xs text-slate-500">
-              <b>👆 Haz clic en cualquier zona</b> de la libreta de muestra para pintarla. El texto se ajusta automáticamente al contraste.
+            <p className="text-xs text-slate-700 mt-0.5">
+              <span className="inline-block px-2 py-0.5 rounded bg-pink-100 text-pink-800 font-bold">👆 HAZ CLIC</span>{" "}
+              en cualquier zona de la libreta de muestra para abrir el selector de color. El texto se ajusta automáticamente al contraste.
             </p>
           </div>
         </div>
@@ -312,8 +337,10 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
           ref={popoverRef}
           className="fixed z-50 bg-white border-2 border-pink-300 rounded-xl shadow-2xl p-3"
           style={{
-            left: Math.min(open.x, window.innerWidth - 320),
-            top: open.y,
+            left: Math.max(8, Math.min(open.x, window.innerWidth - 320)),
+            // If the click happens near the bottom, flip the popover up so it
+            // doesn't get clipped by the viewport.
+            top: open.y + 220 > window.innerHeight ? Math.max(8, open.y - 240) : open.y,
             width: 300,
           }}
           data-testid="palette-popover"
