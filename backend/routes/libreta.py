@@ -293,7 +293,7 @@ async def get_libreta(
                 {"id": stu.get("school_id")},
                 {"_id": 0, "libreta_grade_format": 1, "show_padres_grade": 1,
                  "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1,
-                 "hide_asistencia_in_libreta": 1,
+                 "hide_asistencia_in_libreta": 1, "libreta_print_format": 1,
                  "libreta_mode": 1},
             ) or {}
             payload["metadata"] = {
@@ -310,6 +310,7 @@ async def get_libreta(
                 "hide_conducta_in_libreta": bool(snap_school.get("hide_conducta_in_libreta", prev_meta.get("hide_conducta_in_libreta", False))),
                 "hide_tutor_comments_in_libreta": bool(snap_school.get("hide_tutor_comments_in_libreta", prev_meta.get("hide_tutor_comments_in_libreta", False))),
                 "hide_asistencia_in_libreta": bool(snap_school.get("hide_asistencia_in_libreta", prev_meta.get("hide_asistencia_in_libreta", False))),
+                "print_format": snap_school.get("libreta_print_format") or prev_meta.get("print_format") or {},
                 "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
 
@@ -407,7 +408,7 @@ async def get_libreta(
 
     school_doc = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "libreta_print_format": 1},
     ) or {}
 
     grade_doc = await db.grades.find_one(
@@ -811,6 +812,7 @@ async def get_libreta(
             "hide_conducta_in_libreta": bool(school_doc.get("hide_conducta_in_libreta")),
             "hide_tutor_comments_in_libreta": bool(school_doc.get("hide_tutor_comments_in_libreta")),
             "hide_asistencia_in_libreta": bool(school_doc.get("hide_asistencia_in_libreta")),
+            "print_format": school_doc.get("libreta_print_format") or {},
             "conducta_template_mode": conducta_ext_payload.get("mode") or "default",
         },
     }
@@ -1106,6 +1108,7 @@ async def close_period(
             "hide_conducta_in_libreta": bool(prev_meta.get("hide_conducta_in_libreta", False)),
             "hide_tutor_comments_in_libreta": bool(prev_meta.get("hide_tutor_comments_in_libreta", False)),
             "hide_asistencia_in_libreta": bool(prev_meta.get("hide_asistencia_in_libreta", False)),
+            "print_format": prev_meta.get("print_format") or {},
             "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
         }
 

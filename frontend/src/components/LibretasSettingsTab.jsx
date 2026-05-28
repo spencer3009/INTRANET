@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff } from "lucide-react";
+import {
+  Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff,
+  Printer, Maximize2, RotateCw, Rows, Eye,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const PRINT_DEFAULTS = {
+  font_scale: "normal",
+  orientation: "portrait",
+  paper_size: "a4",
+  row_density: "comfortable",
+  table_style: "thin",
+};
 
 /**
  * Settings tab — choose between auto-generated report cards (from the
@@ -20,6 +31,7 @@ export default function LibretasSettingsTab({ token }) {
   const [hideTutorComments, setHideTutorComments] = useState(false);
   const [hideAsistencia, setHideAsistencia] = useState(false);
   const [driveConnected, setDriveConnected] = useState(false);
+  const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -34,6 +46,7 @@ export default function LibretasSettingsTab({ token }) {
         setHideConducta(Boolean(r.data?.hide_conducta_in_libreta));
         setHideTutorComments(Boolean(r.data?.hide_tutor_comments_in_libreta));
         setHideAsistencia(Boolean(r.data?.hide_asistencia_in_libreta));
+        setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -91,6 +104,45 @@ export default function LibretasSettingsTab({ token }) {
       setError(e?.response?.data?.detail || "Error al actualizar la visibilidad");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Print-format option saver — debounced via optimistic UI.
+  const setPrintField = async (field, value) => {
+    if (printFormat[field] === value) return;
+    const prev = printFormat;
+    const next = { ...printFormat, [field]: value };
+    setPrintFormat(next);
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { print_format: { [field]: value } }, { headers });
+      setSuccess("Formato de impresión actualizado.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setPrintFormat(prev);
+      setError(e?.response?.data?.detail || "Error al actualizar el formato");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Opens a preview tab — picks the first student in the school's directory
+  // so the owner can see exactly how the format renders with real data.
+  const openPreview = async () => {
+    try {
+      const r = await axios.get(`${API}/users?role=student&limit=1`, { headers });
+      const items = Array.isArray(r.data) ? r.data : (r.data?.users || r.data?.items || []);
+      const first = items.find((u) => (u.role || u.user_type) === "student") || items[0];
+      if (!first?.id) {
+        setError("No hay alumnos para vista previa. Crea uno primero.");
+        setTimeout(() => setError(""), 4000);
+        return;
+      }
+      window.open(`/libreta/${first.id}`, "_blank", "noopener,noreferrer");
+    } catch {
+      setError("No se pudo abrir la vista previa.");
+      setTimeout(() => setError(""), 4000);
     }
   };
 
@@ -309,6 +361,117 @@ export default function LibretasSettingsTab({ token }) {
         </label>
       </section>
 
+      {/* ═══════════════════════════════════════════════════════════════
+          Formato de impresión premium — controles para que la libreta
+          se vea bien al imprimir / exportar (resuelve el caso de letras
+          muy pequeñas o tablas que se cortan en el papel).
+          ═══════════════════════════════════════════════════════════════ */}
+      <section className="space-y-4 pt-4 border-t border-slate-200" data-testid="libreta-print-format-section">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-violet-100 text-violet-700">
+              <Printer className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Formato de impresión</h3>
+              <p className="text-xs text-slate-500">Ajusta cómo se ve la libreta al imprimirla o exportarla a PDF. Ideal si los padres reportan que las letras son muy pequeñas o que la tabla se corta.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={openPreview}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors"
+            data-testid="libreta-print-format-preview"
+          >
+            <Eye className="w-4 h-4" /> Vista previa
+          </button>
+        </div>
+
+        {/* Font size */}
+        <PrintFormatGroup
+          icon={<Type className="w-4 h-4" />}
+          label="Tamaño de letra"
+          hint="Más grande = más fácil de leer, pero ocupa más espacio."
+          field="font_scale"
+          value={printFormat.font_scale}
+          onChange={setPrintField}
+          options={[
+            { v: "small",  label: "Pequeña",      sub: "0.85×", example: "ABc" },
+            { v: "normal", label: "Normal",       sub: "1.0×",  example: "ABc" },
+            { v: "large",  label: "Grande",       sub: "1.15×", example: "ABc", recommended: true },
+            { v: "xlarge", label: "Extra grande", sub: "1.3×",  example: "ABc" },
+          ]}
+          saving={saving}
+        />
+
+        {/* Orientation */}
+        <PrintFormatGroup
+          icon={<RotateCw className="w-4 h-4" />}
+          label="Orientación del papel"
+          hint="Horizontal ofrece MUCHO más ancho — recomendado si tienes muchas asignaturas o usas formato 'mixto'."
+          field="orientation"
+          value={printFormat.orientation}
+          onChange={setPrintField}
+          options={[
+            { v: "portrait",  label: "Vertical",   sub: "Tradicional" },
+            { v: "landscape", label: "Horizontal", sub: "Más ancho", recommended: true },
+          ]}
+          saving={saving}
+        />
+
+        {/* Paper size */}
+        <PrintFormatGroup
+          icon={<Maximize2 className="w-4 h-4" />}
+          label="Tamaño de papel"
+          hint="El tamaño físico de la hoja en que se va a imprimir."
+          field="paper_size"
+          value={printFormat.paper_size}
+          onChange={setPrintField}
+          options={[
+            { v: "a4",     label: "A4",     sub: "21 × 29.7 cm" },
+            { v: "letter", label: "Carta",  sub: "21.6 × 27.9 cm" },
+            { v: "legal",  label: "Oficio", sub: "21.6 × 35.6 cm" },
+          ]}
+          saving={saving}
+        />
+
+        {/* Row density */}
+        <PrintFormatGroup
+          icon={<Rows className="w-4 h-4" />}
+          label="Densidad de filas"
+          hint="Filas más altas son más fáciles de leer; las compactas ahorran páginas."
+          field="row_density"
+          value={printFormat.row_density}
+          onChange={setPrintField}
+          options={[
+            { v: "compact",      label: "Compacto",  sub: "Mínimo espacio" },
+            { v: "comfortable",  label: "Cómodo",    sub: "Balance" },
+            { v: "spacious",     label: "Espacioso", sub: "Filas altas" },
+          ]}
+          saving={saving}
+        />
+
+        {/* Table style */}
+        <PrintFormatGroup
+          icon={<Layers className="w-4 h-4" />}
+          label="Estilo de tabla"
+          hint="Cómo se ven las líneas y los fondos de la tabla principal."
+          field="table_style"
+          value={printFormat.table_style}
+          onChange={setPrintField}
+          options={[
+            { v: "thin",  label: "Líneas finas",    sub: "Clásico" },
+            { v: "bold",  label: "Líneas marcadas", sub: "Mejor contraste" },
+            { v: "zebra", label: "Cebra",           sub: "Filas alternadas" },
+          ]}
+          saving={saving}
+        />
+
+        <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
+          <b>💡 Tip:</b> si te reportan que "las letras salen muy pequeñas", prueba primero <b>Orientación: Horizontal</b> + <b>Tamaño: Grande</b>. Es la combinación que más gana.
+        </div>
+      </section>
+
       <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs text-slate-600 leading-relaxed">
         <p className="font-semibold text-slate-800 mb-1">¿Cómo funciona "Cargar PDF"?</p>
         <ol className="list-decimal list-inside space-y-1">
@@ -322,6 +485,56 @@ export default function LibretasSettingsTab({ token }) {
       {/* Conducta Extendida — editor de plantilla */}
       <div className="pt-4 border-t border-slate-200">
         <ConductaExtendidaEditor token={token} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Visual card-style selector for a single print-format field. Each option is
+ * a "chip card" that highlights when selected. Big enough to feel premium,
+ * with a description and an optional "Recomendado" badge.
+ */
+function PrintFormatGroup({ icon, label, hint, field, value, onChange, options, saving }) {
+  return (
+    <div className="space-y-2" data-testid={`print-format-${field}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-slate-500">{icon}</span>
+        <span className="text-sm font-semibold text-slate-800">{label}</span>
+      </div>
+      {hint && <p className="text-xs text-slate-500 -mt-1 ml-6">{hint}</p>}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-6">
+        {options.map((opt) => {
+          const selected = value === opt.v;
+          return (
+            <button
+              key={opt.v}
+              type="button"
+              disabled={saving}
+              onClick={() => onChange(field, opt.v)}
+              className={`relative text-left p-3 rounded-xl border-2 transition-all ${
+                selected
+                  ? "border-violet-600 bg-violet-50 ring-2 ring-violet-100"
+                  : "border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/30"
+              } ${saving ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
+              data-testid={`print-format-${field}-${opt.v}`}
+            >
+              {opt.recommended && (
+                <span className="absolute top-1.5 right-1.5 text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                  ★
+                </span>
+              )}
+              <div className="text-sm font-semibold text-slate-800">{opt.label}</div>
+              {opt.sub && <div className="text-[11px] text-slate-500 mt-0.5">{opt.sub}</div>}
+              {opt.example && (
+                <div className="text-slate-700 mt-1.5" style={{
+                  fontSize: opt.v === "small" ? "0.7em" : opt.v === "large" ? "1.15em" : opt.v === "xlarge" ? "1.4em" : "0.9em",
+                  fontWeight: 600,
+                }}>{opt.example}</div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

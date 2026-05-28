@@ -1,5 +1,37 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature PREMIUM: Panel "Formato de impresión" en Ajustes → Libreta ✅
+- **Problema reportado**: las libretas se imprimían con letras minúsculas e ilegibles, y la tabla principal se cortaba lateralmente (caso real: Sr. de Gualamita, 1° Primaria con muchas asignaturas + formato mixto).
+- **Solución**: nuevo panel premium con 5 controles de formato.
+
+### Backend (`/app/backend/routes/report_cards_pdf.py` + `libreta.py`)
+- Nuevo objeto `libreta_print_format` en schema de `schools`. Defaults sensatos + whitelist de valores.
+- `PrintFormatBody` Pydantic + helpers `_PRINT_FORMAT_DEFAULTS` / `_PRINT_FORMAT_ALLOWED` / `_merge_print_format`.
+- `GET/PUT /api/report-cards/settings` exponen `print_format`. Las actualizaciones son parciales (no destructivas).
+- Propagado a `metadata.print_format` en `/api/libreta/{id}` (compute path, snapshot read-through y snapshot create).
+
+### Frontend Ajustes (`LibretasSettingsTab.jsx`)
+- Nueva sección con 5 selectores visuales tipo tarjeta (no dropdowns):
+  - 🔤 **Tamaño de letra**: Pequeña (0.85x) / Normal (1.0x) / Grande (1.15x, ★ recomendado) / Extra grande (1.3x). Cada tarjeta muestra "ABc" en el tamaño real.
+  - 🔄 **Orientación**: Vertical / Horizontal (★ recomendado).
+  - 📐 **Tamaño de papel**: A4 / Carta / Oficio (con dimensiones en cm).
+  - 📊 **Densidad de filas**: Compacto / Cómodo / Espacioso.
+  - 🎨 **Estilo de tabla**: Líneas finas / marcadas / Cebra (alternadas).
+- Botón "👁️ Vista previa" que abre la libreta del primer alumno disponible en otra pestaña.
+- Persistencia optimistic-UI con rollback si falla el PUT.
+- Tip final con la combinación recomendada (Horizontal + Grande).
+
+### Frontend Libreta (`LibretaCard.jsx` + `LibretaCard.css`)
+- CSS variables `--lr-font-scale`, `--lr-row-h`, `--lr-row-pad-y`, `--lr-border-w`, `--lr-zebra-bg` aplicadas en `.libreta-card` y `.lr-grades` / `.lr-info`.
+- Modifier classes generadas dinámicamente: `lr-fs-{size}`, `lr-dens-{density}`, `lr-ts-{style}`, `lr-paper-{size}`, `lr-orient-{orient}`.
+- `useEffect` inyecta una regla `@page { size: <paper> <orient>; margin: 1cm; }` en un `<style>` dinámico para que el diálogo de impresión / "Guardar como PDF" use el tamaño y orientación correctos.
+- Página 2 también respeta `paper_size` / `orientation`.
+
+### Verificación E2E
+- curl: `PUT print_format={landscape, large}` → `GET /api/libreta` retorna `metadata.print_format` con esos valores propagados.
+- Screenshot del panel: 5 secciones visuales correctas, badges ★ en las opciones recomendadas, tip al final.
+
+
 ## Feb 27, 2026 - Feature: Historial de cierres visible para reabrir bimestres ✅
 - **Problema**: el usuario cerró un bimestre por error y no sabía cómo reabrirlo. El endpoint `DELETE /api/libreta/close-period` ya existía y la UI también — pero el "Historial de cierres" en `AdminCierreBimestrePage.jsx` estaba vacío (un TODO con loop que nunca llenaba `all = []`).
 - **Backend**: nuevo endpoint `GET /api/libreta/admin/closed-periods` que agrupa snapshots por (period_id, section_id) y devuelve `[{period_id, period_name, section_name, students, closed_at, closed_by_name}]`. Solo accesible para owner/admin del colegio.

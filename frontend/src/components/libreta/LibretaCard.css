@@ -1,9 +1,20 @@
 /* Libreta — fiel al HTML de referencia (Colegio El Roble) */
 
 .libreta-card {
+  /* Customizable variables driven by school print_format settings.
+     The wrapper around <LibretaCard> sets inline styles like
+     --lr-font-scale, --lr-row-h, etc. We use safe fallbacks here so the
+     legacy default look is preserved for schools that haven't customized. */
+  --lr-font-scale: 1;
+  --lr-row-h: 16px;
+  --lr-row-pad-y: 2px;
+  --lr-row-pad-x: 4px;
+  --lr-border-w: 1px;
+  --lr-zebra-bg: transparent;
+
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
-  font-size: 10px;
+  font-size: calc(10px * var(--lr-font-scale));
   background: #fff;
   width: 21cm;
   margin: 0 auto;
@@ -60,12 +71,14 @@
 }
 
 /* ── Grades table ── */
-.lr-grades { width: 100%; border-collapse: collapse; font-size: 9px; border: 1px solid #000; }
-.lr-grades th, .lr-grades td { border: 1px solid #000; padding: 2px 4px; text-align: center; height: 16px; }
+.lr-grades { width: 100%; border-collapse: collapse; font-size: calc(9px * var(--lr-font-scale)); border: var(--lr-border-w) solid #000; }
+.lr-grades th, .lr-grades td { border: var(--lr-border-w) solid #000; padding: var(--lr-row-pad-y) var(--lr-row-pad-x); text-align: center; height: var(--lr-row-h); }
 .lr-grades th { background: #fff; font-weight: bold; }
 .lr-grades td.lr-area { background: #fff; font-weight: bold; vertical-align: middle; }
 .lr-grades td.lr-asig { text-align: left; padding-left: 6px; }
 .lr-grades td.lr-asig.lr-prom-area { font-weight: bold; }
+/* Zebra striping (only active when table_style="zebra"). */
+.lr-grades tbody tr:nth-child(even) td { background: var(--lr-zebra-bg); }
 /* Letter grades: AD/A/B render blue; C renders red via .is-c modifier */
 .lr-grades td.lr-grade { color: #1d4ed8; font-weight: normal; }
 .lr-grades td.lr-grade-final { color: #1d4ed8; font-weight: bold; }
@@ -82,8 +95,8 @@
 
 /* ── Info tables grid ── */
 .lr-info-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
-.lr-info { width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 8.5px; }
-.lr-info th, .lr-info td { border: 1px solid #000; padding: 2px 4px; text-align: center; }
+.lr-info { width: 100%; border-collapse: collapse; border: var(--lr-border-w) solid #000; font-size: calc(8.5px * var(--lr-font-scale)); }
+.lr-info th, .lr-info td { border: var(--lr-border-w) solid #000; padding: var(--lr-row-pad-y) var(--lr-row-pad-x); text-align: center; }
 .lr-info th { font-weight: bold; background: #fff; }
 .lr-info td.lr-label { text-align: left; padding-left: 4px; }
 
@@ -167,3 +180,63 @@
   padding: 3px 2px !important;
   background: #f9fafb;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Print-format options (driven by Ajustes → Libreta → Formato de impresión)
+   Applied via modifier classes on .libreta-card.
+   ───────────────────────────────────────────────────────────────── */
+
+/* Font scale */
+.libreta-card.lr-fs-small    { --lr-font-scale: 0.85; }
+.libreta-card.lr-fs-normal   { --lr-font-scale: 1; }
+.libreta-card.lr-fs-large    { --lr-font-scale: 1.15; }
+.libreta-card.lr-fs-xlarge   { --lr-font-scale: 1.30; }
+
+/* Row density */
+.libreta-card.lr-dens-compact    { --lr-row-h: 13px; --lr-row-pad-y: 1px; }
+.libreta-card.lr-dens-comfortable { --lr-row-h: 18px; --lr-row-pad-y: 3px; }
+.libreta-card.lr-dens-spacious   { --lr-row-h: 24px; --lr-row-pad-y: 6px; }
+
+/* Table style */
+.libreta-card.lr-ts-thin   { --lr-border-w: 1px; --lr-zebra-bg: transparent; }
+.libreta-card.lr-ts-bold   { --lr-border-w: 1.5px; --lr-zebra-bg: transparent; }
+.libreta-card.lr-ts-zebra  { --lr-border-w: 1px; --lr-zebra-bg: #f3f4f6; }
+
+/* Paper size (only affects screen preview width — print uses @page below). */
+.libreta-card.lr-paper-a4     { width: 21cm; }
+.libreta-card.lr-paper-letter { width: 21.6cm; }
+.libreta-card.lr-paper-legal  { width: 21.6cm; }
+
+/* Landscape on screen → wider preview to give a hint of the real layout. */
+.libreta-card.lr-orient-landscape { width: 29.7cm; }
+.libreta-card.lr-paper-letter.lr-orient-landscape { width: 27.9cm; }
+.libreta-card.lr-paper-legal.lr-orient-landscape  { width: 35.6cm; }
+
+/* Same for the second page block. */
+.lr-page2.lr-orient-landscape { width: 29.7cm; }
+.lr-page2.lr-paper-letter { width: 21.6cm; }
+.lr-page2.lr-paper-letter.lr-orient-landscape { width: 27.9cm; }
+.lr-page2.lr-paper-legal  { width: 21.6cm; }
+.lr-page2.lr-paper-legal.lr-orient-landscape  { width: 35.6cm; }
+
+/* When in landscape, allow the grades + info tables to breathe horizontally.
+   We don't change the column proportions — just the wider container does the job. */
+
+/* @page directives per paper/orientation combo.
+   We use body-scoped data attributes set by LibretaCard.jsx to switch. */
+body[data-libreta-print="a4-portrait"]      { /* sentinel */ }
+@media print {
+  body[data-libreta-print="a4-portrait"]      ~ * { /* no-op */ }
+}
+/* The actual @page rules: */
+body[data-libreta-print="a4-portrait"]      .libreta-card { width: auto; }
+body[data-libreta-print="a4-landscape"]     .libreta-card { width: auto; }
+body[data-libreta-print="letter-portrait"]  .libreta-card { width: auto; }
+body[data-libreta-print="letter-landscape"] .libreta-card { width: auto; }
+body[data-libreta-print="legal-portrait"]   .libreta-card { width: auto; }
+body[data-libreta-print="legal-landscape"]  .libreta-card { width: auto; }
+
+/* Inject @page sizes via separate <style> tag is simpler — but we can also
+   use named @page rules. CSS doesn't support dynamic @page based on
+   attribute selectors, so LibretaCard.jsx injects the matching @page rule
+   into a <style> tag at runtime. See the component for details. */

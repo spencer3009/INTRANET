@@ -62,6 +62,41 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const hideTutorComments = Boolean(data?.metadata?.hide_tutor_comments_in_libreta);
   const hideAsistencia = Boolean(data?.metadata?.hide_asistencia_in_libreta);
 
+  // Print format options (school-level customization in Ajustes → Libreta).
+  const pf = data?.metadata?.print_format || {};
+  const fmtClass = [
+    `lr-fs-${pf.font_scale || "normal"}`,
+    `lr-dens-${pf.row_density || "comfortable"}`,
+    `lr-ts-${pf.table_style || "thin"}`,
+    `lr-paper-${pf.paper_size || "a4"}`,
+    `lr-orient-${pf.orientation || "portrait"}`,
+  ].join(" ");
+
+  // Inject a dynamic <style> tag with the matching @page rule so the printer
+  // / "Save as PDF" dialog uses the right paper size + orientation. Browsers
+  // do not allow @page to read CSS variables or attribute selectors, so we
+  // emit a fresh stylesheet whenever the print_format changes.
+  useEffect(() => {
+    const paper = pf.paper_size || "a4";
+    const orient = pf.orientation || "portrait";
+    const sizeMap = {
+      a4: "A4",
+      letter: "letter",
+      legal: "legal",
+    };
+    const css = `@page { size: ${sizeMap[paper] || "A4"} ${orient}; margin: 1cm; }`;
+    let tag = document.getElementById("libreta-print-page-rule");
+    if (!tag) {
+      tag = document.createElement("style");
+      tag.id = "libreta-print-page-rule";
+      document.head.appendChild(tag);
+    }
+    tag.textContent = css;
+    return () => {
+      // Don't remove on unmount — other libretas may still be visible.
+    };
+  }, [pf.paper_size, pf.orientation]);
+
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
   // Feature flag: extra "Padres" (Participación) row in CONDUCTA table.
@@ -260,7 +295,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const tutorFullName = data?.tutor?.nombres_completos || "";
 
   return (
-    <div className="libreta-card" data-testid="libreta-card">
+    <div className={`libreta-card ${fmtClass}`} data-testid="libreta-card">
       {/* ── Header ── */}
       <header className="lr-header">
         <div className="lr-logo">
@@ -678,7 +713,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       )}
 
       {/* ── Página 2: firmas ── */}
-      <section className="lr-page2">
+      <section className={`lr-page2 lr-paper-${pf.paper_size || "a4"} lr-orient-${pf.orientation || "portrait"}`}>
         <div className="lr-page-header">
           <span>{data.student.apellidos_nombres}</span>
           <span>Página 2</span>
