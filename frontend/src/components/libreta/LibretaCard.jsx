@@ -315,8 +315,11 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     ...orphans.map(s => ({ id: s.id, name: s.name })),
   ];
 
-  const renderArea = (area) => {
+  const renderArea = (area, areaIdx) => {
     const subs = area.subjects || [];
+    const areaStyle = cellStyle(`td.area.${areaIdx}`);
+    const subjStyle = cellStyle(`td.subject.${areaIdx}`);
+    const promStyle = cellStyle(`td.promedio.${areaIdx}`);
     if (subs.length === 0) return null;
 
     // CASO 1: área con 1 asignatura
@@ -324,41 +327,38 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       const s = subs[0];
       const sameName = (s.name || "").trim().toLowerCase() === (area.name || "").trim().toLowerCase();
       if (sameName) {
-        // Una sola fila, colspan=2 (área = asignatura)
         return (
-          <tr key={area.id} style={rowBgStyle("area_rows")}>
-            <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold", ...(rowTextStyle("area_rows") || {}) }}>{area.name}</td>
+          <tr key={area.id} style={areaStyle}>
+            <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold", ...(areaStyle || {}) }}>{area.name}</td>
             {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
             {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
           </tr>
         );
       }
-      // Distintos: área a la izq + asignatura a la der, sin fila promedio
       return (
-        <tr key={area.id} style={rowBgStyle("subject_rows")}>
-          <td className="lr-area" style={{ textAlign: "left", paddingLeft: 6, ...(rowTextStyle("area_rows") || {}), ...(rowBgStyle("area_rows") || {}) }}>{area.name}</td>
-          <td className="lr-asig" style={rowTextStyle("subject_rows")}>{s.name}</td>
+        <tr key={area.id} style={subjStyle}>
+          <td className="lr-area" style={{ textAlign: "left", paddingLeft: 6, ...(areaStyle || {}) }}>{area.name}</td>
+          <td className="lr-asig" style={subjStyle}>{s.name}</td>
           {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
           {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
         </tr>
       );
     }
 
-    // CASO 2: área con varias asignaturas → rowspan + fila Promedio Área
     return (
       <Fragment key={area.id}>
         {subs.map((s, idx) => (
-          <tr key={s.id} style={rowBgStyle("subject_rows")}>
+          <tr key={s.id} style={subjStyle}>
             {idx === 0 && (
-              <td className="lr-area" rowSpan={subs.length + 1} style={{ ...(rowBgStyle("area_rows") || {}), ...(rowTextStyle("area_rows") || {}) }}>{area.name}</td>
+              <td className="lr-area" rowSpan={subs.length + 1} style={areaStyle}>{area.name}</td>
             )}
-            <td className="lr-asig" style={rowTextStyle("subject_rows")}>{s.name}</td>
+            <td className="lr-asig" style={subjStyle}>{s.name}</td>
             {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${s.id}-${p.id}`))}
             {renderGradeCells(s.promedio_final, "lr-grade-final", `${s.id}-final`)}
           </tr>
         ))}
-        <tr className="lr-prom-row" style={rowBgStyle("promedio_rows")}>
-          <td className="lr-asig lr-prom-area" style={rowTextStyle("promedio_rows")}>Promedio Área:</td>
+        <tr className="lr-prom-row" style={promStyle}>
+          <td className="lr-asig lr-prom-area" style={promStyle}>Promedio Área:</td>
           {periods.map(p => renderGradeCells(area.promedio_area?.[p.id] || {}, "lr-grade", `${area.id}-prom-${p.id}`, { fontWeight: "bold" }))}
           {renderGradeCells(area.promedio_area?.final, "lr-grade-final", `${area.id}-prom-final`)}
         </tr>
@@ -383,12 +383,12 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           )}
         </div>
         <div className="lr-header-center">
-          <div className="lr-privada" style={lineStyle(headerTpl.line1_bold, headerTpl.line1_size)} data-testid="libreta-header-line1">{headerLine1}</div>
-          <div className="lr-colegio" style={lineStyle(headerTpl.school_name_bold !== false, headerTpl.school_name_size)}>{headerSchoolName}</div>
-          <div className="lr-informe" style={lineStyle(headerTpl.line3_bold !== false, headerTpl.line3_size)} data-testid="libreta-header-line3">{headerLine3}</div>
-          <div className="lr-nivel" style={lineStyle(headerTpl.nivel_bold !== false, headerTpl.nivel_size)}>{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
+          <div className="lr-privada" style={{ ...lineStyle(headerTpl.line1_bold, headerTpl.line1_size), ...(cellStyle("header.line1") || {}) }} data-testid="libreta-header-line1">{headerLine1}</div>
+          <div className="lr-colegio" style={{ ...lineStyle(headerTpl.school_name_bold !== false, headerTpl.school_name_size), ...(cellStyle("header.school_name") || {}) }}>{headerSchoolName}</div>
+          <div className="lr-informe" style={{ ...lineStyle(headerTpl.line3_bold !== false, headerTpl.line3_size), ...(cellStyle("header.line3") || {}) }} data-testid="libreta-header-line3">{headerLine3}</div>
+          <div className="lr-nivel" style={{ ...lineStyle(headerTpl.nivel_bold !== false, headerTpl.nivel_size), ...(cellStyle("header.nivel") || {}) }}>{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
           {data.period_active?.orden && (
-            <div className="lr-bimestre" style={lineStyle(headerTpl.bimestre_bold !== false, headerTpl.bimestre_size)} data-testid="libreta-header-bimestre">{headerBimestre}</div>
+            <div className="lr-bimestre" style={{ ...lineStyle(headerTpl.bimestre_bold !== false, headerTpl.bimestre_size), ...(cellStyle("header.bimestre") || {}) }} data-testid="libreta-header-bimestre">{headerBimestre}</div>
           )}
         </div>
         {showInitialsBox && (
@@ -407,10 +407,10 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <div><div className="lr-label">Apellidos y Nombres</div></div>
         <div><div className="lr-label">Salón</div></div>
         <div><div className="lr-label">N°Ord</div></div>
-        <div className="lr-value-box">{data.student.student_code || "—"}</div>
-        <div className="lr-value-box">{data.student.apellidos_nombres || "—"}</div>
-        <div className="lr-value-box">{(data.section?.display || "—").toUpperCase()}</div>
-        <div className="lr-value-box">{data.student.n_orden ?? "—"}</div>
+        <div className="lr-value-box" style={cellStyle("info.codigo")}>{data.student.student_code || "—"}</div>
+        <div className="lr-value-box" style={cellStyle("info.apellidos")}>{data.student.apellidos_nombres || "—"}</div>
+        <div className="lr-value-box" style={cellStyle("info.salon")}>{(data.section?.display || "—").toUpperCase()}</div>
+        <div className="lr-value-box" style={cellStyle("info.ord")}>{data.student.n_orden ?? "—"}</div>
       </div>
 
       {/* ── Tabla de calificaciones ── */}
@@ -424,13 +424,13 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             {isMixed ? (
               <>
                 <tr>
-                  <th rowSpan={3} className="lr-col-areas">ÁREAS</th>
-                  <th rowSpan={3} className="lr-col-asig">ASIGNATURAS</th>
-                  <th colSpan={periods.length * 2}>BIMESTRES</th>
-                  <th colSpan={2} className="lr-col-final">Promedio<br/>Final</th>
+                  <th rowSpan={3} className="lr-col-areas" style={cellStyle("th.areas")}>ÁREAS</th>
+                  <th rowSpan={3} className="lr-col-asig" style={cellStyle("th.asignaturas")}>ASIGNATURAS</th>
+                  <th colSpan={periods.length * 2} style={cellStyle("th.bimestres")}>BIMESTRES</th>
+                  <th colSpan={2} className="lr-col-final" style={cellStyle("th.promedio_final")}>Promedio<br/>Final</th>
                 </tr>
                 <tr>
-                  {periods.map(p => <th key={p.id} colSpan={2} className="lr-col-bim">{romano(p.orden)}</th>)}
+                  {periods.map((p, i) => <th key={p.id} colSpan={2} className="lr-col-bim" style={cellStyle(`th.bim${i+1}`)}>{romano(p.orden)}</th>)}
                   <th colSpan={2} />
                 </tr>
                 <tr>
@@ -445,19 +445,19 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             ) : (
               <>
                 <tr>
-                  <th rowSpan={2} className="lr-col-areas">ÁREAS</th>
-                  <th rowSpan={2} className="lr-col-asig">ASIGNATURAS</th>
-                  <th colSpan={periods.length}>BIMESTRES</th>
-                  <th rowSpan={2} className="lr-col-final">Promedio<br/>Final</th>
+                  <th rowSpan={2} className="lr-col-areas" style={cellStyle("th.areas")}>ÁREAS</th>
+                  <th rowSpan={2} className="lr-col-asig" style={cellStyle("th.asignaturas")}>ASIGNATURAS</th>
+                  <th colSpan={periods.length} style={cellStyle("th.bimestres")}>BIMESTRES</th>
+                  <th rowSpan={2} className="lr-col-final" style={cellStyle("th.promedio_final")}>Promedio<br/>Final</th>
                 </tr>
                 <tr>
-                  {periods.map(p => <th key={p.id} className="lr-col-bim">{romano(p.orden)}</th>)}
+                  {periods.map((p, i) => <th key={p.id} className="lr-col-bim" style={cellStyle(`th.bim${i+1}`)}>{romano(p.orden)}</th>)}
                 </tr>
               </>
             )}
           </thead>
           <tbody>
-            {areasList.map(renderArea)}
+            {areasList.map((a, i) => renderArea(a, i))}
           </tbody>
         </table>
       )}
