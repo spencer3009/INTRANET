@@ -115,17 +115,24 @@ class PrintFormatBody(BaseModel):
 
 
 class HeaderTemplateBody(BaseModel):
-    line1: Optional[str] = None  # "INSTITUCIÓN EDUCATIVA PRIVADA"
-    school_name_override: Optional[str] = None  # override school.legal_name if set
-    line3: Optional[str] = None  # "Informe de Progreso del Estudiante - {year}"
-    bimestre_label: Optional[str] = None  # default "{roman} BIMESTRE"
-    show_initials_box: Optional[bool] = None  # whether the right "AB" box renders
-    # Bold flags per line (default mirrors current visual)
+    line1: Optional[str] = None
+    school_name_override: Optional[str] = None
+    line3: Optional[str] = None
+    bimestre_label: Optional[str] = None
+    show_initials_box: Optional[bool] = None
     line1_bold: Optional[bool] = None
     school_name_bold: Optional[bool] = None
     line3_bold: Optional[bool] = None
     nivel_bold: Optional[bool] = None
     bimestre_bold: Optional[bool] = None
+    # Per-line size multipliers (1.0 = default look). Allowed: 0.8 / 1.0 / 1.2 / 1.4 / 1.6 / 1.8
+    line1_size: Optional[float] = None
+    school_name_size: Optional[float] = None
+    line3_size: Optional[float] = None
+    nivel_size: Optional[float] = None
+    bimestre_size: Optional[float] = None
+    # Logo size multiplier (1.0 = default ~65×65px). Allowed: 0.8 / 1.0 / 1.2 / 1.4 / 1.6 / 1.8 / 2.0
+    logo_scale: Optional[float] = None
 
 
 class ReportCardSettingsUpdate(BaseModel):
@@ -141,7 +148,7 @@ class ReportCardSettingsUpdate(BaseModel):
 # Defaults for the editable libreta header.
 _HEADER_TEMPLATE_DEFAULTS = {
     "line1": "INSTITUCIÓN EDUCATIVA PRIVADA",
-    "school_name_override": "",  # empty = use real school.legal_name / name
+    "school_name_override": "",
     "line3": "Informe de Progreso del Estudiante - {year}",
     "bimestre_label": "{roman} BIMESTRE",
     "show_initials_box": True,
@@ -150,7 +157,16 @@ _HEADER_TEMPLATE_DEFAULTS = {
     "line3_bold": True,
     "nivel_bold": True,
     "bimestre_bold": True,
+    "line1_size": 1.0,
+    "school_name_size": 1.0,
+    "line3_size": 1.0,
+    "nivel_size": 1.0,
+    "bimestre_size": 1.0,
+    "logo_scale": 1.0,
 }
+
+# Valid size multipliers for header text + logo.
+_HEADER_SIZE_VALUES = {0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0}
 
 
 def _merge_header_template(stored) -> dict:
@@ -158,7 +174,16 @@ def _merge_header_template(stored) -> dict:
     if isinstance(stored, dict):
         for k in _HEADER_TEMPLATE_DEFAULTS:
             if k in stored and stored[k] is not None:
-                out[k] = stored[k]
+                # Validate size multipliers — only allow known values.
+                if k.endswith("_size") or k == "logo_scale":
+                    try:
+                        v = float(stored[k])
+                        if v in _HEADER_SIZE_VALUES:
+                            out[k] = v
+                    except (TypeError, ValueError):
+                        pass
+                else:
+                    out[k] = stored[k]
     return out
 
 

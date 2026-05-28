@@ -28,7 +28,32 @@ const HEADER_DEFAULTS = {
   line3_bold: true,
   nivel_bold: true,
   bimestre_bold: true,
+  line1_size: 1.0,
+  school_name_size: 1.0,
+  line3_size: 1.0,
+  nivel_size: 1.0,
+  bimestre_size: 1.0,
+  logo_scale: 1.0,
 };
+
+const SIZE_OPTIONS = [
+  { v: 0.8, label: "S" },
+  { v: 1.0, label: "M" },
+  { v: 1.2, label: "L" },
+  { v: 1.4, label: "XL" },
+  { v: 1.6, label: "2XL" },
+  { v: 1.8, label: "3XL" },
+];
+
+const LOGO_OPTIONS = [
+  { v: 0.8, label: "Pequeño" },
+  { v: 1.0, label: "Normal" },
+  { v: 1.2, label: "Grande" },
+  { v: 1.4, label: "XL" },
+  { v: 1.6, label: "2XL" },
+  { v: 1.8, label: "3XL" },
+  { v: 2.0, label: "Gigante" },
+];
 
 /**
  * Settings tab — choose between auto-generated report cards (from the
@@ -463,6 +488,9 @@ export default function LibretasSettingsTab({ token }) {
                 boldField="line1_bold"
                 boldValue={!!headerTpl.line1_bold}
                 onToggleBold={(b) => saveHeaderTemplate({ line1_bold: b })}
+                sizeField="line1_size"
+                sizeValue={headerTpl.line1_size}
+                onChangeSize={(s) => saveHeaderTemplate({ line1_size: s })}
               />
               <HeaderEditableField
                 label="Nombre del colegio"
@@ -476,6 +504,9 @@ export default function LibretasSettingsTab({ token }) {
                 boldField="school_name_bold"
                 boldValue={headerTpl.school_name_bold !== false}
                 onToggleBold={(b) => saveHeaderTemplate({ school_name_bold: b })}
+                sizeField="school_name_size"
+                sizeValue={headerTpl.school_name_size}
+                onChangeSize={(s) => saveHeaderTemplate({ school_name_size: s })}
               />
               <HeaderEditableField
                 label="Subtítulo"
@@ -489,6 +520,9 @@ export default function LibretasSettingsTab({ token }) {
                 boldField="line3_bold"
                 boldValue={headerTpl.line3_bold !== false}
                 onToggleBold={(b) => saveHeaderTemplate({ line3_bold: b })}
+                sizeField="line3_size"
+                sizeValue={headerTpl.line3_size}
+                onChangeSize={(s) => saveHeaderTemplate({ line3_size: s })}
               />
               <HeaderEditableField
                 label="Etiqueta de bimestre"
@@ -502,7 +536,27 @@ export default function LibretasSettingsTab({ token }) {
                 boldField="bimestre_bold"
                 boldValue={headerTpl.bimestre_bold !== false}
                 onToggleBold={(b) => saveHeaderTemplate({ bimestre_bold: b })}
+                sizeField="bimestre_size"
+                sizeValue={headerTpl.bimestre_size}
+                onChangeSize={(s) => saveHeaderTemplate({ bimestre_size: s })}
               />
+              {/* Logo size */}
+              <div className="p-2 rounded-lg border border-slate-200 bg-white" data-testid="header-logo-scale-row">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-slate-700">Tamaño del logo</span>
+                  <select
+                    value={Number(headerTpl.logo_scale) || 1.0}
+                    disabled={saving}
+                    onChange={(e) => saveHeaderTemplate({ logo_scale: parseFloat(e.target.value) })}
+                    className="px-2 py-1 text-sm font-semibold text-slate-700 border-2 border-slate-300 rounded bg-white hover:border-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-50 cursor-pointer"
+                    data-testid="header-logo-scale-select"
+                  >
+                    {LOGO_OPTIONS.map((opt) => (
+                      <option key={opt.v} value={opt.v}>{opt.label} ({opt.v}×)</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-amber-300 transition-colors">
                 <input
                   type="checkbox"
@@ -687,6 +741,8 @@ function HeaderLivePreview({ tpl }) {
   const bimestre = interpolate(tpl.bimestre_label || "{roman} BIMESTRE");
   const showInitials = tpl.show_initials_box !== false;
   const fw = (on) => (on ? 700 : 400);
+  const sz = (mul, base) => Math.round(base * (Number(mul) || 1));
+  const logoScale = Number(tpl.logo_scale) || 1;
 
   return (
     <div data-testid="header-live-preview">
@@ -732,19 +788,19 @@ function HeaderLivePreview({ tpl }) {
             {/* Logo placeholder */}
             <div
               className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-sm"
-              style={{ width: "60px", height: "60px", border: "2px solid #1a3a52", color: "#1a3a52" }}
+              style={{ width: `${60 * logoScale}px`, height: `${60 * logoScale}px`, border: "2px solid #1a3a52", color: "#1a3a52", fontSize: `${14 * Math.sqrt(logoScale)}px` }}
             >
               C
             </div>
             {/* Center text block */}
             <div className="flex-1 text-center">
-              <div style={{ fontSize: "10px", letterSpacing: "0.5px", color: "#111", fontWeight: fw(tpl.line1_bold) }}>{line1}</div>
-              <div style={{ fontSize: "18px", fontWeight: fw(tpl.school_name_bold !== false), fontFamily: "Times, serif", color: "#0f172a", margin: "2px 0" }}>
+              <div style={{ fontSize: `${sz(tpl.line1_size, 10)}px`, letterSpacing: "0.5px", color: "#111", fontWeight: fw(tpl.line1_bold) }}>{line1}</div>
+              <div style={{ fontSize: `${sz(tpl.school_name_size, 18)}px`, fontWeight: fw(tpl.school_name_bold !== false), fontFamily: "Times, serif", color: "#0f172a", margin: "2px 0" }}>
                 {schoolName}
               </div>
-              <div style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: fw(tpl.line3_bold !== false) }}>{line3}</div>
-              <div style={{ fontSize: "10px", fontWeight: fw(tpl.nivel_bold !== false), marginTop: "4px" }}>2DO GRADO A PRIMARIA</div>
-              <div style={{ fontSize: "11px", fontWeight: fw(tpl.bimestre_bold !== false), marginTop: "2px" }}>{bimestre}</div>
+              <div style={{ fontSize: `${sz(tpl.line3_size, 12)}px`, color: "#1d4ed8", fontWeight: fw(tpl.line3_bold !== false) }}>{line3}</div>
+              <div style={{ fontSize: `${sz(tpl.nivel_size, 10)}px`, fontWeight: fw(tpl.nivel_bold !== false), marginTop: "4px" }}>2DO GRADO A PRIMARIA</div>
+              <div style={{ fontSize: `${sz(tpl.bimestre_size, 11)}px`, fontWeight: fw(tpl.bimestre_bold !== false), marginTop: "2px" }}>{bimestre}</div>
             </div>
             {/* Initials box (toggle) */}
             {showInitials && (
@@ -794,7 +850,7 @@ function HeaderRow({ label, value, muted }) {
  * Editable single-line input for a header field, with restore-to-default button.
  * Saves onBlur (or on Enter) to avoid spamming the API on each keystroke.
  */
-function HeaderEditableField({ label, field, value, defaultValue, onSave, onRestore, hint, saving, boldField, boldValue, onToggleBold }) {
+function HeaderEditableField({ label, field, value, defaultValue, onSave, onRestore, hint, saving, boldField, boldValue, onToggleBold, sizeField, sizeValue, onChangeSize }) {
   const [local, setLocal] = useState(value || "");
   useEffect(() => { setLocal(value || ""); }, [value]);
   const dirty = local !== (value || "");
@@ -828,7 +884,7 @@ function HeaderEditableField({ label, field, value, defaultValue, onSave, onRest
           onChange={(e) => setLocal(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); e.target.blur(); } }}
-          className="flex-1 text-sm px-2 py-1.5 border border-slate-300 rounded bg-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
+          className="flex-1 min-w-0 text-sm px-2 py-1.5 border border-slate-300 rounded bg-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
           style={boldValue ? { fontWeight: 700 } : undefined}
           data-testid={`header-input-${field}`}
         />
@@ -847,6 +903,20 @@ function HeaderEditableField({ label, field, value, defaultValue, onSave, onRest
           >
             B
           </button>
+        )}
+        {sizeField && (
+          <select
+            value={Number(sizeValue) || 1.0}
+            disabled={saving}
+            onChange={(e) => onChangeSize(parseFloat(e.target.value))}
+            title="Tamaño del texto"
+            className="flex-shrink-0 h-9 px-1.5 text-xs font-semibold text-slate-700 border-2 border-slate-300 rounded bg-white hover:border-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-50 cursor-pointer"
+            data-testid={`header-size-${field}`}
+          >
+            {SIZE_OPTIONS.map((opt) => (
+              <option key={opt.v} value={opt.v}>{opt.label}</option>
+            ))}
+          </select>
         )}
       </div>
       {hint && <div className="text-[10px] text-slate-500 mt-0.5">{hint}</div>}

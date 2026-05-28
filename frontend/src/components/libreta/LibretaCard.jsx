@@ -98,7 +98,12 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     headerVars,
   );
   const showInitialsBox = headerTpl.show_initials_box !== false;
-  const boldStyle = (on) => (on ? { fontWeight: "bold" } : { fontWeight: "normal" });
+  const lineStyle = (bold, sizeMul) => {
+    const out = { fontWeight: bold ? "bold" : "normal" };
+    if (sizeMul && Number(sizeMul) !== 1) out.fontSize = `${Number(sizeMul) * 100}%`;
+    return out;
+  };
+  const logoScale = Number(headerTpl.logo_scale) || 1;
 
   // Inject a dynamic <style> tag with the matching @page rule so the printer
   // / "Save as PDF" dialog uses the right paper size + orientation. Browsers
@@ -326,22 +331,22 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     <div className={`libreta-card ${fmtClass}`} data-testid="libreta-card">
       {/* ── Header ── */}
       <header className="lr-header">
-        <div className="lr-logo">
+        <div className="lr-logo" style={logoScale !== 1 ? { width: `${65 * logoScale}px`, height: `${65 * logoScale}px` } : undefined}>
           {data.school.logo_url ? (
             <img src={data.school.logo_url} alt="Logo" />
           ) : (
-            <div style={{ width: 65, height: 65, border: "2px solid #1a3a52", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#1a3a52", fontWeight: "bold", fontSize: 9 }}>
+            <div style={{ width: 65 * logoScale, height: 65 * logoScale, border: "2px solid #1a3a52", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#1a3a52", fontWeight: "bold", fontSize: 9 * Math.sqrt(logoScale) }}>
               {(data.school.short_name || data.school.name || "")[0] || "C"}
             </div>
           )}
         </div>
         <div className="lr-header-center">
-          <div className="lr-privada" style={boldStyle(headerTpl.line1_bold)} data-testid="libreta-header-line1">{headerLine1}</div>
-          <div className="lr-colegio" style={boldStyle(headerTpl.school_name_bold !== false)}>{headerSchoolName}</div>
-          <div className="lr-informe" style={boldStyle(headerTpl.line3_bold !== false)} data-testid="libreta-header-line3">{headerLine3}</div>
-          <div className="lr-nivel" style={boldStyle(headerTpl.nivel_bold !== false)}>{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
+          <div className="lr-privada" style={lineStyle(headerTpl.line1_bold, headerTpl.line1_size)} data-testid="libreta-header-line1">{headerLine1}</div>
+          <div className="lr-colegio" style={lineStyle(headerTpl.school_name_bold !== false, headerTpl.school_name_size)}>{headerSchoolName}</div>
+          <div className="lr-informe" style={lineStyle(headerTpl.line3_bold !== false, headerTpl.line3_size)} data-testid="libreta-header-line3">{headerLine3}</div>
+          <div className="lr-nivel" style={lineStyle(headerTpl.nivel_bold !== false, headerTpl.nivel_size)}>{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
           {data.period_active?.orden && (
-            <div className="lr-bimestre" style={boldStyle(headerTpl.bimestre_bold !== false)} data-testid="libreta-header-bimestre">{headerBimestre}</div>
+            <div className="lr-bimestre" style={lineStyle(headerTpl.bimestre_bold !== false, headerTpl.bimestre_size)} data-testid="libreta-header-bimestre">{headerBimestre}</div>
           )}
         </div>
         {showInitialsBox && (
