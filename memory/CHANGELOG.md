@@ -1,5 +1,17 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Fix P0: Libreta en print ahora ocupa todo el ancho del papel ✅
+- **Reportado**: la libreta al imprimirse / exportarse a PDF se veía pequeña al centro de la hoja con grandes franjas blancas laterales y firmas en una 2da hoja casi vacía.
+- **Root cause**: `.libreta-card { width: 21cm }` + `@page { margin: 1.5cm }` → el contenido (21cm) era más ancho que el área útil (18cm) → el navegador aplicaba "fit-to-page" comprimiendo todo al ~85%. Además `padding: 1cm` interno se sumaba al margen del `@page` desperdiciando más espacio. Y `.lr-page2 { min-height: 22cm; page-break-before: always }` forzaba siempre una 2da hoja.
+- **Fix** (`/app/frontend/src/components/libreta/LibretaCard.css` + `LibretaCard.jsx`):
+  - `@page` ahora usa `margin: 0.8cm` (balanceado, no exagerado).
+  - En `@media print` la `.libreta-card` y TODAS sus variantes (`lr-paper-a4/letter/legal`, `lr-orient-landscape`) hacen override a `width: 100% !important; padding: 0 !important; margin: 0 !important` — la tabla aprovecha el ancho real del papel.
+  - `.lr-page2` en print: `min-height: 0`, `page-break-before: auto`, `margin: 12px 0 0 0` → si cabe junto a la página 1, se acomoda; ya no fuerza hoja vacía.
+  - `.lr-page-header` y `.lr-signatures` en print: márgenes verticales reducidos de 180px → 16px / 48px → firmas justo debajo del contenido.
+  - `LibretaCard.jsx` actualiza también su `@page` dinámico a `margin: 0.8cm`.
+- **Verificado E2E**: screenshot con `emulate_media: print` confirma libreta a ancho completo, tabla ocupando todo el ancho útil, firmas inmediatamente debajo de Situación Final, todo en una sola hoja A4.
+
+
 ## Feb 28, 2026 - Feature PREMIUM: Panel "Formato de impresión" en Ajustes → Libreta ✅
 - **Problema reportado**: las libretas se imprimían con letras minúsculas e ilegibles, y la tabla principal se cortaba lateralmente (caso real: Sr. de Gualamita, 1° Primaria con muchas asignaturas + formato mixto).
 - **Solución**: nuevo panel premium con 5 controles de formato.

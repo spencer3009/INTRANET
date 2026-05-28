@@ -398,7 +398,7 @@ export default function LibretasSettingsTab({ token }) {
           options={[
             { v: "small",  label: "Pequeña",      sub: "0.85×", example: "ABc" },
             { v: "normal", label: "Normal",       sub: "1.0×",  example: "ABc" },
-            { v: "large",  label: "Grande",       sub: "1.15×", example: "ABc", recommended: true },
+            { v: "large",  label: "Grande",       sub: "1.15×", example: "ABc" },
             { v: "xlarge", label: "Extra grande", sub: "1.3×",  example: "ABc" },
           ]}
           saving={saving}
@@ -408,13 +408,13 @@ export default function LibretasSettingsTab({ token }) {
         <PrintFormatGroup
           icon={<RotateCw className="w-4 h-4" />}
           label="Orientación del papel"
-          hint="Horizontal ofrece MUCHO más ancho — recomendado si tienes muchas asignaturas o usas formato 'mixto'."
+          hint="Mantén Vertical si imprimes en hojas A4 normales. Solo usa Horizontal si tu colegio imprime en hojas apaisadas o tiene muchísimas asignaturas."
           field="orientation"
           value={printFormat.orientation}
           onChange={setPrintField}
           options={[
-            { v: "portrait",  label: "Vertical",   sub: "Tradicional" },
-            { v: "landscape", label: "Horizontal", sub: "Más ancho", recommended: true },
+            { v: "portrait",  label: "Vertical",   sub: "Default" },
+            { v: "landscape", label: "Horizontal", sub: "Apaisado" },
           ]}
           saving={saving}
         />
@@ -468,7 +468,7 @@ export default function LibretasSettingsTab({ token }) {
         />
 
         <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
-          <b>💡 Tip:</b> si te reportan que "las letras salen muy pequeñas", prueba primero <b>Orientación: Horizontal</b> + <b>Tamaño: Grande</b>. Es la combinación que más gana.
+          <b>💡 Tip:</b> el default (Vertical · A4 · Normal · Cómodo) está optimizado para impresión estándar. Si los padres reportan letras muy pequeñas, sube el <b>Tamaño de letra</b> a "Grande". Solo cambia a Horizontal si tu colegio imprime en hojas apaisadas.
         </div>
       </section>
 

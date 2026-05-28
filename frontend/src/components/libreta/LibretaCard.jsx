@@ -84,7 +84,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       letter: "letter",
       legal: "legal",
     };
-    const css = `@page { size: ${sizeMap[paper] || "A4"} ${orient}; margin: 1cm; }`;
+    const css = `@page { size: ${sizeMap[paper] || "A4"} ${orient}; margin: 0.8cm; }`;
     let tag = document.getElementById("libreta-print-page-rule");
     if (!tag) {
       tag = document.createElement("style");

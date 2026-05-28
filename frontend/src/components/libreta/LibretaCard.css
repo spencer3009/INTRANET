@@ -135,13 +135,47 @@
 .lr-empty { padding: 32px; text-align: center; color: #6b7280; font-style: italic; }
 
 /* ── Print ── */
-@page { size: A4; margin: 1.5cm; }
+@page { size: A4; margin: 0.8cm; }
 @media print {
   body * { visibility: hidden; }
   .libreta-printable, .libreta-printable * { visibility: visible; }
   .libreta-printable { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-  .libreta-card { box-shadow: none; padding: 0; width: auto; }
-  .lr-page2 { margin: 0; }
+
+  /* Ocupar TODO el ancho útil del papel en lugar de quedar centrado y chico.
+     Override all paper-size / orientation modifier widths — at print time the
+     @page rules already manage the physical paper size. */
+  .libreta-card,
+  .libreta-card.lr-paper-a4,
+  .libreta-card.lr-paper-letter,
+  .libreta-card.lr-paper-legal,
+  .libreta-card.lr-orient-landscape,
+  .libreta-card.lr-paper-letter.lr-orient-landscape,
+  .libreta-card.lr-paper-legal.lr-orient-landscape {
+    box-shadow: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Página 2 (firmas) compactada para encajar junto a la página 1 cuando
+     hay espacio — evita una segunda hoja casi vacía. */
+  .lr-page2,
+  .lr-page2.lr-paper-a4,
+  .lr-page2.lr-paper-letter,
+  .lr-page2.lr-paper-legal,
+  .lr-page2.lr-orient-landscape {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 12px 0 0 0 !important;
+    page-break-before: auto !important;
+    break-before: auto !important;
+  }
+  .lr-page-header { margin-bottom: 16px !important; }
+  .lr-signatures  { margin-top: 48px !important; }
+
   .libreta-printable, .libreta-printable * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .lr-grades { page-break-inside: auto; }
   .lr-grades tr { page-break-inside: avoid; page-break-after: auto; }
