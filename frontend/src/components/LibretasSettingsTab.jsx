@@ -147,12 +147,15 @@ export default function LibretasSettingsTab({ token }) {
   };
 
   // Save the editable header template (all fields go in a single PUT).
+  // IMPORTANT: we merge `next` over the CURRENT state, NOT over HEADER_DEFAULTS,
+  // otherwise saving e.g. school_name_override would silently reset every
+  // previously-changed bold flag back to its default.
   const saveHeaderTemplate = async (next) => {
     setSaving(true);
     setError(""); setSuccess("");
     try {
       await axios.put(`${API}/report-cards/settings`, { header_template: next }, { headers });
-      setHeaderTpl({ ...HEADER_DEFAULTS, ...next });
+      setHeaderTpl((prev) => ({ ...prev, ...next }));
       setSuccess("Plantilla del encabezado actualizada.");
       setTimeout(() => setSuccess(""), 2500);
     } catch (e) {
@@ -163,9 +166,7 @@ export default function LibretasSettingsTab({ token }) {
   };
 
   const restoreHeaderField = async (field) => {
-    const next = { ...headerTpl, [field]: headerDefaults[field] };
     await saveHeaderTemplate({ [field]: headerDefaults[field] });
-    setHeaderTpl(next);
   };
 
   const restoreHeaderAll = async () => {
