@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
+import LibretaPaletteEditor from "./LibretaPaletteEditor";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -652,47 +653,15 @@ export default function LibretasSettingsTab({ token }) {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          Paleta de colores — color de fondo por zona con auto-contraste
-          de texto. Editor visual con presets premium + custom picker.
+          Paleta de colores — editor visual estilo Canva. Click directo
+          sobre la zona de la libreta-muestra para pintarla.
           ═══════════════════════════════════════════════════════════════ */}
-      <section className="space-y-4 pt-4 border-t border-slate-200" data-testid="libreta-color-palette-section">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-pink-100 text-pink-700">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Paleta de colores</h3>
-              <p className="text-xs text-slate-500">Asigna un color de fondo a cada zona. El texto se ajusta automáticamente (blanco si el fondo es oscuro, negro si es claro) para mantener el contraste y la legibilidad.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={restoreAllColors}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors disabled:opacity-50"
-            data-testid="palette-restore-all"
-          >
-            Restaurar todos los colores
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {COLOR_ZONES.map((zone) => (
-            <ColorZoneCard
-              key={zone.key}
-              zone={zone}
-              value={palette[zone.key]}
-              onChange={(hex) => setZoneColor(zone.key, hex)}
-              saving={saving}
-            />
-          ))}
-        </div>
-
-        <div className="rounded-lg bg-pink-50 border border-pink-200 px-3 py-2 text-xs text-pink-900">
-          <b>💡 Tip:</b> usa colores SUAVES (pastel) si quieres que la libreta siga viéndose como un documento serio. Los colores oscuros funcionan bien para los headers (mucho énfasis visual) pero úsalos con moderación. El auto-contraste se encarga de que las letras siempre se lean.
-        </div>
-      </section>
+      <LibretaPaletteEditor
+        palette={palette}
+        onChangeColor={setZoneColor}
+        onResetAll={restoreAllColors}
+        saving={saving}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════
           Formato de impresión premium — controles para que la libreta
@@ -1084,6 +1053,7 @@ function PrintFormatGroup({ icon, label, hint, field, value, onChange, options, 
 
 /**
  * Compute black/white text color that contrasts with the given hex bg.
+ * (Kept for HeaderLivePreview internal use.)
  */
 function autoContrast(hex) {
   if (!hex || typeof hex !== "string") return "#000";
@@ -1103,68 +1073,6 @@ function autoContrast(hex) {
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return lum > 0.55 ? "#000" : "#fff";
 }
+// eslint-disable-next-line no-unused-vars
+const _autoContrast_kept_for_potential_inline_use = autoContrast;
 
-/**
- * Single-zone color picker card.
- */
-function ColorZoneCard({ zone, value, onChange, saving }) {
-  const isDefault = !value;
-  const textColor = value ? autoContrast(value) : "#475569";
-  return (
-    <div className="rounded-xl border-2 border-slate-200 bg-white p-3 hover:border-pink-300 transition-colors" data-testid={`palette-card-${zone.key}`}>
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-base">{zone.emoji}</span>
-          <span className="text-sm font-semibold text-slate-800">{zone.label}</span>
-        </div>
-        {!isDefault && (
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            disabled={saving}
-            className="text-[10px] text-slate-500 hover:text-slate-700 underline disabled:opacity-50"
-            data-testid={`palette-restore-${zone.key}`}
-          >
-            default
-          </button>
-        )}
-      </div>
-      <div
-        className="rounded-lg border border-slate-300 px-3 py-3 text-center text-sm font-semibold mb-2"
-        style={{ backgroundColor: value || "#ffffff", color: textColor }}
-      >
-        {isDefault ? <span className="text-slate-400 italic">Default</span> : "Texto de ejemplo · Aa"}
-      </div>
-      <p className="text-[10px] text-slate-500 mb-2 leading-snug">{zone.hint}</p>
-      <div className="flex flex-wrap gap-1.5 items-center">
-        {COLOR_PRESETS.map((p) => {
-          const selected = (value || "") === p.hex;
-          return (
-            <button
-              key={p.hex || "default"}
-              type="button"
-              onClick={() => onChange(p.hex)}
-              disabled={saving}
-              title={p.label}
-              className={`w-7 h-7 rounded-full border-2 transition-all relative ${
-                selected ? "border-slate-900 ring-2 ring-pink-200 scale-110" : "border-slate-300 hover:scale-105"
-              } disabled:opacity-50`}
-              style={{ background: p.hex || "repeating-linear-gradient(45deg, #fff, #fff 4px, #e5e7eb 4px, #e5e7eb 8px)" }}
-              data-testid={`palette-preset-${zone.key}-${p.hex.replace("#", "") || "default"}`}
-            />
-          );
-        })}
-        <label className="flex items-center gap-1 cursor-pointer ml-1" title="Color personalizado">
-          <input
-            type="color"
-            value={value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ffffff"}
-            disabled={saving}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-7 h-7 rounded border-2 border-slate-300 cursor-pointer p-0 hover:scale-105 transition-all"
-            data-testid={`palette-custom-${zone.key}`}
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
