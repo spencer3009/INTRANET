@@ -88,6 +88,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     headerTpl.line1 || "INSTITUCIÓN EDUCATIVA PRIVADA",
     headerVars,
   );
+  const headerSchoolName = ((headerTpl.school_name_override && String(headerTpl.school_name_override).trim()) || data.school?.legal_name || data.school?.name || "").toUpperCase();
   const headerLine3 = interpolate(
     headerTpl.line3 || "Informe de Progreso del Estudiante - {year}",
     headerVars,
@@ -97,6 +98,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     headerVars,
   );
   const showInitialsBox = headerTpl.show_initials_box !== false;
+  const boldStyle = (on) => (on ? { fontWeight: "bold" } : { fontWeight: "normal" });
 
   // Inject a dynamic <style> tag with the matching @page rule so the printer
   // / "Save as PDF" dialog uses the right paper size + orientation. Browsers
@@ -334,12 +336,12 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           )}
         </div>
         <div className="lr-header-center">
-          <div className="lr-privada" data-testid="libreta-header-line1">{headerLine1}</div>
-          <div className="lr-colegio">{(data.school.legal_name || data.school.name || "").toUpperCase()}</div>
-          <div className="lr-informe" data-testid="libreta-header-line3">{headerLine3}</div>
-          <div className="lr-nivel">{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
+          <div className="lr-privada" style={boldStyle(headerTpl.line1_bold)} data-testid="libreta-header-line1">{headerLine1}</div>
+          <div className="lr-colegio" style={boldStyle(headerTpl.school_name_bold !== false)}>{headerSchoolName}</div>
+          <div className="lr-informe" style={boldStyle(headerTpl.line3_bold !== false)} data-testid="libreta-header-line3">{headerLine3}</div>
+          <div className="lr-nivel" style={boldStyle(headerTpl.nivel_bold !== false)}>{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
           {data.period_active?.orden && (
-            <div className="lr-bimestre" data-testid="libreta-header-bimestre">{headerBimestre}</div>
+            <div className="lr-bimestre" style={boldStyle(headerTpl.bimestre_bold !== false)} data-testid="libreta-header-bimestre">{headerBimestre}</div>
           )}
         </div>
         {showInitialsBox && (

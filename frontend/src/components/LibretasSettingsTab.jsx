@@ -19,9 +19,15 @@ const PRINT_DEFAULTS = {
 
 const HEADER_DEFAULTS = {
   line1: "INSTITUCIÓN EDUCATIVA PRIVADA",
+  school_name_override: "",
   line3: "Informe de Progreso del Estudiante - {year}",
   bimestre_label: "{roman} BIMESTRE",
   show_initials_box: true,
+  line1_bold: false,
+  school_name_bold: true,
+  line3_bold: true,
+  nivel_bold: true,
+  bimestre_bold: true,
 };
 
 /**
@@ -432,9 +438,11 @@ export default function LibretasSettingsTab({ token }) {
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Plantilla por defecto</div>
             <div className="space-y-2 text-xs text-slate-600">
               <HeaderRow label="Línea superior" value={headerDefaults.line1} muted />
+              <HeaderRow label="Nombre del colegio" value="(nombre real del colegio)" muted />
               <HeaderRow label="Subtítulo" value={headerDefaults.line3} muted />
               <HeaderRow label="Etiqueta de bimestre" value={headerDefaults.bimestre_label} muted />
               <HeaderRow label="Cuadro lateral (foto/iniciales)" value={headerDefaults.show_initials_box ? "Visible" : "Oculto"} muted />
+              <HeaderRow label="Negritas por defecto" value="Nombre · Subtítulo · Grado · Bimestre" muted />
             </div>
           </div>
 
@@ -451,6 +459,22 @@ export default function LibretasSettingsTab({ token }) {
                 onRestore={() => restoreHeaderField("line1")}
                 hint="Aparece en la parte más alta del encabezado."
                 saving={saving}
+                boldField="line1_bold"
+                boldValue={!!headerTpl.line1_bold}
+                onToggleBold={(b) => saveHeaderTemplate({ line1_bold: b })}
+              />
+              <HeaderEditableField
+                label="Nombre del colegio"
+                field="school_name_override"
+                value={headerTpl.school_name_override}
+                defaultValue={headerDefaults.school_name_override}
+                onSave={(v) => saveHeaderTemplate({ school_name_override: v })}
+                onRestore={() => restoreHeaderField("school_name_override")}
+                hint="Déjalo vacío para usar el nombre legal del colegio. Escribe aquí para sobreescribirlo (ej: 'COLEGIO EL ROBLE — 2026')."
+                saving={saving}
+                boldField="school_name_bold"
+                boldValue={headerTpl.school_name_bold !== false}
+                onToggleBold={(b) => saveHeaderTemplate({ school_name_bold: b })}
               />
               <HeaderEditableField
                 label="Subtítulo"
@@ -461,6 +485,9 @@ export default function LibretasSettingsTab({ token }) {
                 onRestore={() => restoreHeaderField("line3")}
                 hint="Variables: {year} = año actual."
                 saving={saving}
+                boldField="line3_bold"
+                boldValue={headerTpl.line3_bold !== false}
+                onToggleBold={(b) => saveHeaderTemplate({ line3_bold: b })}
               />
               <HeaderEditableField
                 label="Etiqueta de bimestre"
@@ -471,7 +498,21 @@ export default function LibretasSettingsTab({ token }) {
                 onRestore={() => restoreHeaderField("bimestre_label")}
                 hint="Variables: {roman} = número romano (I, II, III, IV)."
                 saving={saving}
+                boldField="bimestre_bold"
+                boldValue={headerTpl.bimestre_bold !== false}
+                onToggleBold={(b) => saveHeaderTemplate({ bimestre_bold: b })}
               />
+              <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-amber-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={headerTpl.nivel_bold !== false}
+                  disabled={saving}
+                  onChange={(e) => saveHeaderTemplate({ nivel_bold: e.target.checked })}
+                  className="w-4 h-4 accent-amber-600"
+                  data-testid="header-nivel-bold-toggle"
+                />
+                <span className="text-sm text-slate-700">Grado / sección en <b>negrita</b></span>
+              </label>
               <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-amber-300 transition-colors">
                 <input
                   type="checkbox"
@@ -638,9 +679,13 @@ function HeaderLivePreview({ tpl }) {
     });
 
   const line1 = interpolate(tpl.line1 || "INSTITUCIÓN EDUCATIVA PRIVADA");
+  const schoolName = (tpl.school_name_override && String(tpl.school_name_override).trim())
+    ? String(tpl.school_name_override).trim().toUpperCase()
+    : "COLEGIO DE EJEMPLO";
   const line3 = interpolate(tpl.line3 || "Informe de Progreso del Estudiante - {year}");
   const bimestre = interpolate(tpl.bimestre_label || "{roman} BIMESTRE");
   const showInitials = tpl.show_initials_box !== false;
+  const fw = (on) => (on ? 700 : 400);
 
   return (
     <div data-testid="header-live-preview">
@@ -692,13 +737,13 @@ function HeaderLivePreview({ tpl }) {
             </div>
             {/* Center text block */}
             <div className="flex-1 text-center">
-              <div style={{ fontSize: "10px", letterSpacing: "0.5px", color: "#111" }}>{line1}</div>
-              <div style={{ fontSize: "18px", fontWeight: "bold", fontFamily: "Times, serif", color: "#0f172a", margin: "2px 0" }}>
-                COLEGIO DE EJEMPLO
+              <div style={{ fontSize: "10px", letterSpacing: "0.5px", color: "#111", fontWeight: fw(tpl.line1_bold) }}>{line1}</div>
+              <div style={{ fontSize: "18px", fontWeight: fw(tpl.school_name_bold !== false), fontFamily: "Times, serif", color: "#0f172a", margin: "2px 0" }}>
+                {schoolName}
               </div>
-              <div style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 600 }}>{line3}</div>
-              <div style={{ fontSize: "10px", fontWeight: "bold", marginTop: "4px" }}>2DO GRADO A PRIMARIA</div>
-              <div style={{ fontSize: "11px", fontWeight: "bold", marginTop: "2px" }}>{bimestre}</div>
+              <div style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: fw(tpl.line3_bold !== false) }}>{line3}</div>
+              <div style={{ fontSize: "10px", fontWeight: fw(tpl.nivel_bold !== false), marginTop: "4px" }}>2DO GRADO A PRIMARIA</div>
+              <div style={{ fontSize: "11px", fontWeight: fw(tpl.bimestre_bold !== false), marginTop: "2px" }}>{bimestre}</div>
             </div>
             {/* Initials box (toggle) */}
             {showInitials && (
@@ -748,7 +793,7 @@ function HeaderRow({ label, value, muted }) {
  * Editable single-line input for a header field, with restore-to-default button.
  * Saves onBlur (or on Enter) to avoid spamming the API on each keystroke.
  */
-function HeaderEditableField({ label, field, value, defaultValue, onSave, onRestore, hint, saving }) {
+function HeaderEditableField({ label, field, value, defaultValue, onSave, onRestore, hint, saving, boldField, boldValue, onToggleBold }) {
   const [local, setLocal] = useState(value || "");
   useEffect(() => { setLocal(value || ""); }, [value]);
   const dirty = local !== (value || "");
@@ -774,16 +819,35 @@ function HeaderEditableField({ label, field, value, defaultValue, onSave, onRest
           </button>
         )}
       </div>
-      <input
-        type="text"
-        value={local}
-        disabled={saving}
-        onChange={(e) => setLocal(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); e.target.blur(); } }}
-        className="w-full text-sm px-2 py-1.5 border border-slate-300 rounded bg-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
-        data-testid={`header-input-${field}`}
-      />
+      <div className="flex gap-1.5">
+        <input
+          type="text"
+          value={local}
+          disabled={saving}
+          onChange={(e) => setLocal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); e.target.blur(); } }}
+          className="flex-1 text-sm px-2 py-1.5 border border-slate-300 rounded bg-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
+          style={boldValue ? { fontWeight: 700 } : undefined}
+          data-testid={`header-input-${field}`}
+        />
+        {boldField && (
+          <button
+            type="button"
+            onClick={() => onToggleBold(!boldValue)}
+            disabled={saving}
+            title={boldValue ? "Quitar negrita" : "Poner en negrita"}
+            className={`flex-shrink-0 w-9 h-9 flex items-center justify-center rounded border-2 font-bold text-sm transition-all ${
+              boldValue
+                ? "border-amber-600 bg-amber-100 text-amber-900"
+                : "border-slate-300 bg-white text-slate-500 hover:border-amber-400 hover:bg-amber-50"
+            } disabled:opacity-50`}
+            data-testid={`header-bold-${field}`}
+          >
+            B
+          </button>
+        )}
+      </div>
       {hint && <div className="text-[10px] text-slate-500 mt-0.5">{hint}</div>}
     </div>
   );

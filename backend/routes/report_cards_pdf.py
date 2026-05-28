@@ -116,9 +116,16 @@ class PrintFormatBody(BaseModel):
 
 class HeaderTemplateBody(BaseModel):
     line1: Optional[str] = None  # "INSTITUCIÓN EDUCATIVA PRIVADA"
+    school_name_override: Optional[str] = None  # override school.legal_name if set
     line3: Optional[str] = None  # "Informe de Progreso del Estudiante - {year}"
     bimestre_label: Optional[str] = None  # default "{roman} BIMESTRE"
     show_initials_box: Optional[bool] = None  # whether the right "AB" box renders
+    # Bold flags per line (default mirrors current visual)
+    line1_bold: Optional[bool] = None
+    school_name_bold: Optional[bool] = None
+    line3_bold: Optional[bool] = None
+    nivel_bold: Optional[bool] = None
+    bimestre_bold: Optional[bool] = None
 
 
 class ReportCardSettingsUpdate(BaseModel):
@@ -134,9 +141,15 @@ class ReportCardSettingsUpdate(BaseModel):
 # Defaults for the editable libreta header.
 _HEADER_TEMPLATE_DEFAULTS = {
     "line1": "INSTITUCIÓN EDUCATIVA PRIVADA",
+    "school_name_override": "",  # empty = use real school.legal_name / name
     "line3": "Informe de Progreso del Estudiante - {year}",
     "bimestre_label": "{roman} BIMESTRE",
     "show_initials_box": True,
+    "line1_bold": False,
+    "school_name_bold": True,
+    "line3_bold": True,
+    "nivel_bold": True,
+    "bimestre_bold": True,
 }
 
 
