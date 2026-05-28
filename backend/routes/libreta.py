@@ -295,6 +295,7 @@ async def get_libreta(
                  "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1,
                  "hide_asistencia_in_libreta": 1, "libreta_print_format": 1,
                  "libreta_header_template": 1, "libreta_color_palette": 1,
+                 "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1,
                  "libreta_mode": 1},
             ) or {}
             payload["metadata"] = {
@@ -314,6 +315,9 @@ async def get_libreta(
                 "print_format": snap_school.get("libreta_print_format") or prev_meta.get("print_format") or {},
                 "header_template": snap_school.get("libreta_header_template") or prev_meta.get("header_template") or {},
                 "color_palette": snap_school.get("libreta_color_palette") or prev_meta.get("color_palette") or {},
+                "cell_bold": snap_school.get("libreta_cell_bold") or prev_meta.get("cell_bold") or {},
+                "cell_size": snap_school.get("libreta_cell_size") or prev_meta.get("cell_size") or {},
+                "all_bold": bool(snap_school.get("libreta_all_bold", prev_meta.get("all_bold", False))),
                 "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
 
@@ -411,7 +415,7 @@ async def get_libreta(
 
     school_doc = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1, "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1},
     ) or {}
 
     grade_doc = await db.grades.find_one(
@@ -818,6 +822,9 @@ async def get_libreta(
             "print_format": school_doc.get("libreta_print_format") or {},
             "header_template": school_doc.get("libreta_header_template") or {},
             "color_palette": school_doc.get("libreta_color_palette") or {},
+            "cell_bold": school_doc.get("libreta_cell_bold") or {},
+            "cell_size": school_doc.get("libreta_cell_size") or {},
+            "all_bold": bool(school_doc.get("libreta_all_bold")),
             "conducta_template_mode": conducta_ext_payload.get("mode") or "default",
         },
     }
@@ -1116,6 +1123,9 @@ async def close_period(
             "print_format": prev_meta.get("print_format") or {},
             "header_template": prev_meta.get("header_template") or {},
             "color_palette": prev_meta.get("color_palette") or {},
+            "cell_bold": prev_meta.get("cell_bold") or {},
+            "cell_size": prev_meta.get("cell_size") or {},
+            "all_bold": bool(prev_meta.get("all_bold", False)),
             "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
         }
 

@@ -103,6 +103,9 @@ export default function LibretasSettingsTab({ token }) {
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
   const [headerDefaults, setHeaderDefaults] = useState(HEADER_DEFAULTS);
   const [palette, setPalette] = useState(COLOR_PALETTE_DEFAULTS);
+  const [cellBold, setCellBold] = useState({});
+  const [cellSize, setCellSize] = useState({});
+  const [allBold, setAllBold] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -123,6 +126,9 @@ export default function LibretasSettingsTab({ token }) {
           setHeaderDefaults({ ...HEADER_DEFAULTS, ...r.data.header_template_defaults });
         }
         setPalette({ ...COLOR_PALETTE_DEFAULTS, ...(r.data?.color_palette || {}) });
+        setCellBold(r.data?.cell_bold || {});
+        setCellSize(r.data?.cell_size || {});
+        setAllBold(Boolean(r.data?.all_bold));
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -258,6 +264,61 @@ export default function LibretasSettingsTab({ token }) {
       setTimeout(() => setSuccess(""), 2500);
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al restaurar colores");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Per-cell bold toggle. `value` is the new explicit boolean (true=bold,
+  // false=force-normal even when "Todo en negrita" is on).
+  const setCellBoldValue = async (cellId, value) => {
+    const next = { ...cellBold, [cellId]: value };
+    setCellBold(next);  // optimistic
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { cell_bold: { [cellId]: value } }, { headers });
+      setSuccess(value ? "Celda en negrita." : "Negrita quitada.");
+      setTimeout(() => setSuccess(""), 1800);
+    } catch (e) {
+      setCellBold(cellBold);  // rollback
+      setError(e?.response?.data?.detail || "Error al aplicar negrita");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Per-cell font size (px 10..20) or null to reset to auto.
+  const setCellSizeValue = async (cellId, size) => {
+    const next = { ...cellSize };
+    if (size == null) delete next[cellId]; else next[cellId] = size;
+    setCellSize(next);  // optimistic
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { cell_size: { [cellId]: size } }, { headers });
+      setSuccess(size == null ? "Tamaño restaurado." : `Tamaño ${size}px aplicado.`);
+      setTimeout(() => setSuccess(""), 1800);
+    } catch (e) {
+      setCellSize(cellSize);  // rollback
+      setError(e?.response?.data?.detail || "Error al aplicar tamaño");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Global "Todo en negrita" toggle.
+  const toggleAllBold = async (value) => {
+    setAllBold(value);  // optimistic
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { all_bold: value }, { headers });
+      setSuccess(value ? "Toda la libreta en negrita." : "Negrita global desactivada.");
+      setTimeout(() => setSuccess(""), 2200);
+    } catch (e) {
+      setAllBold(!value);  // rollback
+      setError(e?.response?.data?.detail || "Error al actualizar negrita global");
     } finally {
       setSaving(false);
     }
@@ -658,7 +719,13 @@ export default function LibretasSettingsTab({ token }) {
           ═══════════════════════════════════════════════════════════════ */}
       <LibretaPaletteEditor
         palette={palette}
+        cellBold={cellBold}
+        cellSize={cellSize}
+        allBold={allBold}
         onChangeColor={setZoneColor}
+        onChangeBold={setCellBoldValue}
+        onChangeSize={setCellSizeValue}
+        onToggleAllBold={toggleAllBold}
         onResetAll={restoreAllColors}
         saving={saving}
       />

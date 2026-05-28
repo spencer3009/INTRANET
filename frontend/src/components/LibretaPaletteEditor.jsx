@@ -34,7 +34,7 @@ function autoContrast(hex) {
   return lum > 0.55 ? "#000" : "#fff";
 }
 
-export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAll, saving }) {
+export default function LibretaPaletteEditor({ palette, cellBold, cellSize, allBold, onChangeColor, onChangeBold, onChangeSize, onToggleAllBold, onResetAll, saving }) {
   const [open, setOpen] = useState(null); // { cellId, label, x, y } | null
   const popoverRef = useRef(null);
 
@@ -53,16 +53,23 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
     setOpen({ cellId, label, x: rect.left, y: rect.bottom + 6 });
   };
 
+  // Visual style for a sample cell — mirrors LibretaCard: bg + auto-contrast
+  // text, per-cell bold, per-cell font size, and the global "all bold" toggle.
   const cellBg = (cellId) => {
     const bg = palette?.[cellId];
-    if (!bg) return undefined;
-    return { backgroundColor: bg, color: autoContrast(bg) };
+    const boldOverride = cellBold?.[cellId];
+    const sizeOverride = cellSize?.[cellId];
+    const style = {};
+    if (bg) { style.backgroundColor = bg; style.color = autoContrast(bg); }
+    if (boldOverride === false) style.fontWeight = "normal";
+    else if (boldOverride === true || allBold) style.fontWeight = "bold";
+    if (sizeOverride) style.fontSize = `${Number(sizeOverride)}px`;
+    return Object.keys(style).length ? style : undefined;
   };
 
   const handlePick = (hex) => {
     if (!open) return;
     onChangeColor(open.cellId, hex);
-    setOpen(null);
   };
 
   // Helper to wrap a clickable cell.
@@ -115,10 +122,26 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
         </button>
       </div>
 
+      {/* Global "Todo en negrita" toggle */}
+      <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-pink-300 hover:bg-pink-50/30 transition-colors" data-testid="palette-all-bold-row">
+        <input
+          type="checkbox"
+          checked={!!allBold}
+          disabled={saving}
+          onChange={(e) => onToggleAllBold(e.target.checked)}
+          className="w-4 h-4 accent-pink-600"
+          data-testid="palette-all-bold-toggle"
+        />
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-slate-800">Todo en <b>negrita</b></div>
+          <p className="text-xs text-slate-500 mt-0.5">Pone toda la libreta en negrita de un solo toque. Puedes quitar la negrita de celdas individuales con el botón "B" de cada celda.</p>
+        </div>
+      </label>
+
       <div className="relative rounded-2xl p-4 overflow-x-auto" style={{ background: "linear-gradient(135deg, #fdf4ff 0%, #fce7f3 50%, #fef3c7 100%)", boxShadow: "inset 0 0 30px rgba(168, 85, 247, 0.1)" }}>
         <div className="absolute inset-0 opacity-[0.06] pointer-events-none rounded-2xl" style={{ backgroundImage: "radial-gradient(#a855f7 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
 
-        <div className="relative mx-auto bg-white rounded shadow-lg" style={{ width: "100%", maxWidth: "780px", padding: "16px 18px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000", fontSize: "10px" }}>
+        <div className="relative mx-auto bg-white rounded shadow-lg" style={{ width: "100%", maxWidth: "780px", padding: "16px 18px", fontFamily: "Arial, Helvetica, sans-serif", color: "#000", fontSize: "10px", fontWeight: allBold ? "bold" : undefined }}>
 
           {/* HEADER ROW */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -319,6 +342,52 @@ export default function LibretaPaletteEditor({ palette, onChangeColor, onResetAl
               data-testid="palette-popover-reset">
               Quitar color
             </button>
+          </div>
+
+          {/* Texto: negrita + tamaño */}
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Texto</div>
+            <div className="flex items-center gap-2">
+              {(() => {
+                const effBold = cellBold?.[open.cellId] === true || (allBold && cellBold?.[open.cellId] !== false);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onChangeBold(open.cellId, !effBold)}
+                    disabled={saving}
+                    title={effBold ? "Quitar negrita" : "Poner en negrita"}
+                    className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded border-2 font-bold text-sm transition-all ${
+                      effBold
+                        ? "border-pink-600 bg-pink-100 text-pink-900"
+                        : "border-slate-300 bg-white text-slate-500 hover:border-pink-400 hover:bg-pink-50"
+                    } disabled:opacity-50`}
+                    data-testid="palette-popover-bold"
+                  >
+                    B
+                  </button>
+                );
+              })()}
+              <label className="flex-1 flex items-center gap-2 text-xs text-slate-600">
+                <span className="whitespace-nowrap">Tamaño:</span>
+                <select
+                  value={cellSize?.[open.cellId] || ""}
+                  disabled={saving}
+                  onChange={(e) => onChangeSize(open.cellId, e.target.value === "" ? null : parseInt(e.target.value, 10))}
+                  className="flex-1 h-9 px-2 text-xs font-semibold text-slate-700 border-2 border-slate-300 rounded bg-white hover:border-pink-400 focus:outline-none focus:border-pink-500 disabled:opacity-50 cursor-pointer"
+                  data-testid="palette-popover-size"
+                >
+                  <option value="">Auto</option>
+                  {[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((s) => (
+                    <option key={s} value={s}>{s}px</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {allBold && (
+              <p className="text-[10px] text-pink-700 mt-1.5">
+                "Todo en negrita" está activo. Usa el botón "B" para <b>quitar</b> la negrita solo de esta celda.
+              </p>
+            )}
           </div>
         </div>
       )}

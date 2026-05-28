@@ -158,7 +158,7 @@ class ReportCardSettingsUpdate(BaseModel):
     header_template: Optional[HeaderTemplateBody] = None
     color_palette: Optional[Dict[str, str]] = None
     cell_bold: Optional[Dict[str, bool]] = None
-    cell_size: Optional[Dict[str, int]] = None
+    cell_size: Optional[Dict[str, Optional[int]]] = None
     all_bold: Optional[bool] = None
 
 
@@ -208,6 +208,37 @@ def _merge_color_palette(stored) -> dict:
                     continue  # treat empty as "no override"
                 if _HEX_RE.match(v.strip()):
                     out[k] = v.strip().lower()
+    return out
+
+
+# Per-cell bold (cell_id → bool) and per-cell font size (cell_id → int 10..20).
+_CELL_SIZE_MIN = 10
+_CELL_SIZE_MAX = 20
+
+
+def _merge_cell_bold(stored) -> dict:
+    out = {}
+    if isinstance(stored, dict):
+        for k, v in stored.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
+            if isinstance(v, bool):
+                out[k] = v  # keep both True and explicit False (un-bold override)
+    return out
+
+
+def _merge_cell_size(stored) -> dict:
+    out = {}
+    if isinstance(stored, dict):
+        for k, v in stored.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
+            try:
+                iv = int(v)
+            except (TypeError, ValueError):
+                continue
+            if _CELL_SIZE_MIN <= iv <= _CELL_SIZE_MAX:
+                out[k] = iv
     return out
 
 
@@ -275,6 +306,9 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
         "color_palette": _merge_color_palette(school.get("libreta_color_palette")),
+        "cell_bold": _merge_cell_bold(school.get("libreta_cell_bold")),
+        "cell_size": _merge_cell_size(school.get("libreta_cell_size")),
+        "all_bold": bool(school.get("libreta_all_bold")),
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -331,6 +365,34 @@ async def update_report_card_settings(
             elif _HEX_RE.match(v.strip()):
                 merged_c[k] = v.strip().lower()
         update_fields["libreta_color_palette"] = merged_c
+    if body.cell_bold is not None:
+        stored_b = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_cell_bold": 1}) or {}).get("libreta_cell_bold") or {}
+        merged_b = dict(stored_b) if isinstance(stored_b, dict) else {}
+        for k, v in body.cell_bold.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
+            merged_b[k] = bool(v)  # store both True and explicit False
+        update_fields["libreta_cell_bold"] = merged_b
+    if body.cell_size is not None:
+        stored_s = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_cell_size": 1}) or {}).get("libreta_cell_size") or {}
+        merged_s = dict(stored_s) if isinstance(stored_s, dict) else {}
+        for k, v in body.cell_size.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
+            if v is None:
+                merged_s.pop(k, None)  # null = remove the override
+                continue
+            try:
+                iv = int(v)
+            except (TypeError, ValueError):
+                continue
+            if _CELL_SIZE_MIN <= iv <= _CELL_SIZE_MAX:
+                merged_s[k] = iv
+            else:
+                merged_s.pop(k, None)
+        update_fields["libreta_cell_size"] = merged_s
+    if body.all_bold is not None:
+        update_fields["libreta_all_bold"] = bool(body.all_bold)
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -346,6 +408,9 @@ async def update_report_card_settings(
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
         "color_palette": _merge_color_palette(school.get("libreta_color_palette")),
+        "cell_bold": _merge_cell_bold(school.get("libreta_cell_bold")),
+        "cell_size": _merge_cell_size(school.get("libreta_cell_size")),
+        "all_bold": bool(school.get("libreta_all_bold")),
     }
 
 

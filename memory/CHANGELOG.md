@@ -1,5 +1,25 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Negrita y tamaño de texto por celda + "Todo en negrita" (Fase Canva 3) ✅
+- **Pedido del usuario**: poder poner negrita por celda (botón "B"), elegir tamaño de texto por celda (10–20px) y un switch global "Todo en negrita" en el editor visual tipo Canva de la libreta.
+- **Backend** (`report_cards_pdf.py`):
+  - `ReportCardSettingsUpdate` ahora acepta `cell_bold` (Dict[str,bool]), `cell_size` (Dict[str,Optional[int]]) y `all_bold` (bool).
+  - Helpers `_merge_cell_bold` (guarda True y False explícito — el False permite des-negritar una celda cuando "Todo en negrita" está activo) y `_merge_cell_size` (valida 10–20px).
+  - `GET`/`PUT /api/report-cards/settings` persisten/devuelven los 3 campos. `cell_size: {id: null}` borra la override; `cell_bold` guarda booleano explícito.
+  - Persistidos en `schools.libreta_cell_bold`, `libreta_cell_size`, `libreta_all_bold`.
+- **Backend** (`libreta.py`):
+  - `cell_bold`, `cell_size`, `all_bold` propagados a `metadata` en las 3 rutas (compute live, snapshot read-through, snapshot create). Projection del school_doc y snap_school actualizada.
+- **Frontend editor** (`LibretaPaletteEditor.jsx`):
+  - Nuevo toggle global "Todo en negrita".
+  - Popover de cada celda ahora tiene sección "TEXTO": botón "B" (tri-estado: auto/negrita/quitar-negrita respecto al estado efectivo) + selector de tamaño (Auto, 10–20px).
+  - El preview de muestra refleja bold/size por celda y el bold global.
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): nuevos estados + handlers (`setCellBoldValue`, `setCellSizeValue`, `toggleAllBold`) con UI optimista y rollback; props pasadas al editor.
+- **Frontend Libreta** (`LibretaCard.jsx`): `cellStyle()` extendido para aplicar `fontWeight`/`fontSize` por celda; `all_bold` aplicado al contenedor raíz (hereda a toda la libreta incl. impresión nativa del navegador). False explícito des-negrita una celda bajo el bold global.
+- **Nota**: la libreta NO tiene generador de PDF en servidor (el botón "Descargar PDF" se quitó); la impresión usa el navegador con `LibretaCard.jsx`, así que el bold/size/all_bold ya se reflejan al imprimir.
+- **Verificado E2E**: curl PUT/GET persiste (incl. false explícito y reset por null); `/api/libreta/{id}` expone los campos en metadata (live path); screenshots confirman toggle global, botón "B" y selector 10–20px funcionando en el popover.
+- **Incidencia de entorno detectada**: `ENOSPC` en file watchers de webpack impedía el HMR — se reinició el frontend y se subió `fs.inotify.max_user_watches` para forzar recompilación.
+
+
 ## Feb 28, 2026 - Feature: Paleta de colores con auto-contraste (Fase 1) ✅
 - **Backend** (`report_cards_pdf.py` + `libreta.py`):
   - Nuevo `ColorPaletteBody` con 10 zonas: `header_banner`, `header_logo`, `initials_box`, `table_headers`, `area_rows`, `subject_rows`, `promedio_rows`, `asistencia_table`, `conducta_table`, `tutor_comments`.

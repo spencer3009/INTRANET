@@ -109,6 +109,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   // Each value is either an empty string (=use default look) or a hex color.
   // We compute an auto-contrast text color from the luminance of the bg.
   const palette = data?.metadata?.color_palette || {};
+  const cellBold = data?.metadata?.cell_bold || {};
+  const cellSize = data?.metadata?.cell_size || {};
+  const allBold = !!data?.metadata?.all_bold;
   const hexToRgb = (h) => {
     if (!h || typeof h !== "string") return null;
     const m = h.trim().replace(/^#/, "");
@@ -123,10 +126,18 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     return lum > 0.55 ? "#000" : "#fff";
   };
   // Returns inline style for a given cell_id (or undefined if no override).
+  // Applies: background color (+auto-contrast text), per-cell bold, per-cell
+  // font size, and the global "all bold" toggle (per-cell bold overrides it).
   const cellStyle = (cellId) => {
     const bg = palette?.[cellId];
-    if (!bg) return undefined;
-    return { backgroundColor: bg, color: autoText(bg) };
+    const boldOverride = cellBold?.[cellId];
+    const sizeOverride = cellSize?.[cellId];
+    const style = {};
+    if (bg) { style.backgroundColor = bg; style.color = autoText(bg); }
+    if (boldOverride === false) style.fontWeight = "normal";
+    else if (boldOverride === true || allBold) style.fontWeight = "bold";
+    if (sizeOverride) style.fontSize = `${Number(sizeOverride)}px`;
+    return Object.keys(style).length ? style : undefined;
   };
   // Keep the old `zoneStyle` / `rowBgStyle` / `rowTextStyle` aliases so
   // existing JSX call sites keep working. They each consult one or two
@@ -370,7 +381,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const tutorFullName = data?.tutor?.nombres_completos || "";
 
   return (
-    <div className={`libreta-card ${fmtClass}`} data-testid="libreta-card">
+    <div className={`libreta-card ${fmtClass}`} style={allBold ? { fontWeight: "bold" } : undefined} data-testid="libreta-card">
       {/* ── Header ── */}
       <header className="lr-header" style={zoneStyle("header_banner")}>
         <div className="lr-logo" style={{ ...(logoScale !== 1 ? { width: `${65 * logoScale}px`, height: `${65 * logoScale}px` } : {}), ...(zoneStyle("header_logo") || {}) }}>
