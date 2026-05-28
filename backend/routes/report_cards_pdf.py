@@ -114,6 +114,13 @@ class PrintFormatBody(BaseModel):
     table_style: Optional[str] = None  # "thin" | "bold" | "zebra"
 
 
+class HeaderTemplateBody(BaseModel):
+    line1: Optional[str] = None  # "INSTITUCIÓN EDUCATIVA PRIVADA"
+    line3: Optional[str] = None  # "Informe de Progreso del Estudiante - {year}"
+    bimestre_label: Optional[str] = None  # default "{roman} BIMESTRE"
+    show_initials_box: Optional[bool] = None  # whether the right "AB" box renders
+
+
 class ReportCardSettingsUpdate(BaseModel):
     report_card_source: Optional[str] = None  # "generated" | "pdf_upload"
     libreta_grade_format: Optional[str] = None  # "numeric" | "letters" | "mixed"
@@ -121,6 +128,25 @@ class ReportCardSettingsUpdate(BaseModel):
     hide_tutor_comments_in_libreta: Optional[bool] = None
     hide_asistencia_in_libreta: Optional[bool] = None
     print_format: Optional[PrintFormatBody] = None
+    header_template: Optional[HeaderTemplateBody] = None
+
+
+# Defaults for the editable libreta header.
+_HEADER_TEMPLATE_DEFAULTS = {
+    "line1": "INSTITUCIÓN EDUCATIVA PRIVADA",
+    "line3": "Informe de Progreso del Estudiante - {year}",
+    "bimestre_label": "{roman} BIMESTRE",
+    "show_initials_box": True,
+}
+
+
+def _merge_header_template(stored) -> dict:
+    out = dict(_HEADER_TEMPLATE_DEFAULTS)
+    if isinstance(stored, dict):
+        for k in _HEADER_TEMPLATE_DEFAULTS:
+            if k in stored and stored[k] is not None:
+                out[k] = stored[k]
+    return out
 
 
 # Defaults & allowed values for the print-format object.
@@ -166,6 +192,8 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
         "hide_asistencia_in_libreta": bool(school.get("hide_asistencia_in_libreta")),
         "print_format": _merge_print_format(school.get("libreta_print_format")),
+        "header_template": _merge_header_template(school.get("libreta_header_template")),
+        "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -204,6 +232,13 @@ async def update_report_card_settings(
             if k in _PRINT_FORMAT_ALLOWED and v in _PRINT_FORMAT_ALLOWED[k]:
                 merged[k] = v
         update_fields["libreta_print_format"] = merged
+    if body.header_template is not None:
+        stored_h = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_header_template": 1}) or {}).get("libreta_header_template") or {}
+        merged_h = _merge_header_template(stored_h)
+        for k, v in body.header_template.dict(exclude_unset=True).items():
+            if k in _HEADER_TEMPLATE_DEFAULTS and v is not None:
+                merged_h[k] = v
+        update_fields["libreta_header_template"] = merged_h
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -216,6 +251,8 @@ async def update_report_card_settings(
         "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
         "hide_asistencia_in_libreta": bool(school.get("hide_asistencia_in_libreta")),
         "print_format": _merge_print_format(school.get("libreta_print_format")),
+        "header_template": _merge_header_template(school.get("libreta_header_template")),
+        "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
     }
 
 

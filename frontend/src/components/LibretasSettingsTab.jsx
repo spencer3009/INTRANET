@@ -17,6 +17,13 @@ const PRINT_DEFAULTS = {
   table_style: "thin",
 };
 
+const HEADER_DEFAULTS = {
+  line1: "INSTITUCIÓN EDUCATIVA PRIVADA",
+  line3: "Informe de Progreso del Estudiante - {year}",
+  bimestre_label: "{roman} BIMESTRE",
+  show_initials_box: true,
+};
+
 /**
  * Settings tab — choose between auto-generated report cards (from the
  * Consolidado) or PDF uploads (one per student/bimester, stored in Drive).
@@ -32,6 +39,8 @@ export default function LibretasSettingsTab({ token }) {
   const [hideAsistencia, setHideAsistencia] = useState(false);
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
+  const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
+  const [headerDefaults, setHeaderDefaults] = useState(HEADER_DEFAULTS);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -47,6 +56,10 @@ export default function LibretasSettingsTab({ token }) {
         setHideTutorComments(Boolean(r.data?.hide_tutor_comments_in_libreta));
         setHideAsistencia(Boolean(r.data?.hide_asistencia_in_libreta));
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
+        setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
+        if (r.data?.header_template_defaults) {
+          setHeaderDefaults({ ...HEADER_DEFAULTS, ...r.data.header_template_defaults });
+        }
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -125,6 +138,32 @@ export default function LibretasSettingsTab({ token }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Save the editable header template (all fields go in a single PUT).
+  const saveHeaderTemplate = async (next) => {
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { header_template: next }, { headers });
+      setHeaderTpl({ ...HEADER_DEFAULTS, ...next });
+      setSuccess("Plantilla del encabezado actualizada.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al actualizar la plantilla");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const restoreHeaderField = async (field) => {
+    const next = { ...headerTpl, [field]: headerDefaults[field] };
+    await saveHeaderTemplate({ [field]: headerDefaults[field] });
+    setHeaderTpl(next);
+  };
+
+  const restoreHeaderAll = async () => {
+    await saveHeaderTemplate(headerDefaults);
   };
 
   // Opens a preview tab — picks the first student in the school's directory
@@ -362,6 +401,94 @@ export default function LibretasSettingsTab({ token }) {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
+          Plantilla del encabezado — textos editables del header
+          (INSTITUCIÓN EDUCATIVA PRIVADA, Informe de Progreso, etc.)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section className="space-y-4 pt-4 border-t border-slate-200" data-testid="libreta-header-template-section">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-amber-100 text-amber-700">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Plantilla del encabezado</h3>
+              <p className="text-xs text-slate-500">Personaliza los textos del encabezado de la libreta. Puedes usar variables como <code className="bg-slate-100 px-1 rounded">{"{year}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{roman}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{grado}"}</code> y <code className="bg-slate-100 px-1 rounded">{"{seccion}"}</code>.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={restoreHeaderAll}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors disabled:opacity-50"
+            data-testid="header-restore-all"
+          >
+            Restaurar todo al default
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Plantilla por defecto */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="header-template-default">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Plantilla por defecto</div>
+            <div className="space-y-2 text-xs text-slate-600">
+              <HeaderRow label="Línea superior" value={headerDefaults.line1} muted />
+              <HeaderRow label="Subtítulo" value={headerDefaults.line3} muted />
+              <HeaderRow label="Etiqueta de bimestre" value={headerDefaults.bimestre_label} muted />
+              <HeaderRow label="Cuadro lateral (foto/iniciales)" value={headerDefaults.show_initials_box ? "Visible" : "Oculto"} muted />
+            </div>
+          </div>
+
+          {/* Plantilla en uso */}
+          <div className="rounded-xl border-2 border-amber-300 bg-amber-50/50 p-3" data-testid="header-template-current">
+            <div className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-2">Plantilla en uso</div>
+            <div className="space-y-2">
+              <HeaderEditableField
+                label="Línea superior"
+                field="line1"
+                value={headerTpl.line1}
+                defaultValue={headerDefaults.line1}
+                onSave={(v) => saveHeaderTemplate({ line1: v })}
+                onRestore={() => restoreHeaderField("line1")}
+                hint="Aparece en la parte más alta del encabezado."
+                saving={saving}
+              />
+              <HeaderEditableField
+                label="Subtítulo"
+                field="line3"
+                value={headerTpl.line3}
+                defaultValue={headerDefaults.line3}
+                onSave={(v) => saveHeaderTemplate({ line3: v })}
+                onRestore={() => restoreHeaderField("line3")}
+                hint="Variables: {year} = año actual."
+                saving={saving}
+              />
+              <HeaderEditableField
+                label="Etiqueta de bimestre"
+                field="bimestre_label"
+                value={headerTpl.bimestre_label}
+                defaultValue={headerDefaults.bimestre_label}
+                onSave={(v) => saveHeaderTemplate({ bimestre_label: v })}
+                onRestore={() => restoreHeaderField("bimestre_label")}
+                hint="Variables: {roman} = número romano (I, II, III, IV)."
+                saving={saving}
+              />
+              <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-amber-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={headerTpl.show_initials_box !== false}
+                  disabled={saving}
+                  onChange={(e) => saveHeaderTemplate({ show_initials_box: e.target.checked })}
+                  className="w-4 h-4 accent-amber-600"
+                  data-testid="header-show-initials-toggle"
+                />
+                <span className="text-sm text-slate-700">Mostrar cuadro lateral (foto o iniciales del alumno)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
           Formato de impresión premium — controles para que la libreta
           se vea bien al imprimir / exportar (resuelve el caso de letras
           muy pequeñas o tablas que se cortan en el papel).
@@ -486,6 +613,65 @@ export default function LibretasSettingsTab({ token }) {
       <div className="pt-4 border-t border-slate-200">
         <ConductaExtendidaEditor token={token} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Read-only display of a single template field (used in the "default" column).
+ */
+function HeaderRow({ label, value, muted }) {
+  return (
+    <div>
+      <div className={`text-[10px] font-semibold uppercase tracking-wide ${muted ? "text-slate-400" : "text-slate-600"}`}>{label}</div>
+      <div className={`text-xs ${muted ? "text-slate-500 italic" : "text-slate-800"} bg-white border border-slate-200 rounded px-2 py-1 mt-0.5`}>
+        {value || <span className="opacity-50">(vacío)</span>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Editable single-line input for a header field, with restore-to-default button.
+ * Saves onBlur (or on Enter) to avoid spamming the API on each keystroke.
+ */
+function HeaderEditableField({ label, field, value, defaultValue, onSave, onRestore, hint, saving }) {
+  const [local, setLocal] = useState(value || "");
+  useEffect(() => { setLocal(value || ""); }, [value]);
+  const dirty = local !== (value || "");
+  const isDefault = (value || "") === (defaultValue || "");
+
+  const commit = () => {
+    if (!dirty) return;
+    onSave(local);
+  };
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">{label}</div>
+        {!isDefault && (
+          <button
+            type="button"
+            onClick={onRestore}
+            disabled={saving}
+            className="text-[10px] text-slate-500 hover:text-slate-700 underline disabled:opacity-50"
+            data-testid={`header-restore-${field}`}
+          >
+            restaurar default
+          </button>
+        )}
+      </div>
+      <input
+        type="text"
+        value={local}
+        disabled={saving}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); e.target.blur(); } }}
+        className="w-full text-sm px-2 py-1.5 border border-slate-300 rounded bg-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
+        data-testid={`header-input-${field}`}
+      />
+      {hint && <div className="text-[10px] text-slate-500 mt-0.5">{hint}</div>}
     </div>
   );
 }

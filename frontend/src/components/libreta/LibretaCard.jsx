@@ -72,6 +72,32 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     `lr-orient-${pf.orientation || "portrait"}`,
   ].join(" ");
 
+  // Header template (editable in Ajustes → Libreta → "Plantilla del encabezado").
+  // Falls back to system defaults when the school hasn't customized.
+  const headerTpl = data?.metadata?.header_template || {};
+  const interpolate = (str, vars) =>
+    String(str || "").replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : ""));
+  const headerVars = {
+    year: data?.year || "",
+    roman: data?.period_active?.orden ? romano(data.period_active.orden) : "",
+    bimestre: data?.period_active?.orden ? romano(data.period_active.orden) : "",
+    grado: (data?.section?.display || data?.section?.nivel || "").toUpperCase(),
+    seccion: data?.section?.nombre || "",
+  };
+  const headerLine1 = interpolate(
+    headerTpl.line1 || "INSTITUCIÓN EDUCATIVA PRIVADA",
+    headerVars,
+  );
+  const headerLine3 = interpolate(
+    headerTpl.line3 || "Informe de Progreso del Estudiante - {year}",
+    headerVars,
+  );
+  const headerBimestre = interpolate(
+    headerTpl.bimestre_label || "{roman} BIMESTRE",
+    headerVars,
+  );
+  const showInitialsBox = headerTpl.show_initials_box !== false;
+
   // Inject a dynamic <style> tag with the matching @page rule so the printer
   // / "Save as PDF" dialog uses the right paper size + orientation. Browsers
   // do not allow @page to read CSS variables or attribute selectors, so we
@@ -308,20 +334,22 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           )}
         </div>
         <div className="lr-header-center">
-          <div className="lr-privada">INSTITUCIÓN EDUCATIVA PRIVADA</div>
+          <div className="lr-privada" data-testid="libreta-header-line1">{headerLine1}</div>
           <div className="lr-colegio">{(data.school.legal_name || data.school.name || "").toUpperCase()}</div>
-          <div className="lr-informe">Informe de Progreso del Estudiante - {data.year}</div>
+          <div className="lr-informe" data-testid="libreta-header-line3">{headerLine3}</div>
           <div className="lr-nivel">{(data.section?.display || data.section?.nivel || "").toUpperCase()}</div>
           {data.period_active?.orden && (
-            <div className="lr-bimestre">{romano(data.period_active.orden)} BIMESTRE</div>
+            <div className="lr-bimestre" data-testid="libreta-header-bimestre">{headerBimestre}</div>
           )}
         </div>
+        {showInitialsBox && (
         <div className="lr-photo">
           {data.student.photo_url
             ? <img src={data.student.photo_url} alt="Foto" />
             : <div className="lr-photo-placeholder" data-testid="libreta-photo-placeholder">{initials}</div>
           }
         </div>
+        )}
       </header>
 
       {/* ── Datos del estudiante (boxes) ── */}

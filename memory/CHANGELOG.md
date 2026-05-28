@@ -1,5 +1,25 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Plantilla del encabezado editable (Ajustes → Libreta) ✅
+- **Pedido**: el cliente quería poder editar los textos fijos del encabezado de la libreta (INSTITUCIÓN EDUCATIVA PRIVADA, Informe de Progreso del Estudiante, etiqueta de bimestre, etc.) con visibilidad de la plantilla default vs la en uso.
+- **Backend** (`report_cards_pdf.py` + `libreta.py`):
+  - Nuevo `HeaderTemplateBody` Pydantic + helpers `_HEADER_TEMPLATE_DEFAULTS` / `_merge_header_template`.
+  - Campos editables: `line1`, `line3`, `bimestre_label`, `show_initials_box`.
+  - `GET /api/report-cards/settings` ahora devuelve `header_template` (mergeado) + `header_template_defaults` (read-only para el UI).
+  - `PUT` acepta updates parciales y mergea con lo existente.
+  - Propagado a `metadata.header_template` en `/api/libreta/{id}` (compute, snapshot read-through y snapshot create) — projection actualizada en línea 413.
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`):
+  - Nueva sección "Plantilla del encabezado" con layout 2 columnas: defaults gris (read-only) | en uso amarilla (editable).
+  - Inputs con commit on blur / Enter para no spamear API.
+  - Botón "restaurar default" por campo (aparece solo si está modificado) + "Restaurar todo al default" global.
+  - Helpers `HeaderRow` (read-only) y `HeaderEditableField` (editable con restore).
+- **Frontend Libreta** (`LibretaCard.jsx`):
+  - Lee `metadata.header_template`, hace interpolación de variables `{year}`, `{roman}`, `{grado}`, `{seccion}`.
+  - Reemplaza el JSX hardcoded por `headerLine1`, `headerLine3`, `headerBimestre`.
+  - `show_initials_box` controla la visibilidad del recuadro lateral (foto/iniciales).
+- **Verificado E2E**: curl confirma PUT/GET + propagación a metadata. Screenshot del panel muestra layout correcto, descripción de variables y previsualización dual.
+
+
 ## Feb 28, 2026 - Fix P0: Libreta en print ahora ocupa todo el ancho del papel ✅
 - **Reportado**: la libreta al imprimirse / exportarse a PDF se veía pequeña al centro de la hoja con grandes franjas blancas laterales y firmas en una 2da hoja casi vacía.
 - **Root cause**: `.libreta-card { width: 21cm }` + `@page { margin: 1.5cm }` → el contenido (21cm) era más ancho que el área útil (18cm) → el navegador aplicaba "fit-to-page" comprimiendo todo al ~85%. Además `padding: 1cm` interno se sumaba al margen del `@page` desperdiciando más espacio. Y `.lr-page2 { min-height: 22cm; page-break-before: always }` forzaba siempre una 2da hoja.
