@@ -356,8 +356,27 @@ async def upload_report_card_pdf(
     except HTTPException:
         raise
     except Exception as e:
+        err_str = str(e).lower()
         logger.exception("Failed to upload report card PDF to Drive")
-        raise HTTPException(status_code=500, detail=f"Error subiendo a Google Drive: {e}")
+        # invalid_grant / token expired / revoked → mark school as disconnected
+        # so the UI ("Estado de Conexión") stops saying "Connected" misleadingly,
+        # and surface a friendly message asking the admin to reconnect.
+        if "invalid_grant" in err_str or "token has been expired" in err_str or "token has been revoked" in err_str:
+            try:
+                await db.schools.update_one(
+                    {"id": school_id},
+                    {"$set": {
+                        "google_drive_connected": False,
+                        "google_drive_token_invalidated_at": now_iso(),
+                    }},
+                )
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=409,
+                detail="La conexión con Google Drive expiró o fue revocada. Ve a Ajustes → Integraciones → Google Drive, presiona Desconectar y vuelve a conectar la misma cuenta de Google.",
+            )
+        raise HTTPException(status_code=502, detail=f"Error subiendo a Google Drive: {e}")
 
     # Replace existing (uploaded_at policy: replace same student+period; old
     # Drive file is left orphaned in Drive — user can clean up there. We do
