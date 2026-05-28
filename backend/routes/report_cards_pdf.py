@@ -156,9 +156,10 @@ class ReportCardSettingsUpdate(BaseModel):
     hide_asistencia_in_libreta: Optional[bool] = None
     print_format: Optional[PrintFormatBody] = None
     header_template: Optional[HeaderTemplateBody] = None
-    # Open dict: cell_id (string) → hex color (string). Empty hex = remove override.
-    # This supersedes the old fixed-zone ColorPaletteBody.
     color_palette: Optional[Dict[str, str]] = None
+    cell_bold: Optional[Dict[str, bool]] = None
+    cell_size: Optional[Dict[str, int]] = None
+    all_bold: Optional[bool] = None
 
 
 # Defaults for the editable libreta header.

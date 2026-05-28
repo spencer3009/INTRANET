@@ -15,7 +15,7 @@ import pytest
 import requests
 from datetime import datetime, timezone, timedelta
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://libreta-mixto-fix.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://grade-book-pro-1.preview.emergentagent.com").rstrip("/")
 
 ADMIN_EMAIL = "admin@elroble.edu"
 ADMIN_PASSWORD = "1234abc8"
