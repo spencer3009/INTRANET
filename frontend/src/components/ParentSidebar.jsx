@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Home, BookOpen, ClipboardList, BarChart3, CalendarCheck,
   MessageSquare, User, Menu, LogOut, Users, Clock, Trophy,
@@ -28,6 +29,21 @@ export default function ParentSidebar({
   const [showChildSelector, setShowChildSelector] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const isExpanded = isHovered || expanded;
+  // Whether the school shows "Calificaciones" in the parent portal menu.
+  const [showGrades, setShowGrades] = useState(true);
+
+  useEffect(() => {
+    if (!subdomain) return;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    axios
+      .get(`${API}/api/settings/public/${subdomain}`)
+      .then((r) => setShowGrades(r.data?.show_grades_parent !== false))
+      .catch(() => {});
+  }, [subdomain]);
+
+  const navItems = parentNavItems.filter(
+    (item) => item.id !== "calificaciones" || showGrades
+  );
   
   const handleNavClick = (item) => {
     if (item.route) {
@@ -145,7 +161,7 @@ export default function ParentSidebar({
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto custom-scroll">
-          {parentNavItems.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = active === item.id;
             return (

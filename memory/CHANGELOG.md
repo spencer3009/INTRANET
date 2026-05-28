@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Mostrar/Ocultar "Calificaciones" en el menú de Alumnos y Padres ✅
+- **Pedido**: dos interruptores en Ajustes → Libretas para mostrar/ocultar el botón "Calificaciones" del menú del portal de alumnos y del de padres (opción b: solo ocultar del menú, no bloquear URL).
+- **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `show_grades_student` y `show_grades_parent` (bool, default true). GET/PUT `/api/report-cards/settings` los persisten/devuelven (`schools.show_grades_student` / `show_grades_parent`).
+- **Backend** (`settings.py`): `GET /api/settings/public/{subdomain}` ahora devuelve ambos flags (legible sin auth, lo usan los portales).
+- **Frontend** (`StudentSidebar.jsx`, `ParentSidebar.jsx`): cada sidebar consulta `/api/settings/public/{subdomain}` y filtra el ítem `calificaciones` si el flag respectivo es false. Default true (no parpadeo perceptible).
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): nueva sección "Acceso a Calificaciones en los portales" con 2 toggles (alumnos/padres), carga + guardado optimista con rollback.
+- **Verificado E2E**: curl PUT/GET + endpoint público reflejan los flags; screenshot del portal de Padres confirma que "Calificaciones" desaparece del menú cuando se desactiva (mismo mecanismo en el portal de Alumnos). Flags restaurados a true tras la prueba.
+
 ## Feb 28, 2026 - Feature: Negrita y tamaño de texto por celda + "Todo en negrita" (Fase Canva 3) ✅
 - **Pedido del usuario**: poder poner negrita por celda (botón "B"), elegir tamaño de texto por celda (10–20px) y un switch global "Todo en negrita" en el editor visual tipo Canva de la libreta.
 - **Backend** (`report_cards_pdf.py`):

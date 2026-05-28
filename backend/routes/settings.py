@@ -359,6 +359,8 @@ async def get_public_settings(subdomain: str):
         "anthem_url": school.get("anthem_url"),
         "anthem_enabled": bool(school.get("anthem_enabled", False)),
         "anthem_autoplay": bool(school.get("anthem_autoplay", False)),
+        "show_grades_student": school.get("show_grades_student", True) is not False,
+        "show_grades_parent": school.get("show_grades_parent", True) is not False,
     }
 
 # ══════════════════════════════════════════════════════════════════════════════

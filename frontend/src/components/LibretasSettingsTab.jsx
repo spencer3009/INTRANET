@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff,
-  Printer, Maximize2, RotateCw, Rows, Eye,
+  Printer, Maximize2, RotateCw, Rows, Eye, Trophy, GraduationCap, Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
@@ -106,6 +106,8 @@ export default function LibretasSettingsTab({ token }) {
   const [cellBold, setCellBold] = useState({});
   const [cellSize, setCellSize] = useState({});
   const [allBold, setAllBold] = useState(false);
+  const [showGradesStudent, setShowGradesStudent] = useState(true);
+  const [showGradesParent, setShowGradesParent] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -129,6 +131,8 @@ export default function LibretasSettingsTab({ token }) {
         setCellBold(r.data?.cell_bold || {});
         setCellSize(r.data?.cell_size || {});
         setAllBold(Boolean(r.data?.all_bold));
+        setShowGradesStudent(r.data?.show_grades_student !== false);
+        setShowGradesParent(r.data?.show_grades_parent !== false);
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -319,6 +323,23 @@ export default function LibretasSettingsTab({ token }) {
     } catch (e) {
       setAllBold(!value);  // rollback
       setError(e?.response?.data?.detail || "Error al actualizar negrita global");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Show/hide the "Calificaciones" menu item in the student/parent portals.
+  const toggleShowGrades = async (field, value, setter, label) => {
+    setter(value);  // optimistic
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { [field]: value }, { headers });
+      setSuccess(`Calificaciones ${value ? "visible" : "oculto"} para ${label}.`);
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setter(!value);  // rollback
+      setError(e?.response?.data?.detail || "Error al actualizar el acceso a Calificaciones");
     } finally {
       setSaving(false);
     }
@@ -554,6 +575,51 @@ export default function LibretasSettingsTab({ token }) {
           <div className="flex-1">
             <div className="text-sm font-semibold text-slate-800">Ocultar asistencia</div>
             <p className="text-xs text-slate-500 mt-0.5">No se mostrará la tabla de <b>ASISTENCIA</b> (Presente / Tardanza / Falta / Justificada) en la libreta. El registro de asistencia diario se sigue tomando — solo no se imprime en la libreta.</p>
+          </div>
+        </label>
+      </section>
+
+      {/* ── Acceso a "Calificaciones" en los portales ──────────────────── */}
+      <section className="space-y-3 pt-4 border-t border-slate-200" data-testid="libreta-grades-access-section">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-violet-600" />
+            Acceso a "Calificaciones" en los portales
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">Controla si el botón <b>Calificaciones</b> aparece en el menú del portal de alumnos y/o de padres. Si lo desactivas, la opción desaparece del menú de ese portal.</p>
+        </div>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={showGradesStudent}
+            disabled={saving}
+            onChange={(e) => toggleShowGrades("show_grades_student", e.target.checked, setShowGradesStudent, "alumnos")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="show-grades-student-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-slate-500" /> Mostrar Calificaciones a Alumnos
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Si está activo, los alumnos verán el botón <b>Calificaciones</b> en su menú. Desactívalo para ocultarlo.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={showGradesParent}
+            disabled={saving}
+            onChange={(e) => toggleShowGrades("show_grades_parent", e.target.checked, setShowGradesParent, "padres")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="show-grades-parent-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-slate-500" /> Mostrar Calificaciones a Padres de Familia
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Si está activo, los padres verán el botón <b>Calificaciones</b> en su menú. Desactívalo para ocultarlo.</p>
           </div>
         </label>
       </section>

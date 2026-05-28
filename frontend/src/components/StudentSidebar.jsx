@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Home,
   BookOpen,
@@ -42,7 +43,23 @@ export default function StudentSidebar({
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  
+  // Whether the school shows "Calificaciones" in the student portal menu.
+  // Defaults to true; hidden only if the school explicitly disabled it.
+  const [showGrades, setShowGrades] = useState(true);
+
+  useEffect(() => {
+    if (!subdomain) return;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    axios
+      .get(`${API}/api/settings/public/${subdomain}`)
+      .then((r) => setShowGrades(r.data?.show_grades_student !== false))
+      .catch(() => {});
+  }, [subdomain]);
+
+  const navItems = studentNavItems.filter(
+    (item) => item.id !== "calificaciones" || showGrades
+  );
+
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
   
@@ -128,7 +145,7 @@ export default function StudentSidebar({
 
       {/* Nav items */}
       <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto custom-scroll">
-        {studentNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
           return (
