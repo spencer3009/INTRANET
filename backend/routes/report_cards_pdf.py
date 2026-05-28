@@ -349,15 +349,42 @@ async def upload_report_card_pdf(
 
 async def _stream_drive_pdf(school_id: str, drive_file_id: str, file_name: str):
     """Buffered download of a PDF from Drive (consistent with submissions)."""
-    service = await get_drive_service(school_id)
-    request = service.files().get_media(fileId=drive_file_id)
-    buf = io.BytesIO()
-    from googleapiclient.http import MediaIoBaseDownload
-    downloader = MediaIoBaseDownload(buf, request)
-    done = False
-    while not done:
-        _status, done = downloader.next_chunk()
-    buf.seek(0)
+    from googleapiclient.errors import HttpError
+    try:
+        service = await get_drive_service(school_id)
+    except Exception as e:
+        logger.exception(f"Drive service unavailable for school {school_id}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="El colegio no tiene Google Drive conectado o el token caducó. Reconecta Drive en Ajustes → Integraciones e intenta de nuevo.",
+        )
+    try:
+        request = service.files().get_media(fileId=drive_file_id)
+        buf = io.BytesIO()
+        from googleapiclient.http import MediaIoBaseDownload
+        downloader = MediaIoBaseDownload(buf, request)
+        done = False
+        while not done:
+            _status, done = downloader.next_chunk()
+        buf.seek(0)
+    except HttpError as e:
+        status = getattr(e, "status_code", None) or getattr(getattr(e, "resp", None), "status", 500)
+        logger.warning(f"Drive HttpError downloading file {drive_file_id}: status={status} reason={e}")
+        if status in (403, 404):
+            raise HTTPException(
+                status_code=404,
+                detail="El archivo de la libreta ya no existe en Google Drive (puede haber sido movido o eliminado). Vuelve a subir el PDF desde el panel administrador.",
+            )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Google Drive devolvió un error al descargar el archivo (status {status}). Intenta de nuevo en unos segundos.",
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error streaming PDF {drive_file_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo leer el archivo desde Google Drive. Reintenta o contacta al administrador del colegio.",
+        )
     return StreamingResponse(
         buf,
         media_type="application/pdf",
