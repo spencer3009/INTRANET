@@ -112,41 +112,40 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const hexToRgb = (h) => {
     if (!h || typeof h !== "string") return null;
     const m = h.trim().replace(/^#/, "");
-    if (m.length === 3) {
-      return { r: parseInt(m[0] + m[0], 16), g: parseInt(m[1] + m[1], 16), b: parseInt(m[2] + m[2], 16) };
-    }
-    if (m.length === 6) {
-      return { r: parseInt(m.slice(0, 2), 16), g: parseInt(m.slice(2, 4), 16), b: parseInt(m.slice(4, 6), 16) };
-    }
+    if (m.length === 3) return { r: parseInt(m[0]+m[0], 16), g: parseInt(m[1]+m[1], 16), b: parseInt(m[2]+m[2], 16) };
+    if (m.length === 6) return { r: parseInt(m.slice(0,2), 16), g: parseInt(m.slice(2,4), 16), b: parseInt(m.slice(4,6), 16) };
     return null;
   };
   const autoText = (bgHex) => {
     const rgb = hexToRgb(bgHex);
     if (!rgb) return undefined;
-    // Perceived luminance (W3C-style).
-    const lum = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    const lum = (0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b) / 255;
     return lum > 0.55 ? "#000" : "#fff";
   };
-  const zoneStyle = (zone) => {
-    const bg = palette[zone];
+  // Returns inline style for a given cell_id (or undefined if no override).
+  const cellStyle = (cellId) => {
+    const bg = palette?.[cellId];
     if (!bg) return undefined;
     return { backgroundColor: bg, color: autoText(bg) };
   };
-  // For tables: cells inside need explicit color override, otherwise the
-  // child rules in LibretaCard.css (.lr-grades td.lr-grade { color: #1d4ed8 })
-  // can stomp on the auto-contrast text. We expose a separate style for the
-  // table-style classes that target only the row backgrounds + cell text.
-  const rowBgStyle = (zone) => {
-    const bg = palette[zone];
-    if (!bg) return undefined;
-    return { backgroundColor: bg };
+  // Keep the old `zoneStyle` / `rowBgStyle` / `rowTextStyle` aliases so
+  // existing JSX call sites keep working. They each consult one or two
+  // cell_ids. If neither is set, returns undefined (no override).
+  const zoneStyle = (zone) => {
+    // Map legacy zone names to cell_id buckets.
+    const map = {
+      header_banner: "header.banner",
+      header_logo:   "header.logo",
+      initials_box:  "header.initials_box",
+      table_headers: "th.bimestres",
+      asistencia_table: "attendance.header",
+      conducta_table: "conducta.header",
+      tutor_comments: "comments.header",
+    };
+    return cellStyle(map[zone] || zone);
   };
-  const rowTextStyle = (zone) => {
-    const bg = palette[zone];
-    if (!bg) return undefined;
-    const t = autoText(bg);
-    return t ? { color: t } : undefined;
-  };
+  const rowBgStyle = () => undefined;
+  const rowTextStyle = () => undefined;
 
   // Inject a dynamic <style> tag with the matching @page rule so the printer
   // / "Save as PDF" dialog uses the right paper size + orientation. Browsers

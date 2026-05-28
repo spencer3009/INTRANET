@@ -12,7 +12,7 @@ this module is additive.
 """
 import io
 import logging
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
@@ -156,7 +156,9 @@ class ReportCardSettingsUpdate(BaseModel):
     hide_asistencia_in_libreta: Optional[bool] = None
     print_format: Optional[PrintFormatBody] = None
     header_template: Optional[HeaderTemplateBody] = None
-    color_palette: Optional[ColorPaletteBody] = None
+    # Open dict: cell_id (string) → hex color (string). Empty hex = remove override.
+    # This supersedes the old fixed-zone ColorPaletteBody.
+    color_palette: Optional[Dict[str, str]] = None
 
 
 # Defaults for the editable libreta header.
@@ -183,33 +185,28 @@ _HEADER_TEMPLATE_DEFAULTS = {
 _HEADER_SIZE_VALUES = {0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0}
 
 
-# Color palette — empty string / None means "use the built-in default look".
-# Hex format validated below.
-_COLOR_PALETTE_DEFAULTS = {
-    "header_banner": "",
-    "header_logo": "",
-    "initials_box": "",
-    "table_headers": "",
-    "area_rows": "",
-    "subject_rows": "",
-    "promedio_rows": "",
-    "asistencia_table": "",
-    "conducta_table": "",
-    "tutor_comments": "",
-}
+# Color palette is now an OPEN dict: cell_id (string) → hex color or "".
+# We don't enforce known keys — the frontend editor defines cell_ids freely
+# (info.codigo, th.areas, td.area.0, td.subject.3, attendance.tardanza, etc.).
+# Only the VALUES are validated to be hex strings or empty.
+_COLOR_PALETTE_DEFAULTS = {}  # all overrides start empty by default.
 
 import re as _re
 _HEX_RE = _re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+_CELL_ID_RE = _re.compile(r"^[a-zA-Z0-9_.\-]{1,80}$")
 
 
 def _merge_color_palette(stored) -> dict:
-    out = dict(_COLOR_PALETTE_DEFAULTS)
+    out = {}
     if isinstance(stored, dict):
-        for k in _COLOR_PALETTE_DEFAULTS:
-            v = stored.get(k)
+        for k, v in stored.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
             if isinstance(v, str):
-                if v == "" or _HEX_RE.match(v.strip()):
-                    out[k] = v.strip().lower() if v else ""
+                if v == "":
+                    continue  # treat empty as "no override"
+                if _HEX_RE.match(v.strip()):
+                    out[k] = v.strip().lower()
     return out
 
 
@@ -324,13 +321,14 @@ async def update_report_card_settings(
         update_fields["libreta_header_template"] = merged_h
     if body.color_palette is not None:
         stored_c = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_color_palette": 1}) or {}).get("libreta_color_palette") or {}
-        merged_c = _merge_color_palette(stored_c)
-        for k, v in body.color_palette.dict(exclude_unset=True).items():
-            if k in _COLOR_PALETTE_DEFAULTS:
-                if v is None or v == "":
-                    merged_c[k] = ""
-                elif isinstance(v, str) and _HEX_RE.match(v.strip()):
-                    merged_c[k] = v.strip().lower()
+        merged_c = dict(stored_c) if isinstance(stored_c, dict) else {}
+        for k, v in body.color_palette.items():
+            if not isinstance(k, str) or not _CELL_ID_RE.match(k):
+                continue
+            if not isinstance(v, str) or v == "":
+                merged_c.pop(k, None)  # empty = remove the override
+            elif _HEX_RE.match(v.strip()):
+                merged_c[k] = v.strip().lower()
         update_fields["libreta_color_palette"] = merged_c
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
