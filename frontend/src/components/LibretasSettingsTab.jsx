@@ -486,6 +486,9 @@ export default function LibretasSettingsTab({ token }) {
             </div>
           </div>
         </div>
+
+        {/* ── Vista previa en vivo (estilo Canva) ── */}
+        <HeaderLivePreview tpl={headerTpl} />
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -612,6 +615,116 @@ export default function LibretasSettingsTab({ token }) {
       {/* Conducta Extendida — editor de plantilla */}
       <div className="pt-4 border-t border-slate-200">
         <ConductaExtendidaEditor token={token} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Live preview of the libreta header — renders exactly like the real
+ * encabezado in LibretaCard.jsx, but with mock data, inside a "paper-style"
+ * card (drop shadow, soft borders, rotated subtle background). Updates
+ * instantly as the user types in the template fields above. Canva-inspired:
+ * the goal is that the owner SEES what the parents will see, not just text
+ * fields.
+ */
+function HeaderLivePreview({ tpl }) {
+  const NOW = new Date();
+  const mockYear = NOW.getFullYear();
+  const interpolate = (str) =>
+    String(str || "").replace(/\{(\w+)\}/g, (_, k) => {
+      const vars = { year: mockYear, roman: "I", bimestre: "I", grado: "2DO GRADO A PRIMARIA", seccion: "A" };
+      return vars[k] != null ? vars[k] : "";
+    });
+
+  const line1 = interpolate(tpl.line1 || "INSTITUCIÓN EDUCATIVA PRIVADA");
+  const line3 = interpolate(tpl.line3 || "Informe de Progreso del Estudiante - {year}");
+  const bimestre = interpolate(tpl.bimestre_label || "{roman} BIMESTRE");
+  const showInitials = tpl.show_initials_box !== false;
+
+  return (
+    <div data-testid="header-live-preview">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-bold text-violet-700 uppercase tracking-wide flex items-center gap-1.5">
+          <Eye className="w-3.5 h-3.5" />
+          Vista previa en vivo
+        </div>
+        <div className="text-[10px] text-slate-400 italic">Se actualiza mientras editas →</div>
+      </div>
+      {/* Canva-like paper card */}
+      <div
+        className="relative rounded-xl overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef3c7 100%)",
+          padding: "20px",
+          boxShadow: "0 20px 50px -20px rgba(124, 58, 237, 0.25), 0 8px 20px -10px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        {/* Subtle grid background, very faint */}
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+
+        {/* Mock paper sheet */}
+        <div
+          className="relative bg-white rounded-md mx-auto"
+          style={{
+            width: "100%",
+            maxWidth: "640px",
+            boxShadow: "0 6px 16px -6px rgba(0, 0, 0, 0.18), 0 2px 4px -2px rgba(0,0,0,0.06)",
+            padding: "20px 28px",
+            fontFamily: "Arial, Helvetica, sans-serif",
+            color: "#000",
+          }}
+        >
+          {/* HEADER — same structure as LibretaCard's real header */}
+          <div className="flex items-center gap-3" style={{ minHeight: "90px" }}>
+            {/* Logo placeholder */}
+            <div
+              className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-sm"
+              style={{ width: "60px", height: "60px", border: "2px solid #1a3a52", color: "#1a3a52" }}
+            >
+              C
+            </div>
+            {/* Center text block */}
+            <div className="flex-1 text-center">
+              <div style={{ fontSize: "10px", letterSpacing: "0.5px", color: "#111" }}>{line1}</div>
+              <div style={{ fontSize: "18px", fontWeight: "bold", fontFamily: "Times, serif", color: "#0f172a", margin: "2px 0" }}>
+                COLEGIO DE EJEMPLO
+              </div>
+              <div style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 600 }}>{line3}</div>
+              <div style={{ fontSize: "10px", fontWeight: "bold", marginTop: "4px" }}>2DO GRADO A PRIMARIA</div>
+              <div style={{ fontSize: "11px", fontWeight: "bold", marginTop: "2px" }}>{bimestre}</div>
+            </div>
+            {/* Initials box (toggle) */}
+            {showInitials && (
+              <div
+                className="flex-shrink-0 flex items-center justify-center text-white font-bold rounded"
+                style={{ width: "52px", height: "70px", background: "#94a3b8", fontSize: "16px" }}
+                data-testid="preview-initials-box"
+              >
+                AB
+              </div>
+            )}
+          </div>
+
+          {/* Mock student row to give context (greyed out — out of editing scope) */}
+          <div className="mt-3 pt-2 border-t border-slate-200" style={{ opacity: 0.5 }}>
+            <div className="grid grid-cols-4 gap-2 text-[9px] uppercase text-slate-500">
+              <span>Código</span><span>Apellidos y Nombres</span><span>Salón</span><span className="text-right">N° Ord</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-[10px] font-semibold text-slate-700 mt-1">
+              <span className="border border-slate-300 rounded-full px-2 py-0.5 text-center">STU-000774</span>
+              <span className="border border-slate-300 rounded-full px-2 py-0.5 text-center">ALVA BLAS, Barbara</span>
+              <span className="border border-slate-300 rounded-full px-2 py-0.5 text-center">2DO GRADO A PRIMARIA</span>
+              <span className="border border-slate-300 rounded-full px-2 py-0.5 text-center">1</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
