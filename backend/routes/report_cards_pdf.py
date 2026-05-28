@@ -135,14 +135,28 @@ class HeaderTemplateBody(BaseModel):
     logo_scale: Optional[float] = None
 
 
+class ColorPaletteBody(BaseModel):
+    header_banner: Optional[str] = None
+    header_logo: Optional[str] = None
+    initials_box: Optional[str] = None
+    table_headers: Optional[str] = None
+    area_rows: Optional[str] = None
+    subject_rows: Optional[str] = None
+    promedio_rows: Optional[str] = None
+    asistencia_table: Optional[str] = None
+    conducta_table: Optional[str] = None
+    tutor_comments: Optional[str] = None
+
+
 class ReportCardSettingsUpdate(BaseModel):
-    report_card_source: Optional[str] = None  # "generated" | "pdf_upload"
-    libreta_grade_format: Optional[str] = None  # "numeric" | "letters" | "mixed"
+    report_card_source: Optional[str] = None
+    libreta_grade_format: Optional[str] = None
     hide_conducta_in_libreta: Optional[bool] = None
     hide_tutor_comments_in_libreta: Optional[bool] = None
     hide_asistencia_in_libreta: Optional[bool] = None
     print_format: Optional[PrintFormatBody] = None
     header_template: Optional[HeaderTemplateBody] = None
+    color_palette: Optional[ColorPaletteBody] = None
 
 
 # Defaults for the editable libreta header.
@@ -167,6 +181,36 @@ _HEADER_TEMPLATE_DEFAULTS = {
 
 # Valid size multipliers for header text + logo.
 _HEADER_SIZE_VALUES = {0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0}
+
+
+# Color palette — empty string / None means "use the built-in default look".
+# Hex format validated below.
+_COLOR_PALETTE_DEFAULTS = {
+    "header_banner": "",
+    "header_logo": "",
+    "initials_box": "",
+    "table_headers": "",
+    "area_rows": "",
+    "subject_rows": "",
+    "promedio_rows": "",
+    "asistencia_table": "",
+    "conducta_table": "",
+    "tutor_comments": "",
+}
+
+import re as _re
+_HEX_RE = _re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+
+def _merge_color_palette(stored) -> dict:
+    out = dict(_COLOR_PALETTE_DEFAULTS)
+    if isinstance(stored, dict):
+        for k in _COLOR_PALETTE_DEFAULTS:
+            v = stored.get(k)
+            if isinstance(v, str):
+                if v == "" or _HEX_RE.match(v.strip()):
+                    out[k] = v.strip().lower() if v else ""
+    return out
 
 
 def _merge_header_template(stored) -> dict:
@@ -232,6 +276,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "print_format": _merge_print_format(school.get("libreta_print_format")),
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
+        "color_palette": _merge_color_palette(school.get("libreta_color_palette")),
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -277,6 +322,16 @@ async def update_report_card_settings(
             if k in _HEADER_TEMPLATE_DEFAULTS and v is not None:
                 merged_h[k] = v
         update_fields["libreta_header_template"] = merged_h
+    if body.color_palette is not None:
+        stored_c = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_color_palette": 1}) or {}).get("libreta_color_palette") or {}
+        merged_c = _merge_color_palette(stored_c)
+        for k, v in body.color_palette.dict(exclude_unset=True).items():
+            if k in _COLOR_PALETTE_DEFAULTS:
+                if v is None or v == "":
+                    merged_c[k] = ""
+                elif isinstance(v, str) and _HEX_RE.match(v.strip()):
+                    merged_c[k] = v.strip().lower()
+        update_fields["libreta_color_palette"] = merged_c
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -291,6 +346,7 @@ async def update_report_card_settings(
         "print_format": _merge_print_format(school.get("libreta_print_format")),
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
+        "color_palette": _merge_color_palette(school.get("libreta_color_palette")),
     }
 
 

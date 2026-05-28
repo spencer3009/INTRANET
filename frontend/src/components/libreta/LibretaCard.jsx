@@ -105,6 +105,49 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   };
   const logoScale = Number(headerTpl.logo_scale) || 1;
 
+  // Color palette (editable in Ajustes → Libreta → "Paleta de colores").
+  // Each value is either an empty string (=use default look) or a hex color.
+  // We compute an auto-contrast text color from the luminance of the bg.
+  const palette = data?.metadata?.color_palette || {};
+  const hexToRgb = (h) => {
+    if (!h || typeof h !== "string") return null;
+    const m = h.trim().replace(/^#/, "");
+    if (m.length === 3) {
+      return { r: parseInt(m[0] + m[0], 16), g: parseInt(m[1] + m[1], 16), b: parseInt(m[2] + m[2], 16) };
+    }
+    if (m.length === 6) {
+      return { r: parseInt(m.slice(0, 2), 16), g: parseInt(m.slice(2, 4), 16), b: parseInt(m.slice(4, 6), 16) };
+    }
+    return null;
+  };
+  const autoText = (bgHex) => {
+    const rgb = hexToRgb(bgHex);
+    if (!rgb) return undefined;
+    // Perceived luminance (W3C-style).
+    const lum = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return lum > 0.55 ? "#000" : "#fff";
+  };
+  const zoneStyle = (zone) => {
+    const bg = palette[zone];
+    if (!bg) return undefined;
+    return { backgroundColor: bg, color: autoText(bg) };
+  };
+  // For tables: cells inside need explicit color override, otherwise the
+  // child rules in LibretaCard.css (.lr-grades td.lr-grade { color: #1d4ed8 })
+  // can stomp on the auto-contrast text. We expose a separate style for the
+  // table-style classes that target only the row backgrounds + cell text.
+  const rowBgStyle = (zone) => {
+    const bg = palette[zone];
+    if (!bg) return undefined;
+    return { backgroundColor: bg };
+  };
+  const rowTextStyle = (zone) => {
+    const bg = palette[zone];
+    if (!bg) return undefined;
+    const t = autoText(bg);
+    return t ? { color: t } : undefined;
+  };
+
   // Inject a dynamic <style> tag with the matching @page rule so the printer
   // / "Save as PDF" dialog uses the right paper size + orientation. Browsers
   // do not allow @page to read CSS variables or attribute selectors, so we
@@ -284,8 +327,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       if (sameName) {
         // Una sola fila, colspan=2 (área = asignatura)
         return (
-          <tr key={area.id}>
-            <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold" }}>{area.name}</td>
+          <tr key={area.id} style={rowBgStyle("area_rows")}>
+            <td className="lr-asig" colSpan={2} style={{ fontWeight: "bold", ...(rowTextStyle("area_rows") || {}) }}>{area.name}</td>
             {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
             {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
           </tr>
@@ -293,9 +336,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       }
       // Distintos: área a la izq + asignatura a la der, sin fila promedio
       return (
-        <tr key={area.id}>
-          <td className="lr-area" style={{ textAlign: "left", paddingLeft: 6 }}>{area.name}</td>
-          <td className="lr-asig">{s.name}</td>
+        <tr key={area.id} style={rowBgStyle("subject_rows")}>
+          <td className="lr-area" style={{ textAlign: "left", paddingLeft: 6, ...(rowTextStyle("area_rows") || {}), ...(rowBgStyle("area_rows") || {}) }}>{area.name}</td>
+          <td className="lr-asig" style={rowTextStyle("subject_rows")}>{s.name}</td>
           {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${area.id}-${p.id}`))}
           {renderGradeCells(s.promedio_final, "lr-grade-final", `${area.id}-final`)}
         </tr>
@@ -306,17 +349,17 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     return (
       <Fragment key={area.id}>
         {subs.map((s, idx) => (
-          <tr key={s.id}>
+          <tr key={s.id} style={rowBgStyle("subject_rows")}>
             {idx === 0 && (
-              <td className="lr-area" rowSpan={subs.length + 1}>{area.name}</td>
+              <td className="lr-area" rowSpan={subs.length + 1} style={{ ...(rowBgStyle("area_rows") || {}), ...(rowTextStyle("area_rows") || {}) }}>{area.name}</td>
             )}
-            <td className="lr-asig">{s.name}</td>
+            <td className="lr-asig" style={rowTextStyle("subject_rows")}>{s.name}</td>
             {periods.map(p => renderGradeCells(s.grades?.[p.id] || {}, "lr-grade", `${s.id}-${p.id}`))}
             {renderGradeCells(s.promedio_final, "lr-grade-final", `${s.id}-final`)}
           </tr>
         ))}
-        <tr className="lr-prom-row">
-          <td className="lr-asig lr-prom-area">Promedio Área:</td>
+        <tr className="lr-prom-row" style={rowBgStyle("promedio_rows")}>
+          <td className="lr-asig lr-prom-area" style={rowTextStyle("promedio_rows")}>Promedio Área:</td>
           {periods.map(p => renderGradeCells(area.promedio_area?.[p.id] || {}, "lr-grade", `${area.id}-prom-${p.id}`, { fontWeight: "bold" }))}
           {renderGradeCells(area.promedio_area?.final, "lr-grade-final", `${area.id}-prom-final`)}
         </tr>
@@ -330,8 +373,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   return (
     <div className={`libreta-card ${fmtClass}`} data-testid="libreta-card">
       {/* ── Header ── */}
-      <header className="lr-header">
-        <div className="lr-logo" style={logoScale !== 1 ? { width: `${65 * logoScale}px`, height: `${65 * logoScale}px` } : undefined}>
+      <header className="lr-header" style={zoneStyle("header_banner")}>
+        <div className="lr-logo" style={{ ...(logoScale !== 1 ? { width: `${65 * logoScale}px`, height: `${65 * logoScale}px` } : {}), ...(zoneStyle("header_logo") || {}) }}>
           {data.school.logo_url ? (
             <img src={data.school.logo_url} alt="Logo" />
           ) : (
@@ -353,7 +396,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <div className="lr-photo">
           {data.student.photo_url
             ? <img src={data.student.photo_url} alt="Foto" />
-            : <div className="lr-photo-placeholder" data-testid="libreta-photo-placeholder">{initials}</div>
+            : <div className="lr-photo-placeholder" style={zoneStyle("initials_box")} data-testid="libreta-photo-placeholder">{initials}</div>
           }
         </div>
         )}
@@ -378,7 +421,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         </div>
       ) : (
         <table className="lr-grades" data-testid="libreta-grades-table">
-          <thead>
+          <thead style={zoneStyle("table_headers")}>
             {isMixed ? (
               <>
                 <tr>
@@ -425,7 +468,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <div>
           {/* Conducta */}
           {!hideConducta && !isExtendedMode && (
-          <table className="lr-info" data-testid="libreta-conducta-table">
+          <table className="lr-info" data-testid="libreta-conducta-table" style={zoneStyle("conducta_table")}>
             <thead>
               <tr>
                 <th>{showPadresGrade ? "CONDUCTA / PADRES" : "CONDUCTA"}</th>
@@ -582,7 +625,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
           {/* Asistencias y tardanzas */}
           {!hideAsistencia && (
-          <table className="lr-info" style={{ marginTop: 4 }} data-testid="libreta-attendance-table">
+          <table className="lr-info" style={{ marginTop: 4, ...(zoneStyle("asistencia_table") || {}) }} data-testid="libreta-attendance-table">
             <thead>
               <tr>
                 <th>ASISTENCIAS Y TARDANZAS</th>
@@ -649,7 +692,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
       {/* ── Comentarios de la tutora ── */}
       {!hideTutorComments && (
-      <table className="lr-comentarios" data-testid="libreta-comments-table">
+      <table className="lr-comentarios" data-testid="libreta-comments-table" style={zoneStyle("tutor_comments")}>
         <thead>
           <tr>
             <th style={{ width: 40 }}>BIM.</th>

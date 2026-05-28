@@ -1,5 +1,24 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Paleta de colores con auto-contraste (Fase 1) ✅
+- **Backend** (`report_cards_pdf.py` + `libreta.py`):
+  - Nuevo `ColorPaletteBody` con 10 zonas: `header_banner`, `header_logo`, `initials_box`, `table_headers`, `area_rows`, `subject_rows`, `promedio_rows`, `asistencia_table`, `conducta_table`, `tutor_comments`.
+  - Validación con regex hex (`#XXX` o `#XXXXXX`); empty string = "usar default".
+  - Mergea parcialmente con lo guardado en `schools.libreta_color_palette`.
+  - Propagado a `metadata.color_palette` en `/api/libreta/{id}` (compute + snapshot read-through + snapshot create).
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`):
+  - Nueva sección "Paleta de colores" debajo de "Plantilla del encabezado".
+  - Grid de 10 tarjetas (2 columnas), cada una con emoji + nombre + mini preview + 8 presets + custom color picker.
+  - **8 presets premium**: Default, Blanco, Azul claro (#dbeafe), Verde menta (#d1fae5), Rosa pastel (#fce7f3), Amarillo suave (#fef3c7), Gris claro (#e5e7eb), Azul oscuro (#1e3a8a), Púrpura (#6d28d9).
+  - Helper `autoContrast(hex)` calcula luminancia (0.299r + 0.587g + 0.114b) y devuelve `#000` o `#fff` según umbral 0.55.
+  - Botón "default" por zona + "Restaurar todos los colores" global.
+- **Frontend Libreta** (`LibretaCard.jsx`):
+  - Helpers `hexToRgb`, `autoText`, `zoneStyle`, `rowBgStyle`, `rowTextStyle` desde `metadata.color_palette`.
+  - Aplicado a: header banner, lr-logo, lr-photo-placeholder, thead de lr-grades, filas de área/asignatura/promedio, lr-attendance-table, conducta-table, comentarios-table.
+  - El texto siempre auto-contrasta excepto donde hay reglas específicas (notas en azul/rojo) que prevalecen por CSS.
+- **Verificado E2E**: curl PUT/GET retorna palette correcta. Screenshot del panel muestra 10 tarjetas funcionales con preview azul-oscuro + texto blanco en Encabezado (auto-contraste).
+
+
 ## Feb 28, 2026 - Feature: Plantilla del encabezado editable (Ajustes → Libreta) ✅
 - **Pedido**: el cliente quería poder editar los textos fijos del encabezado de la libreta (INSTITUCIÓN EDUCATIVA PRIVADA, Informe de Progreso del Estudiante, etiqueta de bimestre, etc.) con visibilidad de la plantilla default vs la en uso.
 - **Backend** (`report_cards_pdf.py` + `libreta.py`):
