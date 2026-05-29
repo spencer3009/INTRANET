@@ -466,14 +466,9 @@ async def get_enrollment_config(current_user=Depends(get_current_user)):
         ts = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "parent_self_enrollment": 1})
         cfg = (ts or {}).get("parent_self_enrollment", {})
 
-    # Independent flag: block students from changing their profile photo
-    ts_photo = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "block_student_photo_change": 1})
-    block_photo = bool((ts_photo or {}).get("block_student_photo_change", False))
-
     return {
         "parent_self_enrollment_enabled": cfg.get("enabled", False),
         "academic_info_editable": cfg.get("academic_info_editable", False),
-        "block_student_photo_change": block_photo,
     }
 
 
@@ -484,7 +479,6 @@ async def get_enrollment_config(current_user=Depends(get_current_user)):
 class EnrollmentConfigUpdate(BaseModel):
     enabled: bool
     academic_info_editable: bool = False
-    block_student_photo_change: Optional[bool] = None
 
 @router.patch("/school/settings/enrollment")
 async def update_enrollment_config(
@@ -504,22 +498,62 @@ async def update_enrollment_config(
         "academic_info_editable": data.academic_info_editable,
     }
 
-    set_fields = {"parent_self_enrollment": config}
-    if data.block_student_photo_change is not None:
-        set_fields["block_student_photo_change"] = bool(data.block_student_photo_change)
-
     # Store in tenant_settings (main config collection)
     await db.tenant_settings.update_one(
         {"school_id": school_id},
-        {"$set": set_fields},
+        {"$set": {"parent_self_enrollment": config}},
         upsert=True,
     )
 
-    logger.info(f"[ENROLLMENT] Config updated for school {school_id}: enabled={data.enabled}, academic={data.academic_info_editable}, block_photo={data.block_student_photo_change}")
-    ts_photo = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "block_student_photo_change": 1})
+    logger.info(f"[ENROLLMENT] Config updated for school {school_id}: enabled={data.enabled}, academic={data.academic_info_editable}")
     return {
         "parent_self_enrollment_enabled": data.enabled,
         "academic_info_editable": data.academic_info_editable,
-        "block_student_photo_change": bool((ts_photo or {}).get("block_student_photo_change", False)),
+        "message": "Configuración guardada correctamente",
+    }
+
+
+# ══════════════════════════════════════════════════════════════════
+#  8. Student portal config — independent settings for the student
+#     experience (e.g. block students from changing their photo).
+# ══════════════════════════════════════════════════════════════════
+
+@router.get("/school/student-portal-config")
+async def get_student_portal_config(current_user=Depends(get_current_user)):
+    """Read student-portal settings. Available to any authenticated user
+    (students need it to know whether to show the change-photo button)."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="school_id no encontrado")
+
+    ts = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "block_student_photo_change": 1})
+    return {
+        "block_student_photo_change": bool((ts or {}).get("block_student_photo_change", False)),
+    }
+
+
+class StudentPortalConfigUpdate(BaseModel):
+    block_student_photo_change: bool
+
+@router.patch("/school/student-portal-config")
+async def update_student_portal_config(
+    data: StudentPortalConfigUpdate,
+    current_user=Depends(require_role(["owner", "admin"]))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="school_id no encontrado")
+
+    await db.tenant_settings.update_one(
+        {"school_id": school_id},
+        {"$set": {"block_student_photo_change": bool(data.block_student_photo_change)}},
+        upsert=True,
+    )
+    logger.info(f"[STUDENT-PORTAL] Config updated for school {school_id}: block_photo={data.block_student_photo_change}")
+    return {
+        "block_student_photo_change": bool(data.block_student_photo_change),
         "message": "Configuración guardada correctamente",
     }

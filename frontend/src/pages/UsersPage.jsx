@@ -28,6 +28,7 @@ import BulkDeleteModal from "@/components/BulkDeleteModal";
 import PendingEnrollmentsTab from "@/components/PendingEnrollmentsTab";
 import TeacherBulkImportPanel from "@/components/TeacherBulkImportPanel";
 import EnrollmentConfigModal from "@/components/EnrollmentConfigModal";
+import StudentPortalConfigModal from "@/components/StudentPortalConfigModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1743,6 +1744,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [showPendingEnrollments, setShowPendingEnrollments] = useState(false);
   const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   const [showEnrollmentConfig, setShowEnrollmentConfig] = useState(false);
+  const [showStudentPortalConfig, setShowStudentPortalConfig] = useState(false);
   // Edit user states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -3334,6 +3336,37 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     {backupLoading ? "Exportando..." : "Backup Excel"}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            STUDENT PORTAL CONFIG CARD - Botón de configuración aparte (parte blanca)
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
+          <div className="bg-white rounded-2xl border-2 border-indigo-200 p-6 mb-6 shadow-sm" data-testid="student-portal-config-block">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                <Settings className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-lg font-bold text-slate-800" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Configuración del portal del alumno
+                </h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Controla la experiencia del alumno: por ejemplo, bloquear que cambien su foto de perfil.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <button
+                  onClick={() => setShowStudentPortalConfig(true)}
+                  className="flex items-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  data-testid="student-portal-config-btn"
+                >
+                  <Settings className="w-5 h-5" />
+                  Configuración
+                </button>
               </div>
             </div>
           </div>
@@ -6616,6 +6649,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       <EnrollmentConfigModal
         isOpen={showEnrollmentConfig}
         onClose={() => setShowEnrollmentConfig(false)}
+        token={token}
+      />
+      <StudentPortalConfigModal
+        isOpen={showStudentPortalConfig}
+        onClose={() => setShowStudentPortalConfig(false)}
         token={token}
       />
     </div>

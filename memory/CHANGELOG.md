@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Ajuste: Botón de configuración del portal del alumno SEPARADO del modal de Matrículas ✅
+- **Pedido**: el modal "Config" es exclusivo de Matrículas; revertirlo a su estado original y crear un botón de configuración aparte (más abajo, en la parte blanca) con su propio modal para el switch de bloquear foto.
+- **Revertido**: `EnrollmentConfigModal.jsx` vuelve a "Configuración de Matrículas" (sin switch de foto); `enrollment.py` GET/PATCH de matrícula vuelven a su forma original (sin el flag de foto).
+- **Nuevo backend** (`enrollment.py`): endpoints dedicados `GET /api/school/student-portal-config` (cualquier usuario autenticado) y `PATCH /api/school/student-portal-config` (owner/admin) que manejan `block_student_photo_change` de forma independiente en `tenant_settings`.
+- **Nuevo modal** (`StudentPortalConfigModal.jsx`): "Configuración del Portal del Alumno" con el switch grande de bloquear foto (diseñado para alojar futuras configs del portal del alumno).
+- **Nuevo botón** (`UsersPage.jsx`): card "Configuración del portal del alumno" con botón **Configuración** en la parte blanca (debajo de Importación masiva), solo para owner/admin en la vista de Estudiantes.
+- **Frontend perfil** (`StudentProfilePage.jsx`): ahora lee el flag desde `/api/school/student-portal-config`.
+- **Verificado E2E**: el modal de Matrículas ya no tiene el switch de foto; el nuevo card/botón abre su modal propio; PATCH/GET del nuevo endpoint persisten; alumno con block=true tiene la cámara oculta y con false visible. Flag dejado en false tras la prueba.
+
 ## Feb 28, 2026 - Feature: Bloquear cambio de foto de perfil de alumnos (Config en Usuarios/Alumnos) ✅
 - **Pedido**: en Usuarios → Alumnos, el botón "Config" (tuerca) debe abrir un modal con un switch grande para desactivar que los alumnos cambien su foto; al activarlo, el ícono de cámara desaparece del perfil del alumno.
 - **Backend** (`enrollment.py`): `GET /api/school/enrollment-config` ahora devuelve `block_student_photo_change` (leíble por cualquier usuario autenticado, incl. alumnos); `PATCH /api/school/settings/enrollment` acepta y persiste el flag en `tenant_settings.block_student_photo_change` (independiente de la config de matrícula).

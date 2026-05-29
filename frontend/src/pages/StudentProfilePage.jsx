@@ -62,7 +62,7 @@ export default function StudentProfilePage({ user, token, onLogout, onUserUpdate
       const [profileRes, settingsRes, configRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
         axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API}/api/school/enrollment-config`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/school/student-portal-config`, { headers }).catch(() => ({ data: null })),
       ]);
       setProfile(profileRes.data);
       if (settingsRes.data) {
