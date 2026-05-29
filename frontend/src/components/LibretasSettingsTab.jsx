@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
 import LibretaPaletteEditor from "./LibretaPaletteEditor";
 import InstitutionalStamp from "./InstitutionalStamp";
+import SignatureLayoutEditor from "./SignatureLayoutEditor";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -110,6 +111,7 @@ export default function LibretasSettingsTab({ token }) {
   const [directorSignature, setDirectorSignature] = useState("");
   const [stampImage, setStampImage] = useState("");
   const [uploadingImg, setUploadingImg] = useState("");
+  const [signatureLayout, setSignatureLayout] = useState({ signature: { x: 65, y: 90, w: 120 }, stamp: { x: 165, y: 95, w: 80 } });
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
@@ -152,6 +154,7 @@ export default function LibretasSettingsTab({ token }) {
         });
         setDirectorSignature(r.data?.director_signature || "");
         setStampImage(r.data?.stamp_image || "");
+        if (r.data?.signature_layout) setSignatureLayout(r.data.signature_layout);
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
         if (r.data?.header_template_defaults) {
@@ -315,6 +318,15 @@ export default function LibretasSettingsTab({ token }) {
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al quitar la imagen");
     } finally { setSaving(false); }
+  };
+
+  const saveSignatureLayout = async (next) => {
+    setSignatureLayout(next);  // optimistic
+    try {
+      await axios.put(`${API}/report-cards/settings`, { signature_layout: next }, { headers });
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar la posición");
+    }
   };
 
   // Valida que la escala cubra 0–20 de forma continua, sin huecos ni solapes.
@@ -1091,6 +1103,24 @@ export default function LibretasSettingsTab({ token }) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Vista previa de la zona de firmas (arrastrar y soltar) */}
+        <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-4" data-testid="signature-layout-preview">
+          <div className="flex items-center gap-2 mb-1">
+            <Maximize2 className="w-4 h-4 text-violet-600" />
+            <span className="text-sm font-semibold text-slate-800">Vista previa de la zona de firmas</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">Así se verá el recuadro del DIRECTOR(A) en la libreta. <b>Arrastra</b> la firma y el sello para ubicarlos donde prefieras.</p>
+          <SignatureLayoutEditor
+            layout={signatureLayout}
+            onChange={saveSignatureLayout}
+            directorName={directorName}
+            directorSignature={directorSignature}
+            stampMode={stampMode}
+            stampImage={stampImage}
+            stampConfig={stampConfig}
+          />
         </div>
       </section>
 

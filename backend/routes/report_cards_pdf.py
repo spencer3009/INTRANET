@@ -51,6 +51,29 @@ def _merge_stamp_config(stored) -> dict:
     return out
 
 
+# Layout (drag&drop) de la zona de firmas del director. Coordenadas en un
+# lienzo fijo de 250 (ancho) × 230 (alto) px; la línea de firma está en y=150.
+DEFAULT_SIGNATURE_LAYOUT = {
+    "signature": {"x": 65, "y": 90, "w": 120},
+    "stamp": {"x": 165, "y": 95, "w": 80},
+}
+
+
+def _merge_signature_layout(stored) -> dict:
+    out = {k: dict(v) for k, v in DEFAULT_SIGNATURE_LAYOUT.items()}
+    if isinstance(stored, dict):
+        for key in ("signature", "stamp"):
+            s = stored.get(key)
+            if isinstance(s, dict):
+                for f in ("x", "y", "w"):
+                    v = s.get(f)
+                    if isinstance(v, (int, float)):
+                        # límites razonables dentro del lienzo
+                        lo, hi = (10, 250) if f == "w" else (-60, 300)
+                        out[key][f] = max(lo, min(hi, int(v)))
+    return out
+
+
 def _white_to_transparent_webp(raw: bytes, max_dim: int = 700, threshold: int = 238) -> str:
     """Convierte una imagen (PNG/JPG) a WebP con fondo blanco → transparente.
 
@@ -225,6 +248,7 @@ class ReportCardSettingsUpdate(BaseModel):
     stamp_config: Optional[Dict[str, str]] = None
     director_signature: Optional[str] = None  # "" or null clears it
     stamp_image: Optional[str] = None          # "" or null clears it
+    signature_layout: Optional[Dict[str, object]] = None
 
 
 # Defaults for the editable libreta header.
@@ -386,6 +410,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
         "director_signature": school.get("libreta_director_signature") or "",
         "stamp_image": school.get("libreta_stamp_image") or "",
+        "signature_layout": _merge_signature_layout(school.get("libreta_signature_layout")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
@@ -509,6 +534,8 @@ async def update_report_card_settings(
         update_fields["libreta_director_signature"] = body.director_signature if body.director_signature else ""
     if body.stamp_image is not None:
         update_fields["libreta_stamp_image"] = body.stamp_image if body.stamp_image else ""
+    if body.signature_layout is not None:
+        update_fields["libreta_signature_layout"] = _merge_signature_layout(body.signature_layout)
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -539,6 +566,7 @@ async def update_report_card_settings(
         "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
         "director_signature": school.get("libreta_director_signature") or "",
         "stamp_image": school.get("libreta_stamp_image") or "",
+        "signature_layout": _merge_signature_layout(school.get("libreta_signature_layout")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
     }

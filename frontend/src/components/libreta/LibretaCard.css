@@ -126,16 +126,12 @@
   page-break-before: always;
 }
 .lr-page-header { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 180px; }
-.lr-signatures { margin-top: 180px; display: flex; justify-content: space-around; text-align: center; font-size: 10px; }
-.lr-signature-box { width: 250px; border-top: 1px solid #000; padding-top: 4px; }
-.lr-signature-box .lr-name { font-size: 9px; }
-.lr-signature-box .lr-title { font-weight: bold; font-size: 10px; margin-top: 2px; }
-/* Firma del director: por encima de la línea (border-top de la caja) */
-.lr-director-box { position: relative; }
-.lr-director-box .lr-sign-img { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); max-height: 55px; max-width: 200px; object-fit: contain; }
-/* Sello: al costado derecho de la caja, sin tapar firma ni nombre */
-.lr-director-box .lr-stamp-img { position: absolute; left: calc(100% + 8px); bottom: -8px; max-height: 92px; max-width: 92px; object-fit: contain; }
-.lr-director-box .lr-stamp-svg { position: absolute; left: calc(100% + 8px); bottom: -8px; }
+.lr-signatures { margin-top: 40px; display: flex; justify-content: space-around; text-align: center; font-size: 10px; }
+.lr-sign-canvas { position: relative; width: 250px; height: 230px; }
+.lr-sign-line { position: absolute; left: 25px; top: 150px; width: 200px; border-top: 1px solid #000; }
+.lr-sign-name { position: absolute; left: 25px; top: 154px; width: 200px; text-align: center; font-size: 9px; }
+.lr-sign-titletext { position: absolute; left: 25px; top: 168px; width: 200px; text-align: center; font-weight: bold; font-size: 10px; }
+.lr-drag-el { position: absolute; object-fit: contain; }
 
 /* ── Empty state ── */
 .lr-empty { padding: 32px; text-align: center; color: #6b7280; font-style: italic; }

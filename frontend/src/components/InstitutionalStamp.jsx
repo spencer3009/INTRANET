@@ -20,8 +20,10 @@ export default function InstitutionalStamp({ config = {}, size = 180, color = "#
   } = config || {};
 
   const cx = 100, cy = 100;
-  const rOuterText = 84;   // anillo externo (nombre colegio)
-  const rInnerText = 58;   // anillo interno (ruc / dirección)
+  const R_OUTER = 97;   // círculo externo
+  const R_MID = 70;     // círculo separador
+  const rOuterText = (R_OUTER + R_MID) / 2;   // banda externa: texto centrado
+  const rInnerText = (R_MID + 22) / 2;        // banda interna (ruc/dirección)
 
   // Arco superior: izquierda → derecha por arriba (texto al derecho).
   const topPath = (r) => `M ${cx - r},${cy} A ${r},${r} 0 0,1 ${cx + r},${cy}`;
@@ -46,25 +48,25 @@ export default function InstitutionalStamp({ config = {}, size = 180, color = "#
       </defs>
 
       {/* Círculos */}
-      <circle cx={cx} cy={cy} r={97} fill="none" stroke={color} strokeWidth={2} />
-      <circle cx={cx} cy={cy} r={72} fill="none" stroke={color} strokeWidth={1.4} />
+      <circle cx={cx} cy={cy} r={R_OUTER} fill="none" stroke={color} strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={R_MID} fill="none" stroke={color} strokeWidth={1.4} />
 
       {/* Texto curvo externo */}
-      <text fill={color} fontSize="12" fontWeight="700" letterSpacing="1.2"
+      <text fill={color} fontSize="12" fontWeight="700" letterSpacing="1.2" dominantBaseline="central"
         style={{ fontFamily: "Arial, sans-serif", textTransform: "uppercase" }}>
         <textPath href={`#top-out-${uid}`} startOffset="50%" textAnchor="middle">{texto_superior}</textPath>
       </text>
-      <text fill={color} fontSize="12" fontWeight="700" letterSpacing="1.2"
+      <text fill={color} fontSize="12" fontWeight="700" letterSpacing="1.2" dominantBaseline="central"
         style={{ fontFamily: "Arial, sans-serif", textTransform: "uppercase" }}>
         <textPath href={`#bot-out-${uid}`} startOffset="50%" textAnchor="middle">{texto_inferior}</textPath>
       </text>
 
       {/* Texto curvo interno */}
-      <text fill={color} fontSize="9.5" fontWeight="600" letterSpacing="0.6"
+      <text fill={color} fontSize="9.5" fontWeight="600" letterSpacing="0.6" dominantBaseline="central"
         style={{ fontFamily: "Arial, sans-serif", textTransform: "uppercase" }}>
         <textPath href={`#top-in-${uid}`} startOffset="50%" textAnchor="middle">{rucText}</textPath>
       </text>
-      <text fill={color} fontSize="9" fontWeight="600" letterSpacing="0.4"
+      <text fill={color} fontSize="9" fontWeight="600" letterSpacing="0.4" dominantBaseline="central"
         style={{ fontFamily: "Arial, sans-serif", textTransform: "uppercase" }}>
         <textPath href={`#bot-in-${uid}`} startOffset="50%" textAnchor="middle">{direccion}</textPath>
       </text>

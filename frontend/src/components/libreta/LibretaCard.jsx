@@ -70,6 +70,9 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const stampImage = data?.metadata?.stamp_image || "";
   const stampConfig = data?.metadata?.stamp_config || {};
   const stampHasContent = !!(stampConfig.texto_superior || stampConfig.texto_inferior || stampConfig.ruc || stampConfig.direccion);
+  const sigLayout = data?.metadata?.signature_layout || {};
+  const sigPos = sigLayout.signature || { x: 65, y: 90, w: 120 };
+  const stampPos = sigLayout.stamp || { x: 165, y: 95, w: 80 };
   // List of bimestre "orden" numbers whose tutor comment is shown. Empty = all.
   const tutorCommentsPeriods = Array.isArray(data?.metadata?.tutor_comments_periods)
     ? data.metadata.tutor_comments_periods.map(Number)
@@ -824,24 +827,38 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           <span>Página 2</span>
         </div>
         <div className="lr-signatures">
-          <div className="lr-signature-box">
-            {tutorFullName && <div className="lr-name">{tutorFullName}</div>}
-            <div className="lr-title">TUTOR (A)</div>
+          <div className="lr-sign-canvas">
+            <div className="lr-sign-line" />
+            {tutorFullName && <div className="lr-sign-name">{tutorFullName}</div>}
+            <div className="lr-sign-titletext">TUTOR (A)</div>
           </div>
-          <div className="lr-signature-box lr-director-box">
+          <div className="lr-sign-canvas">
             {directorSignature && (
-              <img className="lr-sign-img" src={directorSignature} alt="Firma del director" data-testid="libreta-director-signature" />
+              <img
+                className="lr-drag-el"
+                src={directorSignature}
+                alt="Firma del director"
+                data-testid="libreta-director-signature"
+                style={{ left: sigPos.x, top: sigPos.y, width: sigPos.w }}
+              />
             )}
-            {directorName && <div className="lr-name">{directorName}</div>}
-            <div className="lr-title">DIRECTOR (A)</div>
             {stampMode === "image" && stampImage && (
-              <img className="lr-stamp-img" src={stampImage} alt="Sello institucional" data-testid="libreta-stamp-image" />
+              <img
+                className="lr-drag-el"
+                src={stampImage}
+                alt="Sello institucional"
+                data-testid="libreta-stamp-image"
+                style={{ left: stampPos.x, top: stampPos.y, width: stampPos.w }}
+              />
             )}
             {stampMode === "generated" && stampHasContent && (
-              <div className="lr-stamp-svg" data-testid="libreta-stamp-svg">
-                <InstitutionalStamp config={stampConfig} size={92} />
+              <div className="lr-drag-el" data-testid="libreta-stamp-svg" style={{ left: stampPos.x, top: stampPos.y, width: stampPos.w }}>
+                <InstitutionalStamp config={stampConfig} size={stampPos.w} />
               </div>
             )}
+            <div className="lr-sign-line" />
+            {directorName && <div className="lr-sign-name">{directorName}</div>}
+            <div className="lr-sign-titletext">DIRECTOR (A)</div>
           </div>
         </div>
       </section>
