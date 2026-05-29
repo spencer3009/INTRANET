@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { X, Settings, ToggleLeft, ToggleRight, Loader2, GraduationCap, Users } from "lucide-react";
+import { X, Settings, Loader2, GraduationCap, Users, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -11,7 +11,8 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [academicEditable, setAcademicEditable] = useState(false);
-  const [original, setOriginal] = useState({ enabled: false, academicEditable: false });
+  const [blockPhoto, setBlockPhoto] = useState(false);
+  const [original, setOriginal] = useState({ enabled: false, academicEditable: false, blockPhoto: false });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -21,14 +22,16 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
         const res = await axios.get(`${API}/api/school/enrollment-config`, { headers });
         const e = res.data.parent_self_enrollment_enabled || false;
         const a = res.data.academic_info_editable || false;
+        const b = res.data.block_student_photo_change || false;
         setEnabled(e);
         setAcademicEditable(a);
-        setOriginal({ enabled: e, academicEditable: a });
+        setBlockPhoto(b);
+        setOriginal({ enabled: e, academicEditable: a, blockPhoto: b });
       } catch {} finally { setLoading(false); }
     })();
   }, [isOpen]);
 
-  const isDirty = enabled !== original.enabled || academicEditable !== original.academicEditable;
+  const isDirty = enabled !== original.enabled || academicEditable !== original.academicEditable || blockPhoto !== original.blockPhoto;
 
   const handleSave = async () => {
     setSaving(true);
@@ -36,9 +39,10 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
       await axios.patch(`${API}/api/school/settings/enrollment`, {
         enabled,
         academic_info_editable: academicEditable,
+        block_student_photo_change: blockPhoto,
       }, { headers });
       toast.success("Configuración guardada correctamente");
-      setOriginal({ enabled, academicEditable });
+      setOriginal({ enabled, academicEditable, blockPhoto });
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
@@ -49,6 +53,7 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
     if (isDirty && !window.confirm("Tienes cambios sin guardar. ¿Deseas salir?")) return;
     setEnabled(original.enabled);
     setAcademicEditable(original.academicEditable);
+    setBlockPhoto(original.blockPhoto);
     onClose();
   };
 
@@ -67,7 +72,7 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Settings className="w-5 h-5 text-amber-400" />
-            <h3 className="text-white font-bold text-base">Configuración de Matrículas</h3>
+            <h3 className="text-white font-bold text-base">Configuración de Alumnos</h3>
           </div>
           <button onClick={handleClose} className="text-white/60 hover:text-white transition-colors">
             <X className="w-5 h-5" />
@@ -80,6 +85,32 @@ export default function EnrollmentConfigModal({ isOpen, onClose, token }) {
           </div>
         ) : (
           <div className="p-6 space-y-6">
+            {/* Switch grande: Bloquear cambio de foto de perfil de alumnos */}
+            <div className={`rounded-2xl border-2 p-5 transition-colors ${blockPhoto ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-slate-50"}`} data-testid="switch-block-student-photo">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${blockPhoto ? "bg-rose-100" : "bg-white border border-slate-200"}`}>
+                    <Camera className={`w-5 h-5 ${blockPhoto ? "text-rose-600" : "text-slate-500"}`} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">Bloquear cambio de foto de perfil</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Al activarlo, los alumnos no podrán cambiar su foto: el ícono de cámara desaparece de su perfil.</p>
+                  </div>
+                </div>
+                <button onClick={() => setBlockPhoto(!blockPhoto)} className="shrink-0" data-testid="toggle-block-student-photo">
+                  <div className={`relative w-16 h-9 rounded-full transition-colors ${blockPhoto ? "bg-rose-500" : "bg-slate-300"}`}>
+                    <div className={`absolute top-1 w-7 h-7 bg-white rounded-full shadow-md transition-transform ${blockPhoto ? "translate-x-[30px]" : "translate-x-1"}`} />
+                  </div>
+                </button>
+              </div>
+              <p className={`text-xs font-semibold mt-3 ${blockPhoto ? "text-rose-600" : "text-emerald-600"}`}>
+                {blockPhoto ? "Bloqueado: los alumnos NO pueden cambiar su foto." : "Permitido: los alumnos pueden cambiar su foto."}
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-slate-100"></div>
+
             {/* Switch 1: Auto-registro */}
             <div className="flex items-start gap-4" data-testid="switch-self-enrollment">
               <button onClick={toggleEnabled} className="mt-0.5 shrink-0" data-testid="toggle-self-enrollment">

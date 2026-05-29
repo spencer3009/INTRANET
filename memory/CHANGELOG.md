@@ -1,5 +1,12 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Bloquear cambio de foto de perfil de alumnos (Config en Usuarios/Alumnos) ✅
+- **Pedido**: en Usuarios → Alumnos, el botón "Config" (tuerca) debe abrir un modal con un switch grande para desactivar que los alumnos cambien su foto; al activarlo, el ícono de cámara desaparece del perfil del alumno.
+- **Backend** (`enrollment.py`): `GET /api/school/enrollment-config` ahora devuelve `block_student_photo_change` (leíble por cualquier usuario autenticado, incl. alumnos); `PATCH /api/school/settings/enrollment` acepta y persiste el flag en `tenant_settings.block_student_photo_change` (independiente de la config de matrícula).
+- **Frontend modal** (`EnrollmentConfigModal.jsx`): renombrado a "Configuración de Alumnos"; nuevo switch grande prominente "Bloquear cambio de foto de perfil" con estado visual (rosa=bloqueado / verde=permitido) y guardado junto al resto.
+- **Frontend perfil** (`StudentProfilePage.jsx`): obtiene el flag vía `/api/school/enrollment-config` y oculta el botón de cámara (`student-profile-change-photo-btn`) cuando está bloqueado. (Solo afecta el auto-servicio del alumno; admin/docente siguen pudiendo editar.)
+- **Verificado E2E**: PATCH/GET persisten; login como alumno (Magno) confirma cámara OCULTA con block=true y VISIBLE con block=false; screenshot del modal owner muestra el switch grande funcionando. Flag dejado en false (default) tras la prueba.
+
 ## Feb 28, 2026 - Feature: Mostrar/Ocultar acceso a "Mi Libreta" en Alumnos y Padres ✅
 - **Pedido**: en la misma sección de Ajustes → Libretas, switches para mostrar/ocultar la tarjeta "Mi Libreta del Estudiante" (acceso a la libreta) — uno para alumnos y otro para padres.
 - **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `show_libreta_student` y `show_libreta_parent` (bool, default true); GET/PUT los persisten/devuelven.

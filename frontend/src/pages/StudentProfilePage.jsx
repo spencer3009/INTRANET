@@ -47,6 +47,8 @@ export default function StudentProfilePage({ user, token, onLogout, onUserUpdate
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  // When the school blocks photo changes, the camera button is hidden.
+  const [blockPhotoChange, setBlockPhotoChange] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -57,14 +59,16 @@ export default function StudentProfilePage({ user, token, onLogout, onUserUpdate
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const [profileRes, settingsRes] = await Promise.all([
+      const [profileRes, settingsRes, configRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
-        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/school/enrollment-config`, { headers }).catch(() => ({ data: null })),
       ]);
       setProfile(profileRes.data);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
       }
+      setBlockPhotoChange(configRes?.data?.block_student_photo_change === true);
     } catch (err) {
       console.error("Error loading profile:", err);
     } finally {
@@ -191,6 +195,7 @@ export default function StudentProfilePage({ user, token, onLogout, onUserUpdate
                         <User className="w-10 h-10 text-white" />
                       </div>
                     )}
+                    {!blockPhotoChange && (
                     <button
                       onClick={() => setShowPhotoModal(true)}
                       data-testid="student-profile-change-photo-btn"
@@ -198,6 +203,7 @@ export default function StudentProfilePage({ user, token, onLogout, onUserUpdate
                     >
                       <Camera className="w-4 h-4" />
                     </button>
+                    )}
                     </div>
                   </div>
                   
