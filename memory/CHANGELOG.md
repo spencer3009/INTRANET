@@ -1,5 +1,11 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Fix: El popup del Comunicado Institucional no mostraba los adjuntos (video/imágenes) ✅
+- **Problema**: al enviar un comunicado con video, el popup emergente (`BroadcastPopup.jsx`) que ven los destinatarios no mostraba el video ni el reproductor (ni imágenes/PDF). La página de Mensajes sí los mostraba, pero el popup no.
+- **Causa raíz**: `BroadcastPopup.jsx` nunca incluyó el componente `BroadcastAttachmentsList`. El backend sí guardaba (`broadcast.attachments`), devolvía (`/api/broadcast/unread`) y servía los adjuntos (`/api/messaging/attachments/{id}/{file_id}` busca en `broadcast_messages`) — todo correcto.
+- **Fix**: se agregó `<BroadcastAttachmentsList message={current} token={token} />` al cuerpo del popup y se hizo el cuerpo scrollable (`max-h-[60vh]`). Ahora el popup muestra: imágenes inline (auto), video con reproductor (clic "Reproducir"), PDF (visor) y audio — igual que la página de Mensajes.
+- **Verificado E2E**: con un comunicado de prueba (video adjunto) el popup del portal de Padres muestra la tarjeta del video con botón "Reproducir video" y "Descargar". Dato de prueba eliminado tras la verificación.
+
 ## Feb 28, 2026 - Feature: Escala de calificación editable por colegio (nota → letra) ✅
 - **Pedido**: una zona en Ajustes → Libretas para editar cómo se convierte la nota numérica a letra/nivel de logro (en vez de los rangos MINEDU fijos en código).
 - **Backend** (`grades_literal.py`): nuevas funciones `numerica_a_letra_escala()`, `normalizar_escala()` (valida enteros 0–20, cobertura continua sin huecos/solapes) y constante `DEFAULT_MINEDU_SCALE`.
