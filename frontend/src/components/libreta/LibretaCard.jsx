@@ -61,6 +61,11 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const hideConducta = Boolean(data?.metadata?.hide_conducta_in_libreta);
   const hideTutorComments = Boolean(data?.metadata?.hide_tutor_comments_in_libreta);
   const hideAsistencia = Boolean(data?.metadata?.hide_asistencia_in_libreta);
+  const hideSituacionFinal = Boolean(data?.metadata?.hide_situacion_final_in_libreta);
+  // List of bimestre "orden" numbers whose tutor comment is shown. Empty = all.
+  const tutorCommentsPeriods = Array.isArray(data?.metadata?.tutor_comments_periods)
+    ? data.metadata.tutor_comments_periods.map(Number)
+    : [];
 
   // Print format options (school-level customization in Ajustes → Libreta).
   const pf = data?.metadata?.print_format || {};
@@ -710,7 +715,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
           </tr>
         </thead>
         <tbody>
-          {periods.map(p => {
+          {periods.filter(p => tutorCommentsPeriods.length === 0 || tutorCommentsPeriods.includes(Number(p.orden))).map(p => {
             const val = comments[p.id] || "";
             const closed = closedSet.has(p.id);
             const readonly = !canEdit || closed;
@@ -734,6 +739,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       )}
 
       {/* ── Situación final ── */}
+      {!hideSituacionFinal && (
+      <>
       <table className="lr-situacion" data-testid="libreta-final-status-table">
         <thead>
           <tr>
@@ -798,6 +805,8 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
         <div style={{ marginTop: 4, fontSize: 8, fontStyle: "italic", color: "#666" }}>
           La situación final se habilita después de cerrar el cuarto bimestre.
         </div>
+      )}
+      </>
       )}
 
       {/* ── Página 2: firmas ── */}

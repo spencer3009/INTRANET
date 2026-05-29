@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Selección de comentarios por bimestre + ocultar Situación Final ✅
+- **Pedido**: (1) elegir qué comentarios del tutor se muestran en la libreta (todos, o solo bimestres específicos: 1°/2°/3°/4°); (2) poder ocultar/mostrar el cuadro "SITUACIÓN FINAL".
+- **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `tutor_comments_periods` (List[int], vacío = todos) y `hide_situacion_final_in_libreta` (bool); GET/PUT persisten/devuelven (`schools.libreta_tutor_comments_periods`, `schools.hide_situacion_final_in_libreta`).
+- **Backend** (`libreta.py`): ambos campos propagados a `metadata` en las 3 rutas (live, snapshot read-through, snapshot create) y projections actualizadas.
+- **Frontend libreta** (`LibretaCard.jsx`): el bloque COMENTARIOS DEL TUTOR filtra filas por `orden` según `tutor_comments_periods` (vacío = todas); el cuadro SITUACIÓN FINAL (+ su nota) se oculta con `hide_situacion_final_in_libreta`.
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): bajo "Ocultar comentarios del tutor" hay un sub-control con toggle "Mostrar todos los comentarios" y, al desactivarlo, botones 1°–4° Bimestre para seleccionar cuáles mostrar; nuevo toggle "Ocultar cuadro de Situación Final" en la sección de visibilidad.
+- **Verificado E2E**: curl PUT/GET persiste y `/api/libreta/{id}` expone los campos; screenshots (incl. vista consolidada) confirman que con `periods=[1]` solo aparece el comentario del bimestre I y que SITUACIÓN FINAL se oculta. Defaults restaurados tras la prueba.
+
 ## Feb 28, 2026 - Ajuste: Botón de configuración del portal del alumno SEPARADO del modal de Matrículas ✅
 - **Pedido**: el modal "Config" es exclusivo de Matrículas; revertirlo a su estado original y crear un botón de configuración aparte (más abajo, en la parte blanca) con su propio modal para el switch de bloquear foto.
 - **Revertido**: `EnrollmentConfigModal.jsx` vuelve a "Configuración de Matrículas" (sin switch de foto); `enrollment.py` GET/PATCH de matrícula vuelven a su forma original (sin el flag de foto).

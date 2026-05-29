@@ -154,6 +154,8 @@ class ReportCardSettingsUpdate(BaseModel):
     hide_conducta_in_libreta: Optional[bool] = None
     hide_tutor_comments_in_libreta: Optional[bool] = None
     hide_asistencia_in_libreta: Optional[bool] = None
+    hide_situacion_final_in_libreta: Optional[bool] = None
+    tutor_comments_periods: Optional[List[int]] = None
     print_format: Optional[PrintFormatBody] = None
     header_template: Optional[HeaderTemplateBody] = None
     color_palette: Optional[Dict[str, str]] = None
@@ -306,6 +308,8 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "hide_conducta_in_libreta": bool(school.get("hide_conducta_in_libreta")),
         "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
         "hide_asistencia_in_libreta": bool(school.get("hide_asistencia_in_libreta")),
+        "hide_situacion_final_in_libreta": bool(school.get("hide_situacion_final_in_libreta")),
+        "tutor_comments_periods": [int(x) for x in (school.get("libreta_tutor_comments_periods") or []) if isinstance(x, (int, float))],
         "print_format": _merge_print_format(school.get("libreta_print_format")),
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),
@@ -347,6 +351,11 @@ async def update_report_card_settings(
         update_fields["hide_tutor_comments_in_libreta"] = bool(body.hide_tutor_comments_in_libreta)
     if body.hide_asistencia_in_libreta is not None:
         update_fields["hide_asistencia_in_libreta"] = bool(body.hide_asistencia_in_libreta)
+    if body.hide_situacion_final_in_libreta is not None:
+        update_fields["hide_situacion_final_in_libreta"] = bool(body.hide_situacion_final_in_libreta)
+    if body.tutor_comments_periods is not None:
+        # List of bimestre "orden" numbers to show (empty = show all).
+        update_fields["libreta_tutor_comments_periods"] = sorted({int(x) for x in body.tutor_comments_periods if isinstance(x, (int, float)) and 1 <= int(x) <= 12})
     if body.print_format is not None:
         # Merge with existing stored value so partial updates work.
         stored = (await db.schools.find_one({"id": school_id}, {"_id": 0, "libreta_print_format": 1}) or {}).get("libreta_print_format") or {}
@@ -420,6 +429,8 @@ async def update_report_card_settings(
         "hide_conducta_in_libreta": bool(school.get("hide_conducta_in_libreta")),
         "hide_tutor_comments_in_libreta": bool(school.get("hide_tutor_comments_in_libreta")),
         "hide_asistencia_in_libreta": bool(school.get("hide_asistencia_in_libreta")),
+        "hide_situacion_final_in_libreta": bool(school.get("hide_situacion_final_in_libreta")),
+        "tutor_comments_periods": [int(x) for x in (school.get("libreta_tutor_comments_periods") or []) if isinstance(x, (int, float))],
         "print_format": _merge_print_format(school.get("libreta_print_format")),
         "header_template": _merge_header_template(school.get("libreta_header_template")),
         "header_template_defaults": dict(_HEADER_TEMPLATE_DEFAULTS),

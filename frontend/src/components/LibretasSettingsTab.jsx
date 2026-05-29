@@ -98,6 +98,8 @@ export default function LibretasSettingsTab({ token }) {
   const [hideConducta, setHideConducta] = useState(false);
   const [hideTutorComments, setHideTutorComments] = useState(false);
   const [hideAsistencia, setHideAsistencia] = useState(false);
+  const [hideSituacionFinal, setHideSituacionFinal] = useState(false);
+  const [tutorCommentsPeriods, setTutorCommentsPeriods] = useState([]);
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
@@ -124,6 +126,8 @@ export default function LibretasSettingsTab({ token }) {
         setHideConducta(Boolean(r.data?.hide_conducta_in_libreta));
         setHideTutorComments(Boolean(r.data?.hide_tutor_comments_in_libreta));
         setHideAsistencia(Boolean(r.data?.hide_asistencia_in_libreta));
+        setHideSituacionFinal(Boolean(r.data?.hide_situacion_final_in_libreta));
+        setTutorCommentsPeriods(Array.isArray(r.data?.tutor_comments_periods) ? r.data.tutor_comments_periods.map(Number) : []);
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
         if (r.data?.header_template_defaults) {
@@ -197,7 +201,29 @@ export default function LibretasSettingsTab({ token }) {
     }
   };
 
-  // Print-format option saver — debounced via optimistic UI.
+  // Saver for the per-bimestre tutor-comment selection (list of "orden" ints).
+  const saveTutorCommentsPeriods = async (periods) => {
+    const prev = tutorCommentsPeriods;
+    setTutorCommentsPeriods(periods);  // optimistic
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { tutor_comments_periods: periods }, { headers });
+      setSuccess(periods.length === 0 ? "Se mostrarán todos los comentarios." : `Comentarios visibles: bimestre(s) ${periods.join(", ")}.`);
+      setTimeout(() => setSuccess(""), 3500);
+    } catch (e) {
+      setTutorCommentsPeriods(prev);  // rollback
+      setError(e?.response?.data?.detail || "Error al actualizar los comentarios visibles");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleCommentBimestre = (orden) => {
+    const set = new Set(tutorCommentsPeriods);
+    if (set.has(orden)) set.delete(orden); else set.add(orden);
+    saveTutorCommentsPeriods(Array.from(set).sort((a, b) => a - b));
+  };
   const setPrintField = async (field, value) => {
     if (printFormat[field] === value) return;
     const prev = printFormat;
@@ -567,6 +593,57 @@ export default function LibretasSettingsTab({ token }) {
           </div>
         </label>
 
+        {/* Selección de qué bimestres de comentarios se muestran */}
+        {!hideTutorComments && (
+          <div className="ml-3 pl-4 border-l-2 border-violet-100 space-y-3" data-testid="tutor-comments-periods-control">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={tutorCommentsPeriods.length === 0}
+                disabled={saving}
+                onChange={(e) => saveTutorCommentsPeriods(e.target.checked ? [] : [1])}
+                className="w-4 h-4 mt-0.5 accent-violet-600"
+                data-testid="tutor-comments-show-all-toggle"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-slate-800">Mostrar todos los comentarios</div>
+                <p className="text-xs text-slate-500 mt-0.5">Se muestran los comentarios de todos los bimestres. Desactívalo para elegir cuáles bimestres mostrar.</p>
+              </div>
+            </label>
+
+            {tutorCommentsPeriods.length > 0 && (
+              <div className="pl-7">
+                <p className="text-xs font-semibold text-slate-600 mb-2">Mostrar solo estos bimestres:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4].map((b) => {
+                    const active = tutorCommentsPeriods.includes(b);
+                    const romano = { 1: "I", 2: "II", 3: "III", 4: "IV" }[b];
+                    return (
+                      <button
+                        key={b}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => toggleCommentBimestre(b)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${
+                          active
+                            ? "border-violet-600 bg-violet-100 text-violet-800"
+                            : "border-slate-300 bg-white text-slate-500 hover:border-violet-400 hover:bg-violet-50"
+                        }`}
+                        data-testid={`tutor-comments-bim-${b}`}
+                      >
+                        {b}° Bimestre ({romano})
+                      </button>
+                    );
+                  })}
+                </div>
+                {tutorCommentsPeriods.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-2">Selecciona al menos un bimestre o vuelve a activar "Mostrar todos".</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
           <input
             type="checkbox"
@@ -579,6 +656,21 @@ export default function LibretasSettingsTab({ token }) {
           <div className="flex-1">
             <div className="text-sm font-semibold text-slate-800">Ocultar asistencia</div>
             <p className="text-xs text-slate-500 mt-0.5">No se mostrará la tabla de <b>ASISTENCIA</b> (Presente / Tardanza / Falta / Justificada) en la libreta. El registro de asistencia diario se sigue tomando — solo no se imprime en la libreta.</p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={hideSituacionFinal}
+            disabled={saving}
+            onChange={(e) => handleVisibilityToggle("hide_situacion_final_in_libreta", e.target.checked, setHideSituacionFinal, "Situación final")}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="libreta-hide-situacion-final-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Ocultar cuadro de Situación Final</div>
+            <p className="text-xs text-slate-500 mt-0.5">No se mostrará el cuadro <b>SITUACIÓN FINAL</b> (PROMOVIDO / REQ. RECUPERACIÓN / REPITE) ni los cursos para recuperar. Útil para niveles donde no aplica.</p>
           </div>
         </label>
       </section>
