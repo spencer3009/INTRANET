@@ -24,7 +24,7 @@ from .core import (
 from services.ranking import compute_ranking
 from services.libreta_format import format_section_libreta
 from services.attendance_summary import summary_by_period
-from services.grades_literal import numerica_a_letra, promedio_numerico
+from services.grades_literal import numerica_a_letra, numerica_a_letra_escala, normalizar_escala, promedio_numerico
 from .conduct import get_conduct_payload_for_libreta
 from .conducta_extendida import get_conducta_extendida_payload_for_libreta
 from .tutor_comments import get_comments_payload_for_libreta
@@ -418,7 +418,7 @@ async def get_libreta(
 
     school_doc = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "hide_situacion_final_in_libreta": 1, "libreta_tutor_comments_periods": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1, "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "hide_situacion_final_in_libreta": 1, "libreta_tutor_comments_periods": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1, "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1, "libreta_grade_scale_mode": 1, "libreta_grade_scale": 1},
     ) or {}
 
     grade_doc = await db.grades.find_one(
@@ -573,6 +573,17 @@ async def get_libreta(
     by_area: Dict[str, dict] = {}
     subjects_without_area: List[dict] = []
 
+    # Resolver nota numérica → letra usando la escala del colegio.
+    # Si el modo es "custom" y la escala es válida, se usa; de lo contrario MINEDU.
+    _scale_mode = (school_doc.get("libreta_grade_scale_mode") or "default")
+    _custom_scale = school_doc.get("libreta_grade_scale")
+    if _scale_mode == "custom" and normalizar_escala(_custom_scale) is not None:
+        def to_letter(v):
+            return numerica_a_letra_escala(v, _custom_scale) if v is not None else None
+    else:
+        def to_letter(v):
+            return numerica_a_letra(v) if v is not None else None
+
     for s in subjects:
         # grades por periodo
         per_period: Dict[str, Dict[str, Any]] = {}
@@ -581,7 +592,7 @@ async def get_libreta(
             num = notes_lookup.get(s["id"], {}).get(p["id"])
             per_period[p["id"]] = {
                 "numeric": num,
-                "letter": numerica_a_letra(num) if num is not None else None,
+                "letter": to_letter(num),
             }
             if num is not None:
                 finals_for_avg.append(float(num))
@@ -593,7 +604,7 @@ async def get_libreta(
             "grades": per_period,
             "promedio_final": {
                 "numeric": prom_num,
-                "letter": numerica_a_letra(prom_num) if prom_num is not None else None,
+                "letter": to_letter(prom_num),
             },
         }
 
@@ -636,7 +647,7 @@ async def get_libreta(
             avg = promedio_numerico(vals) if vals else None
             promedio_area[p["id"]] = {
                 "numeric": avg,
-                "letter": numerica_a_letra(avg) if avg is not None else None,
+                "letter": to_letter(avg),
             }
             if avg is not None:
                 all_finals_for_area_final.append(avg)
@@ -644,7 +655,7 @@ async def get_libreta(
         final_avg = promedio_numerico(all_finals_for_area_final) if all_finals_for_area_final else None
         promedio_area["final"] = {
             "numeric": final_avg,
-            "letter": numerica_a_letra(final_avg) if final_avg is not None else None,
+            "letter": to_letter(final_avg),
         }
         area_out = {
             "id": area["id"],

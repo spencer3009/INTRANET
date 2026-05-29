@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from googleapiclient.http import MediaIoBaseUpload
 
 from .core import db, get_current_user, resolve_user_from_token, now_iso, generate_id
+from services.grades_literal import DEFAULT_MINEDU_SCALE, normalizar_escala
 from .exams import get_drive_service
 from .admin_portal import _ensure_submissions_folder  # not used; kept as ref
 
@@ -166,6 +167,8 @@ class ReportCardSettingsUpdate(BaseModel):
     show_grades_parent: Optional[bool] = None
     show_libreta_student: Optional[bool] = None
     show_libreta_parent: Optional[bool] = None
+    grade_scale_mode: Optional[str] = None
+    grade_scale: Optional[List[Dict[str, object]]] = None
 
 
 # Defaults for the editable libreta header.
@@ -319,6 +322,9 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "all_bold": bool(school.get("libreta_all_bold")),
         "show_grades_student": school.get("show_grades_student", True) is not False,
         "show_grades_parent": school.get("show_grades_parent", True) is not False,
+        "grade_scale_mode": school.get("libreta_grade_scale_mode") or "default",
+        "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
+        "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
@@ -418,6 +424,16 @@ async def update_report_card_settings(
         update_fields["show_libreta_student"] = bool(body.show_libreta_student)
     if body.show_libreta_parent is not None:
         update_fields["show_libreta_parent"] = bool(body.show_libreta_parent)
+    if body.grade_scale_mode is not None:
+        mode = str(body.grade_scale_mode).strip().lower()
+        if mode not in ("default", "custom"):
+            raise HTTPException(status_code=400, detail="grade_scale_mode debe ser 'default' o 'custom'")
+        update_fields["libreta_grade_scale_mode"] = mode
+    if body.grade_scale is not None:
+        norm = normalizar_escala(body.grade_scale)
+        if norm is None:
+            raise HTTPException(status_code=400, detail="La escala de calificación es inválida: los rangos deben ser enteros y cubrir 0–20 de forma continua, sin huecos ni solapamientos.")
+        update_fields["libreta_grade_scale"] = norm
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -440,6 +456,9 @@ async def update_report_card_settings(
         "all_bold": bool(school.get("libreta_all_bold")),
         "show_grades_student": school.get("show_grades_student", True) is not False,
         "show_grades_parent": school.get("show_grades_parent", True) is not False,
+        "grade_scale_mode": school.get("libreta_grade_scale_mode") or "default",
+        "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
+        "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
     }

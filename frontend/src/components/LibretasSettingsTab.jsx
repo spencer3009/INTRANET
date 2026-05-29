@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff,
-  Printer, Maximize2, RotateCw, Rows, Eye, Trophy, GraduationCap, Users,
+  Printer, Maximize2, RotateCw, Rows, Eye, Trophy, GraduationCap, Users, Plus, Trash2, Award,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
@@ -100,6 +100,9 @@ export default function LibretasSettingsTab({ token }) {
   const [hideAsistencia, setHideAsistencia] = useState(false);
   const [hideSituacionFinal, setHideSituacionFinal] = useState(false);
   const [tutorCommentsPeriods, setTutorCommentsPeriods] = useState([]);
+  const [gradeScaleMode, setGradeScaleMode] = useState("default");
+  const [gradeScale, setGradeScale] = useState([]);
+  const [defaultGradeScale, setDefaultGradeScale] = useState([]);
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
@@ -128,6 +131,9 @@ export default function LibretasSettingsTab({ token }) {
         setHideAsistencia(Boolean(r.data?.hide_asistencia_in_libreta));
         setHideSituacionFinal(Boolean(r.data?.hide_situacion_final_in_libreta));
         setTutorCommentsPeriods(Array.isArray(r.data?.tutor_comments_periods) ? r.data.tutor_comments_periods.map(Number) : []);
+        setGradeScaleMode(r.data?.grade_scale_mode === "custom" ? "custom" : "default");
+        setGradeScale(Array.isArray(r.data?.grade_scale) ? r.data.grade_scale.map(x => ({ letter: String(x.letter || ""), min: Number(x.min), max: Number(x.max) })) : []);
+        setDefaultGradeScale(Array.isArray(r.data?.default_grade_scale) ? r.data.default_grade_scale : []);
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
         if (r.data?.header_template_defaults) {
@@ -223,6 +229,74 @@ export default function LibretasSettingsTab({ token }) {
     const set = new Set(tutorCommentsPeriods);
     if (set.has(orden)) set.delete(orden); else set.add(orden);
     saveTutorCommentsPeriods(Array.from(set).sort((a, b) => a - b));
+  };
+
+  // ── Escala de calificación ───────────────────────────────────────────
+  // Valida que la escala cubra 0–20 de forma continua, sin huecos ni solapes.
+  const validateScale = (rows) => {
+    if (!Array.isArray(rows) || rows.length === 0) return "Agrega al menos un nivel.";
+    const parsed = [];
+    for (const r of rows) {
+      if (!String(r.letter || "").trim()) return "Cada nivel necesita una letra/nombre.";
+      const lo = Number(r.min); const hi = Number(r.max);
+      if (!Number.isInteger(lo) || !Number.isInteger(hi)) return "Los rangos deben ser números enteros.";
+      if (lo < 0 || hi > 20) return "Los rangos deben estar entre 0 y 20.";
+      if (lo > hi) return `En "${r.letter}", "Desde" no puede ser mayor que "Hasta".`;
+      parsed.push({ ...r, min: lo, max: hi });
+    }
+    parsed.sort((a, b) => a.min - b.min);
+    if (parsed[0].min !== 0) return "El rango más bajo debe empezar en 0.";
+    if (parsed[parsed.length - 1].max !== 20) return "El rango más alto debe terminar en 20.";
+    for (let i = 1; i < parsed.length; i++) {
+      if (parsed[i].min !== parsed[i - 1].max + 1) return "Los rangos deben ser continuos, sin huecos ni solapamientos.";
+    }
+    return null;
+  };
+  const scaleError = gradeScaleMode === "custom" ? validateScale(gradeScale) : null;
+
+  const setGradeScaleModeAndSave = async (mode) => {
+    const prev = gradeScaleMode;
+    setGradeScaleMode(mode);  // optimistic
+    // Al pasar a personalizada, si no hay filas, parte de la MINEDU como base.
+    let scaleToSend;
+    if (mode === "custom" && (!gradeScale || gradeScale.length === 0)) {
+      scaleToSend = defaultGradeScale.map(x => ({ ...x }));
+      setGradeScale(scaleToSend);
+    }
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      const body = { grade_scale_mode: mode };
+      if (mode === "custom" && scaleToSend) body.grade_scale = scaleToSend;
+      await axios.put(`${API}/report-cards/settings`, body, { headers });
+      setSuccess(mode === "custom" ? "Escala personalizada activada." : "Usando la escala por defecto (MINEDU).");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      setGradeScaleMode(prev);  // rollback
+      setError(e?.response?.data?.detail || "Error al cambiar el modo de escala");
+    } finally { setSaving(false); }
+  };
+
+  const updateScaleRow = (idx, field, value) => {
+    setGradeScale(prev => prev.map((r, i) => i === idx ? { ...r, [field]: field === "letter" ? value : (value === "" ? "" : Number(value)) } : r));
+  };
+  const addScaleRow = () => setGradeScale(prev => [...prev, { letter: "", min: 0, max: 0 }]);
+  const removeScaleRow = (idx) => setGradeScale(prev => prev.filter((_, i) => i !== idx));
+  const restoreMineduScale = () => setGradeScale(defaultGradeScale.map(x => ({ ...x })));
+
+  const saveGradeScale = async () => {
+    const err = validateScale(gradeScale);
+    if (err) { setError(err); return; }
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, {
+        grade_scale_mode: "custom",
+        grade_scale: gradeScale.map(r => ({ letter: String(r.letter).trim(), min: Number(r.min), max: Number(r.max) })),
+      }, { headers });
+      setSuccess("Escala de calificación guardada.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar la escala");
+    } finally { setSaving(false); }
   };
   const setPrintField = async (field, value) => {
     if (printFormat[field] === value) return;
@@ -673,6 +747,124 @@ export default function LibretasSettingsTab({ token }) {
             <p className="text-xs text-slate-500 mt-0.5">No se mostrará el cuadro <b>SITUACIÓN FINAL</b> (PROMOVIDO / REQ. RECUPERACIÓN / REPITE) ni los cursos para recuperar. Útil para niveles donde no aplica.</p>
           </div>
         </label>
+      </section>
+
+      {/* ── Escala de calificación (número → letra) ─────────────────────── */}
+      <section className="space-y-3 pt-4 border-t border-slate-200" data-testid="grade-scale-section">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Award className="w-4 h-4 text-violet-600" />
+            Escala de calificación
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">Define cómo se convierte la <b>nota numérica</b> (0–20) en <b>letra / nivel de logro</b>. Se aplica cuando el formato de la libreta es "Letras" o "Mixto".</p>
+        </div>
+
+        {/* Selector de modo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setGradeScaleModeAndSave("default")}
+            disabled={saving}
+            className={`text-left p-3 rounded-xl border-2 transition-colors disabled:opacity-50 ${gradeScaleMode === "default" ? "border-violet-600 bg-violet-50" : "border-slate-200 bg-white hover:border-violet-300"}`}
+            data-testid="grade-scale-mode-default"
+          >
+            <div className="text-sm font-semibold text-slate-800">Escala por defecto (MINEDU)</div>
+            <p className="text-xs text-slate-500 mt-0.5">AD: 18–20 · A: 14–17 · B: 11–13 · C: 0–10</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGradeScaleModeAndSave("custom")}
+            disabled={saving}
+            className={`text-left p-3 rounded-xl border-2 transition-colors disabled:opacity-50 ${gradeScaleMode === "custom" ? "border-violet-600 bg-violet-50" : "border-slate-200 bg-white hover:border-violet-300"}`}
+            data-testid="grade-scale-mode-custom"
+          >
+            <div className="text-sm font-semibold text-slate-800">Escala personalizada</div>
+            <p className="text-xs text-slate-500 mt-0.5">Define tus propias letras y rangos para tu colegio.</p>
+          </button>
+        </div>
+
+        {/* Editor de escala personalizada */}
+        {gradeScaleMode === "custom" && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3" data-testid="grade-scale-editor">
+            <div className="grid grid-cols-[1fr_80px_80px_36px] gap-2 items-center text-[11px] font-bold text-slate-500 uppercase tracking-wide px-1">
+              <span>Letra / Nivel</span>
+              <span className="text-center">Desde</span>
+              <span className="text-center">Hasta</span>
+              <span></span>
+            </div>
+            {gradeScale.map((row, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_80px_80px_36px] gap-2 items-center" data-testid={`grade-scale-row-${idx}`}>
+                <input
+                  type="text"
+                  value={row.letter}
+                  disabled={saving}
+                  onChange={(e) => updateScaleRow(idx, "letter", e.target.value)}
+                  placeholder="Ej. AD"
+                  className="h-9 px-2 text-sm font-semibold text-slate-800 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-violet-500"
+                  data-testid={`grade-scale-letter-${idx}`}
+                />
+                <input
+                  type="number" min="0" max="20"
+                  value={row.min}
+                  disabled={saving}
+                  onChange={(e) => updateScaleRow(idx, "min", e.target.value)}
+                  className="h-9 px-2 text-sm text-center text-slate-800 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-violet-500"
+                  data-testid={`grade-scale-min-${idx}`}
+                />
+                <input
+                  type="number" min="0" max="20"
+                  value={row.max}
+                  disabled={saving}
+                  onChange={(e) => updateScaleRow(idx, "max", e.target.value)}
+                  className="h-9 px-2 text-sm text-center text-slate-800 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-violet-500"
+                  data-testid={`grade-scale-max-${idx}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeScaleRow(idx)}
+                  disabled={saving || gradeScale.length <= 1}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  title="Eliminar nivel"
+                  data-testid={`grade-scale-remove-${idx}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button type="button" onClick={addScaleRow} disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors disabled:opacity-50"
+                data-testid="grade-scale-add-row">
+                <Plus className="w-3.5 h-3.5" /> Agregar nivel
+              </button>
+              <button type="button" onClick={restoreMineduScale} disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors disabled:opacity-50"
+                data-testid="grade-scale-restore">
+                <RotateCw className="w-3.5 h-3.5" /> Restaurar escala MINEDU
+              </button>
+            </div>
+
+            {scaleError ? (
+              <p className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2" data-testid="grade-scale-error">{scaleError}</p>
+            ) : (
+              <p className="text-xs text-emerald-600">La escala cubre correctamente 0–20.</p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={saveGradeScale}
+                disabled={saving || !!scaleError}
+                className="px-5 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+                data-testid="grade-scale-save"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Guardar escala
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Acceso a "Calificaciones" en los portales ──────────────────── */}

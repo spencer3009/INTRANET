@@ -1,5 +1,15 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Escala de calificación editable por colegio (nota → letra) ✅
+- **Pedido**: una zona en Ajustes → Libretas para editar cómo se convierte la nota numérica a letra/nivel de logro (en vez de los rangos MINEDU fijos en código).
+- **Backend** (`grades_literal.py`): nuevas funciones `numerica_a_letra_escala()`, `normalizar_escala()` (valida enteros 0–20, cobertura continua sin huecos/solapes) y constante `DEFAULT_MINEDU_SCALE`.
+- **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `grade_scale_mode` ("default"/"custom") y `grade_scale` (lista {letter,min,max}); GET devuelve `grade_scale_mode`, `grade_scale` y `default_grade_scale`; PUT valida la escala (400 si es inválida) y persiste en `schools.libreta_grade_scale_mode` / `libreta_grade_scale`.
+- **Backend** (`libreta.py`): construye un resolver `to_letter()` que usa la escala custom del colegio si `mode="custom"` y es válida, si no MINEDU; aplicado a las 4 conversiones (nota, promedio de área, promedio final). Projection actualizada.
+- **Frontend** (`LibretasSettingsTab.jsx`): nueva sección "Escala de calificación" con selector de modo (Por defecto MINEDU / Personalizada) y, en custom, tabla editable Letra/Desde/Hasta con agregar/eliminar nivel, restaurar MINEDU, validación en vivo y guardar.
+- **Comportamiento**: con modo "default" usa la escala de la plataforma (MINEDU); con "custom" usa los valores definidos. Se aplica en formato Letras/Mixto. Enteros 0–20. Redondeo half-up se mantiene (13.5→14).
+- **Verificado E2E**: curl GET/PUT (escala default, rechazo de escala inválida con hueco, persistencia de escala custom), test unitario del resolver (round-half-up + fallback) y screenshot del editor con validación en verde. Estado restaurado a MINEDU tras la prueba.
+- **Nota**: aplica a la libreta (`libreta.py`). Otras vistas de notas (grades.py/parents.py) siguen usando MINEDU; se puede extender si se requiere.
+
 ## Feb 28, 2026 - Feature: Selección de comentarios por bimestre + ocultar Situación Final ✅
 - **Pedido**: (1) elegir qué comentarios del tutor se muestran en la libreta (todos, o solo bimestres específicos: 1°/2°/3°/4°); (2) poder ocultar/mostrar el cuadro "SITUACIÓN FINAL".
 - **Backend** (`report_cards_pdf.py`): `ReportCardSettingsUpdate` acepta `tutor_comments_periods` (List[int], vacío = todos) y `hide_situacion_final_in_libreta` (bool); GET/PUT persisten/devuelven (`schools.libreta_tutor_comments_periods`, `schools.hide_situacion_final_in_libreta`).
