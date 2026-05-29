@@ -1,5 +1,17 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Feature: Firma y sello de Dirección en la libreta (generador + uploads WebP transparente) ✅
+- **Pedido**: en Ajustes → Libreta, gestionar el sello institucional (generarlo con textos + vista previa en vivo, o subir imagen), la firma del director (subir → WebP transparente) y el nombre del director, reflejados en la página de firmas de la libreta.
+- **Backend** (`report_cards_pdf.py`):
+  - Helper `_white_to_transparent_webp()` (Pillow): convierte PNG/JPG a WebP con los píxeles casi-blancos → transparentes; redimensiona a máx 700px.
+  - Endpoint `POST /api/report-cards/director-image` (multipart kind=signature|stamp) → convierte, guarda en el colegio y devuelve data URL.
+  - `ReportCardSettingsUpdate` acepta `director_name`, `stamp_mode` ("generated"/"image"), `stamp_config` (5 campos), `director_signature`, `stamp_image`; GET/PUT persisten/devuelven (`schools.libreta_director_*` / `libreta_stamp_*`).
+- **Backend** (`libreta.py`): los 5 campos propagados a `metadata` (live + snapshot + close) y projections actualizadas.
+- **Frontend nuevo** (`InstitutionalStamp.jsx`): sello circular SVG con texto curvo (superior/inferior + RUC/dirección en anillo interno + cargo central), reutilizable en Ajustes y libreta.
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): sección "Firma y sello de Dirección" con campo nombre, uploader de firma (preview sobre fondo transparente), selector de modo de sello (Generar con textos → editor de 5 campos + vista previa en vivo / Subir imagen → uploader).
+- **Frontend libreta** (`LibretaCard.jsx` + `.css`): en el recuadro DIRECTOR (A), firma sobre la línea, nombre debajo, y sello al costado derecho (sin tapar firma/nombre).
+- **Verificado E2E**: curl (upload→webp transparente, PUT/GET de todos los campos), screenshots del generador con vista previa en vivo (idéntico al modelo) y de la libreta con firma + nombre + sello renderizados. Datos de prueba limpiados.
+
 ## Feb 28, 2026 - Mejora visual: reproductor de video en comunicados (miniatura 16:9 + play circular) ✅
 - **Pedido**: el recuadro del video se veía muy bajito; pidieron que sea rectangular con más altura y un botón de play grande dentro de un círculo, centrado.
 - **Cambio** (`BroadcastAttachmentsList.jsx`, usado en popup + las 4 páginas de Mensajes): el placeholder del video ahora es una miniatura **`aspect-video` (16:9)** con fondo oscuro tipo cine, un **botón de play circular grande** (con hover/scale) centrado y el texto "Reproducir video" debajo. Al reproducir, el `<video>` usa `aspect-video` + `autoPlay` y mayor altura (`max-h-[70vh]`).

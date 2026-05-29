@@ -5,6 +5,7 @@ import { useState, useEffect, Fragment } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import "./LibretaCard.css";
+import InstitutionalStamp from "../InstitutionalStamp";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LETRAS = ["AD", "A", "B", "C"];
@@ -62,6 +63,13 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const hideTutorComments = Boolean(data?.metadata?.hide_tutor_comments_in_libreta);
   const hideAsistencia = Boolean(data?.metadata?.hide_asistencia_in_libreta);
   const hideSituacionFinal = Boolean(data?.metadata?.hide_situacion_final_in_libreta);
+  // Firma y sello de Dirección.
+  const directorName = data?.metadata?.director_name || "";
+  const directorSignature = data?.metadata?.director_signature || "";
+  const stampMode = data?.metadata?.stamp_mode || "generated";
+  const stampImage = data?.metadata?.stamp_image || "";
+  const stampConfig = data?.metadata?.stamp_config || {};
+  const stampHasContent = !!(stampConfig.texto_superior || stampConfig.texto_inferior || stampConfig.ruc || stampConfig.direccion);
   // List of bimestre "orden" numbers whose tutor comment is shown. Empty = all.
   const tutorCommentsPeriods = Array.isArray(data?.metadata?.tutor_comments_periods)
     ? data.metadata.tutor_comments_periods.map(Number)
@@ -820,8 +828,20 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
             {tutorFullName && <div className="lr-name">{tutorFullName}</div>}
             <div className="lr-title">TUTOR (A)</div>
           </div>
-          <div className="lr-signature-box">
+          <div className="lr-signature-box lr-director-box">
+            {directorSignature && (
+              <img className="lr-sign-img" src={directorSignature} alt="Firma del director" data-testid="libreta-director-signature" />
+            )}
+            {directorName && <div className="lr-name">{directorName}</div>}
             <div className="lr-title">DIRECTOR (A)</div>
+            {stampMode === "image" && stampImage && (
+              <img className="lr-stamp-img" src={stampImage} alt="Sello institucional" data-testid="libreta-stamp-image" />
+            )}
+            {stampMode === "generated" && stampHasContent && (
+              <div className="lr-stamp-svg" data-testid="libreta-stamp-svg">
+                <InstitutionalStamp config={stampConfig} size={92} />
+              </div>
+            )}
           </div>
         </div>
       </section>

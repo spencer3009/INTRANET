@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Loader2, CheckCircle2, AlertCircle, FileText, CloudOff, Cloud, Hash, Type, Layers, EyeOff,
-  Printer, Maximize2, RotateCw, Rows, Eye, Trophy, GraduationCap, Users, Plus, Trash2, Award,
+  Printer, Maximize2, RotateCw, Rows, Eye, Trophy, GraduationCap, Users, Plus, Trash2, Award, Stamp, Upload, PenLine,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConductaExtendidaEditor from "./ConductaExtendidaEditor";
 import LibretaPaletteEditor from "./LibretaPaletteEditor";
+import InstitutionalStamp from "./InstitutionalStamp";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -103,6 +104,12 @@ export default function LibretasSettingsTab({ token }) {
   const [gradeScaleMode, setGradeScaleMode] = useState("default");
   const [gradeScale, setGradeScale] = useState([]);
   const [defaultGradeScale, setDefaultGradeScale] = useState([]);
+  const [directorName, setDirectorName] = useState("");
+  const [stampMode, setStampMode] = useState("generated");
+  const [stampConfig, setStampConfig] = useState({ texto_superior: "", texto_inferior: "", ruc: "", direccion: "", cargo: "DIRECTOR" });
+  const [directorSignature, setDirectorSignature] = useState("");
+  const [stampImage, setStampImage] = useState("");
+  const [uploadingImg, setUploadingImg] = useState("");
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
@@ -134,6 +141,17 @@ export default function LibretasSettingsTab({ token }) {
         setGradeScaleMode(r.data?.grade_scale_mode === "custom" ? "custom" : "default");
         setGradeScale(Array.isArray(r.data?.grade_scale) ? r.data.grade_scale.map(x => ({ letter: String(x.letter || ""), min: Number(x.min), max: Number(x.max) })) : []);
         setDefaultGradeScale(Array.isArray(r.data?.default_grade_scale) ? r.data.default_grade_scale : []);
+        setDirectorName(r.data?.director_name || "");
+        setStampMode(r.data?.stamp_mode === "image" ? "image" : "generated");
+        setStampConfig({
+          texto_superior: r.data?.stamp_config?.texto_superior || "",
+          texto_inferior: r.data?.stamp_config?.texto_inferior || "",
+          ruc: r.data?.stamp_config?.ruc || "",
+          direccion: r.data?.stamp_config?.direccion || "",
+          cargo: r.data?.stamp_config?.cargo || "DIRECTOR",
+        });
+        setDirectorSignature(r.data?.director_signature || "");
+        setStampImage(r.data?.stamp_image || "");
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
         if (r.data?.header_template_defaults) {
@@ -231,7 +249,74 @@ export default function LibretasSettingsTab({ token }) {
     saveTutorCommentsPeriods(Array.from(set).sort((a, b) => a - b));
   };
 
-  // ── Escala de calificación ───────────────────────────────────────────
+  // ── Firma y sello de Dirección ───────────────────────────────────────
+  const saveDirectorName = async (name) => {
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { director_name: name }, { headers });
+      setSuccess("Nombre del director guardado.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar el nombre del director");
+    } finally { setSaving(false); }
+  };
+
+  const saveStampMode = async (mode) => {
+    const prev = stampMode;
+    setStampMode(mode);
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { stamp_mode: mode }, { headers });
+      setSuccess(mode === "generated" ? "Sello: modo Generado con textos." : "Sello: modo Imagen subida.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setStampMode(prev);
+      setError(e?.response?.data?.detail || "Error al cambiar el modo del sello");
+    } finally { setSaving(false); }
+  };
+
+  const saveStampConfig = async () => {
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { stamp_config: stampConfig }, { headers });
+      setSuccess("Textos del sello guardados.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar el sello");
+    } finally { setSaving(false); }
+  };
+
+  // Sube firma o sello (kind: 'signature' | 'stamp') y lo convierte a WebP.
+  const uploadDirectorImage = async (kind, fileObj) => {
+    if (!fileObj) return;
+    if (!fileObj.type.startsWith("image/")) { setError("El archivo debe ser una imagen (PNG, JPG)."); return; }
+    setUploadingImg(kind); setError(""); setSuccess("");
+    try {
+      const fd = new FormData();
+      fd.append("kind", kind);
+      fd.append("file", fileObj);
+      const res = await axios.post(`${API}/report-cards/director-image`, fd, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
+      if (kind === "signature") setDirectorSignature(res.data.url); else setStampImage(res.data.url);
+      setSuccess(kind === "signature" ? "Firma del director cargada." : "Sello cargado.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al procesar la imagen");
+    } finally { setUploadingImg(""); }
+  };
+
+  const clearDirectorImage = async (kind) => {
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      const body = kind === "signature" ? { director_signature: "" } : { stamp_image: "" };
+      await axios.put(`${API}/report-cards/settings`, body, { headers });
+      if (kind === "signature") setDirectorSignature(""); else setStampImage("");
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al quitar la imagen");
+    } finally { setSaving(false); }
+  };
+
   // Valida que la escala cubra 0–20 de forma continua, sin huecos ni solapes.
   const validateScale = (rows) => {
     if (!Array.isArray(rows) || rows.length === 0) return "Agrega al menos un nivel.";
@@ -865,6 +950,148 @@ export default function LibretasSettingsTab({ token }) {
             </div>
           </div>
         )}
+      </section>
+
+      {/* ── Firma y sello de Dirección ──────────────────────────────────── */}
+      <section className="space-y-4 pt-4 border-t border-slate-200" data-testid="director-signature-section">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Stamp className="w-4 h-4 text-violet-600" />
+            Firma y sello de Dirección
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">Aparecen en la página de firmas de la libreta, en el recuadro <b>DIRECTOR (A)</b>: la firma sobre la línea, el nombre debajo y el sello al costado derecho.</p>
+        </div>
+
+        {/* Nombre del director */}
+        <div>
+          <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <PenLine className="w-4 h-4 text-slate-400" /> Nombre del director(a)
+          </label>
+          <input
+            type="text"
+            value={directorName}
+            disabled={saving}
+            onChange={(e) => setDirectorName(e.target.value)}
+            onBlur={(e) => saveDirectorName(e.target.value)}
+            placeholder="Ej. Lic. Ricardo Palma Soriano"
+            className="w-full h-10 px-3 text-sm text-slate-800 border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-violet-500"
+            data-testid="director-name-input"
+          />
+          <p className="text-xs text-slate-400 mt-1">Se mostrará debajo de la línea de firma del director.</p>
+        </div>
+
+        {/* Firma del director (imagen) */}
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Firma del director(a)</label>
+          <div className="flex items-center gap-4">
+            <div className="w-40 h-20 rounded-xl border border-dashed border-slate-300 bg-[length:16px_16px] flex items-center justify-center overflow-hidden"
+              style={{ backgroundImage: "linear-gradient(45deg,#f1f5f9 25%,transparent 25%,transparent 75%,#f1f5f9 75%,#f1f5f9),linear-gradient(45deg,#f1f5f9 25%,#fff 25%,#fff 75%,#f1f5f9 75%,#f1f5f9)", backgroundPosition: "0 0,8px 8px" }}>
+              {directorSignature ? (
+                <img src={directorSignature} alt="Firma" className="max-w-full max-h-full object-contain" data-testid="director-signature-preview" />
+              ) : (
+                <span className="text-xs text-slate-400">Sin firma</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+                {uploadingImg === "signature" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploadingImg === "signature" ? "Procesando…" : "Subir firma"}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingImg === "signature"}
+                  onChange={(e) => { uploadDirectorImage("signature", e.target.files?.[0]); e.target.value = ""; }}
+                  data-testid="director-signature-upload" />
+              </label>
+              {directorSignature && (
+                <button type="button" onClick={() => clearDirectorImage("signature")} disabled={saving}
+                  className="block text-xs text-rose-600 hover:underline" data-testid="director-signature-clear">Quitar firma</button>
+              )}
+              <p className="text-[11px] text-slate-400 max-w-[180px]">PNG/JPG con fondo blanco. Se vuelve transparente automáticamente.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sello institucional */}
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Sello institucional</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <button type="button" onClick={() => saveStampMode("generated")} disabled={saving}
+              className={`text-left p-3 rounded-xl border-2 transition-colors disabled:opacity-50 ${stampMode === "generated" ? "border-violet-600 bg-violet-50" : "border-slate-200 bg-white hover:border-violet-300"}`}
+              data-testid="stamp-mode-generated">
+              <div className="text-sm font-semibold text-slate-800">Generar con textos</div>
+              <p className="text-xs text-slate-500 mt-0.5">Crea el sello circular y ve la vista previa en vivo.</p>
+            </button>
+            <button type="button" onClick={() => saveStampMode("image")} disabled={saving}
+              className={`text-left p-3 rounded-xl border-2 transition-colors disabled:opacity-50 ${stampMode === "image" ? "border-violet-600 bg-violet-50" : "border-slate-200 bg-white hover:border-violet-300"}`}
+              data-testid="stamp-mode-image">
+              <div className="text-sm font-semibold text-slate-800">Subir imagen</div>
+              <p className="text-xs text-slate-500 mt-0.5">Usa una imagen del sello ya diseñado.</p>
+            </button>
+          </div>
+
+          {stampMode === "generated" ? (
+            <div className="flex flex-col md:flex-row gap-5 items-start rounded-xl border border-slate-200 bg-slate-50 p-4" data-testid="stamp-generator">
+              {/* Inputs */}
+              <div className="flex-1 space-y-2.5 w-full">
+                {[
+                  ["texto_superior", "Texto superior", "I.E RICARDO PALMA SORIANO"],
+                  ["texto_inferior", "Texto inferior", "COLEGIO PARTICULAR"],
+                  ["ruc", "RUC", "20602896057"],
+                  ["direccion", "Dirección", "CALLE INTISUYO 283 SAN MIGUEL"],
+                  ["cargo", "Cargo central", "DIRECTOR"],
+                ].map(([key, label, ph]) => (
+                  <div key={key}>
+                    <label className="text-xs font-semibold text-slate-600">{label}</label>
+                    <input
+                      type="text"
+                      value={stampConfig[key]}
+                      disabled={saving}
+                      onChange={(e) => setStampConfig({ ...stampConfig, [key]: e.target.value })}
+                      placeholder={ph}
+                      className="w-full h-9 px-2.5 text-sm text-slate-800 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-violet-500"
+                      data-testid={`stamp-input-${key}`}
+                    />
+                  </div>
+                ))}
+                <button type="button" onClick={saveStampConfig} disabled={saving}
+                  className="mt-1 px-5 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+                  data-testid="stamp-save">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Guardar sello
+                </button>
+              </div>
+              {/* Vista previa */}
+              <div className="flex flex-col items-center gap-2 shrink-0 mx-auto">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Vista previa</span>
+                <div className="p-3 bg-white rounded-xl border border-slate-200">
+                  <InstitutionalStamp config={stampConfig} size={200} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="w-28 h-28 rounded-xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
+                {stampImage ? (
+                  <img src={stampImage} alt="Sello" className="max-w-full max-h-full object-contain" data-testid="stamp-image-preview" />
+                ) : (
+                  <span className="text-xs text-slate-400 text-center px-2">Sin sello</span>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg cursor-pointer transition-colors">
+                  {uploadingImg === "stamp" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {uploadingImg === "stamp" ? "Procesando…" : "Subir sello"}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingImg === "stamp"}
+                    onChange={(e) => { uploadDirectorImage("stamp", e.target.files?.[0]); e.target.value = ""; }}
+                    data-testid="stamp-image-upload" />
+                </label>
+                {stampImage && (
+                  <button type="button" onClick={() => clearDirectorImage("stamp")} disabled={saving}
+                    className="block text-xs text-rose-600 hover:underline" data-testid="stamp-image-clear">Quitar sello</button>
+                )}
+                <p className="text-[11px] text-slate-400 max-w-[180px]">PNG/JPG con fondo blanco. Se vuelve transparente automáticamente.</p>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ── Acceso a "Calificaciones" en los portales ──────────────────── */}

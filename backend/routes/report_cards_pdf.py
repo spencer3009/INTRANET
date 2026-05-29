@@ -30,6 +30,57 @@ router = APIRouter(tags=["report_cards_pdf"])
 MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 ADMIN_ROLES = {"owner", "director", "admin"}
 
+MAX_IMG_UPLOAD_BYTES = 6 * 1024 * 1024  # 6 MB raw upload
+_STAMP_FIELDS = ("texto_superior", "texto_inferior", "ruc", "direccion", "cargo")
+DEFAULT_STAMP_CONFIG = {
+    "texto_superior": "",
+    "texto_inferior": "",
+    "ruc": "",
+    "direccion": "",
+    "cargo": "DIRECTOR",
+}
+
+
+def _merge_stamp_config(stored) -> dict:
+    out = dict(DEFAULT_STAMP_CONFIG)
+    if isinstance(stored, dict):
+        for k in _STAMP_FIELDS:
+            v = stored.get(k)
+            if isinstance(v, str):
+                out[k] = v.strip()[:120]
+    return out
+
+
+def _white_to_transparent_webp(raw: bytes, max_dim: int = 700, threshold: int = 238) -> str:
+    """Convierte una imagen (PNG/JPG) a WebP con fondo blanco → transparente.
+
+    Devuelve un data URL ('data:image/webp;base64,...'). Los píxeles cuyo
+    R, G y B superen `threshold` se vuelven transparentes (típico para firmas
+    y sellos sobre papel blanco).
+    """
+    import base64
+    from PIL import Image
+
+    img = Image.open(io.BytesIO(raw)).convert("RGBA")
+    # Redimensionar si es muy grande (mantener proporción)
+    w, h = img.size
+    if max(w, h) > max_dim:
+        scale = max_dim / float(max(w, h))
+        img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+
+    px = img.load()
+    W, H = img.size
+    for y in range(H):
+        for x in range(W):
+            r, g, b, a = px[x, y]
+            if r >= threshold and g >= threshold and b >= threshold:
+                px[x, y] = (r, g, b, 0)
+    buf = io.BytesIO()
+    img.save(buf, format="WEBP", quality=90, method=6)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/webp;base64,{b64}"
+
+
 
 # ───────────────────────── Helpers ─────────────────────────
 
@@ -169,6 +220,11 @@ class ReportCardSettingsUpdate(BaseModel):
     show_libreta_parent: Optional[bool] = None
     grade_scale_mode: Optional[str] = None
     grade_scale: Optional[List[Dict[str, object]]] = None
+    director_name: Optional[str] = None
+    stamp_mode: Optional[str] = None
+    stamp_config: Optional[Dict[str, str]] = None
+    director_signature: Optional[str] = None  # "" or null clears it
+    stamp_image: Optional[str] = None          # "" or null clears it
 
 
 # Defaults for the editable libreta header.
@@ -325,6 +381,11 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "grade_scale_mode": school.get("libreta_grade_scale_mode") or "default",
         "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
         "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
+        "director_name": school.get("libreta_director_name") or "",
+        "stamp_mode": school.get("libreta_stamp_mode") or "generated",
+        "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
+        "director_signature": school.get("libreta_director_signature") or "",
+        "stamp_image": school.get("libreta_stamp_image") or "",
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
@@ -434,6 +495,20 @@ async def update_report_card_settings(
         if norm is None:
             raise HTTPException(status_code=400, detail="La escala de calificación es inválida: los rangos deben ser enteros y cubrir 0–20 de forma continua, sin huecos ni solapamientos.")
         update_fields["libreta_grade_scale"] = norm
+    if body.director_name is not None:
+        update_fields["libreta_director_name"] = str(body.director_name).strip()[:120]
+    if body.stamp_mode is not None:
+        sm = str(body.stamp_mode).strip().lower()
+        if sm not in ("generated", "image"):
+            raise HTTPException(status_code=400, detail="stamp_mode debe ser 'generated' o 'image'")
+        update_fields["libreta_stamp_mode"] = sm
+    if body.stamp_config is not None:
+        update_fields["libreta_stamp_config"] = _merge_stamp_config(body.stamp_config)
+    if body.director_signature is not None:
+        # "" clears it; a data URL sets it (the conversion endpoint produces it)
+        update_fields["libreta_director_signature"] = body.director_signature if body.director_signature else ""
+    if body.stamp_image is not None:
+        update_fields["libreta_stamp_image"] = body.stamp_image if body.stamp_image else ""
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -459,9 +534,46 @@ async def update_report_card_settings(
         "grade_scale_mode": school.get("libreta_grade_scale_mode") or "default",
         "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
         "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
+        "director_name": school.get("libreta_director_name") or "",
+        "stamp_mode": school.get("libreta_stamp_mode") or "generated",
+        "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
+        "director_signature": school.get("libreta_director_signature") or "",
+        "stamp_image": school.get("libreta_stamp_image") or "",
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
     }
+
+
+@router.post("/api/report-cards/director-image")
+async def upload_director_image(
+    kind: str = Form(...),
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+):
+    """Sube la firma del director o el sello (imagen), la convierte a WebP con
+    fondo blanco → transparente, la guarda en el colegio y devuelve el data URL."""
+    user = await _require_admin(current_user)
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio")
+    if kind not in ("signature", "stamp"):
+        raise HTTPException(status_code=400, detail="kind debe ser 'signature' o 'stamp'")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    if len(raw) > MAX_IMG_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="La imagen supera el tamaño máximo (6 MB)")
+    ctype = (file.content_type or "").lower()
+    if not ctype.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen (PNG, JPG, etc.)")
+    try:
+        data_url = _white_to_transparent_webp(raw)
+    except Exception as e:
+        logger.exception("[report_cards] image conversion failed")
+        raise HTTPException(status_code=400, detail=f"No se pudo procesar la imagen: {e}")
+    field = "libreta_director_signature" if kind == "signature" else "libreta_stamp_image"
+    await db.schools.update_one({"id": school_id}, {"$set": {field: data_url}})
+    return {"ok": True, "kind": kind, "url": data_url}
 
 
 # ───────────────────────── Listing per section ─────────────────────────
