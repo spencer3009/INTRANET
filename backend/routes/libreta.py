@@ -299,6 +299,7 @@ async def get_libreta(
                  "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1,
                  "libreta_director_name": 1, "libreta_stamp_mode": 1, "libreta_stamp_config": 1,
                  "libreta_director_signature": 1, "libreta_stamp_image": 1, "libreta_signature_layout": 1,
+                 "libreta_signature_block_offset": 1,
                  "libreta_mode": 1},
             ) or {}
             payload["metadata"] = {
@@ -329,6 +330,7 @@ async def get_libreta(
                 "director_signature": snap_school.get("libreta_director_signature") or prev_meta.get("director_signature") or "",
                 "stamp_image": snap_school.get("libreta_stamp_image") or prev_meta.get("stamp_image") or "",
                 "signature_layout": snap_school.get("libreta_signature_layout") or prev_meta.get("signature_layout") or {},
+                "signature_block_offset": (snap_school.get("libreta_signature_block_offset") if isinstance(snap_school.get("libreta_signature_block_offset"), (int, float)) else prev_meta.get("signature_block_offset", 30)),
                 "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
 
@@ -426,7 +428,7 @@ async def get_libreta(
 
     school_doc = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "hide_situacion_final_in_libreta": 1, "libreta_tutor_comments_periods": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1, "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1, "libreta_grade_scale_mode": 1, "libreta_grade_scale": 1, "libreta_director_name": 1, "libreta_stamp_mode": 1, "libreta_stamp_config": 1, "libreta_director_signature": 1, "libreta_stamp_image": 1, "libreta_signature_layout": 1},
+        {"_id": 0, "id": 1, "name": 1, "school_name": 1, "legal_name": 1, "logo_url": 1, "libreta_mode": 1, "show_padres_grade": 1, "libreta_grade_format": 1, "hide_conducta_in_libreta": 1, "hide_tutor_comments_in_libreta": 1, "hide_asistencia_in_libreta": 1, "hide_situacion_final_in_libreta": 1, "libreta_tutor_comments_periods": 1, "libreta_print_format": 1, "libreta_header_template": 1, "libreta_color_palette": 1, "libreta_cell_bold": 1, "libreta_cell_size": 1, "libreta_all_bold": 1, "libreta_grade_scale_mode": 1, "libreta_grade_scale": 1, "libreta_director_name": 1, "libreta_stamp_mode": 1, "libreta_stamp_config": 1, "libreta_director_signature": 1, "libreta_stamp_image": 1, "libreta_signature_layout": 1, "libreta_signature_block_offset": 1},
     ) or {}
 
     grade_doc = await db.grades.find_one(
@@ -855,6 +857,7 @@ async def get_libreta(
             "director_signature": school_doc.get("libreta_director_signature") or "",
             "stamp_image": school_doc.get("libreta_stamp_image") or "",
             "signature_layout": school_doc.get("libreta_signature_layout") or {},
+            "signature_block_offset": (school_doc.get("libreta_signature_block_offset") if isinstance(school_doc.get("libreta_signature_block_offset"), (int, float)) else 30),
             "conducta_template_mode": conducta_ext_payload.get("mode") or "default",
         },
     }
@@ -1164,6 +1167,7 @@ async def close_period(
             "director_signature": prev_meta.get("director_signature") or "",
             "stamp_image": prev_meta.get("stamp_image") or "",
             "signature_layout": prev_meta.get("signature_layout") or {},
+            "signature_block_offset": prev_meta.get("signature_block_offset", 30),
             "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
         }
 

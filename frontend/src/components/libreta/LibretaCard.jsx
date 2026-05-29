@@ -73,6 +73,12 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   const sigLayout = data?.metadata?.signature_layout || {};
   const sigPos = sigLayout.signature || { x: 65, y: 90, w: 120 };
   const stampPos = sigLayout.stamp || { x: 165, y: 95, w: 80 };
+  // Vertical position (0–100) of the whole signatures block on page 2.
+  // Maps to a top margin in cm (0 = near top, 100 = near bottom of the sheet).
+  const sigOffset = Number.isFinite(Number(data?.metadata?.signature_block_offset))
+    ? Number(data.metadata.signature_block_offset)
+    : 30;
+  const sigBlockMt = `${((Math.max(0, Math.min(100, sigOffset)) / 100) * 14).toFixed(2)}cm`;
   // List of bimestre "orden" numbers whose tutor comment is shown. Empty = all.
   const tutorCommentsPeriods = Array.isArray(data?.metadata?.tutor_comments_periods)
     ? data.metadata.tutor_comments_periods.map(Number)
@@ -821,7 +827,10 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
       )}
 
       {/* ── Página 2: firmas ── */}
-      <section className={`lr-page2 lr-paper-${pf.paper_size || "a4"} lr-orient-${pf.orientation || "portrait"}`}>
+      <section
+        className={`lr-page2 lr-paper-${pf.paper_size || "a4"} lr-orient-${pf.orientation || "portrait"}`}
+        style={{ "--lr-sig-mt": sigBlockMt }}
+      >
         <div className="lr-page-header">
           <span>{data.student.apellidos_nombres}</span>
           <span>Página 2</span>

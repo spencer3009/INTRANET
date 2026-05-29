@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Feb 29, 2026 - Feature: Slider de altura de la zona de firmas (página 2) + vista previa en vivo ✅
+- **Pedido**: a veces el bloque de firmas (TUTOR (A) / DIRECTOR (A) + sello) queda muy abajo en la hoja; el cliente quiere una barra para subir/bajar esa zona, con vista previa rápida dentro de Ajustes (sin salir).
+- **Backend** (`report_cards_pdf.py`): nuevo campo `signature_block_offset` (int 0–100, default 30) en `ReportCardSettingsUpdate`; helper `_clamp_sig_offset()` (0–100). GET/PUT `/api/report-cards/settings` persisten/devuelven (`schools.libreta_signature_block_offset`).
+- **Backend** (`libreta.py`): `signature_block_offset` propagado a `metadata` en las 3 rutas (compute live, snapshot read-through, snapshot create) + projections actualizadas.
+- **Frontend libreta** (`LibretaCard.jsx` + `.css`): el offset (0–100) se mapea a un margin-top en cm (0=arriba, 100≈14cm abajo) vía CSS var `--lr-sig-mt` aplicada al `<section.lr-page2>`. Se reemplazó el fijo `margin-bottom:180px` del header por la variable, respetada tanto en pantalla como en impresión. El sello viaja dentro del bloque de firmas (`.lr-signatures`), así que sube/baja junto con las firmas (sin descuadre).
+- **Frontend Ajustes** (`LibretasSettingsTab.jsx`): nueva tarjeta "Altura de la zona de firmas en la hoja" con slider 0–100% (guarda al soltar: onMouseUp/onTouchEnd/onKeyUp), atajos Arriba/Centro/Abajo y **mini-hoja de vista previa en vivo** que mueve el bloque TUTOR/DIRECTOR según el valor.
+- **Verificado E2E**: curl GET=30 default, PUT 70→70, clamp 999→100, restaurado a 30; `/api/libreta/{id}` expone `metadata.signature_block_offset`; screenshots del panel confirman slider + preview moviéndose (30% → 90%). Default dejado en 30.
+
 ## Feb 28, 2026 - Feature: Firma y sello de Dirección en la libreta (generador + uploads WebP transparente) ✅
 - **Pedido**: en Ajustes → Libreta, gestionar el sello institucional (generarlo con textos + vista previa en vivo, o subir imagen), la firma del director (subir → WebP transparente) y el nombre del director, reflejados en la página de firmas de la libreta.
 - **Backend** (`report_cards_pdf.py`):

@@ -112,6 +112,7 @@ export default function LibretasSettingsTab({ token }) {
   const [stampImage, setStampImage] = useState("");
   const [uploadingImg, setUploadingImg] = useState("");
   const [signatureLayout, setSignatureLayout] = useState({ signature: { x: 65, y: 90, w: 120 }, stamp: { x: 165, y: 95, w: 80 } });
+  const [signatureBlockOffset, setSignatureBlockOffset] = useState(30);
   const [driveConnected, setDriveConnected] = useState(false);
   const [printFormat, setPrintFormat] = useState(PRINT_DEFAULTS);
   const [headerTpl, setHeaderTpl] = useState(HEADER_DEFAULTS);
@@ -155,6 +156,7 @@ export default function LibretasSettingsTab({ token }) {
         setDirectorSignature(r.data?.director_signature || "");
         setStampImage(r.data?.stamp_image || "");
         if (r.data?.signature_layout) setSignatureLayout(r.data.signature_layout);
+        setSignatureBlockOffset(Number.isFinite(Number(r.data?.signature_block_offset)) ? Number(r.data.signature_block_offset) : 30);
         setPrintFormat({ ...PRINT_DEFAULTS, ...(r.data?.print_format || {}) });
         setHeaderTpl({ ...HEADER_DEFAULTS, ...(r.data?.header_template || {}) });
         if (r.data?.header_template_defaults) {
@@ -326,6 +328,17 @@ export default function LibretasSettingsTab({ token }) {
       await axios.put(`${API}/report-cards/settings`, { signature_layout: next }, { headers });
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al guardar la posición");
+    }
+  };
+
+  // Guarda la posición vertical del bloque de firmas (0–100). Se llama al
+  // soltar el slider (onMouseUp / onTouchEnd) para no spamear la API.
+  const saveSignatureBlockOffset = async (value) => {
+    const v = Math.max(0, Math.min(100, Math.round(Number(value))));
+    try {
+      await axios.put(`${API}/report-cards/settings`, { signature_block_offset: v }, { headers });
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar la posición de las firmas");
     }
   };
 
@@ -1121,6 +1134,90 @@ export default function LibretasSettingsTab({ token }) {
             stampImage={stampImage}
             stampConfig={stampConfig}
           />
+        </div>
+
+        {/* Posición vertical del bloque de firmas en la hoja */}
+        <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-4" data-testid="signature-block-offset-control">
+          <div className="flex items-center gap-2 mb-1">
+            <Maximize2 className="w-4 h-4 text-violet-600 rotate-90" />
+            <span className="text-sm font-semibold text-slate-800">Altura de la zona de firmas en la hoja</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">Mueve la barra para subir o bajar el bloque de firmas (Tutor y Director, con su sello) dentro de la página. <b>0%</b> lo pega arriba, <b>100%</b> al fondo. La vista previa de la derecha se actualiza al instante.</p>
+
+          <div className="flex flex-col sm:flex-row gap-5 items-start">
+            {/* Slider */}
+            <div className="flex-1 w-full">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-slate-600">Distancia desde arriba</span>
+                <span className="text-xs font-bold text-violet-700 tabular-nums" data-testid="signature-block-offset-value">{Math.round(signatureBlockOffset)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={signatureBlockOffset}
+                onChange={(e) => setSignatureBlockOffset(Number(e.target.value))}
+                onMouseUp={(e) => saveSignatureBlockOffset(e.target.value)}
+                onTouchEnd={(e) => saveSignatureBlockOffset(e.target.value)}
+                onKeyUp={(e) => saveSignatureBlockOffset(e.target.value)}
+                className="w-full accent-violet-600 cursor-pointer"
+                data-testid="signature-block-offset-slider"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>Arriba</span>
+                <span>Centro</span>
+                <span>Abajo</span>
+              </div>
+              <div className="flex gap-2 mt-3">
+                {[
+                  { label: "Arriba", v: 5 },
+                  { label: "Centro", v: 45 },
+                  { label: "Abajo", v: 90 },
+                ].map((p) => (
+                  <button
+                    key={p.v}
+                    type="button"
+                    onClick={() => { setSignatureBlockOffset(p.v); saveSignatureBlockOffset(p.v); }}
+                    className="text-[11px] px-2.5 py-1 rounded-lg border border-slate-300 hover:bg-violet-100 hover:border-violet-300 text-slate-600"
+                    data-testid={`signature-offset-preset-${p.v}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Vista previa rápida (mini-hoja) */}
+            <div className="shrink-0">
+              <p className="text-[10px] text-slate-400 text-center mb-1">Vista previa (hoja de firmas)</p>
+              <div
+                className="relative bg-white border border-slate-300 rounded shadow-sm mx-auto overflow-hidden"
+                style={{ width: 132, height: 187 }}
+                data-testid="signature-block-offset-preview"
+              >
+                {/* Encabezado simulado de la página 2 */}
+                <div className="absolute top-0 left-0 right-0 flex justify-between px-1.5 pt-1 text-[5px] text-slate-400">
+                  <span>Apellidos Nombres</span>
+                  <span>Página 2</span>
+                </div>
+                {/* Bloque de firmas posicionado por el offset */}
+                <div
+                  className="absolute left-0 right-0 flex justify-around px-2"
+                  style={{ top: `${10 + (signatureBlockOffset / 100) * 70}%` }}
+                  data-testid="signature-block-offset-preview-block"
+                >
+                  {["Tutor (A)", "Director (A)"].map((rol) => (
+                    <div key={rol} className="flex flex-col items-center" style={{ width: 50 }}>
+                      <div className="w-full border-t border-slate-700" />
+                      <span className="text-[5px] text-slate-500 mt-0.5">Nombre</span>
+                      <span className="text-[6px] font-bold text-slate-700 leading-tight">{rol}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

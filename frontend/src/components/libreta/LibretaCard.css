@@ -125,8 +125,8 @@
   padding: 1cm;
   page-break-before: always;
 }
-.lr-page-header { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 180px; }
-.lr-signatures { margin-top: 40px; display: flex; justify-content: space-around; text-align: center; font-size: 10px; }
+.lr-page-header { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 8px; }
+.lr-signatures { margin-top: var(--lr-sig-mt, 4.2cm); display: flex; justify-content: space-around; text-align: center; font-size: 10px; }
 .lr-sign-canvas { position: relative; width: 250px; height: 230px; }
 .lr-sign-line { position: absolute; left: 25px; top: 150px; width: 200px; border-top: 1px solid #000; }
 .lr-sign-name { position: absolute; left: 25px; top: 154px; width: 200px; text-align: center; font-size: 9px; }
@@ -175,8 +175,8 @@
     page-break-before: auto !important;
     break-before: auto !important;
   }
-  .lr-page-header { margin-bottom: 16px !important; }
-  .lr-signatures  { margin-top: 48px !important; }
+  .lr-page-header { margin-bottom: 8px !important; }
+  .lr-signatures  { margin-top: var(--lr-sig-mt, 4.2cm) !important; }
 
   .libreta-printable, .libreta-printable * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .lr-grades { page-break-inside: auto; }

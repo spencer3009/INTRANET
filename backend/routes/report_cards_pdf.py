@@ -74,6 +74,16 @@ def _merge_signature_layout(stored) -> dict:
     return out
 
 
+def _clamp_sig_offset(v, default: int = 30) -> int:
+    """Vertical position (0–100) of the signatures block on page 2.
+
+    0 = pegado arriba, 100 = pegado al fondo de la hoja. Default 30.
+    """
+    if isinstance(v, (int, float)):
+        return max(0, min(100, int(v)))
+    return default
+
+
 def _white_to_transparent_webp(raw: bytes, max_dim: int = 700, threshold: int = 238) -> str:
     """Convierte una imagen (PNG/JPG) a WebP con fondo blanco → transparente.
 
@@ -249,6 +259,7 @@ class ReportCardSettingsUpdate(BaseModel):
     director_signature: Optional[str] = None  # "" or null clears it
     stamp_image: Optional[str] = None          # "" or null clears it
     signature_layout: Optional[Dict[str, object]] = None
+    signature_block_offset: Optional[int] = None  # 0–100: vertical position of the signatures block on page 2
 
 
 # Defaults for the editable libreta header.
@@ -411,6 +422,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "director_signature": school.get("libreta_director_signature") or "",
         "stamp_image": school.get("libreta_stamp_image") or "",
         "signature_layout": _merge_signature_layout(school.get("libreta_signature_layout")),
+        "signature_block_offset": _clamp_sig_offset(school.get("libreta_signature_block_offset")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
@@ -536,6 +548,8 @@ async def update_report_card_settings(
         update_fields["libreta_stamp_image"] = body.stamp_image if body.stamp_image else ""
     if body.signature_layout is not None:
         update_fields["libreta_signature_layout"] = _merge_signature_layout(body.signature_layout)
+    if body.signature_block_offset is not None:
+        update_fields["libreta_signature_block_offset"] = _clamp_sig_offset(body.signature_block_offset)
     if not update_fields:
         raise HTTPException(status_code=400, detail="Nada para actualizar")
     await db.schools.update_one({"id": school_id}, {"$set": update_fields})
@@ -567,6 +581,7 @@ async def update_report_card_settings(
         "director_signature": school.get("libreta_director_signature") or "",
         "stamp_image": school.get("libreta_stamp_image") or "",
         "signature_layout": _merge_signature_layout(school.get("libreta_signature_layout")),
+        "signature_block_offset": _clamp_sig_offset(school.get("libreta_signature_block_offset")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
     }
