@@ -1,5 +1,10 @@
 # EduNet - Changelog
 
+## Feb 28, 2026 - Mejora visual: reproductor de video en comunicados (miniatura 16:9 + play circular) ✅
+- **Pedido**: el recuadro del video se veía muy bajito; pidieron que sea rectangular con más altura y un botón de play grande dentro de un círculo, centrado.
+- **Cambio** (`BroadcastAttachmentsList.jsx`, usado en popup + las 4 páginas de Mensajes): el placeholder del video ahora es una miniatura **`aspect-video` (16:9)** con fondo oscuro tipo cine, un **botón de play circular grande** (con hover/scale) centrado y el texto "Reproducir video" debajo. Al reproducir, el `<video>` usa `aspect-video` + `autoPlay` y mayor altura (`max-h-[70vh]`).
+- **Verificado**: screenshot del popup del portal de Padres muestra la nueva miniatura con el play circular. Dato de prueba eliminado.
+
 ## Feb 28, 2026 - Fix: El popup del Comunicado Institucional no mostraba los adjuntos (video/imágenes) ✅
 - **Problema**: al enviar un comunicado con video, el popup emergente (`BroadcastPopup.jsx`) que ven los destinatarios no mostraba el video ni el reproductor (ni imágenes/PDF). La página de Mensajes sí los mostraba, pero el popup no.
 - **Causa raíz**: `BroadcastPopup.jsx` nunca incluyó el componente `BroadcastAttachmentsList`. El backend sí guardaba (`broadcast.attachments`), devolvía (`/api/broadcast/unread`) y servía los adjuntos (`/api/messaging/attachments/{id}/{file_id}` busca en `broadcast_messages`) — todo correcto.

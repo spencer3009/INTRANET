@@ -169,7 +169,8 @@ function AttachmentCard({ idx, messageId, att, token }) {
             <video
               src={blobUrl}
               controls
-              className="w-full max-h-96 rounded-lg bg-black"
+              autoPlay
+              className="w-full aspect-video max-h-[70vh] rounded-lg bg-black"
             >
               Tu navegador no soporta reproducción de video.
             </video>
@@ -178,14 +179,20 @@ function AttachmentCard({ idx, messageId, att, token }) {
               type="button"
               onClick={fetchBlob}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-8 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-700 text-white rounded-lg transition-colors"
+              className="group relative w-full aspect-video flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-slate-900 via-slate-900 to-black rounded-xl overflow-hidden transition-all"
               data-testid={`attachment-video-play-${idx}`}
             >
-              {loading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Cargando video…</>
-              ) : (
-                <><Play className="w-5 h-5" /> Reproducir video</>
-              )}
+              {/* Botón play circular grande y centrado */}
+              <span className="w-20 h-20 rounded-full bg-white/15 backdrop-blur-sm ring-1 ring-white/30 flex items-center justify-center transition-all group-hover:bg-white/25 group-hover:scale-105 group-disabled:scale-100">
+                {loading ? (
+                  <Loader2 className="w-9 h-9 animate-spin text-white" />
+                ) : (
+                  <Play className="w-9 h-9 text-white translate-x-0.5" fill="currentColor" />
+                )}
+              </span>
+              <span className="text-white/90 text-sm font-semibold tracking-wide">
+                {loading ? "Cargando video…" : "Reproducir video"}
+              </span>
             </button>
           )}
         </div>
