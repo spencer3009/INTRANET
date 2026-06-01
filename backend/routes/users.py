@@ -1889,6 +1889,132 @@ async def export_teacher_credentials(current_user=Depends(get_current_user)):
     )
 
 
+@router.get("/parents/export-credentials")
+async def export_parent_credentials(current_user=Depends(get_current_user)):
+    """Export an Excel with parent login credentials (name, username, email, password).
+
+    Mirrors the teacher credentials export. Parents may log in by username OR
+    email, so both are included. The plain password lives in `plain_password`
+    or (for older docs) `password_display`; if neither exists a new password is
+    generated and persisted (same backfill behaviour as teachers)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=400, detail="school_id es requerido")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden exportar credenciales")
+
+    school_id = user["school_id"]
+
+    parents = await db.users.find(
+        {"role": "parent", "school_id": school_id, "student_status": {"$ne": "deleted"}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "username": 1, "email": 1,
+         "plain_password": 1, "password_display": 1}
+    ).sort([("last_name", 1), ("name", 1)]).to_list(None)
+
+    if not parents:
+        raise HTTPException(status_code=404, detail="No hay padres para exportar")
+
+    import random, string
+    def _gen_pwd(length=10):
+        chars = string.ascii_letters + string.digits
+        while True:
+            pwd = "".join(random.choices(chars, k=length))
+            if any(c.isupper() for c in pwd) and any(c.islower() for c in pwd) and any(c.isdigit() for c in pwd):
+                return pwd
+
+    for p in parents:
+        plain = p.get("plain_password") or p.get("password_display")
+        if not plain:
+            new_pwd = _gen_pwd()
+            await db.users.update_one(
+                {"id": p["id"], "school_id": school_id},
+                {"$set": {"plain_password": new_pwd, "password_display": new_pwd, "password": hash_password(new_pwd), "updated_at": now_iso()}}
+            )
+            plain = new_pwd
+            logger.info(f"Backfilled plain_password for parent {p.get('username') or p.get('email')} ({p['id']})")
+        p["_plain"] = plain
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1})
+    school_name = (school.get("school_name") or school.get("name") or school_id) if school else school_id
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from datetime import datetime, timezone
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Credenciales"
+
+    ws.column_dimensions["A"].width = 35
+    ws.column_dimensions["B"].width = 25
+    ws.column_dimensions["C"].width = 32
+    ws.column_dimensions["D"].width = 20
+
+    title_font = Font(name="Arial", bold=True, size=14, color="1565C0")
+    label_font = Font(name="Arial", bold=True, size=11, color="333333")
+    value_font = Font(name="Arial", size=11, color="333333")
+    header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    ws.merge_cells("A1:D1")
+    ws["A1"] = "Credenciales de Padres de Familia"
+    ws["A1"].font = title_font
+
+    meta = [
+        ("Colegio:", school_name),
+        ("Fecha de exportacion:", datetime.now(timezone.utc).strftime("%d/%m/%Y")),
+        ("Total de padres:", str(len(parents))),
+    ]
+    for i, (label, value) in enumerate(meta, 3):
+        ws.cell(row=i, column=1, value=label).font = label_font
+        ws.cell(row=i, column=2, value=value).font = value_font
+
+    data_start = 7
+    headers = ["Nombre del Apoderado", "Nombre de Usuario", "Correo", "Contrasena"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=data_start, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    ws.freeze_panes = f"A{data_start + 1}"
+
+    for idx, p in enumerate(parents, data_start + 1):
+        full_name = f"{p.get('last_name', '')} {p.get('name', '')}".strip()
+        ws.cell(row=idx, column=1, value=full_name).border = thin_border
+        ws.cell(row=idx, column=2, value=p.get("username") or "").border = thin_border
+        ws.cell(row=idx, column=3, value=p.get("email") or "").border = thin_border
+        ws.cell(row=idx, column=4, value=p.get("_plain") or "").border = thin_border
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    import re as _re
+    def sanitize(s):
+        s = unicodedata.normalize("NFD", s)
+        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        s = _re.sub(r"[^a-zA-Z0-9]+", "_", s.lower()).strip("_")
+        return s or "x"
+
+    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    filename = f"credenciales_padres_{sanitize(school_name)}_{date_str}.xlsx"
+
+    logger.info(f"Parent credentials exported by user {user.get('id')} — {len(parents)} parents, school {school_id}")
+
+    from starlette.responses import StreamingResponse
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Teacher QR bulk download (PDF grid — mirrors student QR download)
 # ══════════════════════════════════════════════════════════════════════════════

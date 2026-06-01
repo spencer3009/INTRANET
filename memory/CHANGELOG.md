@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 1, 2026 - Feature: Botón "Credenciales" en Usuarios → Padres (export Excel) ✅
+- **Pedido**: replicar el botón "Credenciales" que existe en Profesores, ahora en Padres, con las contraseñas de los padres.
+- **Backend** (`routes/users.py`): nuevo `GET /api/parents/export-credentials` que espeja `export_teacher_credentials` pero para `role=parent` (excluye `student_status=deleted`). Genera un Excel con columnas **Nombre del Apoderado · Nombre de Usuario · Correo · Contraseña** (los padres pueden entrar por usuario o correo). La contraseña sale de `plain_password` o `password_display`; si faltan ambos, se genera y persiste una nueva (mismo backfill que profesores). 404 si no hay padres; solo admin/owner.
+- **Frontend** (`UsersPage.jsx`): estado `exportingParentCredentials`, handler `handleExportParentCredentials` (descarga el blob xlsx) y botón "Credenciales" (`data-testid=export-parent-credentials-btn`) en la cabecera del rol Padres, idéntico en estilo al de Profesores.
+- **Verificado**: curl descarga el xlsx (`credenciales_padres_colegio_el_roble_*.xlsx`) con título, metadata (colegio/fecha/total) y 6 filas de padres con usuario+correo+contraseña; screenshot confirma el botón en la cabecera de Padres.
+- **Nota/caveat**: la contraseña exportada es la guardada en el sistema (`plain_password`/`password_display`); si un padre cambió su clave por un flujo que no actualiza ese campo, podría salir desactualizada (mismo comportamiento que el export de profesores). Para garantizar credenciales válidas se puede usar antes "Asignar DNI como clave". Requiere **redespliegue** para producción.
+
+
 ## Feb 29, 2026 - Fix P0: "0 profesores" tras importar plantilla (truncado en GET /api/users) ✅
 - **Reportado en producción** (Eusebio Arroniz School, sesión de Soporte/Propietario): tras cargar la plantilla de profesores, la pestaña Profesores mostraba **"Sin profesores" (0)**, pero al intentar activar un pendiente el sistema decía **"DNI 43837782 ya existe como profesor en el sistema"** — una contradicción.
 - **Causa raíz**: `GET /api/users` (`routes/users.py`) hacía `to_list(length=1000)` **sin `sort`**. La pestaña Profesores carga TODOS los usuarios y los filtra por rol en el frontend. En un colegio con 1000+ alumnos/padres creados antes, los profesores recién importados quedan al final del orden natural y **se truncaban** más allá del tope de 1000 → desaparecían del listado aunque sí existían en la BD (por eso el check de duplicado los encontraba).

@@ -1899,6 +1899,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [downloadingParentTemplate, setDownloadingParentTemplate] = useState(false);
   const [exportingCredentials, setExportingCredentials] = useState(false);
   const [exportingTeacherCredentials, setExportingTeacherCredentials] = useState(false);
+  const [exportingParentCredentials, setExportingParentCredentials] = useState(false);
   const [showExportFilterModal, setShowExportFilterModal] = useState(false);
   const [missingExportFilters, setMissingExportFilters] = useState([]);
 
@@ -2051,6 +2052,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         toast.error("Error al exportar credenciales. Intente nuevamente.");
       }
     } finally { setExportingTeacherCredentials(false); }
+  };
+
+  const handleExportParentCredentials = async () => {
+    setExportingParentCredentials(true);
+    try {
+      const res = await axios.get(`${API}/parents/export-credentials`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const disposition = res.headers["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : "credenciales_padres.xlsx";
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Credenciales de padres exportadas correctamente");
+    } catch (err) {
+      if (err.response?.status === 404) {
+        toast.error("No hay padres para exportar");
+      } else {
+        toast.error("Error al exportar credenciales. Intente nuevamente.");
+      }
+    } finally { setExportingParentCredentials(false); }
   };
 
   const [downloadingTeacherQR, setDownloadingTeacherQR] = useState(false);
@@ -2976,6 +2998,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <QrCode className="w-5 h-5 text-white" />
                       </div>
                       <span className="hidden sm:inline">Descargar QR</span>
+                    </button>
+                  )}
+                  {selectedRole === 'parent' && (
+                    <button
+                      onClick={handleExportParentCredentials}
+                      disabled={exportingParentCredentials}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      data-testid="export-parent-credentials-btn"
+                    >
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                        {exportingParentCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                      </div>
+                      <span className="hidden sm:inline">{exportingParentCredentials ? "Exportando..." : "Credenciales"}</span>
                     </button>
                   )}
                   {selectedRole === 'parent' && (
