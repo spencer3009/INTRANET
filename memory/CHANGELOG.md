@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Feb 29, 2026 - Fix P0: "0 profesores" tras importar plantilla (truncado en GET /api/users) ✅
+- **Reportado en producción** (Eusebio Arroniz School, sesión de Soporte/Propietario): tras cargar la plantilla de profesores, la pestaña Profesores mostraba **"Sin profesores" (0)**, pero al intentar activar un pendiente el sistema decía **"DNI 43837782 ya existe como profesor en el sistema"** — una contradicción.
+- **Causa raíz**: `GET /api/users` (`routes/users.py`) hacía `to_list(length=1000)` **sin `sort`**. La pestaña Profesores carga TODOS los usuarios y los filtra por rol en el frontend. En un colegio con 1000+ alumnos/padres creados antes, los profesores recién importados quedan al final del orden natural y **se truncaban** más allá del tope de 1000 → desaparecían del listado aunque sí existían en la BD (por eso el check de duplicado los encontraba).
+- **Fix** (1 línea): `to_list(length=1000)` → `to_list(length=None)` para devolver todos los usuarios del colegio (el frontend ya espera el set completo). Comentario explicativo agregado.
+- **Testing**: nuevo `tests/test_users_list_no_truncation.py` que siembra >1000 usuarios con un profesor insertado al final y verifica que `GET /api/users` lo devuelve. **Verificado que FALLA con el cap viejo (1000) y PASA con el fix** (reproduce y corrige el bug). Endpoint validado en preview (148 usuarios / 44 profesores en El Roble).
+- **Nota**: requiere **redespliegue** para reflejarse en producción (edunet.pe). Backlog sugerido: paginación server-side por rol en `/api/users` para colegios muy grandes.
+
+
 ## Feb 29, 2026 - Feature: Slider de altura de la zona de firmas (página 2) + vista previa en vivo ✅
 - **Pedido**: a veces el bloque de firmas (TUTOR (A) / DIRECTOR (A) + sello) queda muy abajo en la hoja; el cliente quiere una barra para subir/bajar esa zona, con vista previa rápida dentro de Ajustes (sin salir).
 - **Backend** (`report_cards_pdf.py`): nuevo campo `signature_block_offset` (int 0–100, default 30) en `ReportCardSettingsUpdate`; helper `_clamp_sig_offset()` (0–100). GET/PUT `/api/report-cards/settings` persisten/devuelven (`schools.libreta_signature_block_offset`).

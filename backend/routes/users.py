@@ -72,12 +72,18 @@ async def get_tenant_users(current_user = Depends(get_current_user)):
     if not can_see_system_users:
         query["is_system_user"] = {"$ne": True}
     
-    # Get all users for this school
+    # Get all users for this school.
+    # NOTE: do NOT cap with a small length here — the frontend loads the full
+    # set once and splits it client-side into tabs (students / parents / teachers).
+    # A small cap (previously 1000) with no sort silently truncated the most
+    # recently created users (e.g. freshly imported teachers landed past the cap
+    # in schools with 1000+ students/parents), making them "disappear" from the
+    # Teachers tab even though they exist in the DB.
     users_cursor = db.users.find(
         query,
         {"_id": 0, "password": 0, "verification_code": 0}
     )
-    users = await users_cursor.to_list(length=1000)
+    users = await users_cursor.to_list(length=None)
     
     return users
 
