@@ -2966,7 +2966,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     </>
                   )}
                   {/* QR con plantilla para staff con QR personal (no teacher / no student) */}
-                  {['personal_mantenimiento','auxiliar','auxiliar_asistencia','auxiliar_alimentacion','auxiliar_movilidad','auxiliar_topico'].includes(selectedRole) && (
+                  {['personal_mantenimiento','auxiliar','auxiliar_asistencia','auxiliar_alimentacion','auxiliar_movilidad','auxiliar_topico','psicologo'].includes(selectedRole) && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
                       className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
@@ -4281,7 +4281,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
               </button>
             )}
-            {(selectedRole === 'teacher' || selectedRole === 'personal_mantenimiento' || selectedRole === 'auxiliar' || selectedRole === 'auxiliar_asistencia' || selectedRole === 'auxiliar_alimentacion' || selectedRole === 'auxiliar_movilidad' || selectedRole === 'auxiliar_topico') && u.qr_token && (
+            {(selectedRole === 'teacher' || selectedRole === 'personal_mantenimiento' || selectedRole === 'auxiliar' || selectedRole === 'auxiliar_asistencia' || selectedRole === 'auxiliar_alimentacion' || selectedRole === 'auxiliar_movilidad' || selectedRole === 'auxiliar_topico' || selectedRole === 'psicologo') && u.qr_token && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

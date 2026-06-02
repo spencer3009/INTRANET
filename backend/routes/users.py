@@ -342,10 +342,10 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["maintenance_role"] = data.maintenance_role
         new_user["maintenance_role_custom"] = data.maintenance_role_custom if data.maintenance_role == "otro" else None
 
-    # Generate short QR for auxiliary staff (so they can scan-in their own
-    # attendance from Asistencia → Personal Administrativo, same as students
-    # and teachers). Applies to all `auxiliar_*` sub-roles.
-    AUX_ROLES_WITH_QR = {"auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad", "auxiliar_topico"}
+    # Generate short QR for auxiliary staff + psicólogos (so they can scan-in
+    # their own attendance from Asistencia → Personal Administrativo, same as
+    # students and teachers). Applies to all `auxiliar_*` sub-roles + psicologo.
+    AUX_ROLES_WITH_QR = {"auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion", "auxiliar_movilidad", "auxiliar_topico", "psicologo"}
     if data.role in AUX_ROLES_WITH_QR:
         qr_id, qr_token = await generate_user_qr(db)
         new_user["qr_id"] = qr_id

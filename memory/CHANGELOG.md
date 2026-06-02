@@ -1,5 +1,17 @@
 # EduNet - Changelog
 
+## Jun 2, 2026 - Feature: Psicólogos con QR + asistencia desde Personal Administrativo ✅
+- **Pedido**: agregar código QR a los psicólogos y poder tomarles asistencia desde "Personal Administrativo".
+- **Hallazgo previo**: el botón "Escanear QR" de Personal Administrativo registraba a CUALQUIER personal administrativo (mantenimiento/auxiliares) como **alumno** (`type=student`), un bug pre-existente. Se corrigió para todos.
+- **Backend**:
+  - `users.py`: `psicologo` agregado a los roles que auto-generan QR al crearse.
+  - `attendance.py`: nuevo `ROLE_LABELS["psicologo"]="Psicólogo"` y constante compartida `ADMIN_STAFF_ROLES` (incluye `psicologo`) usada por la lista de Personal Administrativo y el backfill. QR_ELIGIBLE_ROLES del backfill ahora incluye `psicologo`.
+  - `attendance.py` (escaneo): el endpoint `/attendance/qr/scan` ahora detecta personal administrativo (mantenimiento/auxiliares/**psicólogos**) y registra su asistencia como `type="maintenance"` (entrada/salida) vía helper `_record_maintenance_qr_scan`, en vez de tratarlos como alumnos. El historial `/attendance/qr/history` y el reporte de mantenimiento también los reconocen.
+  - `qr_templates.py`: `psicologo` agregado a `STAFF_ROLES_WITH_QR` para "QR con plantilla".
+- **Frontend** (`UsersPage.jsx`): botón "QR con plantilla" y mini-QR en las tarjetas habilitados para el rol Psicólogos.
+- **Verificado E2E (curl + screenshot + pytest)**: creación auto-genera QR; backfill generó QR a 6 psicólogos existentes; aparecen en Personal Administrativo con label "Psicólogo"; escaneo de QR registra `type=maintenance/present` (no student); lista manual refleja present; historial e salida (exit) funcionan. Test: `tests/test_psicologo_qr_attendance.py` (PASA). Probado en preview; requiere **redespliegue** para producción.
+
+
 ## Jun 1, 2026 - Feature: Botón "Credenciales" en Usuarios → Padres (export Excel) ✅
 - **Pedido**: replicar el botón "Credenciales" que existe en Profesores, ahora en Padres, con las contraseñas de los padres.
 - **Backend** (`routes/users.py`): nuevo `GET /api/parents/export-credentials` que espeja `export_teacher_credentials` pero para `role=parent` (excluye `student_status=deleted`). Genera un Excel con columnas **Nombre del Apoderado · Nombre de Usuario · Correo · Contraseña** (los padres pueden entrar por usuario o correo). La contraseña sale de `plain_password` o `password_display`; si faltan ambos, se genera y persiste una nueva (mismo backfill que profesores). 404 si no hay padres; solo admin/owner.

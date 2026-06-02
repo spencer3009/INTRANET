@@ -24,6 +24,7 @@ STAFF_ROLES_WITH_QR = {
     "auxiliar_alimentacion",
     "auxiliar_movilidad",
     "auxiliar_topico",
+    "psicologo",
 }
 
 STAFF_ROLE_LABELS = {
@@ -34,6 +35,7 @@ STAFF_ROLE_LABELS = {
     "auxiliar_alimentacion": "Auxiliar de Alimentación",
     "auxiliar_movilidad": "Auxiliar de Movilidad",
     "auxiliar_topico": "Auxiliar de Tópico",
+    "psicologo": "Psicólogo",
 }
 
 

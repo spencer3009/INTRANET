@@ -191,7 +191,21 @@ ROLE_LABELS = {
     "auxiliar_alimentacion": "Auxiliar de Alimentación",
     "auxiliar_movilidad": "Auxiliar de Movilidad",
     "auxiliar_topico": "Auxiliar de Tópico",
+    "psicologo": "Psicólogo",
 }
+
+# Roles that belong to the "Personal Administrativo" attendance flow. They all
+# share the same QR-based check-in (Escanear QR) and manual marking experience
+# and their attendance is stored with type="maintenance".
+ADMIN_STAFF_ROLES = [
+    "personal_mantenimiento",
+    "auxiliar",
+    "auxiliar_asistencia",
+    "auxiliar_alimentacion",
+    "auxiliar_movilidad",
+    "auxiliar_topico",
+    "psicologo",
+]
 
 def _maintenance_role_display(user_doc: dict) -> str:
     """Return the human-readable role for an admin-staff user.
@@ -819,19 +833,9 @@ async def get_maintenance_for_attendance(
 
     school_id = user["school_id"]
 
-    # Roles included in the "Personal Administrativo" attendance flow.
-    # Mantenance personnel + all auxiliary staff. Each gets the same QR-based
-    # check-in (Escanear QR) and manual marking (Marcar Manual) experience.
-    ADMIN_STAFF_ROLES = [
-        "personal_mantenimiento",
-        "auxiliar",
-        "auxiliar_asistencia",
-        "auxiliar_alimentacion",
-        "auxiliar_movilidad",
-        "auxiliar_topico",
-    ]
-
-    # Get all maintenance personnel + auxiliares
+    # Roles included in the "Personal Administrativo" attendance flow
+    # (shared module-level constant, includes psicólogos).
+    # Get all maintenance personnel + auxiliares + psicólogos
     users_cursor = db.users.find(
         {"school_id": school_id, "role": {"$in": ADMIN_STAFF_ROLES}},
         {"_id": 0, "password": 0, "verification_code": 0},
@@ -963,7 +967,7 @@ async def get_maintenance_attendance_report(
     user_ids = list(set(r["user_id"] for r in records))
     users_cursor = db.users.find(
         {"id": {"$in": user_ids}},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1,
          "maintenance_role": 1, "maintenance_role_custom": 1},
     )
     users_list = await users_cursor.to_list(length=500)
@@ -1749,6 +1753,96 @@ class QRScanRequest(BaseModel):
     qr_token: str
     mode: Literal["entry", "exit", "auto"] = "auto"
 
+async def _record_maintenance_qr_scan(scanned_user: dict, school_id: str, current_user: dict, mode: str):
+    """Register a QR check-in/out for Personal Administrativo (admin staff).
+
+    Admin-staff roles (mantenimiento, auxiliares, psicólogos) store attendance
+    with type="maintenance" — the same collection/shape the manual "Marcar
+    Manual" list and the Reportes Administrativos read from. Kept self-contained
+    so the student/teacher scan flow is untouched."""
+    uid = scanned_user["id"]
+    today = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    now_time = datetime.now(PERU_TZ).strftime("%H:%M")
+    full_name = f"{scanned_user.get('name', '')} {scanned_user.get('last_name', '')}".strip()
+
+    existing = await db.attendances.find_one({
+        "school_id": school_id, "type": "maintenance", "user_id": uid, "date": today,
+    })
+    has_entry = bool(existing and existing.get("entry_time"))
+    has_exit = bool(existing and existing.get("exit_time"))
+
+    if mode == "exit":
+        action = "already_exit" if has_exit else ("exit" if has_entry else "no_entry")
+    elif mode == "entry":
+        action = "already_entry" if has_entry else "entry"
+    else:  # auto
+        if not has_entry:
+            action = "entry"
+        elif not has_exit:
+            action = "exit"
+        else:
+            action = "already_both"
+
+    def _resp(status, message):
+        return {
+            "status": status,
+            "action": action,
+            "message": message,
+            "student": {
+                "id": uid,
+                "name": scanned_user.get("name", ""),
+                "last_name": scanned_user.get("last_name", ""),
+                "full_name": full_name,
+                "photo_url": scanned_user.get("photo_url"),
+                "role": scanned_user.get("role"),
+                "role_label": _maintenance_role_display(scanned_user),
+                "grade_name": None,
+                "section_name": None,
+            },
+            "attendance": {
+                "status": "present",
+                "entry_time": (existing or {}).get("entry_time_hhmm") if action != "entry" else now_time,
+                "exit_time": now_time if action == "exit" else (existing or {}).get("exit_time_hhmm"),
+                "date": today,
+            },
+        }
+
+    if action == "entry":
+        if existing:
+            await db.attendances.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"status": "present", "entry_time": now_iso, "entry_time_hhmm": now_time,
+                          "entry_method": "qr", "method": "qr_scan", "recorded_by": current_user["sub"],
+                          "updated_at": now_iso}},
+            )
+        else:
+            await db.attendances.insert_one({
+                "id": str(uuid.uuid4()), "school_id": school_id, "type": "maintenance",
+                "user_id": uid, "grade_id": None, "section_id": None, "date": today,
+                "status": "present", "entry_time": now_iso, "entry_time_hhmm": now_time,
+                "entry_method": "qr", "method": "qr_scan",
+                "recorded_by": current_user["sub"], "created_at": now_iso,
+            })
+        return _resp("success", f"Entrada registrada para {full_name}")
+
+    if action == "exit":
+        await db.attendances.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"exit_time": now_iso, "exit_time_hhmm": now_time,
+                      "exit_method": "qr", "updated_at": now_iso}},
+        )
+        return _resp("success", f"Salida registrada para {full_name}")
+
+    if action == "no_entry":
+        return _resp("error", f"{full_name} no tiene entrada registrada hoy")
+    if action == "already_entry":
+        return _resp("already_marked", f"{full_name} ya tiene entrada registrada")
+    if action == "already_exit":
+        return _resp("already_marked", f"{full_name} ya tiene salida registrada")
+    return _resp("already_marked", f"{full_name} ya registró entrada y salida")
+
+
 @router.post("/attendance/qr/scan")
 async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_current_user)):
     """
@@ -1782,6 +1876,11 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 "message": "QR no reconocido o no pertenece a esta institucion",
                 "code": "QR_INVALID"
             })
+        # Admin staff (mantenimiento / auxiliares / psicólogos) → Personal
+        # Administrativo flow (type="maintenance"). Short-circuit to keep the
+        # student/teacher logic below untouched.
+        if scanned_user.get("role") in ADMIN_STAFF_ROLES:
+            return await _record_maintenance_qr_scan(scanned_user, school_id, current_user, data.mode)
         is_teacher_qr = scanned_user.get("role") == "teacher"
         scanned_user_id = scanned_user["id"]
         scanned_role = "teacher" if is_teacher_qr else "student"
@@ -2201,7 +2300,7 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
     QR_ELIGIBLE_ROLES = [
         "student", "teacher", "personal_mantenimiento",
         "auxiliar", "auxiliar_asistencia", "auxiliar_alimentacion",
-        "auxiliar_movilidad", "auxiliar_topico",
+        "auxiliar_movilidad", "auxiliar_topico", "psicologo",
     ]
 
     # Students without qr_id
@@ -2335,9 +2434,11 @@ async def get_qr_attendance_history(
     today = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     
     history = []
-    
+
+    is_admin_staff_ctx = role in ADMIN_STAFF_ROLES
+
     # Get student QR scans from attendances collection directly
-    if role != "teacher":
+    if role != "teacher" and not is_admin_staff_ctx:
         student_records = await db.attendances.find({
             "school_id": school_id,
             "date": today,
@@ -2376,7 +2477,7 @@ async def get_qr_attendance_history(
                 })
     
     # Get teacher QR scans (skip if filtering for students only)
-    if role != "student":
+    if role != "student" and not is_admin_staff_ctx:
         teacher_records = await db.attendances.find({
             "school_id": school_id,
             "date": today,
@@ -2410,6 +2511,43 @@ async def get_qr_attendance_history(
                     "created_at": record.get("created_at")
                 })
     
+    # Get admin-staff (Personal Administrativo) QR scans
+    if is_admin_staff_ctx:
+        staff_records = await db.attendances.find({
+            "school_id": school_id,
+            "date": today,
+            "type": "maintenance",
+            "method": "qr_scan",
+        }).sort("created_at", -1).limit(limit).to_list(None)
+
+        for record in staff_records:
+            staff = await db.users.find_one(
+                {"id": record["user_id"]},
+                {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "role": 1,
+                 "maintenance_role": 1, "maintenance_role_custom": 1},
+            )
+            if staff:
+                entry_t = to_peru_hhmm(record.get("entry_time")) or record.get("entry_time_hhmm")
+                exit_t = to_peru_hhmm(record.get("exit_time")) or record.get("exit_time_hhmm")
+                full = f"{staff.get('name', '')} {staff.get('last_name', '')}".strip()
+                history.append({
+                    "id": record.get("id"),
+                    "attendance_id": record.get("id"),
+                    "student_name": full,
+                    "name": full,
+                    "photo_url": staff.get("photo_url"),
+                    "grade_name": _maintenance_role_display(staff) or None,
+                    "section_name": None,
+                    "role": staff.get("role"),
+                    "status": record.get("status"),
+                    "entry_status": record.get("entry_status", "active"),
+                    "exit_status": record.get("exit_status", "active"),
+                    "time": entry_t,
+                    "entry_time": entry_t,
+                    "exit_time": exit_t,
+                    "created_at": record.get("created_at"),
+                })
+
     # Sort combined results by created_at descending
     history.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     history = history[:limit]
