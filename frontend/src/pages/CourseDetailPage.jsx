@@ -7703,10 +7703,15 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
   const handleReopen = async (exam) => {
     setActionLoading(true);
     try {
-      await axios.post(`${API}/exams/${exam.id}/reopen`, {}, { headers });
+      const res = await axios.post(`${API}/exams/${exam.id}/reopen`, {}, { headers });
       loadExams();
+      if (res.data?.extended) {
+        toast.success("Examen reabierto. La disponibilidad se amplió porque la fecha/hora ya había vencido.");
+      } else {
+        toast.success("Examen reabierto correctamente");
+      }
     } catch (err) {
-      alert(err.response?.data?.detail || "Error al reabrir");
+      toast.error(err.response?.data?.detail || "Error al reabrir");
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
@@ -8050,7 +8055,7 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
         onClose={() => setConfirmAction(null)}
         onConfirm={() => handleReopen(confirmAction?.exam)}
         title="¿Reabrir examen?"
-        message="El examen volverá al estado publicado y los estudiantes podrán acceder de nuevo. Los intentos previos no se modifican."
+        message="El examen volverá al estado publicado y los estudiantes podrán acceder de nuevo. Si la fecha/hora ya había vencido, se ampliará automáticamente la disponibilidad para que no se cierre solo. Los intentos previos no se modifican."
         confirmText="Reabrir"
         confirmColor="green"
       />

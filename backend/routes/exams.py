@@ -1062,15 +1062,30 @@ async def close_exam(
     return {"message": "Examen cerrado exitosamente", "status": ExamStatus.closed.value}
 
 
+class ReopenExamRequest(BaseModel):
+    # Optional explicit new availability window. If omitted and the exam's
+    # window already expired, it is auto-extended preserving the original length.
+    start_datetime: Optional[str] = None
+    end_datetime: Optional[str] = None
+
+
 @router.post("/exams/{exam_id}/reopen")
 async def reopen_exam(
     exam_id: str,
+    body: Optional[ReopenExamRequest] = None,
     current_user = Depends(get_current_user)
 ):
     """Reopen a closed exam back to published state.
 
     Útil cuando el docente cerró un examen por error o quiere extender el
     plazo. Solo aplica si el examen está cerrado; no toca intentos previos.
+
+    IMPORTANTE: para exámenes digitales existe un cron que cierra
+    automáticamente los exámenes publicados cuya `end_datetime` ya pasó. Por eso,
+    si al reabrir la ventana de disponibilidad ya venció, se amplía
+    automáticamente (preservando la duración original a partir de ahora) para que
+    el examen NO se vuelva a cerrar solo. El docente puede pasar `start_datetime`
+    / `end_datetime` para fijar una ventana específica.
     """
     user = await resolve_user_from_token(current_user)
     if not user:
@@ -1090,12 +1105,61 @@ async def reopen_exam(
     if exam["status"] != ExamStatus.closed.value:
         raise HTTPException(status_code=400, detail="Solo se pueden reabrir exámenes cerrados")
 
-    await db.online_exams.update_one(
-        {"id": exam_id},
-        {"$set": {"status": ExamStatus.published.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    now = datetime.now(timezone.utc)
+    update = {"status": ExamStatus.published.value, "updated_at": now.isoformat()}
+    extended = False
 
-    return {"message": "Examen reabierto exitosamente", "status": ExamStatus.published.value}
+    is_digital = exam.get("type", "digital") == "digital"
+    if is_digital:
+        def _parse(v):
+            try:
+                return datetime.fromisoformat(v.replace("Z", "+00:00")) if v else None
+            except Exception:
+                return None
+
+        explicit_start = body.start_datetime if body else None
+        explicit_end = body.end_datetime if body else None
+
+        if explicit_end:
+            # Teacher provided a specific window — validate it.
+            new_end = _parse(explicit_end)
+            new_start = _parse(explicit_start) or _parse(exam.get("start_datetime")) or now
+            if not new_end:
+                raise HTTPException(status_code=400, detail="Formato de fecha de fin inválido")
+            if new_end <= now:
+                raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser futura")
+            if new_end <= new_start:
+                raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
+            update["start_datetime"] = new_start.isoformat()
+            update["end_datetime"] = new_end.isoformat()
+            extended = True
+        else:
+            # No explicit window: auto-extend only if it already expired, so the
+            # auto-close cron does not re-close it immediately.
+            end_dt = _parse(exam.get("end_datetime"))
+            if end_dt and end_dt <= now:
+                start_dt = _parse(exam.get("start_datetime"))
+                # Preserve the original availability window length.
+                window = (end_dt - start_dt) if (start_dt and end_dt > start_dt) else None
+                if not window or window.total_seconds() < 60:
+                    mins = exam.get("duration_minutes") or 60
+                    window = timedelta(minutes=max(int(mins), 1))
+                update["start_datetime"] = now.isoformat()
+                update["end_datetime"] = (now + window).isoformat()
+                extended = True
+
+    await db.online_exams.update_one({"id": exam_id}, {"$set": update})
+
+    msg = "Examen reabierto exitosamente"
+    if extended:
+        msg += ". Se amplió la disponibilidad porque la fecha/hora ya había vencido."
+    return {
+        "message": msg,
+        "status": ExamStatus.published.value,
+        "extended": extended,
+        "start_datetime": update.get("start_datetime", exam.get("start_datetime")),
+        "end_datetime": update.get("end_datetime", exam.get("end_datetime")),
+    }
 
 
 @router.post("/exams/{exam_id}/schedule")

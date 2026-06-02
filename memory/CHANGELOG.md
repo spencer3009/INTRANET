@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 2, 2026 - Fix: Reabrir examen ya no se vuelve a cerrar solo ✅
+- **Reportado**: al reabrir un examen cerrado aparecía PUBLICADO, pero al refrescar (F5) volvía a CERRADO; y al intentar editarlo para cambiar la hora salía "No se puede editar un examen cerrado".
+- **Causa raíz**: un cron (`close_expired_exams_cron`, cada 60s) cierra automáticamente los exámenes *publicados* cuya `end_datetime` ya pasó. Al reabrir, el estado quedaba publicado pero la ventana de disponibilidad seguía vencida → el cron lo re-cerraba en <1 min. Y como ya estaba cerrado, el endpoint de edición lo bloqueaba (círculo vicioso).
+- **Fix** (`routes/exams.py` `reopen_exam`): al reabrir, si la ventana ya venció, se **amplía automáticamente** preservando la duración original a partir de ahora (`start=now`, `end=now+duración`), de modo que el cron ya no la cierra. Acepta opcionalmente `start_datetime`/`end_datetime` para fijar una ventana específica (con validación). Si la ventana aún es futura, no la modifica.
+- **Frontend** (`CourseDetailPage.jsx`): `handleReopen` ahora usa toasts y avisa cuando se amplió la disponibilidad; el diálogo "¿Reabrir examen?" explica que se ampliará si la fecha/hora venció. Como el examen queda publicado, el botón "Editar" vuelve a funcionar.
+- **Verificado (curl + pytest)**: reabrir un examen vencido → `published` con `end` futura y persiste (cron-safe); reabrir uno con ventana futura → no la modifica. Test: `tests/test_exam_reopen.py` (PASA). Requiere **redespliegue** para producción.
+
+
 ## Jun 2, 2026 - Feature: Psicólogos con QR + asistencia desde Personal Administrativo ✅
 - **Pedido**: agregar código QR a los psicólogos y poder tomarles asistencia desde "Personal Administrativo".
 - **Hallazgo previo**: el botón "Escanear QR" de Personal Administrativo registraba a CUALQUIER personal administrativo (mantenimiento/auxiliares) como **alumno** (`type=student`), un bug pre-existente. Se corrigió para todos.
