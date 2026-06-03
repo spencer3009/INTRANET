@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 3, 2026 - Feature: Limpieza de asignaciones docentes huérfanas (sin curso) ✅
+- **Pedido**: en "Asignación Docente" había asignaciones de docente sin un curso vinculado (huérfanas). El cliente quería verlas agrupadas y eliminarlas en masa.
+- **Definición**: huérfana = `academic_assignment` cuyo `subject_id` está vacío o apunta a una asignatura que ya no existe (se muestra sin nombre de curso).
+- **Backend** (`academic.py`): helper `_get_orphan_assignment_ids`; nuevos endpoints `GET /api/academic/assignments/orphans` (lista enriquecida con docente/grado/sección) y `DELETE /api/academic/assignments/orphans` (borrado masivo, solo admin). Ambos registrados ANTES de `DELETE /{assignment_id}` para evitar colisión de rutas.
+- **Frontend** (`TeacherAssignmentsPage.jsx`): nueva pestaña **"Huérfanas"** con contador (badge), banner de alerta, botón **"Eliminar todas"** con confirmación y toast. Las tarjetas huérfanas muestran "Sin curso vinculado" en rojo. Tras eliminar, vuelve a la pestaña Asignaciones y refresca.
+- **Verificado E2E (curl + screenshot + pytest)**: GET lista huérfanas (encontró 19 reales en El Roble + las de prueba), DELETE borra todas; una asignación con curso válido NO se marca ni se borra; UI muestra pestaña/badge/banner y el flujo de borrado completo con toast funciona. Test: `tests/test_orphan_assignments.py` (PASA). Requiere **redespliegue** para producción.
+
+
 ## Jun 2, 2026 - Fix: Reabrir examen ya no se vuelve a cerrar solo ✅
 - **Reportado**: al reabrir un examen cerrado aparecía PUBLICADO, pero al refrescar (F5) volvía a CERRADO; y al intentar editarlo para cambiar la hora salía "No se puede editar un examen cerrado".
 - **Causa raíz**: un cron (`close_expired_exams_cron`, cada 60s) cierra automáticamente los exámenes *publicados* cuya `end_datetime` ya pasó. Al reabrir, el estado quedaba publicado pero la ventana de disponibilidad seguía vencida → el cron lo re-cerraba en <1 min. Y como ya estaba cerrado, el endpoint de edición lo bloqueaba (círculo vicioso).

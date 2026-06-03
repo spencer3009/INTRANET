@@ -11,8 +11,9 @@ import {
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Users, Search, ChevronRight, MoreVertical, User, Filter,
   GraduationCap, Layers, Calendar, Briefcase, Trash2,
-  ChevronDown, UserCheck, BookMarked
+  ChevronDown, UserCheck, BookMarked, Unlink, AlertTriangle
 } from "lucide-react";
+import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -175,7 +176,9 @@ function AssignmentCard({ assignment, onEdit, onDelete }) {
             <BookOpen className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{assignment.subject_name}</h3>
+            <h3 className="font-semibold text-gray-900">
+              {assignment.subject_name || <span className="text-red-500">Sin curso vinculado</span>}
+            </h3>
             <p className="text-xs text-gray-500">{assignment.subject_code}</p>
           </div>
         </div>
@@ -1427,6 +1430,10 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewTab, setViewTab] = useState("assignments"); // "assignments" | "orphans"
+  const [orphans, setOrphans] = useState([]);
+  const [showDeleteOrphans, setShowDeleteOrphans] = useState(false);
+  const [deletingOrphans, setDeletingOrphans] = useState(false);
   
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -1479,6 +1486,14 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       
       setAssignments(assignmentsRes.data);
       setTeachersSummary(teachersSummaryRes.data);
+      // Orphan assignments (no valid linked course) — loaded separately so a
+      // failure here never blocks the main list.
+      try {
+        const orphansRes = await axios.get(`${API}/academic/assignments/orphans`, { headers });
+        setOrphans(orphansRes.data || []);
+      } catch (e) {
+        console.error("Error loading orphan assignments:", e);
+      }
       setAcademicData({
         levels: levelsRes.data,
         grades: gradesRes.data,
@@ -1512,6 +1527,21 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       fetchData();
     } catch (error) {
       console.error("Error deleting assignment:", error);
+    }
+  };
+
+  const handleDeleteAllOrphans = async () => {
+    setDeletingOrphans(true);
+    try {
+      const res = await axios.delete(`${API}/academic/assignments/orphans`, { headers });
+      setShowDeleteOrphans(false);
+      toast.success(res.data?.message || "Asignaciones huérfanas eliminadas");
+      setViewTab("assignments");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Error al eliminar las huérfanas");
+    } finally {
+      setDeletingOrphans(false);
     }
   };
   
@@ -1608,6 +1638,81 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
           <div className="grid lg:grid-cols-4 gap-6">
             {/* Left: Assignments List */}
             <div className="lg:col-span-3">
+              {/* Tabs: Asignaciones / Huérfanas */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setViewTab("assignments")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "assignments" ? "bg-blue-600 text-white shadow-md shadow-blue-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+                  data-testid="tab-assignments"
+                >
+                  <BookMarked className="w-4 h-4" />
+                  Asignaciones
+                </button>
+                <button
+                  onClick={() => setViewTab("orphans")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "orphans" ? "bg-red-600 text-white shadow-md shadow-red-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+                  data-testid="tab-orphans"
+                >
+                  <Unlink className="w-4 h-4" />
+                  Huérfanas
+                  {orphans.length > 0 && (
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${viewTab === "orphans" ? "bg-white/25 text-white" : "bg-red-100 text-red-600"}`} data-testid="orphans-count-badge">
+                      {orphans.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {viewTab === "orphans" ? (
+                /* ───── Orphans view ───── */
+                <div data-testid="orphans-view">
+                  {orphans.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mx-auto mb-4">
+                        <Check className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay asignaciones huérfanas</h3>
+                      <p className="text-gray-500">Todas las asignaciones tienen un curso vinculado. ¡Todo en orden!</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-red-800">
+                              {orphans.length} asignación{orphans.length !== 1 ? "es" : ""} sin curso vinculado
+                            </p>
+                            <p className="text-xs text-red-600 mt-0.5">
+                              Estas asignaciones quedaron sin un curso (asignatura) válido. Puedes eliminarlas todas de una vez.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowDeleteOrphans(true)}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium shadow-lg shadow-red-500/25 shrink-0"
+                          data-testid="delete-all-orphans-btn"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Eliminar todas
+                        </button>
+                      </div>
+                      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {orphans.map(assignment => (
+                          <AssignmentCard 
+                            key={assignment.id}
+                            assignment={assignment}
+                            onEdit={handleEdit}
+                            onDelete={setDeleteConfirm}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* ───── Assignments view ───── */
+                <>
               {/* Filters */}
               <FilterBar 
                 filters={filters}
@@ -1672,6 +1777,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                 Mostrando {assignments.length} asignación{assignments.length !== 1 ? "es" : ""}
               </div>
             )}
+                </>
+              )}
           </div>
           
           {/* Right: Teachers Summary */}
@@ -1712,6 +1819,15 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         title="Eliminar Asignación"
         message={`¿Estás seguro de eliminar esta asignación? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
+        confirmColor="red"
+      />
+      <ConfirmModal 
+        isOpen={showDeleteOrphans}
+        onClose={() => setShowDeleteOrphans(false)}
+        onConfirm={handleDeleteAllOrphans}
+        title="Eliminar asignaciones huérfanas"
+        message={`Se eliminarán ${orphans.length} asignación(es) sin curso vinculado. Esta acción no se puede deshacer.`}
+        confirmText={deletingOrphans ? "Eliminando..." : "Eliminar todas"}
         confirmColor="red"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />

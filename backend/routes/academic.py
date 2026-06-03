@@ -2779,6 +2779,100 @@ async def update_academic_assignment(
     
     return {"message": "Asignación actualizada correctamente", "assignment": updated}
 
+async def _get_orphan_assignment_ids(school_id: str):
+    """Orphan assignment = a teacher assignment whose `subject_id` is missing or
+    points to a subject (course) that no longer exists. These show up in the UI
+    with no linked course."""
+    rows = await db.academic_assignments.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1, "subject_id": 1}
+    ).to_list(5000)
+    subject_ids = list({r.get("subject_id") for r in rows if r.get("subject_id")})
+    existing = set()
+    if subject_ids:
+        subs = await db.subjects.find(
+            {"id": {"$in": subject_ids}}, {"_id": 0, "id": 1}
+        ).to_list(5000)
+        existing = {s["id"] for s in subs}
+    return [r["id"] for r in rows if not r.get("subject_id") or r.get("subject_id") not in existing]
+
+
+@router.get("/academic/assignments/orphans")
+async def get_orphan_assignments(current_user = Depends(get_current_user)):
+    """List teacher assignments with no valid linked course (huérfanas)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school_id = user["school_id"]
+    orphan_ids = await _get_orphan_assignment_ids(school_id)
+    if not orphan_ids:
+        return []
+
+    assignments = await db.academic_assignments.find(
+        {"school_id": school_id, "id": {"$in": orphan_ids}}, {"_id": 0}
+    ).sort("created_at", -1).to_list(5000)
+
+    # Enrich with teacher / level / grade / section names (subject is missing).
+    teacher_ids = list({a.get("teacher_id") for a in assignments if a.get("teacher_id")})
+    level_ids = list({a.get("level_id") for a in assignments if a.get("level_id")})
+    grade_ids = list({a.get("grade_id") for a in assignments if a.get("grade_id")})
+    section_ids = list({a.get("section_id") for a in assignments if a.get("section_id")})
+    year_ids = list({a.get("academic_year_id") for a in assignments if a.get("academic_year_id")})
+
+    teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
+    levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+    grades = await db.grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+    sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+    years = await db.academic_years.find({"id": {"$in": year_ids}}, {"_id": 0, "id": 1, "year": 1, "status": 1}).to_list(50) if year_ids else []
+
+    teachers_map = {t["id"]: t for t in teachers}
+    levels_map = {lv["id"]: lv for lv in levels}
+    grades_map = {g["id"]: g for g in grades}
+    sections_map = {s["id"]: s for s in sections}
+    years_map = {y["id"]: y for y in years}
+
+    for a in assignments:
+        teacher = teachers_map.get(a.get("teacher_id", ""), {})
+        a["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+        a["teacher_photo"] = teacher.get("photo_url")
+        a["level_name"] = levels_map.get(a.get("level_id", ""), {}).get("nombre", "")
+        a["grade_name"] = grades_map.get(a.get("grade_id", ""), {}).get("nombre", "")
+        a["section_name"] = sections_map.get(a.get("section_id", ""), {}).get("nombre", "")
+        a["subject_name"] = ""
+        a["subject_code"] = ""
+        a["subject_color"] = "#9CA3AF"
+        if a.get("academic_year_id"):
+            yd = years_map.get(a["academic_year_id"], {})
+            a["academic_year"] = yd.get("year", a.get("school_year"))
+            a["academic_year_status"] = yd.get("status", "")
+
+    return assignments
+
+
+@router.delete("/academic/assignments/orphans")
+async def delete_orphan_assignments(current_user = Depends(get_current_user)):
+    """Bulk-delete all orphan teacher assignments (no valid linked course)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar asignaciones")
+
+    school_id = user["school_id"]
+    orphan_ids = await _get_orphan_assignment_ids(school_id)
+    if not orphan_ids:
+        return {"message": "No hay asignaciones huérfanas", "deleted_count": 0}
+
+    result = await db.academic_assignments.delete_many(
+        {"school_id": school_id, "id": {"$in": orphan_ids}}
+    )
+    logger.info(f"Deleted {result.deleted_count} orphan academic assignments for school {school_id}")
+    return {
+        "message": f"{result.deleted_count} asignación(es) huérfana(s) eliminada(s)",
+        "deleted_count": result.deleted_count,
+    }
+
+
 @router.delete("/academic/assignments/{assignment_id}")
 async def delete_academic_assignment(
     assignment_id: str,
