@@ -1,5 +1,12 @@
 # EduNet - Changelog
 
+## Jun 3, 2026 - Restricción: pestaña/botón de "Huérfanas" solo para Soporte ✅
+- **Pedido**: el propietario y el administrador del colegio NO deben ver la herramienta de limpieza de huérfanas; solo Soporte.
+- **Backend** (`academic.py`): `GET` y `DELETE /api/academic/assignments/orphans` ahora exigen sesión de Soporte (`user.is_support_session`). Cualquier otro rol (owner/admin/director) recibe **403**.
+- **Frontend** (`TeacherAssignmentsPage.jsx`): la pestaña "Huérfanas" (y la carga de huérfanas) solo se renderiza si `isSupportSession` (`is_support_session` u `original_role === system_admin_global`). Para el resto, la barra de pestañas no aparece.
+- **Verificado (curl + screenshot + pytest)**: owner → 403 en GET y DELETE; sesión de Soporte (token `support_switch`) → 200 y puede listar/eliminar; screenshot confirma que el Propietario ya NO ve la pestaña. Test actualizado: `tests/test_orphan_assignments.py` (PASA). Requiere **redespliegue** para producción.
+
+
 ## Jun 3, 2026 - Fix (raíz): bloquear eliminación de curso con docente asignado (previene huérfanas) ✅
 - **Causa raíz de las huérfanas**: `DELETE /api/academic/subjects/{id}` (`subjects.py` `delete_subject`) borraba el curso y los vínculos `subject_teachers`, pero **NO** las `academic_assignments` que lo referenciaban → quedaban huérfanas (asignación docente sin curso). La asignación masiva no las creaba directamente (valida el curso), pero amplificaba el problema al generar muchas asignaciones por curso.
 - **Solución (prevención en origen)**: ahora `delete_subject` **bloquea la eliminación** si el curso tiene asignaciones docentes, con HTTP 400 y mensaje claro: *"No se puede eliminar: el curso tiene N asignación(es) docente(s). Primero desvincula al/los docente(s) en Asignación Docente y luego elimínalo."* (mismo patrón que el chequeo de horarios existente). El docente debe desvincularse primero.

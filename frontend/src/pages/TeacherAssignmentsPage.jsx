@@ -1438,6 +1438,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
+  // Orphan cleanup is a SUPPORT-only maintenance tool. Owners/admins must not see it.
+  const isSupportSession = user?.is_support_session || user?.original_role === "system_admin_global";
   
   // Load settings on mount
   useEffect(() => {
@@ -1486,13 +1488,15 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       
       setAssignments(assignmentsRes.data);
       setTeachersSummary(teachersSummaryRes.data);
-      // Orphan assignments (no valid linked course) — loaded separately so a
-      // failure here never blocks the main list.
-      try {
-        const orphansRes = await axios.get(`${API}/academic/assignments/orphans`, { headers });
-        setOrphans(orphansRes.data || []);
-      } catch (e) {
-        console.error("Error loading orphan assignments:", e);
+      // Orphan assignments (no valid linked course) — SUPPORT-only tool.
+      // Loaded separately so a failure here never blocks the main list.
+      if (isSupportSession) {
+        try {
+          const orphansRes = await axios.get(`${API}/academic/assignments/orphans`, { headers });
+          setOrphans(orphansRes.data || []);
+        } catch (e) {
+          console.error("Error loading orphan assignments:", e);
+        }
       }
       setAcademicData({
         levels: levelsRes.data,
@@ -1638,7 +1642,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
           <div className="grid lg:grid-cols-4 gap-6">
             {/* Left: Assignments List */}
             <div className="lg:col-span-3">
-              {/* Tabs: Asignaciones / Huérfanas */}
+              {/* Tabs: Asignaciones / Huérfanas — Huérfanas solo para Soporte */}
+              {isSupportSession && (
               <div className="flex items-center gap-2 mb-4">
                 <button
                   onClick={() => setViewTab("assignments")}
@@ -1661,9 +1666,11 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                     </span>
                   )}
                 </button>
+                <span className="ml-1 text-[11px] text-gray-400 italic hidden sm:inline">Herramienta de soporte</span>
               </div>
+              )}
 
-              {viewTab === "orphans" ? (
+              {isSupportSession && viewTab === "orphans" ? (
                 /* ───── Orphans view ───── */
                 <div data-testid="orphans-view">
                   {orphans.length === 0 ? (

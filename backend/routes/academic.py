@@ -2798,10 +2798,15 @@ async def _get_orphan_assignment_ids(school_id: str):
 
 @router.get("/academic/assignments/orphans")
 async def get_orphan_assignments(current_user = Depends(get_current_user)):
-    """List teacher assignments with no valid linked course (huérfanas)."""
+    """List teacher assignments with no valid linked course (huérfanas).
+
+    Restringido a sesiones de Soporte: ni el propietario ni el administrador del
+    colegio deben ver/usar esta herramienta de mantenimiento."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not user.get("is_support_session"):
+        raise HTTPException(status_code=403, detail="Solo soporte puede acceder a las asignaciones huérfanas")
 
     school_id = user["school_id"]
     orphan_ids = await _get_orphan_assignment_ids(school_id)
@@ -2851,12 +2856,14 @@ async def get_orphan_assignments(current_user = Depends(get_current_user)):
 
 @router.delete("/academic/assignments/orphans")
 async def delete_orphan_assignments(current_user = Depends(get_current_user)):
-    """Bulk-delete all orphan teacher assignments (no valid linked course)."""
+    """Bulk-delete all orphan teacher assignments (no valid linked course).
+
+    Restringido a sesiones de Soporte únicamente."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    if not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar asignaciones")
+    if not user.get("is_support_session"):
+        raise HTTPException(status_code=403, detail="Solo soporte puede eliminar las asignaciones huérfanas")
 
     school_id = user["school_id"]
     orphan_ids = await _get_orphan_assignment_ids(school_id)
