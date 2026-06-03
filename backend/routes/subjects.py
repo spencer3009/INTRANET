@@ -937,6 +937,23 @@ async def delete_subject(subject_id: str, current_user = Depends(get_current_use
     if schedule_link:
         raise HTTPException(status_code=400, detail="No se puede eliminar: la asignatura está vinculada a horarios")
     
+    # Check if subject has teacher assignments. We must NOT leave orphaned
+    # academic_assignments behind, so block deletion and force the user to
+    # unlink the teacher(s) first (in "Asignación Docente").
+    assignment_count = await db.academic_assignments.count_documents(
+        {"subject_id": subject_id, "school_id": school_id}
+    )
+    if assignment_count > 0:
+        plural = "es" if assignment_count != 1 else ""
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No se puede eliminar: el curso tiene {assignment_count} asignación{plural} "
+                f"docente{'s' if assignment_count != 1 else ''}. Primero desvincula al/los docente(s) "
+                f"de este curso en \"Asignación Docente\" y luego elimínalo."
+            ),
+        )
+    
     # Delete subject and related teacher assignments
     await db.subject_teachers.delete_many({"subject_id": subject_id, "school_id": school_id})
     await db.subjects.delete_one({"id": subject_id})

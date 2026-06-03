@@ -1,5 +1,12 @@
 # EduNet - Changelog
 
+## Jun 3, 2026 - Fix (raíz): bloquear eliminación de curso con docente asignado (previene huérfanas) ✅
+- **Causa raíz de las huérfanas**: `DELETE /api/academic/subjects/{id}` (`subjects.py` `delete_subject`) borraba el curso y los vínculos `subject_teachers`, pero **NO** las `academic_assignments` que lo referenciaban → quedaban huérfanas (asignación docente sin curso). La asignación masiva no las creaba directamente (valida el curso), pero amplificaba el problema al generar muchas asignaciones por curso.
+- **Solución (prevención en origen)**: ahora `delete_subject` **bloquea la eliminación** si el curso tiene asignaciones docentes, con HTTP 400 y mensaje claro: *"No se puede eliminar: el curso tiene N asignación(es) docente(s). Primero desvincula al/los docente(s) en Asignación Docente y luego elimínalo."* (mismo patrón que el chequeo de horarios existente). El docente debe desvincularse primero.
+- **Frontend**: ya mostraba el `detail` del backend como toast (sin cambios necesarios).
+- **Verificado (curl + pytest)**: curso CON docente → 400 (no se borra, sin crear huérfana); curso SIN docente → 200; tras desvincular → se puede borrar. Test: `tests/test_subject_delete_guard.py` (PASA). Requiere **redespliegue** para producción.
+
+
 ## Jun 3, 2026 - Feature: Limpieza de asignaciones docentes huérfanas (sin curso) ✅
 - **Pedido**: en "Asignación Docente" había asignaciones de docente sin un curso vinculado (huérfanas). El cliente quería verlas agrupadas y eliminarlas en masa.
 - **Definición**: huérfana = `academic_assignment` cuyo `subject_id` está vacío o apunta a una asignatura que ya no existe (se muestra sin nombre de curso).
