@@ -277,17 +277,6 @@ async def get_teacher_subjects(
     
     school_id = user["school_id"]
     
-    # Check if school allows teacher in multiple schedules
-    allow_multi = False
-    try:
-        sched_settings = await db.schedule_settings.find_one(
-            {"school_id": school_id}, {"_id": 0, "permitir_profesor_multiples_horarios": 1}
-        )
-        if sched_settings and sched_settings.get("permitir_profesor_multiples_horarios", False):
-            allow_multi = True
-    except Exception:
-        pass
-    
     # Build query for academic_assignments
     query = {
         "school_id": school_id,
@@ -718,20 +707,49 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
     if data.name is not None:
-        # Check for duplicates if name is changing
+        # Check for duplicates if name is changing — scope by SECTION (mirroring
+        # the create endpoint). Subjects are section-specific, so the same name
+        # can legitimately exist in different sections of the same level/grade.
+        # Previously this only scoped by level+grade, which falsely blocked
+        # editing (e.g. changing only the code) when a sibling section had a
+        # subject with the same name.
+        effective_level_id = data.level_id if data.level_id else subject.get("level_id")
+        if data.section_id is None:
+            effective_section_id = subject.get("section_id")
+        elif data.section_id == "":
+            effective_section_id = None
+        else:
+            effective_section_id = data.section_id
+        if data.grade_id is None:
+            effective_grade_id = subject.get("grade_id")
+        elif data.grade_id == "":
+            effective_grade_id = None
+        else:
+            effective_grade_id = data.grade_id
+
         duplicate_query = {
             "school_id": school_id,
-            "name": {"$regex": f"^{data.name}$", "$options": "i"},
-            "level_id": data.level_id if data.level_id else subject["level_id"],
-            "id": {"$ne": subject_id}
+            "name": {"$regex": f"^{re.escape(data.name.strip())}$", "$options": "i"},
+            "level_id": effective_level_id,
+            "id": {"$ne": subject_id},
         }
-        grade_id = data.grade_id if data.grade_id is not None else subject.get("grade_id")
-        if grade_id:
-            duplicate_query["grade_id"] = grade_id
-        
+        if effective_section_id:
+            duplicate_query["section_id"] = effective_section_id
+        elif effective_grade_id:
+            duplicate_query["grade_id"] = effective_grade_id
+            duplicate_query["$or"] = [
+                {"section_id": None},
+                {"section_id": {"$exists": False}},
+            ]
+        else:
+            duplicate_query["$or"] = [
+                {"grade_id": None},
+                {"grade_id": {"$exists": False}},
+            ]
+
         existing = await db.subjects.find_one(duplicate_query)
         if existing:
-            raise HTTPException(status_code=400, detail="Ya existe una asignatura con ese nombre para el mismo nivel/grado")
+            raise HTTPException(status_code=400, detail="Ya existe una asignatura con ese nombre para el mismo nivel/grado/sección")
         
         update_data["name"] = data.name.strip()
     
