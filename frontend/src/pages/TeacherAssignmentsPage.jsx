@@ -385,6 +385,27 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       })
     : [];
   
+  // Currently-selected subject resolved from the FULL subjects list (and, as a
+  // last resort, from the enriched assignment record). The cascade filter above
+  // can legitimately exclude the selected subject when editing a bulk-created
+  // assignment whose stored level/grade differs slightly from the subject doc —
+  // that used to render "()" with no name. This guarantees the label always
+  // resolves and the subject stays selectable.
+  const selectedSubjectFull = form.subject_id
+    ? (academicData.subjects.find(s => s.id === form.subject_id)
+        || (assignment && assignment.subject_id === form.subject_id
+              ? {
+                  id: form.subject_id,
+                  name: assignment.subject_name || "",
+                  code: assignment.subject_code || "",
+                  color: assignment.subject_color,
+                }
+              : null))
+    : null;
+  const subjectOptions = (selectedSubjectFull && !filteredSubjects.some(s => s.id === selectedSubjectFull.id))
+    ? [selectedSubjectFull, ...filteredSubjects]
+    : filteredSubjects;
+  
   // Sort academic years (active first, then by year descending)
   const sortedYears = [...(academicData.academicYears || [])].sort((a, b) => {
     if (a.status === "activo" && b.status !== "activo") return -1;
@@ -615,7 +636,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                 <div className="relative" ref={subjectRef}>
                   {form.subject_id && !subjectOpen ? (
                     (() => {
-                      const sel = filteredSubjects.find(s => s.id === form.subject_id);
+                      const sel = selectedSubjectFull || filteredSubjects.find(s => s.id === form.subject_id);
                       return (
                         <div
                           className="w-full flex items-center gap-3 px-4 py-2 border border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors"
@@ -649,7 +670,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                   )}
                   {subjectOpen && (
                     <div className="absolute z-[200] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                      {filteredSubjects
+                      {subjectOptions
                         .filter(s => {
                           const q = subjectSearch.toLowerCase();
                           return !q || s.name.toLowerCase().includes(q) || (s.code || "").toLowerCase().includes(q);
@@ -677,7 +698,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                           </button>
                         ))
                       }
-                      {filteredSubjects.filter(s => {
+                      {subjectOptions.filter(s => {
                         const q = subjectSearch.toLowerCase();
                         return !q || s.name.toLowerCase().includes(q) || (s.code || "").toLowerCase().includes(q);
                       }).length === 0 && (
