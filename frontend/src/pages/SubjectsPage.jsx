@@ -181,13 +181,14 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse, onDelete, 
     <div 
       onClick={() => onViewCourse && onViewCourse(subject)}
       data-testid={`subject-card-${subject.id}`}
-      className={`group relative bg-white rounded-2xl overflow-hidden cursor-pointer
+      className={`group relative bg-white rounded-2xl cursor-pointer
         shadow-lg hover:shadow-2xl border-2 border-gray-100
         hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300
+        ${menuOpen ? "z-30" : ""}
         ${subject.status === "inactive" ? "opacity-60 grayscale" : ""}`}
     >
       {/* Color accent bar */}
-      <div className="h-2 w-full" style={{ background: `linear-gradient(90deg, ${subject.color}, ${subject.color}99)` }} />
+      <div className="h-2 w-full rounded-t-2xl" style={{ background: `linear-gradient(90deg, ${subject.color}, ${subject.color}99)` }} />
       
       <div className="p-6">
         {/* Menu */}
