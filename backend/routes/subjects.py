@@ -173,18 +173,10 @@ async def get_subjects(
         except Exception:
             pass
 
-        # Users cache
-        users_cache = {}
-        try:
-            for doc in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500):
-                if doc.get("id"):
-                    users_cache[doc["id"]] = doc
-        except Exception:
-            pass
-
         # ── 3. TEACHER ASSIGNMENTS: academic_assignments (fuente de verdad) ─
         subject_ids = [s.get("id") for s in subjects if s.get("id")]
         teacher_assignments = {}
+        teacher_ids_needed = set()
         try:
             assign_query = {"school_id": school_id, "subject_id": {"$in": subject_ids}}
             if level_id:
@@ -196,11 +188,30 @@ async def get_subjects(
             all_assignments = await db.academic_assignments.find(
                 assign_query,
                 {"_id": 0, "subject_id": 1, "teacher_id": 1, "role": 1, "section_id": 1}
-            ).to_list(2000)
+            ).to_list(5000)
             for a in all_assignments:
                 sid = a.get("subject_id")
                 if sid:
                     teacher_assignments.setdefault(sid, []).append(a)
+                if a.get("teacher_id"):
+                    teacher_ids_needed.add(a["teacher_id"])
+        except Exception:
+            pass
+
+        # Users cache — load ONLY the teachers referenced by the assignments.
+        # (Previously this loaded ALL school users with a silent `to_list(500)`
+        # cap, which in large schools dropped some teachers from the cache and
+        # left `primary_teacher` empty even though the assignment existed.)
+        users_cache = {}
+        try:
+            if teacher_ids_needed:
+                docs = await db.users.find(
+                    {"school_id": school_id, "id": {"$in": list(teacher_ids_needed)}},
+                    {"_id": 0, "id": 1, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+                ).to_list(None)
+                for doc in docs:
+                    if doc.get("id"):
+                        users_cache[doc["id"]] = doc
         except Exception:
             pass
 
