@@ -86,6 +86,10 @@ class SubjectUpdate(BaseModel):
 class SubjectTeacherAssign(BaseModel):
     teacher_ids: List[str]
 
+class AssignSubjectTeacher(BaseModel):
+    teacher_id: str
+    role: Literal["titular", "auxiliar"] = "titular"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SUBJECTS CRUD
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1046,6 +1050,95 @@ async def assign_subject_teachers(subject_id: str, data: SubjectTeacherAssign, c
     logger.info(f"Teachers assigned to subject {subject_id}: {data.teacher_ids} by {user['id']}")
     
     return {"message": "Profesores asignados correctamente", "count": len(data.teacher_ids)}
+
+@router.post("/subjects/{subject_id}/assign-teacher")
+async def assign_single_subject_teacher(
+    subject_id: str,
+    data: AssignSubjectTeacher,
+    current_user = Depends(get_current_user),
+):
+    """Assign (connect) a teacher to a subject directly from the Asignaturas grid.
+
+    Derives level/grade/section from the subject document itself and creates an
+    `academic_assignments` row — the source of truth for `primary_teacher` shown
+    on the subject card. For role=titular it REPLACES any existing titular of the
+    same subject+section so the card always reflects a single owner.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para asignar profesores")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    if subject.get("status") != "active":
+        raise HTTPException(status_code=400, detail="No se pueden asignar profesores a una asignatura inactiva")
+
+    section_id = subject.get("section_id")
+    grade_id = subject.get("grade_id")
+    level_id = subject.get("level_id")
+    if not section_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Esta asignatura no está vinculada a una sección. Asígnala desde Asignación Docente.",
+        )
+
+    teacher = await db.users.find_one({"id": data.teacher_id, "school_id": school_id, "role": "teacher"})
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Profesor no encontrado")
+
+    # Active academic year (optional but keeps assignments consistent)
+    year = await db.academic_years.find_one({"school_id": school_id, "status": "activo"}, {"_id": 0})
+    academic_year_id = year.get("id") if year else None
+    school_year = year.get("year") if year else datetime.now(timezone.utc).year
+
+    base_match = {"school_id": school_id, "subject_id": subject_id, "section_id": section_id}
+
+    def _teacher_payload():
+        return {
+            "id": teacher.get("id"),
+            "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() or teacher.get("name", ""),
+            "profile_image": teacher.get("profile_image") or teacher.get("photo_url"),
+            "role": data.role,
+        }
+
+    # Idempotent: same teacher already linked → just normalize role + status
+    existing_same = await db.academic_assignments.find_one({**base_match, "teacher_id": data.teacher_id})
+    if existing_same:
+        await db.academic_assignments.update_one(
+            {"id": existing_same["id"]},
+            {"$set": {"role": data.role, "status": "activo"}},
+        )
+        return {"message": "El docente ya estaba asignado a esta asignatura", "teacher": _teacher_payload()}
+
+    # For titular, ensure a single owner: drop any existing titular of this subject+section
+    if data.role == "titular":
+        await db.academic_assignments.delete_many({**base_match, "role": "titular"})
+
+    assignment = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "teacher_id": data.teacher_id,
+        "level_id": level_id,
+        "grade_id": grade_id,
+        "section_id": section_id,
+        "subject_id": subject_id,
+        "academic_year_id": academic_year_id,
+        "school_year": school_year,
+        "role": data.role,
+        "status": "activo",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"],
+    }
+    await db.academic_assignments.insert_one(assignment)
+
+    logger.info(f"[ASSIGN-TEACHER] subject={subject_id} teacher={data.teacher_id} by={user['id']}")
+    return {"message": "Docente asignado correctamente", "teacher": _teacher_payload()}
+
+
 
 @router.delete("/academic/subjects/{subject_id}/teachers/{teacher_id}")
 async def remove_subject_teacher(subject_id: str, teacher_id: str, current_user = Depends(get_current_user)):

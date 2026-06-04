@@ -13,7 +13,7 @@ import {
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Clock, MoreVertical, GraduationCap, ArrowRight, User, Users, Power, PowerOff,
   Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw,
-  Baby, Backpack, Settings2, Sparkles, Star, Copy
+  Baby, Backpack, Settings2, Sparkles, Star, Copy, UserPlus, Search
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -174,7 +174,7 @@ function PremiumGradeCard({ grade, subjectCount, theme, onClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT CARD - Premium colorful style
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse, onDelete }) {
+function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse, onDelete, onAssignTeacher }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   return (
@@ -211,6 +211,16 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse, onDelete }
                     <Edit2 className="w-4 h-4 text-blue-600" />
                   </div>
                   <span className="font-medium">Editar</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onAssignTeacher(subject); }}
+                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  data-testid={`subject-assign-teacher-${subject.id}`}
+                >
+                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <span className="font-medium">Asignar docente</span>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleStatus(subject); }}
@@ -330,6 +340,151 @@ function AddSubjectCard({ onClick, theme }) {
     </button>
   );
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ASSIGN TEACHER MODAL - Search autocomplete to connect a teacher to a subject
+// ══════════════════════════════════════════════════════════════════════════════
+function AssignTeacherModal({ subject, teachers, headers, onClose, onAssigned }) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(subject?.primary_teacher || null);
+  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const fullName = (t) => `${t.name || ""} ${t.last_name || ""}`.trim() || t.name || "";
+  const q = query.trim().toLowerCase();
+  const filtered = (q
+    ? teachers.filter(t => fullName(t).toLowerCase().includes(q) || (t.email || "").toLowerCase().includes(q))
+    : teachers
+  ).slice(0, 20);
+
+  const handleAssign = async () => {
+    if (!selected) { toast.error("Selecciona un docente"); return; }
+    setSaving(true);
+    try {
+      const res = await axios.post(
+        `${API}/subjects/${subject.id}/assign-teacher`,
+        { teacher_id: selected.id, role: "titular" },
+        { headers }
+      );
+      toast.success(res.data?.message || "Docente asignado correctamente");
+      onAssigned();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al asignar docente");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" data-testid="assign-teacher-modal">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-visible" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-6 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-t-2xl flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+              <UserPlus className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-white leading-tight">Asignar docente</h2>
+              <p className="text-xs text-white/80 truncate">{subject?.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-colors" data-testid="assign-teacher-close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          <div className="relative">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Buscar docente</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                placeholder="Escribe el nombre o correo..."
+                data-testid="assign-teacher-search"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+            </div>
+
+            {open && (
+              <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-100 rounded-xl shadow-2xl">
+                {filtered.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-400">No se encontraron docentes</div>
+                ) : (
+                  filtered.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => { setSelected(t); setQuery(""); setOpen(false); }}
+                      data-testid={`assign-teacher-option-${t.id}`}
+                      className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-emerald-50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
+                        {(t.profile_image || t.photo_url) ? (
+                          <img src={t.profile_image || t.photo_url} alt={fullName(t)} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold text-xs">{fullName(t).charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{fullName(t)}</p>
+                        {t.email && <p className="text-xs text-gray-400 truncate">{t.email}</p>}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Selected teacher */}
+          {selected && (
+            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl" data-testid="assign-teacher-selected">
+              <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
+                {(selected.profile_image || selected.photo_url) ? (
+                  <img src={selected.profile_image || selected.photo_url} alt={fullName(selected)} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-bold text-sm">{fullName(selected).charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 truncate">{fullName(selected)}</p>
+                <p className="text-xs text-emerald-600">Se asignará como Titular</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors" data-testid="assign-teacher-cancel">
+            Cancelar
+          </button>
+          <button
+            onClick={handleAssign}
+            disabled={saving || !selected}
+            data-testid="assign-teacher-submit"
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Asignar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT FORM MODAL - Premium with colors
@@ -1022,6 +1177,8 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
   const [showReplicateModal, setShowReplicateModal] = useState(false);
+  const [teachers, setTeachers] = useState([]);
+  const [assignSubject, setAssignSubject] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -1044,6 +1201,10 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       setGrades(gradesRes.data || []);
       setSubjects(subjectsRes.data || []);
       setSections(sectionsRes.data || []);
+      // Load active teachers for the "Asignar docente" autocomplete (non-blocking)
+      axios.get(`${API}/users/teachers/active`, { headers })
+        .then(res => setTeachers(res.data || []))
+        .catch(err => console.error("teachers load error:", err));
       
       if (activeLevels.length > 0) {
         setActiveTab(activeLevels[0].id);
@@ -1418,6 +1579,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                         onToggleStatus={() => handleToggleStatus(subject)}
                         onViewCourse={() => handleViewCourse(subject)}
                         onDelete={() => handleDeleteSubject(subject)}
+                        onAssignTeacher={(s) => setAssignSubject(s)}
                       />
                     ))}
                     <AddSubjectCard 
@@ -1455,6 +1617,15 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         token={token}
         onSuccess={loadSubjects}
       />
+      {assignSubject && (
+        <AssignTeacherModal
+          subject={assignSubject}
+          teachers={teachers}
+          headers={headers}
+          onClose={() => setAssignSubject(null)}
+          onAssigned={loadSubjects}
+        />
+      )}
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       <FloatingHelpAvatar subdomain={subdomain} />
     </div>

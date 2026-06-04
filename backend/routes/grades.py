@@ -360,6 +360,31 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
         {"_id": 0}
     )
 
+    # Load the active template once so the PROM. BIMESTRAL column resolves the
+    # final grade with the SAME precedence used by the Consolidado:
+    #   final_grade_manual > final_grade > on-the-fly recompute (custom template).
+    # This prevents the historical bug where the Consolidado showed a grade
+    # (entered via "Notas del Profesor / Manual de Notas" -> final_grade_manual)
+    # while the Registro Auxiliar rendered the final column empty.
+    from services.register_sync import get_active_template_for_school
+    reg_template = await get_active_template_for_school(db, school_id)
+    is_custom_template = bool(reg_template and not reg_template.get("es_sistema"))
+
+    def _resolve_final(g: dict) -> Optional[float]:
+        manual = g.get("final_grade_manual")
+        if manual is not None:
+            return manual
+        final_val = g.get("final_grade")
+        if final_val is None and is_custom_template and (
+            g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)
+        ):
+            try:
+                final_val = calculate_final_grade(g, config, template=reg_template)
+            except Exception as e:
+                logger.warning(f"[REGISTER] on-the-fly recompute failed student={g.get('student_id')}: {e}")
+                final_val = None
+        return final_val
+
     # Build response
     student_grades = []
     for i, student in enumerate(students):
@@ -390,7 +415,11 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
             # Exámenes
             "exam_mensual": g.get("exam_mensual"),
             "exam_bimestral": g.get("exam_bimestral"),
-            "final_grade": g.get("final_grade"),
+            "final_grade": _resolve_final(g),
+            # Surface the manual override so the gradebook can flag rows whose
+            # final grade was entered via the "Notas del Profesor" portal and
+            # therefore legitimately have empty detail cells.
+            "final_grade_manual": g.get("final_grade_manual"),
             # Phase 5 — pass through the dynamic subdocument so the
             # gradebook can render custom-template columns read from
             # `grades_dynamic[column_id]`.
