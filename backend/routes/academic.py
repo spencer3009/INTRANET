@@ -2081,14 +2081,14 @@ async def clone_periods_to_year(
             try:
                 fecha = datetime.strptime(sp["fecha_inicio"], "%Y-%m-%d")
                 new_fecha_inicio = fecha.replace(year=fecha.year + year_diff).strftime("%Y-%m-%d")
-            except:
+            except Exception:
                 new_fecha_inicio = sp["fecha_inicio"]
         
         if sp.get("fecha_fin"):
             try:
                 fecha = datetime.strptime(sp["fecha_fin"], "%Y-%m-%d")
                 new_fecha_fin = fecha.replace(year=fecha.year + year_diff).strftime("%Y-%m-%d")
-            except:
+            except Exception:
                 new_fecha_fin = sp["fecha_fin"]
         
         new_period = {
@@ -2305,7 +2305,7 @@ async def get_academic_assignments(
         
         # Create lookup maps
         teachers_map = {t["id"]: t for t in teachers}
-        levels_map = {l["id"]: l for l in levels}
+        levels_map = {lvl["id"]: lvl for lvl in levels}
         grades_map = {g["id"]: g for g in grades}
         sections_map = {s["id"]: s for s in sections}
         subjects_map = {s["id"]: s for s in subjects}
@@ -2878,6 +2878,40 @@ async def delete_orphan_assignments(current_user = Depends(get_current_user)):
         "message": f"{result.deleted_count} asignación(es) huérfana(s) eliminada(s)",
         "deleted_count": result.deleted_count,
     }
+
+
+class BulkDeleteAssignments(BaseModel):
+    ids: List[str]
+
+
+@router.post("/academic/assignments/bulk-delete")
+async def bulk_delete_academic_assignments(
+    data: BulkDeleteAssignments,
+    current_user = Depends(get_current_user)
+):
+    """Delete multiple academic assignments at once (selected via checkboxes)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar asignaciones")
+
+    ids = [i for i in (data.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="No se seleccionaron asignaciones")
+
+    school_id = user["school_id"]
+    result = await db.academic_assignments.delete_many({
+        "id": {"$in": ids},
+        "school_id": school_id
+    })
+
+    logger.info(f"Bulk-deleted {result.deleted_count} academic assignments for school {school_id}")
+    return {
+        "message": f"{result.deleted_count} asignación(es) eliminada(s)",
+        "deleted_count": result.deleted_count,
+    }
+
 
 
 @router.delete("/academic/assignments/{assignment_id}")

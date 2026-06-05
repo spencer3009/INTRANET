@@ -158,16 +158,28 @@ function FilterBar({ filters, setFilters, levels, grades, sections, subjects, te
 // ══════════════════════════════════════════════════════════════════════════════
 // ASSIGNMENT CARD COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-function AssignmentCard({ assignment, onEdit, onDelete }) {
+function AssignmentCard({ assignment, onEdit, onDelete, selected, onToggleSelect }) {
   const [showMenu, setShowMenu] = useState(false);
   
   return (
     <div 
-      className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-lg hover:border-blue-200 transition-all duration-300 group"
+      className={`bg-white rounded-xl border p-4 hover:shadow-lg transition-all duration-300 group ${
+        selected ? "border-blue-500 ring-2 ring-blue-200 shadow-md" : "border-gray-100 hover:border-blue-200"
+      }`}
       data-testid={`assignment-card-${assignment.id}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
+          {/* Selection checkbox */}
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onToggleSelect(assignment.id)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer shrink-0"
+            data-testid={`assignment-select-${assignment.id}`}
+            aria-label="Seleccionar asignación"
+          />
           {/* Subject Color Indicator */}
           <div 
             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shadow-md"
@@ -1455,6 +1467,10 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   const [orphans, setOrphans] = useState([]);
   const [showDeleteOrphans, setShowDeleteOrphans] = useState(false);
   const [deletingOrphans, setDeletingOrphans] = useState(false);
+  // Bulk selection (checkboxes) for mass-deleting assignments
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
@@ -1554,6 +1570,40 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       console.error("Error deleting assignment:", error);
     }
   };
+
+  // ── Bulk selection helpers ──────────────────────────────────────────────
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const allVisibleSelected = assignments.length > 0 && assignments.every(a => selectedIds.includes(a.id));
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      const visibleIds = new Set(assignments.map(a => a.id));
+      setSelectedIds(prev => prev.filter(id => !visibleIds.has(id)));
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...assignments.map(a => a.id)])));
+    }
+  };
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await axios.post(`${API}/academic/assignments/bulk-delete`, { ids: selectedIds }, { headers });
+      toast.success(res.data?.message || "Asignaciones eliminadas");
+      setShowBulkDelete(false);
+      setSelectedIds([]);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Error al eliminar las asignaciones");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // Clear selection whenever the filters change (the visible set changes)
+  useEffect(() => { setSelectedIds([]); }, [filters]);
 
   const handleDeleteAllOrphans = async () => {
     setDeletingOrphans(true);
@@ -1787,6 +1837,38 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                 )}
               </div>
             ) : (
+              <>
+              {/* Bulk selection action bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 px-4 py-3 bg-white rounded-xl border border-gray-100">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer" data-testid="assignment-select-all">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer"
+                  />
+                  Seleccionar todas {selectedIds.length > 0 && <span className="text-blue-600">({selectedIds.length} seleccionada{selectedIds.length !== 1 ? "s" : ""})</span>}
+                </label>
+                {selectedIds.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={clearSelection}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      data-testid="assignment-clear-selection"
+                    >
+                      Limpiar
+                    </button>
+                    <button
+                      onClick={() => setShowBulkDelete(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      data-testid="assignment-bulk-delete-btn"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar ({selectedIds.length})
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {assignments.map(assignment => (
                   <AssignmentCard 
@@ -1794,9 +1876,12 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                     assignment={assignment}
                     onEdit={handleEdit}
                     onDelete={setDeleteConfirm}
+                    selected={selectedIds.includes(assignment.id)}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </div>
+              </>
             )}
             
             {/* Results Count */}
@@ -1856,6 +1941,15 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         title="Eliminar asignaciones huérfanas"
         message={`Se eliminarán ${orphans.length} asignación(es) sin curso vinculado. Esta acción no se puede deshacer.`}
         confirmText={deletingOrphans ? "Eliminando..." : "Eliminar todas"}
+        confirmColor="red"
+      />
+      <ConfirmModal 
+        isOpen={showBulkDelete}
+        onClose={() => setShowBulkDelete(false)}
+        onConfirm={handleBulkDelete}
+        title="Eliminar asignaciones seleccionadas"
+        message={`Se eliminarán ${selectedIds.length} asignación(es) docente. El curso permanece; solo se quita el vínculo del profesor. Esta acción no se puede deshacer.`}
+        confirmText={bulkDeleting ? "Eliminando..." : `Eliminar ${selectedIds.length}`}
         confirmColor="red"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
