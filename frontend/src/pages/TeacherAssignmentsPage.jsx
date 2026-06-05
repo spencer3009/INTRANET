@@ -156,6 +156,100 @@ function FilterBar({ filters, setFilters, levels, grades, sections, subjects, te
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// TEACHER SEARCH (autocomplete) — search by teacher to see all their assignments
+// ══════════════════════════════════════════════════════════════════════════════
+function TeacherSearchBar({ teachers, selectedId, onSelect, onClear, resultCount }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const fullName = (t) => `${t.name || ""} ${t.last_name || ""}`.trim() || t.name || "";
+  const selected = selectedId ? teachers.find(t => t.id === selectedId) : null;
+  const q = query.trim().toLowerCase();
+  const results = (q
+    ? teachers.filter(t => fullName(t).toLowerCase().includes(q) || (t.email || "").toLowerCase().includes(q))
+    : teachers
+  ).slice(0, 30);
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 relative z-30" data-testid="teacher-search-bar">
+      <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+        Buscar por docente
+      </label>
+      {selected ? (
+        <div className="flex items-center gap-3 p-2.5 bg-blue-50 border border-blue-200 rounded-xl" data-testid="teacher-search-selected">
+          <div className="w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0">
+            {selected.photo_url ? (
+              <img src={selected.photo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white font-bold text-sm">{fullName(selected).charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">{fullName(selected)}</p>
+            <p className="text-xs text-blue-600">
+              {resultCount} curso{resultCount !== 1 ? "s" : ""} / asignatura{resultCount !== 1 ? "s" : ""} asignada{resultCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <button
+            onClick={() => { setQuery(""); onClear(); }}
+            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
+            data-testid="teacher-search-clear"
+            aria-label="Quitar filtro de docente"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Escribe el nombre del docente..."
+            data-testid="teacher-search-input"
+            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          {open && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+              <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-gray-100 rounded-xl shadow-2xl">
+                {results.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-400">No se encontraron docentes</div>
+                ) : (
+                  results.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => { onSelect(t.id); setQuery(""); setOpen(false); }}
+                      data-testid={`teacher-search-option-${t.id}`}
+                      className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0">
+                        {t.photo_url ? (
+                          <img src={t.photo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold text-xs">{fullName(t).charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{fullName(t)}</p>
+                        {t.email && <p className="text-xs text-gray-400 truncate">{t.email}</p>}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ASSIGNMENT CARD COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 function AssignmentCard({ assignment, onEdit, onDelete, selected, onToggleSelect }) {
@@ -1713,6 +1807,14 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
           <div className="grid lg:grid-cols-4 gap-6">
             {/* Left: Assignments List */}
             <div className="lg:col-span-3">
+              {/* Teacher autocomplete search — filters the list to the selected teacher's assignments */}
+              <TeacherSearchBar
+                teachers={academicData.teachers}
+                selectedId={filters.teacher_id}
+                onSelect={(id) => setFilters(prev => ({ ...prev, teacher_id: id }))}
+                onClear={() => setFilters(prev => ({ ...prev, teacher_id: "" }))}
+                resultCount={assignments.length}
+              />
               {/* Tabs: Asignaciones / Huérfanas — Huérfanas solo para Soporte */}
               {isSupportSession && (
               <div className="flex items-center gap-2 mb-4">
