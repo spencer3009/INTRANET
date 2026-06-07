@@ -7645,6 +7645,158 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// EXAM RESULTS MODAL — shows who took the exam and their grades
+// ══════════════════════════════════════════════════════════════════════════════
+function ExamResultsModal({ exam, token, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/exams/${exam.id}/results`, { headers: { Authorization: `Bearer ${token}` } });
+        if (active) setData(res.data);
+      } catch (err) {
+        if (active) setError(err.response?.data?.detail || 'Error al cargar los resultados');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [exam.id]);
+
+  const results = data?.results || [];
+  const completed = results.filter(r => r.status === 'completed');
+  const avg = completed.length
+    ? (completed.reduce((s, r) => s + (r.grade_vigesimal || 0), 0) / completed.length).toFixed(1)
+    : null;
+
+  const statusBadge = (st) => {
+    const map = {
+      completed: { label: 'Completado', cls: 'bg-emerald-100 text-emerald-700' },
+      in_progress: { label: 'En progreso', cls: 'bg-blue-100 text-blue-700' },
+      expired: { label: 'Expirado', cls: 'bg-amber-100 text-amber-700' },
+    };
+    const c = map[st] || { label: st || '—', cls: 'bg-gray-100 text-gray-600' };
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.cls}`}>{c.label}</span>;
+  };
+
+  const exportCSV = () => {
+    const rows = [['Estudiante', 'Estado', 'Puntaje', 'Maximo', 'Porcentaje', 'Nota (20)', 'Aprobado']];
+    results.forEach(r => rows.push([
+      r.student_name, r.status, r.score ?? '', r.max_score ?? '',
+      r.percentage != null ? `${r.percentage}%` : '', r.grade_vigesimal ?? '',
+      r.passed == null ? '' : (r.passed ? 'Si' : 'No'),
+    ]));
+    const csv = rows.map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notas_${(exam.title || 'examen').replace(/\s+/g, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="exam-results-modal">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-2xl flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+              <ClipboardList className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-white leading-tight truncate">Notas del examen</h2>
+              <p className="text-xs text-white/80 truncate">{exam.title}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl" data-testid="exam-results-close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {!loading && !error && (
+          <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Users className="w-4 h-4 text-purple-500" />
+              <span className="font-semibold text-gray-800">{results.length}</span> rindieron · 
+              <span className="font-semibold text-emerald-600">{completed.length}</span> completados
+            </div>
+            {avg != null && (
+              <div className="text-sm text-gray-600">Promedio (vigesimal): <span className="font-bold text-purple-600">{avg}</span></div>
+            )}
+            {results.length > 0 && (
+              <button onClick={exportCSV} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg" data-testid="exam-results-export">
+                <Download className="w-4 h-4" /> Excel/CSV
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="overflow-y-auto px-6 py-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-16"><Loader2 className="w-7 h-7 text-purple-500 animate-spin" /></div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-600 text-sm">{error}</div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">Aún nadie ha rendido este examen.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                  <th className="py-2 pr-2">Estudiante</th>
+                  <th className="py-2 px-2">Estado</th>
+                  <th className="py-2 px-2 text-center">Puntaje</th>
+                  <th className="py-2 px-2 text-center">%</th>
+                  <th className="py-2 pl-2 text-center">Nota (20)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r) => (
+                  <tr key={r.attempt_id} className="border-b border-gray-50 hover:bg-gray-50/60" data-testid={`exam-result-row-${r.student_id}`}>
+                    <td className="py-2.5 pr-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shrink-0">
+                          {r.profile_image ? (
+                            <img src={r.profile_image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-white font-bold text-xs">{(r.student_name || '?').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <span className="font-medium text-gray-800">{r.student_name}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2">{statusBadge(r.status)}</td>
+                    <td className="py-2.5 px-2 text-center text-gray-600">
+                      {r.score != null ? `${r.score}/${r.max_score ?? '—'}` : '—'}
+                    </td>
+                    <td className="py-2.5 px-2 text-center text-gray-600">{r.percentage != null ? `${r.percentage}%` : '—'}</td>
+                    <td className="py-2.5 pl-2 text-center">
+                      {r.grade_vigesimal != null ? (
+                        <span className={`inline-block min-w-[2rem] px-2 py-0.5 rounded-md font-bold ${
+                          r.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>{r.grade_vigesimal}</span>
+                      ) : <span className="text-gray-300">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Main Exams Content Component
 function ExamsContent({ subjectId, token, userRole, user, subject }) {
   const [exams, setExams] = useState([]);
@@ -7657,6 +7809,7 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
   const [answerKeyModal, setAnswerKeyModal] = useState(null); // exam obj for clave modal
   const [scanModal, setScanModal] = useState(null); // exam obj for scan modal
   const [cloneExam, setCloneExam] = useState(null);
+  const [resultsExam, setResultsExam] = useState(null); // exam obj for results modal
   
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
@@ -7956,6 +8109,16 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
                     </button>
 
                     <button
+                      onClick={(e) => { e.stopPropagation(); setResultsExam(exam); }}
+                      className="px-2.5 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 transition-colors flex items-center gap-1"
+                      title="Ver quién rindió el examen y sus notas"
+                      data-testid={`exam-results-btn-${exam.id}`}
+                    >
+                      <ClipboardList className="w-3 h-3" />
+                      <span className="hidden sm:inline">Notas</span>
+                    </button>
+
+                    <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         try {
@@ -8136,6 +8299,9 @@ function ExamsContent({ subjectId, token, userRole, user, subject }) {
         </DialogContent>
       </Dialog>
       <CloneActivityModal isOpen={!!cloneExam} onClose={() => setCloneExam(null)} activity={cloneExam} activityType="exam" token={token} user={{ role: userRole }} subjectId={subjectId} onSuccess={() => { setCloneExam(null); loadExams(); }} />
+      {resultsExam && (
+        <ExamResultsModal exam={resultsExam} token={token} onClose={() => setResultsExam(null)} />
+      )}
     </div>
   );
 }

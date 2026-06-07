@@ -505,15 +505,14 @@ async def get_course_exams(
     query = {"subject_id": subject_id, "school_id": user["school_id"]}
     
     # Students only see published exams
-    is_student = user.get("role") == "student"
-    if is_student:
+    if is_student(user):
         now = datetime.now(timezone.utc)
         query["status"] = ExamStatus.published.value
     
     exams = await db.online_exams.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
     # For students, add availability info
-    if is_student:
+    if is_student(user):
         now = datetime.now(timezone.utc)
         for exam in exams:
             start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
@@ -681,7 +680,7 @@ async def create_exam(
                 "source_title": data.title,
                 "created_at": now,
             })
-        except Exception as e:
+        except Exception:
             # Unique index violation = race condition
             await db.online_exams.delete_one({"id": exam_id})
             raise HTTPException(
@@ -761,8 +760,7 @@ async def get_exam_detail(
         raise HTTPException(status_code=404, detail="Examen no encontrado")
     
     # Students can only see published exams
-    is_student = user.get("role") == "student"
-    if is_student and exam["status"] != ExamStatus.published.value:
+    if is_student(user) and exam["status"] != ExamStatus.published.value:
         raise HTTPException(status_code=403, detail="Este examen no está disponible")
     
     # Get subject info
@@ -781,7 +779,7 @@ async def get_exam_detail(
     exam["attempts_count"] = attempts_count
     
     # For students, check availability
-    if is_student:
+    if is_student(user):
         if exam.get("type", "digital") == "digital" and exam.get("start_datetime") and exam.get("end_datetime"):
             now = datetime.now(timezone.utc)
             start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
@@ -868,7 +866,6 @@ async def update_exam(
 
     if data.status is not None:
         # Validate status transitions
-        current_status = exam["status"]
         new_status = data.status.value
         
         # Check if exam has attempts before allowing certain transitions
@@ -1017,6 +1014,7 @@ async def publish_exam(
     
     # Create notification for exam publication
     try:
+        from .courses import create_notification_for_subject
         await create_notification_for_subject(
             school_id=user["school_id"],
             subject_id=exam["subject_id"],
@@ -1308,8 +1306,7 @@ async def get_exam_questions(
     ).sort("order", 1).to_list(200)
     
     # For students taking the exam, hide correct answers
-    is_student = user.get("role") == "student"
-    if is_student:
+    if is_student(user):
         for q in questions:
             # Hide correct answer
             q.pop("correct_answer", None)
@@ -2027,6 +2024,72 @@ async def get_omr_results(exam_id: str, current_user=Depends(get_current_user)):
     return results
 
 
+@router.get("/exams/{exam_id}/results")
+async def get_exam_results(exam_id: str, current_user=Depends(get_current_user)):
+    """List all digital exam attempts (who took the exam + their grades) for the
+    teacher/admin. Returns score, percentage and vigesimal grade per student."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden ver los resultados")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]},
+        {"_id": 0, "title": 1, "total_points": 1, "min_score_percentage": 1}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    attempts = await db.exam_attempts.find(
+        {"exam_id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    ).to_list(5000)
+
+    student_ids = list({a.get("student_id") for a in attempts if a.get("student_id")})
+    students = {}
+    if student_ids:
+        docs = await db.users.find(
+            {"id": {"$in": student_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+        ).to_list(5000)
+        students = {d["id"]: d for d in docs}
+
+    results = []
+    for a in attempts:
+        st = students.get(a.get("student_id"), {})
+        full_name = f"{st.get('last_name', '')} {st.get('name', '')}".strip() or a.get("student_name") or "—"
+        pct = a.get("percentage")
+        grade_vig = round(pct * 20 / 100) if pct is not None else None
+        results.append({
+            "attempt_id": a.get("id"),
+            "student_id": a.get("student_id"),
+            "student_name": full_name,
+            "profile_image": st.get("profile_image") or st.get("photo_url"),
+            "status": a.get("status"),
+            "score": a.get("score"),
+            "max_score": a.get("max_score") or exam.get("total_points"),
+            "percentage": pct,
+            "grade_vigesimal": grade_vig,
+            "passed": a.get("passed"),
+            "correct_count": a.get("correct_count"),
+            "incorrect_count": a.get("incorrect_count"),
+            "unanswered_count": a.get("unanswered_count"),
+            "submitted_at": a.get("end_time") or a.get("start_time"),
+            "time_used_seconds": a.get("time_used_seconds"),
+        })
+
+    # Completed first, then alphabetical by student name
+    results.sort(key=lambda x: (x["status"] != "completed", x["student_name"]))
+    return {
+        "exam_title": exam.get("title"),
+        "total_points": exam.get("total_points"),
+        "min_score_percentage": exam.get("min_score_percentage", 60),
+        "count": len(results),
+        "results": results,
+    }
+
+
+
 @router.post("/exams/{exam_id}/omr-register-grades")
 async def register_omr_grades(exam_id: str, current_user=Depends(get_current_user)):
     """Register all OMR scan grades to the Registro Auxiliar."""
@@ -2216,7 +2279,7 @@ async def get_drive_service(school_id: str):
             # If Google rotated the refresh token, persist the new one
             if credentials.refresh_token and credentials.refresh_token != refresh_token:
                 update_fields["google_drive_refresh_token"] = encrypt_token(credentials.refresh_token)
-                logger.info(f"[GoogleDrive] Refresh token rotado, guardando nuevo token")
+                logger.info("[GoogleDrive] Refresh token rotado, guardando nuevo token")
 
             await db.schools.update_one({"id": school_id}, {"$set": update_fields})
     except Exception as refresh_err:
@@ -2356,9 +2419,6 @@ async def google_drive_callback(
     Handle Google Drive OAuth callback.
     Creates folder structure and saves tokens.
     """
-    # Default fallback URL
-    fallback_url = f"{request.url.scheme}://{request.url.netloc}"
-    
     # Retrieve state data from database
     state_data = None
     if state:
@@ -2369,13 +2429,11 @@ async def google_drive_callback(
     
     # Extract data from state
     if state_data:
-        origin = state_data.get("origin", fallback_url)
         school_id = state_data.get("school_id")
         user_id = state_data.get("user_id")
         subdomain = state_data.get("subdomain", "")
         logger.info(f"OAuth callback - Retrieved state for school: {school_id}, subdomain: {subdomain}")
     else:
-        origin = fallback_url
         school_id = None
         user_id = None
         subdomain = ""
@@ -2400,7 +2458,7 @@ async def google_drive_callback(
         return RedirectResponse(url=f"{settings_url}?error=invalid_callback")
     
     if not school_id or not user_id:
-        logger.error(f"Invalid state in Google Drive callback - state not found or expired")
+        logger.error("Invalid state in Google Drive callback - state not found or expired")
         return RedirectResponse(url=f"{settings_url}?error=invalid_state")
     
     try:
@@ -3733,7 +3791,7 @@ async def create_exam_schedule(
     if teacher_conflict:
         raise HTTPException(
             status_code=400,
-            detail=f"El profesor ya tiene otro examen programado en ese horario"
+            detail="El profesor ya tiene otro examen programado en ese horario"
         )
     
     # VALIDATION 3: Check classroom conflict (if classroom_id provided)
@@ -3748,7 +3806,7 @@ async def create_exam_schedule(
         if classroom_conflict:
             raise HTTPException(
                 status_code=400,
-                detail=f"El aula ya está reservada para otro examen en ese horario"
+                detail="El aula ya está reservada para otro examen en ese horario"
             )
     
     # Get nivel_id from grade
@@ -3850,7 +3908,7 @@ async def update_exam_schedule(
         if teacher_conflict:
             raise HTTPException(
                 status_code=400,
-                detail=f"El profesor ya tiene otro examen en ese horario"
+                detail="El profesor ya tiene otro examen en ese horario"
             )
     
     # Classroom conflict
@@ -3866,7 +3924,7 @@ async def update_exam_schedule(
         if classroom_conflict:
             raise HTTPException(
                 status_code=400,
-                detail=f"El aula ya está reservada en ese horario"
+                detail="El aula ya está reservada en ese horario"
             )
     
     # Update duration if times changed
@@ -4104,7 +4162,6 @@ async def close_expired_exams_cron():
 
             for exam in expired_exams:
                 exam_id = exam["id"]
-                subject_id = exam["subject_id"]
                 school_id = exam["school_id"]
                 section_id = exam.get("section_id")
 
@@ -4249,10 +4306,8 @@ async def close_expired_tasks_cron():
 
             for task in expired_tasks:
                 task_id = task["id"]
-                subject_id = task.get("subject_id")
                 school_id = task.get("school_id")
                 section_id = task.get("section_id")
-                max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 100
 
                 # 1. Close the task
                 await db.course_posts.update_one(
