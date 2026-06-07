@@ -7652,6 +7652,16 @@ function ExamResultsModal({ exam, token, onClose }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [syncing, setSyncing] = useState(false);
+
+  const loadResults = async () => {
+    try {
+      const res = await axios.get(`${API}/exams/${exam.id}/results`, { headers: { Authorization: `Bearer ${token}` } });
+      setData(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al cargar los resultados');
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -7667,6 +7677,24 @@ function ExamResultsModal({ exam, token, onClose }) {
     })();
     return () => { active = false; };
   }, [exam.id]);
+
+  const handleSyncRegister = async () => {
+    setSyncing(true);
+    try {
+      const res = await axios.post(`${API}/exams/${exam.id}/sync-register`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const r = res.data || {};
+      if (r.ok) {
+        toast.success(r.message || 'Notas registradas en el Registro Auxiliar');
+      } else {
+        toast.error(r.message || 'No se pudieron registrar las notas');
+      }
+      await loadResults();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error al registrar las notas');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const results = data?.results || [];
   const completed = results.filter(r => r.status === 'completed');
@@ -7733,6 +7761,37 @@ function ExamResultsModal({ exam, token, onClose }) {
             {results.length > 0 && (
               <button onClick={exportCSV} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg" data-testid="exam-results-export">
                 <Download className="w-4 h-4" /> Excel/CSV
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Registro Auxiliar linkage banner */}
+        {!loading && !error && (
+          <div
+            data-testid="exam-results-linkage"
+            className={`px-6 py-3 border-b flex items-center gap-3 flex-wrap ${data?.linked ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}
+          >
+            <div className="flex items-center gap-2 text-sm min-w-0">
+              <BarChart3 className={`w-4 h-4 shrink-0 ${data?.linked ? 'text-emerald-600' : 'text-amber-600'}`} />
+              {data?.linked ? (
+                <span className="text-emerald-800 truncate">
+                  Vinculado a <span className="font-semibold">{data.register_column_label}</span>
+                  {data.period_name ? <span className="text-emerald-700"> · {data.period_name}</span> : null}
+                </span>
+              ) : (
+                <span className="text-amber-800">Este examen NO está vinculado al Registro Auxiliar. Edítalo y elige una columna destino.</span>
+              )}
+            </div>
+            {data?.linked && completed.length > 0 && (
+              <button
+                onClick={handleSyncRegister}
+                disabled={syncing}
+                data-testid="exam-results-sync-register"
+                className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-lg"
+              >
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
+                {syncing ? 'Registrando…' : 'Registrar al Registro Auxiliar'}
               </button>
             )}
           </div>

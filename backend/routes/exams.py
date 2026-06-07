@@ -2024,6 +2024,53 @@ async def get_omr_results(exam_id: str, current_user=Depends(get_current_user)):
     return results
 
 
+async def _resolve_exam_linkage(exam: dict) -> dict:
+    """Resolve human-readable linkage info for an exam: which Registro Auxiliar
+    column + bimestre the exam is wired to, if any."""
+    register_column = exam.get("register_column")
+    school_id = exam.get("school_id")
+    period_id = exam.get("period_id")
+    info = {
+        "linked": bool(register_column),
+        "register_column": register_column,
+        "register_column_label": None,
+        "period_id": period_id,
+        "period_name": None,
+        "sync_status": exam.get("sync_status"),
+    }
+    if period_id and school_id:
+        period_doc = await db.academic_periods.find_one(
+            {"id": period_id, "school_id": school_id},
+            {"_id": 0, "nombre": 1, "orden": 1},
+        )
+        if period_doc:
+            info["period_name"] = period_doc.get("nombre") or (
+                f"Bimestre {period_doc.get('orden')}" if period_doc.get("orden") else None
+            )
+    if register_column and school_id:
+        label = None
+        try:
+            tpl = await get_active_template_for_school(db, school_id)
+            for cri in (tpl or {}).get("criterios", []) or []:
+                for sub in cri.get("subcolumnas", []) or []:
+                    key = sub.get("field_key") or sub.get("id")
+                    if str(key) == str(register_column):
+                        label = f"{cri.get('nombre', '')} → {sub.get('label') or sub.get('id')}"
+                        break
+                if label:
+                    break
+            if not label:
+                for col in (tpl or {}).get("columnas_finales", []) or []:
+                    key = col.get("field_key") or col.get("id")
+                    if str(key) == str(register_column):
+                        label = col.get("label") or col.get("label_corto") or col.get("id")
+                        break
+        except Exception:
+            pass
+        info["register_column_label"] = label or register_column
+    return info
+
+
 @router.get("/exams/{exam_id}/results")
 async def get_exam_results(exam_id: str, current_user=Depends(get_current_user)):
     """List all digital exam attempts (who took the exam + their grades) for the
@@ -2036,7 +2083,9 @@ async def get_exam_results(exam_id: str, current_user=Depends(get_current_user))
 
     exam = await db.online_exams.find_one(
         {"id": exam_id, "school_id": user["school_id"]},
-        {"_id": 0, "title": 1, "total_points": 1, "min_score_percentage": 1}
+        {"_id": 0, "title": 1, "total_points": 1, "min_score_percentage": 1,
+         "register_column": 1, "period_id": 1, "section_id": 1, "subject_id": 1,
+         "school_id": 1, "sync_status": 1}
     )
     if not exam:
         raise HTTPException(status_code=404, detail="Examen no encontrado")
@@ -2080,12 +2129,98 @@ async def get_exam_results(exam_id: str, current_user=Depends(get_current_user))
 
     # Completed first, then alphabetical by student name
     results.sort(key=lambda x: (x["status"] != "completed", x["student_name"]))
+
+    linkage = await _resolve_exam_linkage(exam)
     return {
         "exam_title": exam.get("title"),
         "total_points": exam.get("total_points"),
         "min_score_percentage": exam.get("min_score_percentage", 60),
         "count": len(results),
         "results": results,
+        **linkage,
+    }
+
+
+@router.post("/exams/{exam_id}/sync-register")
+async def sync_exam_to_register_manual(exam_id: str, current_user=Depends(get_current_user)):
+    """Force-push the completed attempts of a digital exam into the Registro
+    Auxiliar. Use case: the auto-sync didn't reflect the grades (e.g. the subject
+    had no section_id so the grades landed on section-less docs, or the exam was
+    linked after students had already finished). Returns a clear diagnosis."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden registrar notas")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    linkage = await _resolve_exam_linkage(exam)
+    register_column = exam.get("register_column")
+    if not register_column:
+        return {
+            "ok": False,
+            "reason": "not_linked",
+            "synced": 0,
+            "message": "Este examen no está vinculado a ninguna columna del Registro Auxiliar. Edítalo y selecciona la columna destino.",
+            **linkage,
+        }
+
+    # Resolve storage field — if the column can't be matched against any
+    # template the grade can't be written.
+    school_id = exam.get("school_id")
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if not grade_field:
+        field_type, _fk = await get_storage_field(db, register_column, school_id)
+        if not field_type:
+            return {
+                "ok": False,
+                "reason": "column_unknown",
+                "synced": 0,
+                "message": f"La columna '{linkage.get('register_column_label')}' ya no existe en la plantilla activa. Re-vincula el examen a una columna válida.",
+                **linkage,
+            }
+
+    # Respect register lock.
+    lock = await db.grade_locks.find_one({
+        "school_id": school_id,
+        "subject_id": exam.get("subject_id"),
+        "period_id": exam.get("period_id"),
+        **({"section_id": exam.get("section_id")} if exam.get("section_id") else {}),
+    }, {"_id": 0})
+    if lock and lock.get("locked"):
+        return {
+            "ok": False,
+            "reason": "locked",
+            "synced": 0,
+            "message": "El Registro Auxiliar de este bimestre está cerrado. Reábrelo para poder registrar las notas.",
+            **linkage,
+        }
+
+    completed = await db.exam_attempts.count_documents(
+        {"exam_id": exam_id, "school_id": school_id, "status": "completed"}
+    )
+    if completed == 0:
+        return {
+            "ok": False,
+            "reason": "no_attempts",
+            "synced": 0,
+            "message": "Aún no hay alumnos que hayan completado este examen.",
+            **linkage,
+        }
+
+    await sync_to_register(db, exam_id, "exam", "update")
+
+    return {
+        "ok": True,
+        "reason": "synced",
+        "synced": completed,
+        "message": f"Se registraron {completed} nota(s) en la columna '{linkage.get('register_column_label')}' ({linkage.get('period_name') or 'periodo activo'}). Si el Registro Auxiliar está abierto, actualiza la página para verlas.",
+        **linkage,
     }
 
 

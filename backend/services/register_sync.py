@@ -174,6 +174,29 @@ def _build_grade_update(field_type: str, field_key: str, value):
         return {f"grades_dynamic.{field_key}": value}
     return {}
 
+
+async def _resolve_student_section(db, source_section_id, student_id):
+    """Return the section_id to key a student's `student_grades` document on.
+
+    Falls back to the student's own enrollment (`seccion_id`/`section_id`)
+    when the source exam/task has no `section_id`. Without this, a sync would
+    upsert a `student_grades` doc WITHOUT a `section_id` field, and the
+    Registro Auxiliar — which queries strictly by `section_id` — could never
+    surface the grade (root cause of "el modal muestra notas pero el Registro
+    Auxiliar sale vacío"). Subjects created at grade level (no section) are a
+    common trigger: the exam inherits `subject.section_id = None`.
+    """
+    if source_section_id:
+        return source_section_id
+    if not student_id:
+        return None
+    st = await db.users.find_one(
+        {"id": student_id}, {"_id": 0, "seccion_id": 1, "section_id": 1}
+    )
+    if not st:
+        return None
+    return st.get("seccion_id") or st.get("section_id")
+
 # Legacy + frontend-fallback whitelist. Used as:
 #   (a) a safety-net when `get_valid_task_columns_for_school` can't resolve
 #       any template at all (new school / missing seed).
@@ -506,9 +529,9 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
         grade_filter_base["section_id"] = section_id
 
     if source_type == "exam":
-        await _sync_exam_grades(db, source, source_id, field_type, field_key, grade_filter_base, action)
+        await _sync_exam_grades(db, source, source_id, field_type, field_key, grade_filter_base, action, section_id)
     elif source_type == "task":
-        await _sync_task_grades(db, source, source_id, field_type, field_key, grade_filter_base, action)
+        await _sync_task_grades(db, source, source_id, field_type, field_key, grade_filter_base, action, section_id)
 
     new_status = "synced" if action != "delete" else "not_linked"
     await collection.update_one(
@@ -522,7 +545,7 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
     )
 
 
-async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filter_base, action):
+async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filter_base, action, source_section_id=None):
     """Sync exam grades to student_grades (static or dynamic storage)."""
     attempts = await db.exam_attempts.find(
         {"exam_id": exam_id, "status": "completed"},
@@ -536,14 +559,19 @@ async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filt
         if not update_fields:
             continue
 
+        student_filter = {**grade_filter_base, "student_id": student_id}
+        sec = await _resolve_student_section(db, source_section_id, student_id)
+        if sec:
+            student_filter["section_id"] = sec
+
         await db.student_grades.update_one(
-            {**grade_filter_base, "student_id": student_id},
+            student_filter,
             {"$set": update_fields},
             upsert=True,
         )
 
 
-async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action):
+async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action, source_section_id=None):
     """Sync task grades to student_grades (static or dynamic storage)."""
     # When the task doesn't explicitly declare a max score we default
     # to 20 (vigesimal scale), the Peruvian educational standard. This
@@ -577,8 +605,13 @@ async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filt
         if not update_fields:
             continue
 
+        student_filter = {**grade_filter_base, "student_id": student_id}
+        sec = await _resolve_student_section(db, source_section_id, student_id)
+        if sec:
+            student_filter["section_id"] = sec
+
         await db.student_grades.update_one(
-            {**grade_filter_base, "student_id": student_id},
+            student_filter,
             {"$set": update_fields},
             upsert=True,
         )
@@ -630,8 +663,9 @@ async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage
         "period_id": period_id,
         "student_id": student_id,
     }
-    if section_id:
-        grade_filter["section_id"] = section_id
+    resolved_section_id = await _resolve_student_section(db, section_id, student_id)
+    if resolved_section_id:
+        grade_filter["section_id"] = resolved_section_id
 
     update_fields = _build_grade_update(field_type, field_key, grade_value)
     await db.student_grades.update_one(
@@ -693,8 +727,9 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
         "period_id": period_id,
         "student_id": student_id,
     }
-    if section_id:
-        grade_filter["section_id"] = section_id
+    resolved_section_id = await _resolve_student_section(db, section_id, student_id)
+    if resolved_section_id:
+        grade_filter["section_id"] = resolved_section_id
 
     update_fields = _build_grade_update(field_type, field_key, grade_value)
     await db.student_grades.update_one(
