@@ -646,6 +646,7 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
     """
     Sync a single student's task grade after grading.
     Called from grade_task_submission for immediate feedback.
+    When `grade is None` the register cell is CLEARED (deleted grade).
     """
     task = await db.course_posts.find_one({"id": task_id}, {"_id": 0})
     if not task or not task.get("register_column"):
@@ -685,7 +686,7 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
         )
         return
 
-    grade_value = task_score_to_vigesimal(grade, max_points)
+    grade_value = None if grade is None else task_score_to_vigesimal(grade, max_points)
     grade_filter = {
         "school_id": school_id,
         "subject_id": subject_id,

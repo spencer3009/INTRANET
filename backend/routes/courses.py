@@ -37,6 +37,7 @@ from services.register_sync import (
     COLUMN_FIELD_MAP, TASK_VALID_COLUMNS,
     get_valid_task_columns_for_school,
 )
+from .exams import get_drive_service
 
 logger = logging.getLogger(__name__)
 
@@ -1103,33 +1104,46 @@ async def grade_task_submission(
         if data.grade > max_grade:
             raise HTTPException(status_code=400, detail=f"La nota no puede ser mayor a {max_grade}")
     
-    # Build update
-    update_fields = {
+    # Build update. Treat an explicit `null` as "clear the field" so a teacher
+    # can DELETE a wrongly-entered grade/feedback (previously null was ignored
+    # and the old value persisted). The frontend always sends the effective
+    # value of both fields, so null here genuinely means "cleared".
+    set_fields = {
         f"submissions.{submission_idx}.graded_at": datetime.now(timezone.utc).isoformat(),
         f"submissions.{submission_idx}.graded_by": user["id"]
     }
-    
+    unset_fields = {}
+
     if data.grade is not None:
-        update_fields[f"submissions.{submission_idx}.grade"] = data.grade
-    
+        set_fields[f"submissions.{submission_idx}.grade"] = data.grade
+    else:
+        unset_fields[f"submissions.{submission_idx}.grade"] = ""
+
     if data.feedback is not None:
-        update_fields[f"submissions.{submission_idx}.feedback"] = data.feedback.strip()
-    
-    logger.info(f"Updating task {task_id} with fields: {update_fields}")
+        set_fields[f"submissions.{submission_idx}.feedback"] = data.feedback.strip()
+    else:
+        unset_fields[f"submissions.{submission_idx}.feedback"] = ""
+
+    update_doc = {"$set": set_fields}
+    if unset_fields:
+        update_doc["$unset"] = unset_fields
+
+    logger.info(f"Updating task {task_id} with: {update_doc}")
     
     # Update the submission
     try:
         result = await db.course_posts.update_one(
             {"id": task_id},
-            {"$set": update_fields}
+            update_doc
         )
         logger.info(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
     except Exception as e:
         logger.error(f"Database error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(e)}")
     
-    # Trigger sync to Registro Auxiliar if task is linked
-    if task.get("register_column") and data.grade is not None:
+    # Trigger sync to Registro Auxiliar if task is linked. Runs even when the
+    # grade was CLEARED (data.grade is None) so the register cell is emptied too.
+    if task.get("register_column"):
         sub = submissions[submission_idx] if submission_idx < len(submissions) else {}
         student_id = sub.get("student_id")
         if student_id:
@@ -2005,7 +2019,7 @@ async def get_notification_reminders(
     
     # Calculate 48 hours from now
     upcoming_threshold = (now + timedelta(hours=48)).isoformat()
-    now_iso = now.isoformat()
+    now_iso_str = now.isoformat()
     
     # Get all subjects the user has access to
     if user.get("role") in ["admin", "owner", "director", "coordinator"]:
@@ -2086,7 +2100,7 @@ async def get_notification_reminders(
         if is_important and not is_viewed:
             important_reminders.append(reminder)
         # Upcoming within 48h (not viewed or important)
-        elif reminder_date and reminder_date <= upcoming_threshold and reminder_date >= now_iso[:10]:
+        elif reminder_date and reminder_date <= upcoming_threshold and reminder_date >= now_iso_str[:10]:
             if not is_viewed:
                 upcoming_reminders.append(reminder)
         # New (not viewed, not in other categories)
@@ -2131,7 +2145,6 @@ async def get_popup_reminders(
     
     # Calculate 24 hours from now
     upcoming_24h = (now + timedelta(hours=24)).isoformat()
-    now_iso = now.isoformat()
     
     # Get user's popup history from user document or separate collection
     popup_history = user.get("reminder_popup_history", {})
@@ -2274,7 +2287,7 @@ async def create_notification_for_subject(
     if not link_destino and reference_id:
         link_map = {
             "task": f"/curso/{subject_id}?tab=tasks&post={reference_id}",
-            "exam": f"/admin/exams",
+            "exam": "/admin/exams",
             "material": f"/curso/{subject_id}?tab=materials&post={reference_id}",
             "forum": f"/curso/{subject_id}?tab=forum&post={reference_id}",
             "reminder": f"/curso/{subject_id}",
@@ -2344,6 +2357,7 @@ async def create_notification_for_subject(
     except Exception as e:
         logger.warning(f"WebSocket broadcast error: {e}")
     
+    notification.pop("_id", None)
     return notification
 
 @router.get("/notifications/all")
@@ -2594,7 +2608,7 @@ async def clone_post(post_id: str, data: CloneRequest, current_user=Depends(get_
 
         dest_subject = await db.subjects.find_one({"id": dest_subject_id, "school_id": school_id}, {"_id": 0, "id": 1})
         if not dest_subject:
-            errores.append(f"Asignatura destino no encontrada")
+            errores.append("Asignatura destino no encontrada")
             continue
 
         clone = {**original}
