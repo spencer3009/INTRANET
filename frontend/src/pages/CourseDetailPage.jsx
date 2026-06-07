@@ -9511,10 +9511,11 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
 
   // Open a submission file in the browser (inline preview) instead of forcing a
   // download. Keeps the DOWNLOAD action available separately — teachers asked
-  // for BOTH options. Strategy: open a tab synchronously (so popup blockers
-  // don't kill it), fetch the file as a blob with its real content-type, then
-  // point the tab at the object URL so PDFs/images/text render inline. Falls
-  // back to the public file_url when the authenticated blob fetch fails.
+  // for BOTH options. Strategy: open a tab synchronously within the click
+  // gesture (WITHOUT noopener, otherwise window.open returns null and we lose
+  // the handle), fetch the file as a blob with its real content-type, then
+  // point the tab at the object URL so PDFs/images render inline. Falls back to
+  // the public file_url when the authenticated blob fetch fails (e.g. CORS).
   const handleOpenSubmissionFile = async (submission, attachment = null, attachmentIndex = null) => {
     const openKey = attachment ? `${submission.id}::${attachment.id || attachmentIndex}` : submission.id;
     setOpeningFile(openKey);
@@ -9525,9 +9526,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     else if (attachmentIndex !== null && attachmentIndex !== undefined) params.attachment_index = attachmentIndex;
 
     // Open the tab up-front within the user gesture to dodge popup blockers.
-    const newTab = window.open('', '_blank', 'noopener,noreferrer');
+    // NOTE: do NOT pass 'noopener' here — it makes window.open() return null,
+    // which is exactly what broke the inline preview (tab stayed about:blank).
+    const newTab = window.open('', '_blank');
 
-    let opened = false;
     try {
       const response = await axios.get(
         `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
@@ -9536,21 +9538,14 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       const type = response.data?.type || response.headers?.['content-type'] || 'application/octet-stream';
       const blob = new Blob([response.data], { type });
       const url = window.URL.createObjectURL(blob);
-      if (newTab) {
-        newTab.location.href = url;
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-      opened = true;
+      if (newTab) newTab.location.href = url;
+      else window.open(url, '_blank');
       setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.warn('Open-in-browser blob failed, will try fallback:', err);
-    }
-
-    if (!opened) {
       if (fallbackUrl) {
         if (newTab) newTab.location.href = fallbackUrl;
-        else window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        else window.open(fallbackUrl, '_blank');
       } else {
         if (newTab) newTab.close();
         showNotification('error', 'Error al abrir', 'No se pudo abrir el archivo. Inténtalo de nuevo.');
