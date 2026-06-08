@@ -5929,8 +5929,15 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
                                           {sub.porcentaje != null ? ` — ${sub.porcentaje}%` : ""}
                                         </span>
                                         {!available ? (
-                                          <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
-                                            {reason === "manual" ? "Notas manuales" : "Ya asignado"}
+                                          <span
+                                            className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium max-w-[160px] truncate"
+                                            title={tooltip}
+                                          >
+                                            {reason === "manual"
+                                              ? "Notas manuales"
+                                              : slot?.assigned_to?.title
+                                              ? `${reason === "exam" ? "Examen" : "Tarea"}: ${slot.assigned_to.title}`
+                                              : "Ya asignado"}
                                           </span>
                                         ) : (
                                           <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>
