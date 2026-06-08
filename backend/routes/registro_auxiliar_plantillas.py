@@ -538,7 +538,10 @@ async def change_estado(school_id: str, plantilla_id: str, data: EstadoUpdate, c
         raise HTTPException(403, "No tienes permiso")
 
     if data.estado == "activa":
-        validate_percentage_sum(doc.get("criterios", []), doc.get("columnas_finales", []))
+        validate_percentage_sum(
+            doc.get("criterios", []), doc.get("columnas_finales", []),
+            doc.get("modo_ponderacion", "criterio"), doc.get("grupos", []),
+        )
 
     if data.estado == "archivada":
         active_count = await db.registro_auxiliar_plantillas.count_documents({"school_id": school_id, "estado": "activa", "id": {"$ne": plantilla_id}})

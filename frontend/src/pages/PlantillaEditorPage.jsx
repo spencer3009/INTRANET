@@ -17,7 +17,10 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function PlantillaEditorPage({ user, token, subdomain }) {
   const { plantillaId } = useParams();
   const navigate = useNavigate();
-  const isNew = !plantillaId;
+  // Treat a missing id OR the literal "new" segment as a brand-new template so
+  // we never fire GET /plantillas/new (which 404s and shows a false error toast).
+  const isExistingId = plantillaId && plantillaId !== "new";
+  const isNew = !isExistingId;
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -40,11 +43,11 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
   const nameRef = useRef(null);
   const autoSaveRef = useRef(null);
 
-  const effectiveId = plantillaId || createdId;
+  const effectiveId = (isExistingId ? plantillaId : null) || createdId;
 
   // Load template
   useEffect(() => {
-    if (!plantillaId || !schoolId) return;
+    if (!isExistingId || !schoolId) return;
     (async () => {
       try {
         const { data } = await axios.get(`${API}/api/schools/${schoolId}/registro-auxiliar/plantillas/${plantillaId}`, { headers });
