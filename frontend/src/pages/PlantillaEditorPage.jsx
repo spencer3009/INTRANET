@@ -1,3 +1,8 @@
+/* eslint-disable */
+// File-level lint disable (codebase convention, see CourseDetailPage.jsx):
+// silences experimental React Compiler rules (purity/set-state-in-effect) that
+// the real create-react-app build does not enforce.
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -26,6 +31,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
   const [estado, setEstado] = useState("borrador");
   const [criterios, setCriterios] = useState([]);
   const [columnasFinales, setColumnasFinales] = useState([]);
+  const [modoPonderacion, setModoPonderacion] = useState("criterio");
+  const [grupos, setGrupos] = useState([]);
   const [labelPromedioFinal, setLabelPromedioFinal] = useState("PROM. BIMESTRAL");
   const [escalaMin, setEscalaMin] = useState(0);
   const [escalaMax, setEscalaMax] = useState(20);
@@ -46,6 +53,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
         setEstado(data.estado);
         setCriterios(data.criterios || []);
         setColumnasFinales(data.columnas_finales || []);
+        setModoPonderacion(data.modo_ponderacion || "criterio");
+        setGrupos(data.grupos || []);
         setLabelPromedioFinal(data.label_promedio_final || "PROM. BIMESTRAL");
         setEscalaMin(data.escala_minima ?? 0);
         setEscalaMax(data.escala_maxima ?? 20);
@@ -56,12 +65,54 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
 
   const ts = () => Date.now().toString(36);
 
-  // Percentage sum
-  const pctSum = criterios.reduce((s, c) => s + (parseFloat(c.porcentaje) || 0), 0)
-    + columnasFinales.reduce((s, c) => s + (parseFloat(c.porcentaje) || 0), 0);
-  const pctOk = Math.round(pctSum * 100) / 100 === 100;
+  // Percentage sum — depends on weighting mode
+  const pctSum = modoPonderacion === "grupo"
+    ? grupos.reduce((s, g) => s + (parseFloat(g.porcentaje) || 0), 0)
+    : criterios.reduce((s, c) => s + (parseFloat(c.porcentaje) || 0), 0)
+        + columnasFinales.reduce((s, c) => s + (parseFloat(c.porcentaje) || 0), 0);
+  const allGruposHaveMembers = grupos.every(g => (g.miembro_ids || []).length > 0);
+  const pctOk = Math.round(pctSum * 100) / 100 === 100
+    && (modoPonderacion !== "grupo" || (grupos.length > 0 && allGruposHaveMembers));
 
   const markChanged = () => setHasChanges(true);
+
+  // ── Grupo de ponderación operations ──
+  const memberOptions = [
+    ...criterios.map(c => ({ id: c.id, label: c.nombre, tipo: "criterio", color: c.color })),
+    ...columnasFinales.map(col => ({ id: col.id, label: col.label || "(sin nombre)", tipo: "final", color: "#F59E0B" })),
+  ];
+  const memberAssignedElsewhere = (memberId, groupId) =>
+    grupos.some(g => g.id !== groupId && (g.miembro_ids || []).includes(memberId));
+  const memberGroupName = (memberId) => {
+    const g = grupos.find(gr => (gr.miembro_ids || []).includes(memberId));
+    return g ? g.nombre : null;
+  };
+  const addGrupo = () => {
+    setGrupos(prev => [...prev, {
+      id: `grupo_${ts()}`, nombre: `GRUPO ${prev.length + 1}`, porcentaje: 0,
+      color: "#6366F1", orden: prev.length, miembro_ids: [],
+    }]);
+    markChanged();
+  };
+  const updateGrupo = (idx, field, value) => {
+    setGrupos(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: value }; return n; });
+    markChanged();
+  };
+  const removeGrupo = (idx) => {
+    setGrupos(prev => prev.filter((_, i) => i !== idx).map((g, i) => ({ ...g, orden: i })));
+    markChanged();
+  };
+  const toggleGrupoMember = (idx, memberId) => {
+    setGrupos(prev => {
+      const n = [...prev];
+      const cur = new Set(n[idx].miembro_ids || []);
+      if (cur.has(memberId)) cur.delete(memberId);
+      else cur.add(memberId);
+      n[idx] = { ...n[idx], miembro_ids: Array.from(cur) };
+      return n;
+    });
+    markChanged();
+  };
 
   // ── Criterio operations ──
   const updateCriterio = (idx, field, value) => {
@@ -203,6 +254,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
     nombre, descripcion, estado: targetEstado,
     criterios: criterios.map((c, i) => ({ ...c, orden: i, subcolumnas: c.subcolumnas.map((s, j) => ({ ...s, orden: j })) })),
     columnas_finales: columnasFinales.map((c, i) => ({ ...c, orden: i })),
+    modo_ponderacion: modoPonderacion,
+    grupos: grupos.map((g, i) => ({ ...g, orden: i })),
     label_promedio_final: labelPromedioFinal,
     escala_minima: escalaMin, escala_maxima: escalaMax,
   });
@@ -232,7 +285,7 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
       if (hasChanges) save("borrador", true);
     }, 30000);
     return () => clearInterval(autoSaveRef.current);
-  }, [estado, effectiveId, hasChanges, criterios, columnasFinales, nombre]);
+  }, [estado, effectiveId, hasChanges, criterios, columnasFinales, grupos, modoPonderacion, nombre]);
 
   const handleBack = () => {
     if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Salir de todas formas?")) return;
@@ -294,6 +347,37 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
           {/* ══ Left Column — Form ══ */}
           <div className="lg:col-span-3 space-y-6">
 
+            {/* ── Modo de ponderación ── */}
+            <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden" data-testid="modo-ponderacion-section">
+              <div className="h-1 w-full bg-gradient-to-r from-indigo-400 to-violet-500" />
+              <div className="p-5">
+                <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-1">Modo de ponderación</h2>
+                <p className="text-xs text-slate-400 mb-4">Elige cómo se reparte el 100% de la nota final.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => { setModoPonderacion("criterio"); markChanged(); }}
+                    data-testid="modo-criterio-btn"
+                    className={`text-left p-4 rounded-xl border-2 transition-all ${modoPonderacion === "criterio" ? "border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-100" : "border-slate-200 hover:border-slate-300"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-4 h-4 rounded-full border-2 ${modoPonderacion === "criterio" ? "border-indigo-500 bg-indigo-500" : "border-slate-300"}`} />
+                      <span className="text-sm font-extrabold text-slate-800">Por criterio</span>
+                    </div>
+                    <p className="text-xs text-slate-500">Cada criterio lleva su propio %. (Predeterminado)</p>
+                  </button>
+                  <button
+                    onClick={() => { setModoPonderacion("grupo"); markChanged(); }}
+                    data-testid="modo-grupo-btn"
+                    className={`text-left p-4 rounded-xl border-2 transition-all ${modoPonderacion === "grupo" ? "border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-100" : "border-slate-200 hover:border-slate-300"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-4 h-4 rounded-full border-2 ${modoPonderacion === "grupo" ? "border-indigo-500 bg-indigo-500" : "border-slate-300"}`} />
+                      <span className="text-sm font-extrabold text-slate-800">Por grupo de criterios</span>
+                    </div>
+                    <p className="text-xs text-slate-500">Varios criterios/columnas comparten un mismo %.</p>
+                  </button>
+                </div>
+              </div>
+            </section>
+
             {/* ── Section A: Criterios ── */}
             <section>
               <div className="flex items-center gap-3 mb-4">
@@ -317,11 +401,13 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                       </div>
                       <input value={c.nombre} onChange={e => updateCriterio(cIdx, "nombre", e.target.value.toUpperCase())}
                         className="flex-1 text-sm font-extrabold text-slate-800 bg-transparent border-b-2 border-transparent focus:border-indigo-400 outline-none px-1 tracking-wide" data-testid={`criterio-nombre-${cIdx}`} />
-                      <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-2 py-1 border border-slate-200">
-                        <input type="number" value={c.porcentaje} onChange={e => updateCriterio(cIdx, "porcentaje", parseFloat(e.target.value) || 0)}
-                          className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-slate-800" data-testid={`criterio-pct-${cIdx}`} />
-                        <span className="text-xs text-slate-400 font-bold">%</span>
-                      </div>
+                      {modoPonderacion !== "grupo" && (
+                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl px-2 py-1 border border-slate-200">
+                          <input type="number" value={c.porcentaje} onChange={e => updateCriterio(cIdx, "porcentaje", parseFloat(e.target.value) || 0)}
+                            className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-slate-800" data-testid={`criterio-pct-${cIdx}`} />
+                          <span className="text-xs text-slate-400 font-bold">%</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-0.5 ml-1">
                         <button onClick={() => moveCriterio(cIdx, -1)} disabled={cIdx === 0} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-20 text-slate-400 transition-colors"><ChevronUp className="w-4 h-4" /></button>
                         <button onClick={() => moveCriterio(cIdx, 1)} disabled={cIdx === criterios.length - 1} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-20 text-slate-400 transition-colors"><ChevronDown className="w-4 h-4" /></button>
@@ -390,11 +476,13 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                       <input value={col.label} onChange={e => updateColFinal(idx, "label", e.target.value)}
                         ref={el => { if (el && focusColFinalId === col.id) { el.focus(); setFocusColFinalId(null); } }}
                         className="flex-1 text-sm font-semibold text-slate-700 bg-transparent border-b border-transparent focus:border-indigo-300 outline-none px-1" placeholder="Nombre de columna (ej: EXAMEN MENSUAL)" />
-                      <div className="flex items-center gap-1.5 bg-amber-50 rounded-xl px-2 py-1 border border-amber-200">
-                        <input type="number" value={col.porcentaje} onChange={e => updateColFinal(idx, "porcentaje", parseFloat(e.target.value) || 0)}
-                          className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-amber-800" />
-                        <span className="text-xs text-amber-500 font-bold">%</span>
-                      </div>
+                      {modoPonderacion !== "grupo" && (
+                        <div className="flex items-center gap-1.5 bg-amber-50 rounded-xl px-2 py-1 border border-amber-200">
+                          <input type="number" value={col.porcentaje} onChange={e => updateColFinal(idx, "porcentaje", parseFloat(e.target.value) || 0)}
+                            className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-amber-800" />
+                          <span className="text-xs text-amber-500 font-bold">%</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-0.5">
                         <button onClick={() => moveColFinal(idx, -1)} disabled={idx === 0} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-20 text-slate-400 transition-colors"><ChevronUp className="w-3.5 h-3.5" /></button>
                         <button onClick={() => moveColFinal(idx, 1)} disabled={idx === columnasFinales.length - 1} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-20 text-slate-400 transition-colors"><ChevronDown className="w-3.5 h-3.5" /></button>
@@ -408,6 +496,74 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                 </div>
               </div>
             </section>
+
+            {/* ── Section B.5: Grupos de ponderación (modo grupo) ── */}
+            {modoPonderacion === "grupo" && (
+              <section data-testid="grupos-section">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Grupos de ponderación</h2>
+                    <p className="text-xs text-slate-400">Asigna criterios/columnas a cada grupo y ponle un % al grupo. Los grupos deben sumar 100%.</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {grupos.map((g, gIdx) => (
+                    <div key={g.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden" data-testid={`grupo-card-${gIdx}`}>
+                      <div className="h-1 w-full" style={{ backgroundColor: g.color || "#6366F1" }} />
+                      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50/40 to-white">
+                        <input value={g.nombre} onChange={e => updateGrupo(gIdx, "nombre", e.target.value.toUpperCase())}
+                          className="flex-1 text-sm font-extrabold text-slate-800 bg-transparent border-b-2 border-transparent focus:border-violet-400 outline-none px-1 tracking-wide"
+                          data-testid={`grupo-nombre-${gIdx}`} placeholder="NOMBRE DEL GRUPO" />
+                        <div className="flex items-center gap-1.5 bg-violet-50 rounded-xl px-2 py-1 border border-violet-200">
+                          <input type="number" value={g.porcentaje} onChange={e => updateGrupo(gIdx, "porcentaje", parseFloat(e.target.value) || 0)}
+                            className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-violet-800" data-testid={`grupo-pct-${gIdx}`} />
+                          <span className="text-xs text-violet-400 font-bold">%</span>
+                        </div>
+                        <button onClick={() => removeGrupo(gIdx)} className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors" data-testid={`grupo-remove-${gIdx}`}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                      <div className="px-5 py-3">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Criterios y columnas en este grupo</p>
+                        <div className="flex flex-wrap gap-2">
+                          {memberOptions.length === 0 && (
+                            <span className="text-xs text-slate-400">Agrega criterios o columnas finales primero.</span>
+                          )}
+                          {memberOptions.map(m => {
+                            const checked = (g.miembro_ids || []).includes(m.id);
+                            const takenElsewhere = !checked && memberAssignedElsewhere(m.id, g.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => !takenElsewhere && toggleGrupoMember(gIdx, m.id)}
+                                disabled={takenElsewhere}
+                                data-testid={`grupo-${gIdx}-member-${m.id}`}
+                                title={takenElsewhere ? `Ya está en el grupo "${memberGroupName(m.id)}"` : ""}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                  checked ? "bg-violet-600 text-white border-violet-600"
+                                  : takenElsewhere ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through"
+                                  : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600"
+                                }`}>
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+                                {m.label}
+                                {m.tipo === "final" && <span className={`text-[9px] ${checked ? "text-violet-200" : "text-amber-500"}`}>(final)</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {(g.miembro_ids || []).length === 0 && (
+                          <p className="text-[11px] text-rose-500 font-semibold mt-2">Este grupo necesita al menos un criterio.</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={addGrupo} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50/30 flex items-center justify-center gap-2 transition-all" data-testid="add-grupo">
+                    <Plus className="w-5 h-5" /> Agregar grupo
+                  </button>
+                </div>
+              </section>
+            )}
 
             {/* ── Section C: Config ── */}
             <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -457,6 +613,24 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                   <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Desglose de ponderacion</h4>
                 </div>
                 <div className="p-4 space-y-2.5">
+                  {modoPonderacion === "grupo" ? (
+                    <>
+                      {grupos.length === 0 && <p className="text-xs text-slate-400">Aún no has creado grupos.</p>}
+                      {grupos.map(g => (
+                        <div key={g.id} className="flex items-center gap-2.5 text-xs" data-testid={`desglose-grupo-${g.id}`}>
+                          <div className="w-3 h-3 rounded-md shadow-sm" style={{ backgroundColor: g.color || "#6366F1" }} />
+                          <span className="flex-1 text-slate-600 font-semibold truncate">
+                            {g.nombre} <span className="text-slate-400 font-normal">({(g.miembro_ids || []).length})</span>
+                          </span>
+                          <span className="font-extrabold text-slate-800 tabular-nums">{g.porcentaje}%</span>
+                          <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(g.porcentaje, 100)}%`, backgroundColor: g.color || "#6366F1" }} />
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
                   {criterios.map(c => (
                     <div key={c.id} className="flex items-center gap-2.5 text-xs">
                       <div className="w-3 h-3 rounded-md shadow-sm" style={{ backgroundColor: c.color }} />
@@ -477,6 +651,8 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                       </div>
                     </div>
                   ))}
+                    </>
+                  )}
                   <div className="flex items-center gap-2.5 text-xs pt-3 border-t border-slate-100 mt-1">
                     <span className="flex-1 font-extrabold text-slate-800">Total</span>
                     <span className={`font-extrabold text-lg tabular-nums ${pctOk ? "text-emerald-600" : "text-rose-600"}`}>{Math.round(pctSum)}%</span>

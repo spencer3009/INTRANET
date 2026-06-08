@@ -99,25 +99,109 @@ def _avg(values):
         return None
     return round(sum(nums) / len(nums), 1)
 
+def _resolve_dynamic_value(sub_id, field_key, grade: dict, grades_dyn: dict):
+    """Resolve a single stored value for a subcolumna / columna-final using the
+    same lookup priority across the codebase. Returns float or None."""
+    val = None
+    if sub_id and sub_id in grades_dyn:
+        val = grades_dyn.get(sub_id)
+    if val is None and field_key and field_key in grades_dyn:
+        val = grades_dyn.get(field_key)
+    if val is None and field_key:
+        if field_key in grade:
+            val = grade.get(field_key)
+        elif field_key in COLUMN_FIELD_MAP:
+            val = grade.get(COLUMN_FIELD_MAP[field_key])
+    if val is None and sub_id:
+        if sub_id in grade and sub_id not in ("id", "subcolumnas"):
+            val = grade.get(sub_id)
+        elif sub_id in COLUMN_FIELD_MAP:
+            val = grade.get(COLUMN_FIELD_MAP[sub_id])
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _criterio_avg(cri: dict, grade: dict, grades_dyn: dict):
+    """Mean of a criterio's input/examen subcolumna values (skips derived
+    promedio columns). Returns float or None when there's no data."""
+    values = []
+    for sub in cri.get("subcolumnas") or []:
+        tipo = (sub.get("tipo") or "input").lower()
+        if tipo in ("promedio_auto", "promedio", "promedio_manual", "auto"):
+            continue
+        v = _resolve_dynamic_value(sub.get("id"), sub.get("field_key"), grade, grades_dyn)
+        if v is not None:
+            values.append(v)
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
+def _calculate_final_grade_grupo_mode(grade: dict, template: dict):
+    """Modo 'grupo': cada grupo pondera el PROMEDIO SIMPLE de sus miembros
+    (criterios y/o columnas finales). Final = Σ(promedio_grupo × %grupo)."""
+    grupos = template.get("grupos") or []
+    if not grupos:
+        return None
+    grades_dyn = grade.get("grades_dynamic") or {}
+    criterios_by_id = {c.get("id"): c for c in (template.get("criterios") or [])}
+    finales_by_id = {c.get("id"): c for c in (template.get("columnas_finales") or [])}
+
+    total_weighted = 0.0
+    total_weight = 0.0
+    for g in grupos:
+        pct = g.get("porcentaje")
+        try:
+            weight = float(pct) / 100.0 if pct is not None else 0.0
+        except (TypeError, ValueError):
+            weight = 0.0
+        if weight <= 0:
+            continue
+
+        member_values = []
+        for mid in g.get("miembro_ids") or []:
+            if mid in criterios_by_id:
+                v = _criterio_avg(criterios_by_id[mid], grade, grades_dyn)
+            elif mid in finales_by_id:
+                col = finales_by_id[mid]
+                v = _resolve_dynamic_value(col.get("id"), col.get("field_key"), grade, grades_dyn)
+            else:
+                v = None
+            if v is not None:
+                member_values.append(v)
+        if not member_values:
+            continue
+        grupo_avg = sum(member_values) / len(member_values)
+        total_weighted += grupo_avg * weight
+        total_weight += weight
+
+    if total_weight <= 0:
+        return None
+    result = total_weighted / total_weight if total_weight < 0.999 else total_weighted
+    return round(result, 1)
+
+
 def calculate_final_grade_from_template(grade: dict, template: dict) -> Optional[float]:
     """Compute final bimestral grade using a CUSTOM (dynamic) Registro Auxiliar template.
 
-    For each criterio in the template:
-      - Collect values from its `input`/`examen` subcolumnas (skips
-        `promedio_auto`/`promedio_manual` which are derived display-only).
-      - For each subcolumna, value lookup priority:
-          1. grade['grades_dynamic'][sub.id]
-          2. grade['grades_dynamic'][sub.field_key]
-          3. grade[sub.field_key] — if field_key matches a static slot name
-          4. grade[COLUMN_FIELD_MAP[sub.field_key]] — short-key aliases
-          5. grade[COLUMN_FIELD_MAP[sub.id]] — short-key aliases on id
-      - Compute the criterio average (mean of non-None values).
-      - Apply criterio.porcentaje (0-100) as weight.
-    Returns None if no criterio has any data. Normalizes when total weights
-    sum to less than 1.0 so partial registers still produce a meaningful grade.
+    Two weighting modes:
+      - 'criterio' (default): each criterio carries its own porcentaje.
+      - 'grupo': criterios/columnas finales are bundled into grupos, each grupo
+        carries a shared porcentaje; the grupo value is the simple mean of its
+        members' values.
+    Returns None if there's no data. Normalizes when total weights sum to less
+    than 1.0 so partial registers still produce a meaningful grade.
     """
     if not template:
         return None
+
+    if (template.get("modo_ponderacion") == "grupo") and (template.get("grupos")):
+        return _calculate_final_grade_grupo_mode(grade, template)
+
     criterios = template.get("criterios") or []
     if not criterios:
         return None
@@ -136,42 +220,9 @@ def calculate_final_grade_from_template(grade: dict, template: dict) -> Optional
         if weight <= 0:
             continue
 
-        values = []
-        for sub in cri.get("subcolumnas") or []:
-            tipo = (sub.get("tipo") or "input").lower()
-            # Skip derived/display columns — they're not inputs.
-            if tipo in ("promedio_auto", "promedio", "promedio_manual", "auto"):
-                continue
-            sub_id = sub.get("id")
-            field_key = sub.get("field_key")
-            val = None
-            # 1. dynamic by id
-            if sub_id and sub_id in grades_dyn:
-                val = grades_dyn.get(sub_id)
-            # 2. dynamic by field_key
-            if val is None and field_key and field_key in grades_dyn:
-                val = grades_dyn.get(field_key)
-            # 3. static slot directly via field_key
-            if val is None and field_key:
-                if field_key in grade:
-                    val = grade.get(field_key)
-                elif field_key in COLUMN_FIELD_MAP:
-                    val = grade.get(COLUMN_FIELD_MAP[field_key])
-            # 4. static slot via id (legacy templates may use short col key as id)
-            if val is None and sub_id:
-                if sub_id in grade and sub_id not in ("id", "subcolumnas"):
-                    val = grade.get(sub_id)
-                elif sub_id in COLUMN_FIELD_MAP:
-                    val = grade.get(COLUMN_FIELD_MAP[sub_id])
-            if val is not None:
-                try:
-                    values.append(float(val))
-                except (TypeError, ValueError):
-                    pass
-
-        if not values:
+        crit_avg = _criterio_avg(cri, grade, grades_dyn)
+        if crit_avg is None:
             continue
-        crit_avg = sum(values) / len(values)
         total_weighted += crit_avg * weight
         total_weight += weight
 
@@ -304,9 +355,6 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
             raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
 
     # Get students in section
-    section = await db.sections.find_one({"id": section_id}, {"_id": 0, "grado_id": 1})
-    grade_id = section.get("grado_id") if section else None
-
     student_filter = {
         "school_id": school_id,
         "role": "student",
@@ -1105,7 +1153,6 @@ async def export_consolidated_report_excel(section_id: str, period_id: str, curr
     thin_side = Side(style="thin")
     thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
     center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
     header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
     area_fill = PatternFill(start_color="B4C6E7", end_color="B4C6E7", fill_type="solid")
     summary_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
@@ -1114,7 +1161,6 @@ async def export_consolidated_report_excel(section_id: str, period_id: str, curr
     # Fixed columns: N°(A), APELLIDOS Y NOMBRES(B-C merged conceptually, using B with wide width)
     # Subject columns start at D
     subject_start_col = 4  # D
-    total_cols = subject_start_col + len(columns) - 1 + 9  # +9 for summary cols
 
     # Row 1: School name
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
@@ -1381,7 +1427,7 @@ async def export_consolidated_excel(section_id: str, period_id: str, current_use
         col_letter = chr(67 + i) if i < 24 else chr(65) + chr(65 + i - 24)
         try:
             ws.column_dimensions[col_letter].width = 14
-        except:
+        except Exception:
             pass
 
     output = io.BytesIO()
@@ -1757,8 +1803,10 @@ async def dump_raw_student_grades(
     active_ids = set()
     if template_info:
         for c in template_info["input_columns"]:
-            if c.get("id"): active_ids.add(c["id"])
-            if c.get("field_key"): active_ids.add(c["field_key"])
+            if c.get("id"):
+                active_ids.add(c["id"])
+            if c.get("field_key"):
+                active_ids.add(c["field_key"])
     orphan_keys = sorted(k for k in dynamic_keys_seen if k not in active_ids) if active_ids else []
 
     return {

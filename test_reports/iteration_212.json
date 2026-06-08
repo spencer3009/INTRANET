@@ -1,0 +1,43 @@
+{
+  "summary": "Tested new 'modo grupo' weighting feature on Registro Auxiliar templates. Backend: created /app/backend/tests/test_plantilla_grupo_api.py with 6 tests covering create-happy-path, bad-sum (400), empty-members (400), borrador-skips-validation, and CLONE WITH miembro_ids REMAP. All 6 PASS against the live preview URL using admin@elroble.edu. Pre-existing unit suite tests/test_plantilla_grupo_ponderacion.py also re-run (5/5 PASS). Frontend: editor at /:subdomain/settings/registro-auxiliar/editor/new loads, toggle 'modo-criterio-btn' / 'modo-grupo-btn' works as spec'd: in criterio mode criterio-pct-0 is visible and grupos-section hidden; switching to grupo mode hides criterio-pct-0 and shows grupos-section. 'add-grupo' creates grupo-card-{i} with grupo-nombre-{i}/grupo-pct-{i}; filling 60+40 makes editor-pct-sum show '100% / 100%'. Assigning a criterio to grupo-0 marks the SAME testid in grupo-1 as disabled+line-through (1 miembro = 1 grupo enforced). One MINOR frontend bug: visiting /editor/new fires GET /plantillas/new and surfaces a red 'Error al cargar plantilla' toast even though the editor renders correctly. One MINOR backend bug found by code review (NOT exercised because the editor's Activar flow uses PUT, not PATCH /estado): PATCH /plantillas/{id}/estado calls validate_percentage_sum without forwarding modo_ponderacion/grupos, so promoting a grupo-mode borrador to 'activa' via that endpoint will validate criterio percentages instead of grupo percentages.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PATCH /api/schools/{school_id}/registro-auxiliar/plantillas/{id}/estado", "issue": "registro_auxiliar_plantillas.py line 540-541: validate_percentage_sum(doc.criterios, doc.columnas_finales) is called WITHOUT modo_ponderacion / grupos arguments. For a doc with modo_ponderacion='grupo' this checks the criterio percentages (likely 0%) instead of the grupos sum, so a borrador-grupo template cannot be promoted to activa via this endpoint. Fix: pass doc.get('modo_ponderacion','criterio') and doc.get('grupos', [])."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PlantillaEditorPage on /editor/new", "issue": "Route treats 'new' as a plantilla id and triggers GET /plantillas/new which 404s, surfacing a red 'Error al cargar plantilla' toast on top-right even though the editor renders correctly. Should short-circuit when plantillaId==='new' (or use /editor without an id).", "selector": "toast 'Error al cargar plantilla'", "priority": "LOW"},
+      {"component": "PlantillaEditorPage editor-name", "issue": "data-testid='editor-name' is on an <h1>, not on an input. Likely opens an inline-edit on click. Either move the testid to the underlying input or expose data-testid='editor-name-input' so automated tests can fill the template name directly.", "selector": "[data-testid='editor-name']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_plantilla_grupo_api.py",
+    "/app/backend/tests/test_plantilla_grupo_ponderacion.py",
+    "/app/test_reports/pytest/plantilla_grupo_api.xml"
+  ],
+  "action_items": [
+    "Fix PATCH /plantillas/{id}/estado in /app/backend/routes/registro_auxiliar_plantillas.py (~line 540) to forward modo_ponderacion + grupos to validate_percentage_sum so grupo-mode templates can be activated via PATCH.",
+    "Suppress the GET /plantillas/new call (or detect 'new' sentinel) in PlantillaEditorPage so the spurious 'Error al cargar plantilla' toast does not show when creating a brand-new template.",
+    "Move data-testid='editor-name' onto the actual editable input (or add data-testid='editor-name-input') so the template name can be filled in automated tests."
+  ],
+  "critical_code_review_comments": [
+    "registro_auxiliar_plantillas.py POST and PUT correctly route modo='grupo' through validate_percentage_sum with grupos+miembros checks; clone (~line 417-440) regenerates criterio/columna ids AND remaps miembro_ids via id_map (verified by test_clone_grupo_template_remaps_member_ids).",
+    "GrupoInput model accepts free-form porcentaje (no max=100 / min=0 bound). Consider adding Field(ge=0, le=100) to fail fast on bad input. Same for CriterioInput/ColumnaFinalInput.",
+    "PATCH /estado does not validate grupo-mode sums (bug above) and also skips the 'at least one member per grupo' check.",
+    "PlantillaEditorPage.jsx correctly drives pctSum/pctOk by modoPonderacion and gates pctOk on (grupos.length>0 && allGruposHaveMembers); chips toggling correctly enforces 1-member-1-grupo at the UI level."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_plantilla_grupo_api.py (new)"
+  ],
+  "success_rate": {"backend": "100% (6/6 new + 5/5 unit)", "frontend": "100% on toggle / add-grupo / member assignment / sum=100; 2 minor UX gaps reported"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (school_id=b9f27249-6568-49ae-94d3-e1f16750d7d9, subdomain=elroble).",
+  "seed_data_creation": "Test plantillas created by test_plantilla_grupo_api.py are deleted by the trailing test_cleanup_test_plantillas test. A 'TEST_UI_GRUPO' draft was attempted in the UI but the save step did not execute (editor-name is on an h1, not an input) so no UI-created data leaked.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Editor route: /{subdomain}/settings/registro-auxiliar/editor/{plantillaId or 'new'}. Login as admin@elroble.edu/1234abc8 -> redirected to /elroble/dashboard. Backend tests live in /app/backend/tests/test_plantilla_grupo_api.py and require REACT_APP_BACKEND_URL env var when run directly. To fill the template name in UI tests, click the h1[data-testid='editor-name'] to surface the input, then fill the resulting input (testid missing on the input — flagged).",
+  "rca of the issue": "1) 'Error al cargar plantilla' toast: PlantillaEditorPage.jsx unconditionally fetches /plantillas/{plantillaId} when plantillaId is present in the URL; for the 'new' sentinel the GET 404s and the catch displays the toast. Quick fix: if (plantillaId === 'new' || !plantillaId) skip the fetch. 2) PATCH /estado grupo validation: validate_percentage_sum default modo='criterio' triggers criterio path even for grupo docs because the call site forgets the extra args."
+}

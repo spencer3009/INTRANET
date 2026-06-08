@@ -41,12 +41,24 @@ class ColumnaFinalInput(BaseModel):
     porcentaje: float = 0
     orden: int = 0
 
+class GrupoInput(BaseModel):
+    """Grupo de ponderación: agrupa varios criterios/columnas finales bajo un
+    único porcentaje compartido (modo 'grupo')."""
+    id: Optional[str] = None
+    nombre: str
+    porcentaje: float = 0
+    color: str = "#6366F1"
+    orden: int = 0
+    miembro_ids: List[str] = []
+
 class PlantillaCreateUpdate(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=200)
     descripcion: Optional[str] = ""
     estado: Literal["borrador", "activa"] = "borrador"
     criterios: List[CriterioInput] = []
     columnas_finales: List[ColumnaFinalInput] = []
+    modo_ponderacion: Literal["criterio", "grupo"] = "criterio"
+    grupos: List[GrupoInput] = []
     label_promedio_final: str = "PROM. BIMESTRAL"
     escala_minima: float = 0
     escala_maxima: float = 20
@@ -87,8 +99,8 @@ class SystemTextsUpdate(BaseModel):
 def gen_id():
     return str(uuid.uuid4())[:8]
 
-def ensure_ids(criterios: list, columnas_finales: list):
-    """Generate IDs for criterios/subcolumnas/columnas that don't have one."""
+def ensure_ids(criterios: list, columnas_finales: list, grupos: list = None):
+    """Generate IDs for criterios/subcolumnas/columnas/grupos that don't have one."""
     for c in criterios:
         if not c.get("id"):
             c["id"] = f"criterio_{gen_id()}"
@@ -98,13 +110,27 @@ def ensure_ids(criterios: list, columnas_finales: list):
     for col in columnas_finales:
         if not col.get("id"):
             col["id"] = f"final_{gen_id()}"
+    for g in (grupos or []):
+        if not g.get("id"):
+            g["id"] = f"grupo_{gen_id()}"
 
 def calc_sum(criterios: list, columnas_finales: list) -> float:
     total = sum(c.get("porcentaje", 0) for c in criterios)
     total += sum(c.get("porcentaje", 0) for c in columnas_finales)
     return round(total, 2)
 
-def validate_percentage_sum(criterios: list, columnas_finales: list):
+def validate_percentage_sum(criterios: list, columnas_finales: list, modo: str = "criterio", grupos: list = None):
+    if modo == "grupo":
+        grupos = grupos or []
+        if not grupos:
+            raise HTTPException(400, "En modo por grupo debes definir al menos un grupo de ponderación.")
+        total = round(sum(g.get("porcentaje", 0) for g in grupos), 2)
+        if total != 100:
+            raise HTTPException(400, f"La suma de porcentajes de los grupos debe ser exactamente 100%. Actual: {total}%")
+        for g in grupos:
+            if not (g.get("miembro_ids") or []):
+                raise HTTPException(400, f"El grupo '{g.get('nombre', '')}' no tiene criterios asignados.")
+        return
     total = calc_sum(criterios, columnas_finales)
     if total != 100:
         raise HTTPException(400, f"La suma de porcentajes debe ser exactamente 100%. Actual: {total}%")
@@ -324,10 +350,11 @@ async def create_plantilla(school_id: str, data: PlantillaCreateUpdate, current_
 
     criterios = [c.dict() for c in data.criterios]
     columnas_finales = [c.dict() for c in data.columnas_finales]
-    ensure_ids(criterios, columnas_finales)
+    grupos = [g.dict() for g in data.grupos]
+    ensure_ids(criterios, columnas_finales, grupos)
 
     if data.estado == "activa":
-        validate_percentage_sum(criterios, columnas_finales)
+        validate_percentage_sum(criterios, columnas_finales, data.modo_ponderacion, grupos)
 
     now = now_iso()
     user_id = current_user.get("id") or current_user.get("sub")
@@ -349,6 +376,8 @@ async def create_plantilla(school_id: str, data: PlantillaCreateUpdate, current_
         "es_predeterminada": es_predeterminada,
         "criterios": criterios,
         "columnas_finales": columnas_finales,
+        "modo_ponderacion": data.modo_ponderacion,
+        "grupos": grupos,
         "label_promedio_final": data.label_promedio_final,
         "escala_minima": data.escala_minima,
         "escala_maxima": data.escala_maxima,
@@ -385,10 +414,12 @@ async def clone_plantilla(school_id: str, plantilla_id: str, body: CloneBody = C
     user_id = current_user.get("id") or current_user.get("sub")
     new_name = body.nombre or f"Copia de {original['nombre']}"
 
-    # Deep copy criterios with new IDs
+    # Deep copy criterios with new IDs (track old->new id map for grupos)
+    id_map = {}
     new_criterios = []
     for c in original.get("criterios", []):
         new_c_id = f"criterio_{gen_id()}"
+        id_map[c.get("id")] = new_c_id
         new_subs = []
         for s in c.get("subcolumnas", []):
             new_subs.append({**s, "id": f"{new_c_id}_col_{gen_id()}"})
@@ -396,7 +427,18 @@ async def clone_plantilla(school_id: str, plantilla_id: str, body: CloneBody = C
 
     new_columnas = []
     for col in original.get("columnas_finales", []):
-        new_columnas.append({**col, "id": f"final_{gen_id()}"})
+        new_col_id = f"final_{gen_id()}"
+        id_map[col.get("id")] = new_col_id
+        new_columnas.append({**col, "id": new_col_id})
+
+    # Copy grupos remapping member ids to the freshly generated criterio/columna ids
+    new_grupos = []
+    for g in original.get("grupos", []) or []:
+        new_grupos.append({
+            **g,
+            "id": f"grupo_{gen_id()}",
+            "miembro_ids": [id_map.get(mid, mid) for mid in (g.get("miembro_ids") or [])],
+        })
 
     clone = {
         "id": str(uuid.uuid4()),
@@ -408,6 +450,8 @@ async def clone_plantilla(school_id: str, plantilla_id: str, body: CloneBody = C
         "es_predeterminada": False,
         "criterios": new_criterios,
         "columnas_finales": new_columnas,
+        "modo_ponderacion": original.get("modo_ponderacion", "criterio"),
+        "grupos": new_grupos,
         "label_promedio_final": original.get("label_promedio_final", "PROM. BIMESTRAL"),
         "escala_minima": original.get("escala_minima", 0),
         "escala_maxima": original.get("escala_maxima", 20),
@@ -443,10 +487,11 @@ async def update_plantilla(school_id: str, plantilla_id: str, data: PlantillaCre
 
     criterios = [c.dict() for c in data.criterios]
     columnas_finales = [c.dict() for c in data.columnas_finales]
-    ensure_ids(criterios, columnas_finales)
+    grupos = [g.dict() for g in data.grupos]
+    ensure_ids(criterios, columnas_finales, grupos)
 
     if data.estado == "activa":
-        validate_percentage_sum(criterios, columnas_finales)
+        validate_percentage_sum(criterios, columnas_finales, data.modo_ponderacion, grupos)
 
     user_id = current_user.get("id") or current_user.get("sub")
 
@@ -456,6 +501,8 @@ async def update_plantilla(school_id: str, plantilla_id: str, data: PlantillaCre
         "estado": data.estado,
         "criterios": criterios,
         "columnas_finales": columnas_finales,
+        "modo_ponderacion": data.modo_ponderacion,
+        "grupos": grupos,
         "label_promedio_final": data.label_promedio_final,
         "escala_minima": data.escala_minima,
         "escala_maxima": data.escala_maxima,
