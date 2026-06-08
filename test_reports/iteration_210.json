@@ -1,0 +1,36 @@
+{
+  "summary": "Tested teacher InternalMailPage toolbar feature (Reply/ReplyAll/Forward/Delete/Archive/Mark) inside a course's MENSAJES tab. Login as sonia3009@gmail.com OK, course Historia opens, MENSAJES tab shows inbox with 6+ messages. BLOCKER: Clicking any message item produces a 404 from GET /api/internal-mail/{message_id}, so selectedMessage stays null and the Gmail-style toolbar (data-testid='message-toolbar') NEVER renders. Therefore reply/reply-all/forward/delete/archive/mark flows could not be exercised end-to-end. Frontend code review shows the implementation is correct (modes new|reply|replyAll|forward, buildQuotedBody injects '...escribió:' block, recipients populated as per spec, subject prefixes Re:/Fwd:, modal titles 'Responder mensaje'/'Reenviar mensaje', POST /reply for mode=reply else /send with recipient_ids). Backend logs confirm the GET-by-id 404 for an id that DOES come back from /inbox (e.g. 3b840282-9437-4859-b5d7-a99ec932555c).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/internal-mail/{message_id}", "issue": "Returns 404 for messages that are listed by GET /api/internal-mail/inbox for the same logged-in user (e.g. teacher sonia3009@gmail.com). This prevents the message detail / toolbar from rendering and blocks the entire reply/forward/archive/mark UX. Likely a visibility filter mismatch (folder/role/recipient check) between inbox list and detail endpoints. Confirmed in backend supervisor log: 'GET /api/internal-mail/3b840282-9437-4859-b5d7-a99ec932555c HTTP/1.1 404 Not Found' right after a successful 200 from /inbox.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Open message detail in MENSAJES tab", "issue": "Frontend correctly calls GET /api/internal-mail/{id} on item click, but receives 404 -> selectedMessage stays null -> toolbar (data-testid='message-toolbar') and the entire detail pane are never rendered. Frontend should also surface a user-visible error toast (currently only console.error 'Error loading message: AxiosError').", "affected_selectors": ["[data-testid='message-toolbar']","[data-testid='toolbar-reply']","[data-testid='toolbar-reply-all']","[data-testid='toolbar-forward']","[data-testid='toolbar-delete']","[data-testid='toolbar-archive']","[data-testid='toolbar-mark']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_210.json"],
+  "action_items": [
+    "MAIN AGENT: Fix backend GET /api/internal-mail/{message_id} so it returns the message when the requester appears in recipients OR is the sender (mirror the visibility logic used by /inbox). Verify with curl against id 3b840282-9437-4859-b5d7-a99ec932555c using sonia3009@gmail.com token.",
+    "After backend fix, re-run frontend regression for Reply/ReplyAll/Forward (quoted body must contain 'escribió:' block, subject Re:/Fwd:, Forward must NOT pre-fill recipients, ReplyAll must include sender + other recipients excluding current user) and Delete/Archive/Mark.",
+    "(Optional) Show a toast/error banner in InternalMailPage when message detail fetch fails instead of silent console.error."
+  ],
+  "critical_code_review_comments": [
+    "InternalMailPage.jsx is large (~1017 lines) and contains both list/detail/compose; consider splitting ComposeModal into its own file.",
+    "buildQuotedBody injects raw original.body as HTML inside the editor (line 230). If a malicious sender embeds <script>, react-tiptap will strip it, but worth confirming sanitization for img/onerror attributes.",
+    "useEffect dependency list at line 271 includes 'editor' which is recreated by useEditor each render; could cause unnecessary content resets. Acceptable but worth noting.",
+    "handleSend (line 332) uses /reply only for mode==='reply'. ReplyAll & Forward use /send. Confirmed by code; matches spec."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request, but 1 critical 404 surfaced)", "frontend": "0% end-to-end (blocked by backend 404). 100% code-review pass for toolbar/quote/recipients/subject logic."},
+  "test_credentials": "Profesor: sonia3009@gmail.com / teacher123 (worked).",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "After main agent fixes GET /api/internal-mail/{id}, repeat: login as sonia3009@gmail.com -> /curso/a1eb013c-1682-4411-b525-334a55f588d5 -> click 'MENSAJES' label exactly -> click message text 'pruebqa' (or any inbox item). Then assert: data-testid='message-toolbar' visible; click toolbar-reply -> H2='Responder mensaje', subject starts 'Re:', recipient chip = original sender, editor innerHTML contains 'escribió' AND 'border-left'. Click toolbar-reply-all -> chips include sender + other recipients (excluding current user). Click toolbar-forward -> H2='Reenviar mensaje', subject starts 'Fwd:', 0 chips, body has quote. Send reply with extra text -> appears in Enviados folder. Click toolbar-mark -> label flips between 'Marcar leído' and 'Marcar no leído'. toolbar-archive/toolbar-delete should not error.",
+  "rca of the issue": "Root cause: GET /api/internal-mail/{message_id} (backend FastAPI route) returns 404 even when the calling user owns the message in their inbox. Reproduction: 1) Login as sonia3009@gmail.com. 2) Open /curso/a1eb013c-1682-4411-b525-334a55f588d5 -> MENSAJES. 3) /api/internal-mail/inbox returns messages including id=3b840282-9437-4859-b5d7-a99ec932555c. 4) Click that message -> frontend GET /api/internal-mail/3b840282-... -> 404. Mitigation: align the detail endpoint's visibility query with the inbox endpoint (allow access if user_id in recipients OR sender_id == user_id AND not deleted-for-user). After fix, frontend toolbar logic should work out-of-the-box since code review confirmed all data-testids, modes, citation block, subject prefixes and recipient handling are implemented per spec."
+}
