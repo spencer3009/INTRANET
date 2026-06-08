@@ -219,6 +219,40 @@ export function calcularPromedioCriterio(student, criterio, legacyMap) {
  */
 export function calcularPromedioBimestral(student, plantilla, legacyMap) {
   if (!plantilla) return null;
+
+  // ── Modo grupo: cada grupo pondera el promedio SIMPLE de sus miembros ──
+  const modo = plantilla.modo_ponderacion || "criterio";
+  if (modo === "grupo" && Array.isArray(plantilla.grupos) && plantilla.grupos.length) {
+    const criteriosById = {};
+    (plantilla.criterios || []).forEach(c => { criteriosById[c.id] = c; });
+    const finalesById = {};
+    (plantilla.columnas_finales || []).forEach(c => { finalesById[c.id] = c; });
+
+    let tw = 0, twt = 0;
+    for (const g of plantilla.grupos) {
+      const w = (g.porcentaje || 0) / 100;
+      if (w <= 0) continue;
+      const vals = [];
+      for (const mid of (g.miembro_ids || [])) {
+        let v = null;
+        if (criteriosById[mid]) {
+          v = calcularPromedioCriterio(student, criteriosById[mid], legacyMap);
+        } else if (finalesById[mid]) {
+          const raw = getGradeValue(student, finalesById[mid], legacyMap);
+          v = (raw !== null && raw !== undefined && raw !== "") ? Number(raw) : null;
+        }
+        if (v !== null && v !== undefined && !isNaN(v)) vals.push(Number(v));
+      }
+      if (!vals.length) continue;
+      const gAvg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      tw += gAvg * w;
+      twt += w;
+    }
+    if (twt === 0) return null;
+    const result = twt < 1 ? tw / twt : tw;
+    return Math.round(result * 10) / 10;
+  }
+
   let totalWeighted = 0;
   let totalWeight = 0;
 
