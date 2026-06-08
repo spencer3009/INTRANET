@@ -2338,6 +2338,19 @@ function _taskSlotTooltip(key, availability) {
   return "Ya asignado";
 }
 
+// Build a human suffix describing WHAT is blocking a register column, so the
+// teacher can see exactly which exam/task (or manual grades) holds the slot —
+// answering "¿con qué está asignada esta columna?". `col` comes from the
+// /register/availability `columns` list ({ blocked_by:{type,title}, blocked_reason }).
+function _blockedColSuffix(col) {
+  const by = col?.blocked_by;
+  const reason = col?.blocked_reason;
+  if (by?.type === "exam") return by.title ? `asignada al examen: ${by.title}` : "asignada a un examen";
+  if (by?.type === "task") return by.title ? `asignada a la tarea: ${by.title}` : "asignada a una tarea";
+  if (by?.type === "manual" || reason === "manual_grades" || reason === "manual") return "tiene notas manuales en el Registro";
+  return "ya asignada";
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PREMIUM TASK CREATION MODAL - Beautiful task creation experience
@@ -3290,6 +3303,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
           criterio_nombre: c.criterion_label || c.criterion || "",
           available: c.available !== false,
           blocked_reason: c.blocked_reason || null,
+          blocked_by: c.blocked_by || null,
         }));
         setEditColumns(cols);
       } catch (e) {
@@ -3713,10 +3727,10 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
                   {editColumns.map((c) => {
                     const isCurrent = c.field_key === initialColumn;
                     return (
-                      <option key={c.field_key} value={c.field_key} disabled={!c.available && !isCurrent}>
+                      <option key={c.field_key} value={c.field_key} disabled={!c.available && !isCurrent} title={!c.available && !isCurrent ? _blockedColSuffix(c) : ""}>
                         {c.criterio_nombre ? `${c.criterio_nombre} → ` : ""}{c.label}
                         {!c.available && !isCurrent
-                          ? ` (${c.blocked_reason === "manual" ? "tiene notas" : "ya asignada"})`
+                          ? ` (${_blockedColSuffix(c)})`
                           : ""}
                       </option>
                     );
@@ -9726,10 +9740,11 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                         key={c.field_key}
                         value={c.field_key}
                         disabled={!c.available && !isCurrent}
+                        title={!c.available && !isCurrent ? _blockedColSuffix(c) : ""}
                       >
                         {c.criterio_nombre ? `${c.criterio_nombre} → ` : ""}{c.label}
                         {!c.available && !isCurrent
-                          ? ` (${c.blocked_reason === "manual" ? "tiene notas manuales" : "ya asignada"})`
+                          ? ` (${_blockedColSuffix(c)})`
                           : ""}
                       </option>
                     );
