@@ -381,6 +381,75 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
               </div>
             </section>
 
+            {/* ── Grupos de ponderación (modo grupo) — justo bajo el selector ── */}
+            {modoPonderacion === "grupo" && (
+              <section data-testid="grupos-section" className="bg-violet-50/40 rounded-2xl border-2 border-violet-200 p-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Grupos de ponderación</h2>
+                    <p className="text-xs text-slate-500">Crea cada grupo, ponle su <strong>%</strong> y marca qué criterios/columnas lo forman. Los grupos deben sumar 100%.</p>
+                  </div>
+                </div>
+                <div className="space-y-4 mt-3">
+                  {grupos.map((g, gIdx) => (
+                    <div key={g.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden" data-testid={`grupo-card-${gIdx}`}>
+                      <div className="h-1 w-full" style={{ backgroundColor: g.color || "#6366F1" }} />
+                      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50/40 to-white">
+                        <input value={g.nombre} onChange={e => updateGrupo(gIdx, "nombre", e.target.value.toUpperCase())}
+                          className="flex-1 text-sm font-extrabold text-slate-800 bg-transparent border-b-2 border-transparent focus:border-violet-400 outline-none px-1 tracking-wide"
+                          data-testid={`grupo-nombre-${gIdx}`} placeholder="NOMBRE DEL GRUPO" />
+                        <div className="flex items-center gap-1.5 bg-violet-50 rounded-xl px-2 py-1 border border-violet-200">
+                          <input type="number" value={g.porcentaje} onChange={e => updateGrupo(gIdx, "porcentaje", parseFloat(e.target.value) || 0)}
+                            className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-violet-800" data-testid={`grupo-pct-${gIdx}`} placeholder="0" />
+                          <span className="text-xs text-violet-400 font-bold">%</span>
+                        </div>
+                        <button onClick={() => removeGrupo(gIdx)} className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors" data-testid={`grupo-remove-${gIdx}`}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                      <div className="px-5 py-3">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Criterios y columnas en este grupo</p>
+                        <div className="flex flex-wrap gap-2">
+                          {memberOptions.length === 0 && (
+                            <span className="text-xs text-slate-400">Agrega criterios o columnas finales primero (más abajo).</span>
+                          )}
+                          {memberOptions.map(m => {
+                            const checked = (g.miembro_ids || []).includes(m.id);
+                            const takenElsewhere = !checked && memberAssignedElsewhere(m.id, g.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => !takenElsewhere && toggleGrupoMember(gIdx, m.id)}
+                                disabled={takenElsewhere}
+                                data-testid={`grupo-${gIdx}-member-${m.id}`}
+                                title={takenElsewhere ? `Ya está en el grupo "${memberGroupName(m.id)}"` : ""}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                  checked ? "bg-violet-600 text-white border-violet-600"
+                                  : takenElsewhere ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through"
+                                  : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600"
+                                }`}>
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+                                {m.label}
+                                {m.tipo === "final" && <span className={`text-[9px] ${checked ? "text-violet-200" : "text-amber-500"}`}>(final)</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {(g.miembro_ids || []).length === 0 && (
+                          <p className="text-[11px] text-rose-500 font-semibold mt-2">Este grupo necesita al menos un criterio.</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={addGrupo} className="w-full py-4 border-2 border-dashed border-violet-300 rounded-2xl text-sm font-bold text-violet-500 hover:border-violet-400 hover:text-violet-700 hover:bg-violet-50 flex items-center justify-center gap-2 transition-all" data-testid="add-grupo">
+                    <Plus className="w-5 h-5" /> Agregar grupo
+                  </button>
+                </div>
+              </section>
+            )}
+
+
             {/* ── Section A: Criterios ── */}
             <section>
               <div className="flex items-center gap-3 mb-4">
@@ -499,74 +568,6 @@ export default function PlantillaEditorPage({ user, token, subdomain }) {
                 </div>
               </div>
             </section>
-
-            {/* ── Section B.5: Grupos de ponderación (modo grupo) ── */}
-            {modoPonderacion === "grupo" && (
-              <section data-testid="grupos-section">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
-                    <ClipboardList className="w-4 h-4 text-violet-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Grupos de ponderación</h2>
-                    <p className="text-xs text-slate-400">Asigna criterios/columnas a cada grupo y ponle un % al grupo. Los grupos deben sumar 100%.</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {grupos.map((g, gIdx) => (
-                    <div key={g.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden" data-testid={`grupo-card-${gIdx}`}>
-                      <div className="h-1 w-full" style={{ backgroundColor: g.color || "#6366F1" }} />
-                      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50/40 to-white">
-                        <input value={g.nombre} onChange={e => updateGrupo(gIdx, "nombre", e.target.value.toUpperCase())}
-                          className="flex-1 text-sm font-extrabold text-slate-800 bg-transparent border-b-2 border-transparent focus:border-violet-400 outline-none px-1 tracking-wide"
-                          data-testid={`grupo-nombre-${gIdx}`} placeholder="NOMBRE DEL GRUPO" />
-                        <div className="flex items-center gap-1.5 bg-violet-50 rounded-xl px-2 py-1 border border-violet-200">
-                          <input type="number" value={g.porcentaje} onChange={e => updateGrupo(gIdx, "porcentaje", parseFloat(e.target.value) || 0)}
-                            className="w-14 text-sm text-center font-extrabold bg-transparent outline-none text-violet-800" data-testid={`grupo-pct-${gIdx}`} />
-                          <span className="text-xs text-violet-400 font-bold">%</span>
-                        </div>
-                        <button onClick={() => removeGrupo(gIdx)} className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors" data-testid={`grupo-remove-${gIdx}`}><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                      <div className="px-5 py-3">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Criterios y columnas en este grupo</p>
-                        <div className="flex flex-wrap gap-2">
-                          {memberOptions.length === 0 && (
-                            <span className="text-xs text-slate-400">Agrega criterios o columnas finales primero.</span>
-                          )}
-                          {memberOptions.map(m => {
-                            const checked = (g.miembro_ids || []).includes(m.id);
-                            const takenElsewhere = !checked && memberAssignedElsewhere(m.id, g.id);
-                            return (
-                              <button
-                                key={m.id}
-                                onClick={() => !takenElsewhere && toggleGrupoMember(gIdx, m.id)}
-                                disabled={takenElsewhere}
-                                data-testid={`grupo-${gIdx}-member-${m.id}`}
-                                title={takenElsewhere ? `Ya está en el grupo "${memberGroupName(m.id)}"` : ""}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                  checked ? "bg-violet-600 text-white border-violet-600"
-                                  : takenElsewhere ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through"
-                                  : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600"
-                                }`}>
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
-                                {m.label}
-                                {m.tipo === "final" && <span className={`text-[9px] ${checked ? "text-violet-200" : "text-amber-500"}`}>(final)</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {(g.miembro_ids || []).length === 0 && (
-                          <p className="text-[11px] text-rose-500 font-semibold mt-2">Este grupo necesita al menos un criterio.</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button onClick={addGrupo} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50/30 flex items-center justify-center gap-2 transition-all" data-testid="add-grupo">
-                    <Plus className="w-5 h-5" /> Agregar grupo
-                  </button>
-                </div>
-              </section>
-            )}
 
             {/* ── Section C: Config ── */}
             <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
