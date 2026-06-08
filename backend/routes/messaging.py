@@ -1523,6 +1523,44 @@ async def get_message(message_id: str, current_user = Depends(get_current_user))
     
     msg = await db.internal_mail.find_one({"id": message_id}, {"_id": 0})
     if not msg:
+        # Fallback: the inbox also surfaces broadcast messages, whose id lives in
+        # `broadcast_messages` (not `internal_mail`). Resolve & return those too so
+        # they can be opened (previously this 404'd and the detail never rendered).
+        broadcast = await db.broadcast_messages.find_one({"id": message_id}, {"_id": 0})
+        if broadcast:
+            recv = await db.broadcast_receivers.find_one(
+                {"message_id": message_id, "user_id": user["id"]}, {"_id": 0}
+            )
+            if not recv:
+                raise HTTPException(status_code=403, detail="No tienes acceso a este mensaje")
+            # Mark broadcast as read for this user
+            if not recv.get("read_at"):
+                await db.broadcast_receivers.update_one(
+                    {"message_id": message_id, "user_id": user["id"]},
+                    {"$set": {"read_at": datetime.now(timezone.utc).isoformat()}}
+                )
+            return {
+                "id": broadcast["id"],
+                "subject": broadcast.get("subject", ""),
+                "body": broadcast.get("body", ""),
+                "sender": {
+                    "id": broadcast.get("sender_id"),
+                    "name": broadcast.get("sender_name", "Propietario"),
+                    "email": "",
+                    "photo_url": broadcast.get("sender_photo"),
+                    "role": broadcast.get("sender_role", "owner"),
+                },
+                "recipients": [],
+                "created_at": broadcast.get("created_at"),
+                "attachments": broadcast.get("attachments", []),
+                "is_read": True,
+                "is_starred": False,
+                "is_archived": False,
+                "thread_id": None,
+                "reply_to_id": None,
+                "read_stats": None,
+                "message_type": "broadcast",
+            }
         raise HTTPException(status_code=404, detail="Mensaje no encontrado")
     
     # Check if user is sender or recipient

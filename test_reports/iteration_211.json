@@ -1,0 +1,37 @@
+{
+  "summary": "RETEST after main agent fixed GET /api/internal-mail/{id} for broadcasts. Logged in as teacher sonia3009@gmail.com -> Portal Docente -> curso Historia -> MENSAJES. Clicking any message (broadcast OR normal) now opens the detail pane and the Gmail-style toolbar (data-testid='message-toolbar') is rendered. ALL toolbar visibility rules per spec PASSED: broadcast shows only Reply + Forward; normal shows Reply + ReplyAll + Forward + Delete + Archive + Mark. Reply/ReplyAll/Forward modals open with the correct title (Responder mensaje / Reenviar mensaje), correct subject prefix (Re:/Fwd:), correct recipient pre-fill (sender chip for reply, 0 chips for forward), and the quoted body containing 'escribió:' is injected into the TipTap editor. One MINOR regression: the inline 'border-left' style in the quote block is being stripped by TipTap's HTML sanitization, so the visual left-border cue is missing (text content of the quote is intact).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ComposeModal/TipTap editor (buildQuotedBody)", "issue": "Inline 'style=\"border-left:3px solid #c7d2fe;padding-left:12px;...\"' on the quoted <div> is stripped when TipTap parses the HTML via setContent. The quote text ('El <date>, <sender> escribió:' + original body) is preserved but the Gmail-style left border / muted color is not rendered. Confirmed via evaluate('document.querySelector(\".ProseMirror\").innerHTML') -> contains 'escribió' but NOT 'border-left'.", "selector": ".ProseMirror", "priority": "MEDIUM"},
+      {"component": "ComposeModal Enviar button", "issue": "Missing data-testid on the Send button. get_by_role('button', name='Enviar') is ambiguous because toolbar-forward has title='Reenviar' which the accessibility tree also matches. Add data-testid='compose-send' for robust E2E testing.", "selector": "button:has-text('Enviar')", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ComposeModal reply/forward editor", "issues": ["Quoted block lost its visual left-border styling vs the Gmail reference. Functionally OK, but UX is less clear that it is a quote."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_211.json"],
+  "action_items": [
+    "Preserve the quote styling in TipTap: either (a) extend StarterKit to allow inline 'style' attribute on <div>/<p> via parseHTML/renderHTML in a custom extension, or (b) replace the inline-styled <div> with a <blockquote> built using TipTap's Blockquote node (recommended). Quick test: after setContent, the editor.getHTML() should contain a styled blockquote or div with border-left so the recipient sees the Gmail-style citation.",
+    "Add data-testid='compose-send' to the 'Enviar' button in ComposeModal and data-testid='compose-cancel' to 'Cancelar' to unblock future E2E selectors.",
+    "(Optional) Add data-testid on each message list item button (e.g., data-testid='message-list-item' with data-message-id={id}) so future tests don't rely on positional indices."
+  ],
+  "critical_code_review_comments": [
+    "InternalMailPage.jsx line 230: buildQuotedBody inlines border-left via style attr; TipTap StarterKit strips unknown attributes so the visual quote is lost. Use Blockquote node or sanitization-aware injection.",
+    "Line 332 logic 'mode===\"reply\" && replyTo.message_type !== \"broadcast\"' correctly routes broadcast replies through /send (recipient_ids = [sender]) instead of /{id}/reply. Verified the modal pre-fills the broadcast sender as recipient chip and the API contract matches.",
+    "Line 800-870 toolbar conditional rendering on message_type==='broadcast' correctly hides replyAll/delete/archive/mark (verified counts: replyAll=0 delete=0 archive=0 mark=0 on broadcast; all =1 on normal).",
+    "ComposeModal (line 165+) and the surrounding parent (InternalMailPage) is ~1024 lines; recommend splitting ComposeModal and MessageDetail into their own files for maintainability."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "90% - all toolbar behaviour, recipient pre-fill, subject prefix, modal title and quote text content pass. Only the inline border-left styling regression remains."},
+  "test_credentials": "Profesor: sonia3009@gmail.com / teacher123 (worked). Course id a1eb013c-1682-4411-b525-334a55f588d5 (Historia).",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login flow: open /login (or click Ingresar from landing) -> sonia3009@gmail.com/teacher123 -> 'Portal Docente' -> goto /curso/a1eb013c-1682-4411-b525-334a55f588d5 -> click MENSAJES (exact text). Inbox has 6 items: msg_buttons[0] 'pruebqa' is broadcast, msg_buttons[5] 'Hola esta es una prueba' is the normal one (sender 'Usuario eliminado'). Modal Enviar lacks data-testid; use page.locator(\"button.bg-gradient-to-r:has-text('Enviar')\") to disambiguate against toolbar-forward which has title 'Reenviar'.",
+  "rca of the issue": "Confirmed the iter_210 BLOCKER is fixed: GET /api/internal-mail/{id} now returns 200 for broadcast IDs (verified by 'Responder mensaje' modal opening for the 'pruebqa' broadcast id 3b840282-...). New MINOR finding: buildQuotedBody returns HTML with inline 'style=\"border-left:3px solid #c7d2fe;padding-left:12px;margin-top:8px;color:#6b7280;\"', but TipTap StarterKit's default schema does not preserve the 'style' attribute on <div>, so editor.getHTML() no longer contains 'border-left'. Mitigation: convert to <blockquote> (StarterKit Blockquote preserves it) or define a custom Quote extension with addAttributes({style: { default: null, parseHTML: el => el.getAttribute('style'), renderHTML: a => a.style ? {style: a.style} : {}}})."
+}

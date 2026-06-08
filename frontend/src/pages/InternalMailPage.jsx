@@ -329,7 +329,7 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
     setError("");
     
     try {
-      if (mode === "reply" && replyTo) {
+      if (mode === "reply" && replyTo && replyTo.message_type !== "broadcast") {
         await axios.post(`${API}/api/internal-mail/${replyTo.id}/reply`, {
           body: bodyContent
         }, { headers });
@@ -806,14 +806,16 @@ export default function InternalMailPage({ user, token }) {
               >
                 <Reply className="w-4 h-4" /> Responder
               </button>
-              <button
-                onClick={() => openCompose("replyAll")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors whitespace-nowrap"
-                data-testid="toolbar-reply-all"
-                title="Responder a todos"
-              >
-                <ReplyAll className="w-4 h-4" /> Responder a todos
-              </button>
+              {selectedMessage.message_type !== "broadcast" && (
+                <button
+                  onClick={() => openCompose("replyAll")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors whitespace-nowrap"
+                  data-testid="toolbar-reply-all"
+                  title="Responder a todos"
+                >
+                  <ReplyAll className="w-4 h-4" /> Responder a todos
+                </button>
+              )}
               <button
                 onClick={() => openCompose("forward")}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors whitespace-nowrap"
@@ -823,43 +825,46 @@ export default function InternalMailPage({ user, token }) {
                 <Forward className="w-4 h-4" /> Reenviar
               </button>
 
-              <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
-
-              {activeFolder === "trash" ? (
-                <button
-                  onClick={() => handleRestore(selectedMessage.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors whitespace-nowrap"
-                  data-testid="toolbar-restore"
-                  title="Restaurar"
-                >
-                  <ArchiveRestore className="w-4 h-4" /> Restaurar
-                </button>
-              ) : (
+              {selectedMessage.message_type !== "broadcast" && (
                 <>
-                  <button
-                    onClick={() => handleDelete(selectedMessage.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors whitespace-nowrap"
-                    data-testid="toolbar-delete"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" /> Eliminar
-                  </button>
-                  <button
-                    onClick={() => handleArchive(selectedMessage.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors whitespace-nowrap"
-                    data-testid="toolbar-archive"
-                    title="Archivar"
-                  >
-                    <Archive className="w-4 h-4" /> Archivar
-                  </button>
-                  <button
-                    onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors whitespace-nowrap"
-                    data-testid="toolbar-mark"
-                    title={selectedMessage.is_read ? "Marcar como no leído" : "Marcar como leído"}
-                  >
-                    <Flag className="w-4 h-4" /> {selectedMessage.is_read ? "Marcar no leído" : "Marcar leído"}
-                  </button>
+                  <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
+                  {activeFolder === "trash" ? (
+                    <button
+                      onClick={() => handleRestore(selectedMessage.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors whitespace-nowrap"
+                      data-testid="toolbar-restore"
+                      title="Restaurar"
+                    >
+                      <ArchiveRestore className="w-4 h-4" /> Restaurar
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleDelete(selectedMessage.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors whitespace-nowrap"
+                        data-testid="toolbar-delete"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" /> Eliminar
+                      </button>
+                      <button
+                        onClick={() => handleArchive(selectedMessage.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors whitespace-nowrap"
+                        data-testid="toolbar-archive"
+                        title="Archivar"
+                      >
+                        <Archive className="w-4 h-4" /> Archivar
+                      </button>
+                      <button
+                        onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors whitespace-nowrap"
+                        data-testid="toolbar-mark"
+                        title={selectedMessage.is_read ? "Marcar como no leído" : "Marcar como leído"}
+                      >
+                        <Flag className="w-4 h-4" /> {selectedMessage.is_read ? "Marcar no leído" : "Marcar leído"}
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -983,13 +988,15 @@ export default function InternalMailPage({ user, token }) {
                 <Reply className="w-5 h-5" />
                 Responder
               </button>
-              <button
-                onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
-                className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
-              >
-                {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-                {selectedMessage.is_read ? "Marcar no leído" : "Marcar leído"}
-              </button>
+              {selectedMessage.message_type !== "broadcast" && (
+                <button
+                  onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
+                  className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
+                >
+                  {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
+                  {selectedMessage.is_read ? "Marcar no leído" : "Marcar leído"}
+                </button>
+              )}
             </div>
           </>
         ) : (
