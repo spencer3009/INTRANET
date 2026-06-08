@@ -3069,13 +3069,13 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
                   <Upload className="w-7 h-7 text-slate-400 group-hover:text-amber-600 transition-colors" />
                 </div>
                 <p className="text-sm font-semibold text-slate-600 group-hover:text-amber-700">Arrastra o haz clic para subir</p>
-                <p className="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint hasta 25MB</p>
+                <p className="text-xs text-slate-400 mt-1">Imágenes (JPG, PNG…), PDF, Word, Excel, PowerPoint hasta 25MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   onChange={handleFileSelect}
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png,.gif,.webp,.heic,.bmp,image/*"
                 />
               </label>
             )}
@@ -3799,13 +3799,13 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
                   <Upload className="w-7 h-7 text-slate-400 group-hover:text-amber-600 transition-colors" />
                 </div>
                 <p className="text-sm font-semibold text-slate-600 group-hover:text-amber-700">Arrastra o haz clic para subir</p>
-                <p className="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint hasta 25MB</p>
+                <p className="text-xs text-slate-400 mt-1">Imágenes (JPG, PNG…), PDF, Word, Excel, PowerPoint hasta 25MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   onChange={handleFileSelect}
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png,.gif,.webp,.heic,.bmp,image/*"
                 />
               </label>
             )}
