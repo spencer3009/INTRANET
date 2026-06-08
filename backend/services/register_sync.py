@@ -123,25 +123,41 @@ async def get_storage_field(db, column_id: str, school_id: str) -> tuple:
     # 2. Column belongs to a custom template? Reuse the same tolerant
     # extractor used everywhere else so "label" (e.g. "R2") and casing
     # drift keep working.
+    def _matches(value) -> bool:
+        if not value:
+            return False
+        return (
+            str(value) == str(column_id)
+            or str(value).lower() == str(column_id).lower()
+        )
+
     def _column_exists_in(plantilla) -> bool:
+        # 1. Input subcolumnas inside criterios.
         for cri in (plantilla or {}).get("criterios", []) or []:
             for sub in cri.get("subcolumnas", []) or []:
-                candidates = {
-                    sub.get("id"),
-                    sub.get("field_key"),
-                    sub.get("label"),
-                }
-                for c in candidates:
-                    if c and str(c) == str(column_id):
+                for c in (sub.get("id"), sub.get("field_key"), sub.get("label")):
+                    if _matches(c):
                         return True
-                    if c and str(c).lower() == str(column_id).lower():
-                        return True
+        # 2. Final columns (columnas_finales) — exams can target these (e.g.
+        # custom "PARCIALES"). They live OUTSIDE `criterios`, so they must be
+        # checked here too; mirrors get_valid_exam_columns_for_school. Without
+        # this, a custom final column passes link-time validation but fails at
+        # sync time with a false "la columna ya no existe".
+        for col in (plantilla or {}).get("columnas_finales", []) or []:
+            for c in (
+                col.get("id"),
+                col.get("field_key"),
+                col.get("label"),
+                col.get("label_corto"),
+            ):
+                if _matches(c):
+                    return True
         return False
 
     try:
         async for p in db.registro_auxiliar_plantillas.find(
             {"school_id": school_id},
-            {"_id": 0, "criterios": 1, "estado": 1},
+            {"_id": 0, "criterios": 1, "columnas_finales": 1, "estado": 1},
         ):
             if p.get("estado") == "eliminada":
                 continue
@@ -149,7 +165,7 @@ async def get_storage_field(db, column_id: str, school_id: str) -> tuple:
                 return ("dynamic", column_id)
 
         system = await db.registro_auxiliar_plantillas.find_one(
-            {"es_sistema": True}, {"_id": 0, "criterios": 1}
+            {"es_sistema": True}, {"_id": 0, "criterios": 1, "columnas_finales": 1}
         )
         if system and _column_exists_in(system):
             return ("dynamic", column_id)
