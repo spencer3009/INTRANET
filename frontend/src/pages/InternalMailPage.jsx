@@ -223,12 +223,15 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
         })
       : "";
     const senderName = original.sender?.name || "Remitente";
+    // Use a real <blockquote> node (part of TipTap StarterKit) so the quote is
+    // preserved and rendered with the prose left-border — inline styles on a
+    // plain <div> get stripped by TipTap's HTML sanitization.
     return (
       `<p></p><p></p>` +
-      `<div style="border-left:3px solid #c7d2fe;padding-left:12px;margin-top:8px;color:#6b7280;">` +
-      `<p style="font-size:12px;margin:0 0 6px 0;">El ${dateStr}, <strong>${senderName}</strong> escribió:</p>` +
-      `<div>${original.body || ""}</div>` +
-      `</div>`
+      `<blockquote>` +
+      `<p>El ${dateStr}, <strong>${senderName}</strong> escribió:</p>` +
+      `${original.body || ""}` +
+      `</blockquote>`
     );
   };
 
@@ -488,6 +491,7 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
             <button
               onClick={handleSend}
               disabled={sending}
+              data-testid="compose-send"
               className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
