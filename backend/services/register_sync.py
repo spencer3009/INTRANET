@@ -451,11 +451,25 @@ def exam_score_to_vigesimal(percentage: float) -> int:
     return round(percentage * 20 / 100)
 
 
-def task_score_to_vigesimal(score: float, max_points: float) -> int:
-    """Convert task score to vigesimal scale (0-20), integer."""
-    if score is None or max_points is None or max_points <= 0:
+def task_score_to_vigesimal(score: float) -> float:
+    """Copy the teacher-entered task grade AS-IS to the Registro Auxiliar.
+
+    No rescaling: the grade the teacher types is exactly what shows in the
+    register (e.g. 18 -> 18). The only safeguard is clamping to the valid
+    vigesimal range [0, 20] so the register stays consistent. Whole numbers
+    stay whole (18.0 -> 18); decimals are preserved up to 2 places (17.5).
+    """
+    if score is None:
         return 0
-    return round(score * 20 / max_points)
+    try:
+        v = float(score)
+    except (TypeError, ValueError):
+        return 0
+    if v < 0:
+        v = 0.0
+    elif v > 20:
+        v = 20.0
+    return int(v) if float(v).is_integer() else round(v, 2)
 
 
 async def sync_to_register(db, source_id: str, source_type: str, action: str):
@@ -588,15 +602,11 @@ async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filt
 
 
 async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action, source_section_id=None):
-    """Sync task grades to student_grades (static or dynamic storage)."""
-    # When the task doesn't explicitly declare a max score we default
-    # to 20 (vigesimal scale), the Peruvian educational standard. This
-    # makes casual tasks with no configured max_grade save the raw
-    # teacher-entered value without a surprising rescale to /100.
-    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
-    if max_points <= 0:
-        max_points = 20
+    """Sync task grades to student_grades (static or dynamic storage).
 
+    The teacher-entered grade is copied AS-IS to the register (no rescaling),
+    only clamped to the vigesimal range [0, 20].
+    """
     submissions = task.get("submissions", [])
     
     # Re-fetch task to get latest submissions (especially after cron adds auto-zero)
@@ -613,7 +623,7 @@ async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filt
         if action == "delete":
             value = None
         elif grade is not None:
-            value = task_score_to_vigesimal(grade, max_points)
+            value = task_score_to_vigesimal(grade)
         else:
             continue  # No grade yet, skip
 
@@ -719,10 +729,6 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
     if not all([period_id, subject_id, school_id]):
         return
 
-    max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
-    if max_points <= 0:
-        max_points = 20
-
     # Check lock
     lock_query = {"school_id": school_id, "subject_id": subject_id, "period_id": period_id}
     if section_id:
@@ -736,7 +742,7 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
         )
         return
 
-    grade_value = None if grade is None else task_score_to_vigesimal(grade, max_points)
+    grade_value = None if grade is None else task_score_to_vigesimal(grade)
     grade_filter = {
         "school_id": school_id,
         "subject_id": subject_id,
