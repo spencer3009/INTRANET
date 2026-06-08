@@ -9307,10 +9307,16 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     });
   };
   
-  const getDeliveryType = (content) => {
-    if (!content) return 'Texto en línea';
-    if (content.includes('Archivos')) return 'Archivos';
+  const getDeliveryType = (task) => {
+    // Prefer the explicit metadata flag saved on create/edit; only fall back to
+    // parsing the legacy content string for old tasks that have no metadata.
+    const dt = task?.metadata?.delivery_type;
+    if (dt === 'text') return 'Texto en línea';
+    if (dt === 'files') return 'Archivos';
+    if (dt === 'both') return 'Texto y archivos';
+    const content = task?.content || '';
     if (content.includes('Texto y archivos')) return 'Texto y archivos';
+    if (content.includes('Archivos')) return 'Archivos';
     return 'Texto en línea';
   };
   
@@ -9529,6 +9535,22 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     // NOTE: do NOT pass 'noopener' here — it makes window.open() return null,
     // which is exactly what broke the inline preview (tab stayed about:blank).
     const newTab = window.open('', '_blank');
+    // Paint a loader inside the new tab so the user knows to wait while the
+    // file streams (Drive files can take a few seconds → otherwise the tab
+    // looks blank/broken).
+    if (newTab) {
+      try {
+        newTab.document.write(
+          '<!doctype html><html><head><meta charset="utf-8"><title>Cargando archivo…</title>' +
+          '<style>body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;color:#475569}' +
+          '.spin{width:46px;height:46px;border:4px solid #e2e8f0;border-top-color:#0d9488;border-radius:50%;animation:r .8s linear infinite}' +
+          '@keyframes r{to{transform:rotate(360deg)}}p{margin-top:18px;font-size:15px;font-weight:500}</style></head>' +
+          '<body><div class="spin"></div><p>Cargando archivo…</p></body></html>'
+        );
+        newTab.document.close();
+      } catch (_) { /* cross-origin guard, ignore */ }
+    }
 
     try {
       const response = await axios.get(
@@ -10621,7 +10643,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                   )}
                   <div className="flex flex-wrap items-center gap-2 md:hidden">
                     <span className="inline-block px-2 py-1 bg-lime-500 text-white rounded text-xs font-semibold">
-                      {getDeliveryType(task.content)}
+                      {getDeliveryType(task)}
                     </span>
                     <span className="text-xs text-slate-600">
                       {dueDate ? formatDate(dueDate) : 'Sin fecha'}
@@ -10692,7 +10714,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                   {/* DESKTOP: Type */}
                   <div className="hidden md:block col-span-2">
                     <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
-                      {getDeliveryType(task.content)}
+                      {getDeliveryType(task)}
                     </span>
                   </div>
                   
