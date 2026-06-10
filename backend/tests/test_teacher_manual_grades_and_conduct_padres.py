@@ -13,7 +13,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://report-card-hub-6.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://grades-passthrough.preview.emergentagent.com").rstrip("/")
 
 ADMIN = {"email": "admin@elroble.edu", "password": "1234abc8", "subdomain": "elroble"}
 TEACHER_TUTOR = {"email": "rafa@gmail.com", "password": "Tutor123!", "subdomain": "elroble"}

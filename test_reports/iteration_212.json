@@ -34,7 +34,7 @@
     "/app/backend/tests/test_plantilla_grupo_api.py (new)"
   ],
   "success_rate": {"backend": "100% (6/6 new + 5/5 unit)", "frontend": "100% on toggle / add-grupo / member assignment / sum=100; 2 minor UX gaps reported"},
-  "test_credentials": "admin@elroble.edu / 1234abc8 (school_id=b9f27249-6568-49ae-94d3-e1f16750d7d9, subdomain=elroble).",
+  "test_credentials": "admin@elroble.edu / 1234abc8 (school_id=grades-passthrough, subdomain=elroble).",
   "seed_data_creation": "Test plantillas created by test_plantilla_grupo_api.py are deleted by the trailing test_cleanup_test_plantillas test. A 'TEST_UI_GRUPO' draft was attempted in the UI but the save step did not execute (editor-name is on an h1, not an input) so no UI-created data leaked.",
   "retest_needed": false,
   "main_agent_can_self_test": true,

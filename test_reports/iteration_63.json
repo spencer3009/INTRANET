@@ -65,7 +65,7 @@
     "owner_email": "admin@elroble.edu",
     "owner_password": "1234abc8",
     "subdomain": "elroble",
-    "attendance_url": "https://report-card-hub-6.preview.emergentagent.com/elroble/asistencias"
+    "attendance_url": "https://grades-passthrough.preview.emergentagent.com/elroble/asistencias"
   },
 
   "seed_data_creation": "",
