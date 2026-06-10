@@ -1282,6 +1282,7 @@ class QuestionType(str, Enum):
     multiple_choice = "multiple_choice"  # Opción múltiple
     true_false = "true_false"            # Verdadero/Falso
     fill_blanks = "fill_blanks"          # Espacios en blanco
+    grid = "grid"                        # Relacionar / Cuadrícula de opción múltiple
 
 
 class QuestionOption(BaseModel):
@@ -1297,6 +1298,10 @@ class QuestionCreate(BaseModel):
     options: Optional[List[dict]] = None  # For multiple choice
     correct_answer: Optional[str] = None  # For true/false: "true"/"false", for fill_blanks: comma-separated words
     image_url: Optional[str] = None  # Cloudinary URL for question image
+    # Grid (relacionar) fields
+    rows: Optional[List[dict]] = None       # [{id?, text, correct_column_id}]
+    columns: Optional[List[dict]] = None    # [{id?, text}]
+    require_all_rows: Optional[bool] = True  # if True, student must answer every row
 
 
 class QuestionUpdate(BaseModel):
@@ -1307,6 +1312,10 @@ class QuestionUpdate(BaseModel):
     correct_answer: Optional[str] = None
     order: Optional[int] = None
     image_url: Optional[str] = None  # Cloudinary URL for question image
+    # Grid (relacionar) fields
+    rows: Optional[List[dict]] = None
+    columns: Optional[List[dict]] = None
+    require_all_rows: Optional[bool] = None
 
 
 @router.get("/exams/{exam_id}/questions")
@@ -1385,6 +1394,12 @@ async def create_exam_question(
             raise HTTPException(status_code=400, detail="La pregunta debe contener al menos un espacio en blanco marcado con '_'")
         if not data.correct_answer:
             raise HTTPException(status_code=400, detail="Debe proporcionar las palabras correctas separadas por coma")
+
+    elif data.question_type == QuestionType.grid:
+        if not data.rows or len(data.rows) < 1:
+            raise HTTPException(status_code=400, detail="La pregunta de relacionar requiere al menos 1 fila")
+        if not data.columns or len(data.columns) < 2:
+            raise HTTPException(status_code=400, detail="La pregunta de relacionar requiere al menos 2 columnas")
     
     # Get next order number
     last_question = await db.exam_questions.find_one(
@@ -1407,7 +1422,24 @@ async def create_exam_question(
                 "text": opt.get("text", ""),
                 "is_correct": opt.get("is_correct", False)
             })
-    
+
+    # Process grid rows/columns (relacionar)
+    grid_rows = None
+    grid_columns = None
+    if data.question_type == QuestionType.grid:
+        grid_columns = [{"id": str(uuid.uuid4()), "text": (c.get("text") or "").strip()} for c in (data.columns or [])]
+        valid_col_ids = {c["id"] for c in grid_columns}
+        # Map any incoming column id (from editor) so rows can reference the new ids by index
+        incoming_col_ids = [c.get("id") for c in (data.columns or [])]
+        idx_by_incoming = {cid: grid_columns[i]["id"] for i, cid in enumerate(incoming_col_ids) if cid}
+        grid_rows = []
+        for r in (data.rows or []):
+            raw_correct = r.get("correct_column_id")
+            mapped = idx_by_incoming.get(raw_correct, raw_correct)
+            if mapped not in valid_col_ids:
+                raise HTTPException(status_code=400, detail="Cada fila debe tener una columna correcta válida")
+            grid_rows.append({"id": str(uuid.uuid4()), "text": (r.get("text") or "").strip(), "correct_column_id": mapped})
+
     question = {
         "id": question_id,
         "exam_id": exam_id,
@@ -1418,6 +1450,9 @@ async def create_exam_question(
         "options": options,
         "correct_answer": data.correct_answer,
         "image_url": data.image_url,
+        "rows": grid_rows,
+        "columns": grid_columns,
+        "require_all_rows": bool(data.require_all_rows) if data.question_type == QuestionType.grid else None,
         "order": next_order,
         "created_by": user["id"],
         "created_at": now,
@@ -1496,6 +1531,24 @@ async def update_exam_question(
             })
         update_data["options"] = options
     
+    # Grid (relacionar) fields
+    if data.columns is not None:
+        cols = []
+        for c in data.columns:
+            cols.append({"id": c.get("id") or str(uuid.uuid4()), "text": (c.get("text") or "").strip()})
+        update_data["columns"] = cols
+    if data.rows is not None:
+        cols_ref = update_data.get("columns") or question.get("columns") or []
+        valid_ids = {c["id"] for c in cols_ref}
+        rows = []
+        for r in data.rows:
+            cc = r.get("correct_column_id")
+            if cc not in valid_ids:
+                raise HTTPException(status_code=400, detail="Cada fila debe tener una columna correcta válida")
+            rows.append({"id": r.get("id") or str(uuid.uuid4()), "text": (r.get("text") or "").strip(), "correct_column_id": cc})
+        update_data["rows"] = rows
+    if data.require_all_rows is not None:
+        update_data["require_all_rows"] = bool(data.require_all_rows)
     # Handle image update - delete old image from Cloudinary if replacing
     if data.image_url is not None:
         old_image_url = question.get("image_url")
@@ -2215,6 +2268,9 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
             "options": q.get("options", []),
             "correct_option_id": correct_option_id,
             "correct_answer": q.get("correct_answer"),
+            "rows": q.get("rows"),
+            "columns": q.get("columns"),
+            "grid_answer": graded.get("grid_answer"),
             "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
             "is_correct": graded.get("is_correct", False),
             "points_earned": graded.get("points_earned", 0),
@@ -3324,9 +3380,11 @@ class SaveAnswerRequest(BaseModel):
     question_id: str
     selected_option_id: Optional[str] = None
     text_answer: Optional[str] = None
+    grid_answer: Optional[dict] = None  # grid: {row_id: column_id}
 
 class SubmitExamRequest(BaseModel):
     answers: Optional[List[dict]] = None  # Optional - for bulk submission
+    auto_submitted: Optional[bool] = False
 
 
 @router.get("/exams/{exam_id}/debug")
@@ -3590,6 +3648,15 @@ async def get_exam_questions_for_student(
         {"exam_id": exam_id},
         {"_id": 0, "correct_answer": 0, "correct_option_id": 0}  # Exclude answers
     ).sort("order", 1).to_list(200)
+
+    # Sanitize per-question so students never receive the correct answers:
+    #  - multiple_choice: strip options[].is_correct
+    #  - grid: strip rows[].correct_column_id
+    for q in questions:
+        if q.get("options"):
+            q["options"] = [{"id": o.get("id"), "text": o.get("text"), "image_url": o.get("image_url")} for o in q["options"]]
+        if q.get("question_type") == "grid" and q.get("rows"):
+            q["rows"] = [{"id": r.get("id"), "text": r.get("text")} for r in q["rows"]]
     
     # Get exam for subject info
     exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0, "title": 1, "subject_id": 1, "duration_minutes": 1, "allow_evidence_upload": 1})
@@ -3665,6 +3732,7 @@ async def save_exam_answer(
     answer_data = {
         "selected_option_id": data.selected_option_id,
         "text_answer": data.text_answer,
+        "grid_answer": data.grid_answer,
         "saved_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -3759,7 +3827,22 @@ async def submit_exam_attempt(
         {"exam_id": attempt["exam_id"]},
         {"_id": 0}
     ).to_list(200)
-    
+
+    answers = attempt.get("answers", {})
+
+    # Grid gate — for grid questions with require_all_rows, the student must have
+    # answered every row before a MANUAL submit (auto-submit on timeout bypasses it).
+    if not (data and data.auto_submitted):
+        for question in questions:
+            if question.get("question_type") == "grid" and question.get("require_all_rows"):
+                grid_rows = question.get("rows", []) or []
+                grid_ans = (answers.get(question["id"], {}) or {}).get("grid_answer") or {}
+                if any(not grid_ans.get(r["id"]) for r in grid_rows):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Debes responder todas las filas en las preguntas de relacionar antes de enviar.",
+                    )
+
     # Calculate score
     total_points = 0
     earned_points = 0
@@ -3767,7 +3850,6 @@ async def submit_exam_attempt(
     incorrect_count = 0
     unanswered_count = 0
     
-    answers = attempt.get("answers", {})
     graded_answers = {}
     
     for question in questions:
@@ -3822,10 +3904,30 @@ async def submit_exam_attempt(
                 incorrect_count += 1
             else:
                 unanswered_count += 1
-        
+
+        elif question["question_type"] == "grid":
+            grid_rows = question.get("rows", []) or []
+            grid_ans = student_answer.get("grid_answer") or {}
+            answered_rows = sum(1 for r in grid_rows if grid_ans.get(r["id"]))
+            if answered_rows == 0:
+                unanswered_count += 1
+            else:
+                # All-or-nothing: full points only if every row is answered AND correct
+                all_correct = (
+                    answered_rows == len(grid_rows)
+                    and all(grid_ans.get(r["id"]) == r.get("correct_column_id") for r in grid_rows)
+                )
+                if all_correct:
+                    is_correct = True
+                    earned_points += q_points
+                    correct_count += 1
+                else:
+                    incorrect_count += 1
+
         graded_answers[q_id] = {
             "selected_option_id": selected_option,
             "text_answer": text_answer,
+            "grid_answer": student_answer.get("grid_answer"),
             "is_correct": is_correct,
             "points_earned": q_points if is_correct else 0,
             "points_possible": q_points

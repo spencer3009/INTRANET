@@ -34,7 +34,7 @@ import {
   BookOpen, Users, Edit3, ChevronRight, ChevronLeft, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Trophy, Download, Upload, 
-  Calendar, Bell, Mail, Phone, MoreVertical, Plus,
+  Calendar, Bell, Mail, Phone, MoreVertical, Plus, Grid3x3,
   ArrowLeft, AlertCircle, AlertTriangle, File as FileIcon, Image as ImageIcon, 
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
@@ -6303,6 +6303,11 @@ const QUESTION_TYPES = {
     label: "Espacios en blanco", 
     icon: Edit3,
     color: "bg-amber-100 text-amber-700"
+  },
+  grid: {
+    label: "Relacionar",
+    icon: Grid3x3,
+    color: "bg-purple-100 text-purple-700"
   }
 };
 
@@ -6317,6 +6322,9 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
     { id: "2", text: "", is_correct: false }
   ]);
   const [correctAnswer, setCorrectAnswer] = useState("");
+  const [gridRows, setGridRows] = useState([{ id: "r1", text: "", correct_column_id: null }, { id: "r2", text: "", correct_column_id: null }]);
+  const [gridColumns, setGridColumns] = useState([{ id: "c1", text: "" }, { id: "c2", text: "" }]);
+  const [requireAllRows, setRequireAllRows] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   
@@ -6361,6 +6369,11 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
       }
       setCorrectAnswer(question.correct_answer || "");
       setImageUrl(question.image_url || "");
+      if (question.question_type === "grid") {
+        setGridColumns(question.columns?.length ? question.columns : [{ id: "c1", text: "" }, { id: "c2", text: "" }]);
+        setGridRows(question.rows?.length ? question.rows : [{ id: "r1", text: "", correct_column_id: null }, { id: "r2", text: "", correct_column_id: null }]);
+        setRequireAllRows(question.require_all_rows !== false);
+      }
     } else {
       setQuestionType("multiple_choice");
       setQuestionText("");
@@ -6371,6 +6384,9 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
       ]);
       setCorrectAnswer("");
       setImageUrl("");
+      setGridColumns([{ id: "c1", text: "" }, { id: "c2", text: "" }]);
+      setGridRows([{ id: "r1", text: "", correct_column_id: null }, { id: "r2", text: "", correct_column_id: null }]);
+      setRequireAllRows(true);
     }
     setError("");
     setImageSrc("");
@@ -6403,7 +6419,20 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
       return o;
     }));
   };
-  
+
+  // ── Grid (relacionar) helpers ──
+  const addGridColumn = () => setGridColumns([...gridColumns, { id: `c${Date.now()}`, text: "" }]);
+  const removeGridColumn = (id) => {
+    if (gridColumns.length <= 2) return;
+    setGridColumns(gridColumns.filter(c => c.id !== id));
+    setGridRows(gridRows.map(r => r.correct_column_id === id ? { ...r, correct_column_id: null } : r));
+  };
+  const updateGridColumn = (id, text) => setGridColumns(gridColumns.map(c => c.id === id ? { ...c, text } : c));
+  const addGridRow = () => setGridRows([...gridRows, { id: `r${Date.now()}`, text: "", correct_column_id: null }]);
+  const removeGridRow = (id) => { if (gridRows.length > 1) setGridRows(gridRows.filter(r => r.id !== id)); };
+  const updateGridRow = (id, text) => setGridRows(gridRows.map(r => r.id === id ? { ...r, text } : r));
+  const setGridRowCorrect = (rowId, colId) => setGridRows(gridRows.map(r => r.id === rowId ? { ...r, correct_column_id: colId } : r));
+
   // Image handling functions
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
@@ -6597,7 +6626,15 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
         return;
       }
     }
-    
+
+    if (questionType === "grid") {
+      const validCols = gridColumns.filter(c => c.text.trim());
+      if (validCols.length < 2) { setError("Se requieren al menos 2 columnas"); return; }
+      const validRows = gridRows.filter(r => r.text.trim());
+      if (validRows.length < 1) { setError("Se requiere al menos 1 fila"); return; }
+      if (validRows.some(r => !r.correct_column_id)) { setError("Cada fila debe tener una columna correcta marcada"); return; }
+    }
+
     setSaving(true);
     try {
       const data = {
@@ -6606,7 +6643,12 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
         points: parseFloat(points),
         options: questionType === "multiple_choice" ? options.filter(o => o.text.trim()) : null,
         correct_answer: questionType !== "multiple_choice" ? correctAnswer : null,
-        image_url: imageUrl || null
+        image_url: imageUrl || null,
+        ...(questionType === "grid" ? {
+          columns: gridColumns.filter(c => c.text.trim()),
+          rows: gridRows.filter(r => r.text.trim()),
+          require_all_rows: requireAllRows,
+        } : {}),
       };
       
       await onSave(data, question?.id);
@@ -6791,7 +6833,7 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
           {/* Question Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">Tipo de pregunta</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {Object.entries(QUESTION_TYPES).map(([type, config]) => {
                 const Icon = config.icon;
                 const isSelected = questionType === type;
@@ -6992,7 +7034,113 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
               {renderFillBlanksPreview()}
             </div>
           )}
-          
+
+          {/* Grid (Relacionar) */}
+          {questionType === "grid" && (
+            <div className="space-y-4">
+              {/* Columns editor */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Columnas (categorías)</label>
+                <div className="space-y-2">
+                  {gridColumns.map((col, idx) => (
+                    <div key={col.id} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={col.text}
+                        onChange={(e) => updateGridColumn(col.id, e.target.value)}
+                        placeholder={`Columna ${idx + 1}`}
+                        data-testid={`grid-column-input-${idx}`}
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      {gridColumns.length > 2 && (
+                        <button type="button" onClick={() => removeGridColumn(col.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={addGridColumn} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-purple-400 hover:text-purple-600 transition-colors flex items-center justify-center gap-2 text-sm">
+                    <Plus className="w-4 h-4" /> Agregar columna
+                  </button>
+                </div>
+              </div>
+
+              {/* Rows editor with correct-column grid */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Filas (ítems) y su columna correcta</label>
+                <p className="text-xs text-gray-500 mb-3">Escribe cada fila y marca el círculo de la columna correcta.</p>
+                <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="text-left p-3 font-medium text-gray-500 min-w-[140px]">Fila</th>
+                        {gridColumns.map((col, idx) => (
+                          <th key={col.id} className="p-3 font-medium text-gray-600 text-center whitespace-nowrap">{col.text.trim() || `Col ${idx + 1}`}</th>
+                        ))}
+                        <th className="p-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gridRows.map((row, ridx) => (
+                        <tr key={row.id} className="border-b border-gray-100 last:border-0">
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={row.text}
+                              onChange={(e) => updateGridRow(row.id, e.target.value)}
+                              placeholder={`Fila ${ridx + 1}`}
+                              data-testid={`grid-row-input-${ridx}`}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                          </td>
+                          {gridColumns.map((col) => (
+                            <td key={col.id} className="p-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setGridRowCorrect(row.id, col.id)}
+                                data-testid={`grid-correct-${ridx}-${col.id}`}
+                                className={`w-7 h-7 rounded-full border-2 inline-flex items-center justify-center transition-all ${
+                                  row.correct_column_id === col.id ? "border-purple-500 bg-purple-500" : "border-gray-300 hover:border-purple-300"
+                                }`}
+                              >
+                                {row.correct_column_id === col.id && <Check className="w-4 h-4 text-white" />}
+                              </button>
+                            </td>
+                          ))}
+                          <td className="p-2 text-center">
+                            {gridRows.length > 1 && (
+                              <button type="button" onClick={() => removeGridRow(row.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" onClick={addGridRow} className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-purple-400 hover:text-purple-600 transition-colors flex items-center justify-center gap-2 text-sm">
+                  <Plus className="w-4 h-4" /> Agregar fila
+                </button>
+              </div>
+
+              {/* Require all rows toggle */}
+              <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-gray-200 p-3 bg-gray-50/60">
+                <input
+                  type="checkbox"
+                  checked={requireAllRows}
+                  onChange={(e) => setRequireAllRows(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 accent-purple-600 cursor-pointer"
+                  data-testid="grid-require-all-rows"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-800">Exigir una respuesta en cada fila</span>
+                  <span className="block text-xs text-gray-500">Si está activado, el alumno debe responder todas las filas para enviar. Si no, las filas vacías cuentan como incorrectas. (Calificación: todo o nada)</span>
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 pt-4">
             <button
@@ -7612,6 +7760,11 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
                                   Respuestas: {q.correct_answer}
                                 </p>
                               )}
+                              {q.question_type === "grid" && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Relacionar · {q.rows?.length || 0} filas × {q.columns?.length || 0} columnas
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -7837,6 +7990,46 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
                       <span className="text-[11px] text-gray-500 block">Respuesta correcta:</span>
                       <span className="font-medium text-emerald-800">{q.correct_answer}</span>
                     </div>
+                  </div>
+                )}
+
+                {q.question_type === 'grid' && q.rows && (
+                  <div className="ml-10 overflow-x-auto">
+                    <table className="text-xs border border-gray-200 rounded-lg">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="p-2 text-left text-gray-500"></th>
+                          {(q.columns || []).map((c) => (
+                            <th key={c.id} className="p-2 text-center font-medium text-gray-600 whitespace-nowrap">{c.text}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {q.rows.map((r) => {
+                          const picked = (q.grid_answer || {})[r.id];
+                          const rowOk = picked === r.correct_column_id;
+                          return (
+                            <tr key={r.id} className="border-t border-gray-100">
+                              <td className="p-2 font-medium text-gray-700 whitespace-nowrap">{r.text}</td>
+                              {(q.columns || []).map((c) => {
+                                const isCorrect = c.id === r.correct_column_id;
+                                const isPicked = c.id === picked;
+                                return (
+                                  <td key={c.id} className="p-2 text-center">
+                                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
+                                      isCorrect ? 'bg-emerald-500 text-white' : isPicked ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-300'
+                                    }`}>
+                                      {isCorrect ? '✓' : isPicked ? '✗' : ''}
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <p className="text-[11px] text-gray-400 mt-1">✓ correcta · ✗ marcó incorrecta</p>
                   </div>
                 )}
               </div>

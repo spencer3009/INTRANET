@@ -212,6 +212,17 @@ export default function ExamAttemptPage() {
     } catch (err) { console.error('Error saving:', err); } finally { setSavingAnswer(false); }
   };
 
+  const handleGridSelect = async (questionId, rowId, columnId) => {
+    const prev = answers[questionId]?.grid_answer || {};
+    const grid_answer = { ...prev, [rowId]: columnId };
+    const newAnswers = { ...answers, [questionId]: { grid_answer } };
+    setAnswers(newAnswers);
+    try {
+      setSavingAnswer(true);
+      await axios.post(`${API}/api/exam-attempts/${attemptId}/save-answer`, { question_id: questionId, grid_answer }, { headers });
+    } catch (err) { console.error('Error saving grid:', err); } finally { setSavingAnswer(false); }
+  };
+
   const handleEvidenceUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -253,7 +264,7 @@ export default function ExamAttemptPage() {
 
   const viewResults = () => navigate(`/${subdomain}/exam/${examId}/result/${attemptId}`);
   const currentQuestion = questions[currentIndex];
-  const answeredCount = Object.keys(answers).filter(qId => answers[qId]?.selected_option_id || answers[qId]?.text_answer).length;
+  const answeredCount = Object.keys(answers).filter(qId => answers[qId]?.selected_option_id || answers[qId]?.text_answer || (answers[qId]?.grid_answer && Object.keys(answers[qId].grid_answer).length > 0)).length;
   const timerStyle = getTimerColor();
 
   // ─── RULES SCREEN ───
@@ -498,6 +509,45 @@ export default function ExamAttemptPage() {
                       data-testid="open-answer-textarea"
                       className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none resize-none text-slate-800 placeholder:text-slate-400" />
                   )}
+                  {/* Grid (Relacionar) */}
+                  {currentQuestion.question_type === 'grid' && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border border-slate-200 rounded-xl overflow-hidden">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="p-3 text-left"></th>
+                            {(currentQuestion.columns || []).map((col) => (
+                              <th key={col.id} className="p-3 text-center text-sm font-semibold text-slate-700 whitespace-nowrap">{col.text}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(currentQuestion.rows || []).map((row, ridx) => (
+                            <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                              <td className="p-3 text-sm font-medium text-slate-700 min-w-[120px]">{row.text}</td>
+                              {(currentQuestion.columns || []).map((col) => {
+                                const isSelected = answers[currentQuestion.id]?.grid_answer?.[row.id] === col.id;
+                                return (
+                                  <td key={col.id} className="p-3 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGridSelect(currentQuestion.id, row.id, col.id)}
+                                      data-testid={`grid-cell-${ridx}-${col.id}`}
+                                      className={`w-7 h-7 rounded-full border-2 inline-flex items-center justify-center transition-all ${
+                                        isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 hover:border-indigo-400'
+                                      }`}
+                                    >
+                                      {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                                    </button>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                   {savingAnswer && <div className="mt-4 flex items-center gap-2 text-indigo-500 text-sm"><Loader2 className="w-4 h-4 animate-spin" />Guardando...</div>}
                 </div>
                 {/* Navigation */}
@@ -583,7 +633,7 @@ export default function ExamAttemptPage() {
               </h3>
               <div className="grid grid-cols-5 gap-2">
                 {questions.map((q, idx) => {
-                  const isAnswered = answers[q.id]?.selected_option_id || answers[q.id]?.text_answer;
+                  const isAnswered = answers[q.id]?.selected_option_id || answers[q.id]?.text_answer || (answers[q.id]?.grid_answer && Object.keys(answers[q.id].grid_answer).length > 0);
                   const isCurrent = idx === currentIndex;
                   return (
                     <button key={q.id} onClick={() => setCurrentIndex(idx)}
