@@ -670,6 +670,15 @@ async def create_exam(
             "total_points": num_q * ppq,
         })
     
+    # Evidence requires Google Drive (evidences are stored ONLY in Drive).
+    if exam.get("allow_evidence_upload"):
+        _sch = await db.schools.find_one({"id": school_id}, {"_id": 0, "google_drive_connected": 1, "google_drive_materials_folder_id": 1})
+        if not (_sch and _sch.get("google_drive_connected") and _sch.get("google_drive_materials_folder_id")):
+            raise HTTPException(
+                status_code=400,
+                detail="Para pedir evidencia primero debes conectar Google Drive (Ajustes → Integraciones). Las evidencias se guardan únicamente en tu Drive.",
+            )
+
     await db.online_exams.insert_one(exam)
 
     # Insert register_column_assignments if linked
@@ -904,6 +913,13 @@ async def update_exam(
 
         if data.allow_evidence_upload is not None:
             update_data["allow_evidence_upload"] = bool(data.allow_evidence_upload)
+            if data.allow_evidence_upload:
+                _sch = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0, "google_drive_connected": 1, "google_drive_materials_folder_id": 1})
+                if not (_sch and _sch.get("google_drive_connected") and _sch.get("google_drive_materials_folder_id")):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Para pedir evidencia primero debes conectar Google Drive (Ajustes → Integraciones). Las evidencias se guardan únicamente en tu Drive.",
+                    )
     
     # Handle register linkage updates
     old_column = exam.get("register_column")
@@ -2263,7 +2279,7 @@ async def upload_exam_evidence(
 ):
     """Student uploads a single evidence file (image / pdf / word) for an
     in-progress attempt, when the exam has `allow_evidence_upload` enabled.
-    Drive-first with Cloudinary fallback (same as task submissions)."""
+    Stored ONLY in the school's Google Drive ('Evidencias Examenes' folder)."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -2313,40 +2329,32 @@ async def upload_exam_evidence(
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Drive-first
-    uploaded = False
+    # Storage: Google Drive ONLY (no Cloudinary fallback — per requirement).
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
-    if school and school.get("google_drive_connected") and school.get("google_drive_materials_folder_id"):
-        try:
-            service = await get_drive_service(school_id)
-            folder_id = await _ensure_exam_evidence_folder(
-                service, school["google_drive_materials_folder_id"]
-            )
-            mime_type = MIME_TYPE_MAP.get(ext, file.content_type or "application/octet-stream")
-            drive_file = service.files().create(
-                body={"name": f"{student_id}_{att_id}_{f_name}", "parents": [folder_id]},
-                media_body=MediaIoBaseUpload(io.BytesIO(content), mimetype=mime_type, resumable=True),
-                fields="id",
-            ).execute()
-            evidence["drive_file_id"] = drive_file.get("id")
-            evidence["storage_type"] = "google_drive"
-            uploaded = True
-        except Exception as e:
-            logger.warning(f"[EVIDENCE] Drive upload failed, fallback to Cloudinary: {e}")
-
-    if not uploaded:
-        try:
-            result = cloudinary.uploader.upload(
-                content,
-                folder=f"edunet/exam_evidence/{attempt['exam_id']}",
-                resource_type="auto",
-                public_id=f"{student_id}_{att_id}",
-            )
-            evidence["file_url"] = result.get("secure_url")
-            evidence["storage_type"] = "cloudinary"
-        except Exception as e:
-            logger.error(f"[EVIDENCE] Cloudinary upload failed: {e}")
-            raise HTTPException(status_code=500, detail="Error al subir el archivo")
+    if not (school and school.get("google_drive_connected") and school.get("google_drive_materials_folder_id")):
+        raise HTTPException(
+            status_code=400,
+            detail="El colegio aún no tiene Google Drive conectado. Pide a tu profesor o administrador que conecte Google Drive en Ajustes para poder subir tu evidencia.",
+        )
+    try:
+        service = await get_drive_service(school_id)
+        folder_id = await _ensure_exam_evidence_folder(
+            service, school["google_drive_materials_folder_id"]
+        )
+        mime_type = MIME_TYPE_MAP.get(ext, file.content_type or "application/octet-stream")
+        drive_file = service.files().create(
+            body={"name": f"{student_id}_{att_id}_{f_name}", "parents": [folder_id]},
+            media_body=MediaIoBaseUpload(io.BytesIO(content), mimetype=mime_type, resumable=True),
+            fields="id, webViewLink",
+        ).execute()
+        evidence["drive_file_id"] = drive_file.get("id")
+        evidence["file_url"] = drive_file.get("webViewLink")
+        evidence["storage_type"] = "google_drive"
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[EVIDENCE] Drive upload failed: {e}")
+        raise HTTPException(status_code=500, detail="No se pudo subir la evidencia a Google Drive. Inténtalo de nuevo.")
 
     await db.exam_attempts.update_one(
         {"id": attempt_id}, {"$set": {"evidence_file": evidence}}
