@@ -7692,7 +7692,7 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
   const optLetter = (i) => String.fromCharCode(65 + i);
 
   return (
-    <div className="flex flex-col h-full" data-testid="exam-attempt-review">
+    <div className="flex flex-col flex-1 min-h-0" data-testid="exam-attempt-review">
       <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-3">
         <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg" data-testid="exam-review-back">
           <ChevronLeft className="w-4 h-4" /> Volver
@@ -7708,7 +7708,7 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
         </div>
       </div>
 
-      <div className="overflow-y-auto px-6 py-4 flex-1">
+      <div className="overflow-y-auto px-6 py-4 flex-1 min-h-0">
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-7 h-7 text-purple-500 animate-spin" /></div>
         ) : error ? (
