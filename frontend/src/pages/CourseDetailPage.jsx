@@ -5479,6 +5479,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   const [numQuestions, setNumQuestions] = useState(20);
   const [optionsPerQuestion, setOptionsPerQuestion] = useState(5);
   const [pointsPerQuestion, setPointsPerQuestion] = useState(1.0);
+  const [allowEvidence, setAllowEvidence] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -5630,6 +5631,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setOptionsPerQuestion(exam.options_per_question || 5);
       setPointsPerQuestion(exam.points_per_question || 1.0);
       setRegisterColumn(exam.register_column || null);
+      setAllowEvidence(!!exam.allow_evidence_upload);
     } else {
       setExamType("digital");
       setTitle("");
@@ -5643,6 +5645,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setOptionsPerQuestion(5);
       setPointsPerQuestion(1.0);
       setRegisterColumn(null);
+      setAllowEvidence(false);
     }
     setError("");
   }, [exam, isOpen]);
@@ -5677,6 +5680,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           duration_minutes: parseInt(durationMinutes),
           min_score_percentage: minScore,
           register_column: registerColumn,
+          allow_evidence_upload: allowEvidence,
         }, exam?.id);
         onClose();
       } catch (err) {
@@ -6135,6 +6139,25 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
             <p className="text-xs text-gray-500 mt-1">
               En Perú: 0-10 desaprobado, 11-20 aprobado. Valor por defecto: 11
             </p>
+          </div>
+
+          {/* Evidence upload toggle */}
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/60">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowEvidence}
+                onChange={(e) => setAllowEvidence(e.target.checked)}
+                className="mt-1 w-5 h-5 accent-purple-600 cursor-pointer"
+                data-testid="exam-allow-evidence-toggle"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">Pedir evidencia al alumno</span>
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  Al finalizar, el alumno deberá <strong>adjuntar un archivo</strong> (imagen, PDF o Word) como evidencia de su procedimiento. Máx. 15 MB. <strong>Obligatorio</strong> para poder enviar el examen.
+                </span>
+              </span>
+            </label>
           </div>
           </>
           )}
@@ -7691,6 +7714,20 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
 
   const optLetter = (i) => String.fromCharCode(65 + i);
 
+  const downloadEvidence = async () => {
+    try {
+      const res = await axios.get(`${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/evidence`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'No se pudo abrir la evidencia');
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0" data-testid="exam-attempt-review">
       <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-3">
@@ -7715,6 +7752,32 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
           <div className="text-center py-12 text-red-600 text-sm">{error}</div>
         ) : (
           <div className="space-y-4">
+            {/* Evidencia del alumno */}
+            {data?.evidence_file ? (
+              <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 flex items-center gap-3" data-testid="review-evidence">
+                <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                  <Paperclip className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">Evidencia adjunta</p>
+                  <p className="text-xs text-gray-500 truncate">{data.evidence_file.file_name}</p>
+                </div>
+                <a
+                  href={`${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/evidence?token=${token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { e.preventDefault(); downloadEvidence(); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-white border border-purple-200 hover:bg-purple-100 rounded-lg shrink-0"
+                  data-testid="review-evidence-download"
+                >
+                  <Download className="w-3.5 h-3.5" /> Ver / Descargar
+                </a>
+              </div>
+            ) : data?.allow_evidence_upload ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800" data-testid="review-evidence-missing">
+                Este examen pedía evidencia, pero el alumno no adjuntó ningún archivo.
+              </div>
+            ) : null}
             {(data?.questions || []).map((q) => (
               <div key={q.id} className={`rounded-xl border p-4 ${q.is_correct ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40'}`} data-testid={`review-question-${q.number}`}>
                 <div className="flex items-start gap-3 mb-3">
