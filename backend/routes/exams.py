@@ -2140,6 +2140,82 @@ async def get_exam_results(exam_id: str, current_user=Depends(get_current_user))
         **linkage,
     }
 
+@router.get("/exams/{exam_id}/attempts/{attempt_id}/review")
+async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=Depends(get_current_user)):
+    """Teacher/admin-only: full per-question review of a single student's attempt,
+    showing the student's answer next to the correct answer. This is the data that
+    used to be exposed to students (and that they abused to cheat) — now it lives
+    behind a teacher/admin gate."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden ver las respuestas")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    attempt = await db.exam_attempts.find_one(
+        {"id": attempt_id, "exam_id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+
+    questions = await db.exam_questions.find(
+        {"exam_id": exam_id}, {"_id": 0}
+    ).sort("order", 1).to_list(200)
+
+    graded_answers = attempt.get("graded_answers", {})
+    questions_review = []
+    for idx, q in enumerate(questions):
+        q_id = q["id"]
+        graded = graded_answers.get(q_id, {})
+
+        correct_option_id = None
+        if q.get("question_type") == "multiple_choice":
+            for opt in q.get("options", []):
+                if opt.get("is_correct"):
+                    correct_option_id = opt.get("id")
+                    break
+
+        questions_review.append({
+            "id": q_id,
+            "number": idx + 1,
+            "question_text": q.get("question_text"),
+            "question_type": q.get("question_type"),
+            "image_url": q.get("image_url"),
+            "options": q.get("options", []),
+            "correct_option_id": correct_option_id,
+            "correct_answer": q.get("correct_answer"),
+            "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
+            "is_correct": graded.get("is_correct", False),
+            "points_earned": graded.get("points_earned", 0),
+            "points_possible": graded.get("points_possible", q.get("points", 1)),
+        })
+
+    pct = attempt.get("percentage")
+    return {
+        "attempt_id": attempt_id,
+        "exam_id": exam_id,
+        "exam_title": exam.get("title", ""),
+        "student_name": attempt.get("student_name", ""),
+        "status": attempt.get("status"),
+        "score": attempt.get("score", 0),
+        "max_score": attempt.get("max_score") or exam.get("total_points", 0),
+        "percentage": pct,
+        "grade_vigesimal": round(pct * 20 / 100) if pct is not None else None,
+        "passed": attempt.get("passed", False),
+        "correct_count": attempt.get("correct_count", 0),
+        "incorrect_count": attempt.get("incorrect_count", 0),
+        "unanswered_count": attempt.get("unanswered_count", 0),
+        "questions": questions_review,
+    }
+
+
+
 
 @router.post("/exams/{exam_id}/sync-register")
 async def sync_exam_to_register_manual(exam_id: str, current_user=Depends(get_current_user)):
@@ -3621,37 +3697,27 @@ async def get_exam_result(
     if exam:
         subject = await db.subjects.find_one({"id": exam.get("subject_id")}, {"_id": 0, "name": 1, "color": 1})
     
-    # Get questions for review (with correct answers)
+    # Get questions for review.
+    # ANTI-CHEAT (Jun 2026): students must NOT see the question text, the options,
+    # nor the correct answer when reviewing their finished exam — they were sharing
+    # the correct answers with classmates. We only expose, per question, whether they
+    # got it right/wrong and the points earned. The full review (with correct answers)
+    # is available only to teachers/admins via /exams/{exam_id}/attempts/{id}/review.
     questions = await db.exam_questions.find(
         {"exam_id": attempt["exam_id"]},
-        {"_id": 0}
+        {"_id": 0, "id": 1, "order": 1, "points": 1}
     ).sort("order", 1).to_list(200)
     
-    # Build detailed result
+    # Build minimal result (no question content, no correct answers)
     graded_answers = attempt.get("graded_answers", {})
     questions_review = []
     
-    for q in questions:
+    for idx, q in enumerate(questions):
         q_id = q["id"]
         graded = graded_answers.get(q_id, {})
-        
-        # Extract correct_option_id from options array for multiple choice
-        correct_option_id = None
-        if q.get("question_type") == "multiple_choice":
-            for opt in q.get("options", []):
-                if opt.get("is_correct"):
-                    correct_option_id = opt.get("id")
-                    break
-        
         questions_review.append({
             "id": q_id,
-            "question_text": q.get("question_text"),
-            "question_type": q.get("question_type"),
-            "image_url": q.get("image_url"),
-            "options": q.get("options", []),
-            "correct_option_id": correct_option_id,
-            "correct_answer": q.get("correct_answer"),
-            "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
+            "number": idx + 1,
             "is_correct": graded.get("is_correct", False),
             "points_earned": graded.get("points_earned", 0),
             "points_possible": graded.get("points_possible", q.get("points", 1))

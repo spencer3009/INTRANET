@@ -40,7 +40,7 @@ import {
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
-  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
+  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy, XCircle,
   Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw,
   Grid3X3, Monitor, Key, Save
 } from "lucide-react";
@@ -7669,11 +7669,128 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // EXAM RESULTS MODAL — shows who took the exam and their grades
 // ══════════════════════════════════════════════════════════════════════════════
+function ExamAttemptReview({ exam, attempt, token, onBack }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/review`, { headers: { Authorization: `Bearer ${token}` } });
+        if (active) setData(res.data);
+      } catch (err) {
+        if (active) setError(err.response?.data?.detail || 'Error al cargar las respuestas');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [exam.id, attempt.attempt_id]);
+
+  const optLetter = (i) => String.fromCharCode(65 + i);
+
+  return (
+    <div className="flex flex-col h-full" data-testid="exam-attempt-review">
+      <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-3">
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg" data-testid="exam-review-back">
+          <ChevronLeft className="w-4 h-4" /> Volver
+        </button>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-800 truncate">{attempt.student_name}</p>
+          {data && (
+            <p className="text-xs text-gray-500">
+              {data.correct_count} correctas · {data.incorrect_count} incorrectas
+              {data.grade_vigesimal != null ? <> · Nota: <span className="font-semibold text-purple-600">{data.grade_vigesimal}</span></> : null}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-y-auto px-6 py-4 flex-1">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 className="w-7 h-7 text-purple-500 animate-spin" /></div>
+        ) : error ? (
+          <div className="text-center py-12 text-red-600 text-sm">{error}</div>
+        ) : (
+          <div className="space-y-4">
+            {(data?.questions || []).map((q) => (
+              <div key={q.id} className={`rounded-xl border p-4 ${q.is_correct ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40'}`} data-testid={`review-question-${q.number}`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${q.is_correct ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                    {q.is_correct ? <CheckCircle className="w-4 h-4 text-white" /> : <XCircle className="w-4 h-4 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-gray-400">Pregunta {q.number}</span>
+                      <span className="text-xs font-semibold text-gray-500">{q.points_earned}/{q.points_possible} pts</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-800 mt-0.5">{q.question_text}</p>
+                    {q.image_url && <img src={q.image_url} alt="" className="mt-2 max-h-32 rounded-lg" />}
+                  </div>
+                </div>
+
+                {q.question_type === 'multiple_choice' && (
+                  <div className="ml-10 space-y-1.5">
+                    {(q.options || []).map((opt, i) => {
+                      const isCorrect = opt.id === q.correct_option_id;
+                      const isSelected = opt.id === q.student_answer;
+                      return (
+                        <div key={opt.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${isCorrect ? 'border-emerald-400 bg-emerald-100 text-emerald-800' : isSelected ? 'border-red-400 bg-red-100 text-red-800' : 'border-gray-200 bg-white text-gray-600'}`}>
+                          <span className="font-bold w-5 shrink-0">{optLetter(i)}</span>
+                          <span className="flex-1">{opt.text}</span>
+                          {isSelected && <span className="text-xs font-semibold shrink-0">Marcó</span>}
+                          {isCorrect && <span className="text-xs font-semibold text-emerald-600 shrink-0">Correcta</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {q.question_type === 'true_false' && (
+                  <div className="ml-10 flex gap-2">
+                    {['true', 'false'].map((v) => {
+                      const isCorrect = String(q.correct_answer).toLowerCase() === v;
+                      const isSelected = String(q.student_answer).toLowerCase() === v;
+                      return (
+                        <div key={v} className={`flex-1 px-3 py-2 rounded-lg border text-center text-sm ${isCorrect ? 'border-emerald-400 bg-emerald-100 text-emerald-800' : isSelected ? 'border-red-400 bg-red-100 text-red-800' : 'border-gray-200 bg-white text-gray-600'}`}>
+                          <span className="font-medium">{v === 'true' ? 'Verdadero' : 'Falso'}</span>
+                          {isSelected && <span className="block text-[11px]">Marcó</span>}
+                          {isCorrect && <span className="block text-[11px] text-emerald-600">Correcta</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {(q.question_type === 'fill_blanks' || q.question_type === 'open') && (
+                  <div className="ml-10 space-y-1.5">
+                    <div className={`px-3 py-2 rounded-lg border text-sm ${q.is_correct ? 'border-emerald-400 bg-emerald-100' : 'border-red-400 bg-red-100'}`}>
+                      <span className="text-[11px] text-gray-500 block">Respuesta del alumno:</span>
+                      <span className="font-medium text-gray-800">{q.student_answer || '(Sin responder)'}</span>
+                    </div>
+                    <div className="px-3 py-2 rounded-lg border border-emerald-400 bg-emerald-100 text-sm">
+                      <span className="text-[11px] text-gray-500 block">Respuesta correcta:</span>
+                      <span className="font-medium text-emerald-800">{q.correct_answer}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ExamResultsModal({ exam, token, onClose }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [reviewAttempt, setReviewAttempt] = useState(null);
 
   const loadResults = async () => {
     try {
@@ -7769,6 +7886,10 @@ function ExamResultsModal({ exam, token, onClose }) {
           </button>
         </div>
 
+        {reviewAttempt ? (
+          <ExamAttemptReview exam={exam} attempt={reviewAttempt} token={token} onBack={() => setReviewAttempt(null)} />
+        ) : (
+        <>
         {!loading && !error && (
           <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -7837,6 +7958,7 @@ function ExamResultsModal({ exam, token, onClose }) {
                   <th className="py-2 px-2 text-center">Puntaje</th>
                   <th className="py-2 px-2 text-center">%</th>
                   <th className="py-2 pl-2 text-center">Nota (20)</th>
+                  <th className="py-2 pl-2 text-center"></th>
                 </tr>
               </thead>
               <tbody>
@@ -7866,12 +7988,25 @@ function ExamResultsModal({ exam, token, onClose }) {
                         }`}>{r.grade_vigesimal}</span>
                       ) : <span className="text-gray-300">—</span>}
                     </td>
+                    <td className="py-2.5 pl-2 text-center">
+                      {r.status === 'completed' ? (
+                        <button
+                          onClick={() => setReviewAttempt(r)}
+                          data-testid={`exam-review-btn-${r.student_id}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg whitespace-nowrap"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ver respuestas
+                        </button>
+                      ) : <span className="text-gray-300">—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

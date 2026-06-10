@@ -174,12 +174,12 @@ export default function ExamResultPage() {
           </div>
         </div>
         
-        {/* Questions Review */}
+        {/* Questions Review — minimal, anti-cheat (no question text / no correct answers) */}
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
           <div className="px-8 py-6 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <BookOpen className="w-6 h-6 text-indigo-500" />
-              <h3 className="text-xl font-bold text-slate-800">Revisión de respuestas</h3>
+              <h3 className="text-xl font-bold text-slate-800">Detalle por pregunta</h3>
             </div>
             <button
               onClick={() => setShowAnswers(!showAnswers)}
@@ -188,158 +188,39 @@ export default function ExamResultPage() {
               {showAnswers ? 'Ocultar' : 'Mostrar'}
             </button>
           </div>
-          
+
           {showAnswers && (
-            <div className="divide-y divide-slate-100">
-              {result?.questions?.map((question, idx) => (
-                <div 
-                  key={question.id} 
-                  className={`p-6 ${question.is_correct ? 'bg-emerald-50/50' : 'bg-red-50/50'}`}
-                >
-                  {/* Question header */}
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            <div className="p-6">
+              <p className="text-sm text-slate-500 mb-4">
+                Aquí ves en qué preguntas acertaste o fallaste. Para revisar las respuestas correctas, consulta con tu profesor.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {result?.questions?.map((question, idx) => (
+                  <div
+                    key={question.id}
+                    data-testid={`result-question-${idx + 1}`}
+                    className={`rounded-xl border-2 p-3 flex flex-col items-center gap-1 ${
+                      question.is_correct ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       question.is_correct ? 'bg-emerald-500' : 'bg-red-500'
                     }`}>
                       {question.is_correct ? (
-                        <CheckCircle className="w-6 h-6 text-white" />
+                        <CheckCircle className="w-5 h-5 text-white" />
                       ) : (
-                        <XCircle className="w-6 h-6 text-white" />
+                        <XCircle className="w-5 h-5 text-white" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-500">
-                          Pregunta {idx + 1}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          question.is_correct 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {question.points_earned} / {question.points_possible} pts
-                        </span>
-                      </div>
-                      <p className="text-slate-800 font-medium">{question.question_text}</p>
-                      
-                      {/* Question image */}
-                      {question.image_url && (
-                        <img 
-                          src={question.image_url} 
-                          alt="Pregunta"
-                          className="mt-3 max-h-40 rounded-lg"
-                        />
-                      )}
-                    </div>
+                    <span className="text-xs font-semibold text-slate-600">
+                      Pregunta {question.number ?? idx + 1}
+                    </span>
+                    <span className={`text-[11px] font-medium ${question.is_correct ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {question.is_correct ? 'Correcta' : 'Incorrecta'}
+                    </span>
                   </div>
-                  
-                  {/* Options for multiple choice */}
-                  {question.question_type === 'multiple_choice' && question.options && (
-                    <div className="ml-14 space-y-2">
-                      {question.options.map((option, optIdx) => {
-                        const isCorrect = option.id === question.correct_option_id;
-                        const isSelected = option.id === question.student_answer;
-                        
-                        let bgColor = 'bg-white';
-                        let borderColor = 'border-slate-200';
-                        let textColor = 'text-slate-700';
-                        
-                        if (isCorrect) {
-                          bgColor = 'bg-emerald-100';
-                          borderColor = 'border-emerald-400';
-                          textColor = 'text-emerald-800';
-                        } else if (isSelected && !isCorrect) {
-                          bgColor = 'bg-red-100';
-                          borderColor = 'border-red-400';
-                          textColor = 'text-red-800';
-                        }
-                        
-                        return (
-                          <div 
-                            key={option.id}
-                            className={`p-3 rounded-lg border-2 ${bgColor} ${borderColor} flex items-center gap-3`}
-                          >
-                            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-medium ${
-                              isCorrect 
-                                ? 'border-emerald-500 bg-emerald-500 text-white' 
-                                : isSelected 
-                                  ? 'border-red-500 bg-red-500 text-white'
-                                  : 'border-slate-300 text-slate-500'
-                            }`}>
-                              {isCorrect ? <CheckCircle className="w-4 h-4" /> : isSelected ? <XCircle className="w-4 h-4" /> : String.fromCharCode(65 + optIdx)}
-                            </div>
-                            <span className={`${textColor} font-medium`}>
-                              {option.text}
-                            </span>
-                            {isSelected && (
-                              <span className="ml-auto text-xs font-semibold text-slate-500">
-                                Tu respuesta
-                              </span>
-                            )}
-                            {isCorrect && (
-                              <span className="ml-auto text-xs font-semibold text-emerald-600">
-                                Respuesta correcta
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  {/* True/False */}
-                  {question.question_type === 'true_false' && (
-                    <div className="ml-14 flex gap-3">
-                      {['true', 'false'].map((value) => {
-                        const isCorrect = String(question.correct_answer).toLowerCase() === value;
-                        const isSelected = String(question.student_answer).toLowerCase() === value;
-                        
-                        let bgColor = 'bg-white';
-                        let borderColor = 'border-slate-200';
-                        
-                        if (isCorrect) {
-                          bgColor = 'bg-emerald-100';
-                          borderColor = 'border-emerald-400';
-                        } else if (isSelected && !isCorrect) {
-                          bgColor = 'bg-red-100';
-                          borderColor = 'border-red-400';
-                        }
-                        
-                        return (
-                          <div 
-                            key={value}
-                            className={`flex-1 p-4 rounded-lg border-2 ${bgColor} ${borderColor} text-center`}
-                          >
-                            <span className="font-medium">
-                              {value === 'true' ? 'Verdadero' : 'Falso'}
-                            </span>
-                            {isSelected && <span className="block text-xs text-slate-500 mt-1">Tu respuesta</span>}
-                            {isCorrect && <span className="block text-xs text-emerald-600 mt-1">Correcta</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  {/* Fill blanks / Open */}
-                  {(question.question_type === 'fill_blanks' || question.question_type === 'open') && (
-                    <div className="ml-14 space-y-2">
-                      <div className={`p-3 rounded-lg border-2 ${
-                        question.is_correct ? 'bg-emerald-100 border-emerald-400' : 'bg-red-100 border-red-400'
-                      }`}>
-                        <span className="text-xs text-slate-500 block mb-1">Tu respuesta:</span>
-                        <span className="font-medium">{question.student_answer || '(Sin responder)'}</span>
-                      </div>
-                      {!question.is_correct && (
-                        <div className="p-3 rounded-lg border-2 bg-emerald-100 border-emerald-400">
-                          <span className="text-xs text-slate-500 block mb-1">Respuesta correcta:</span>
-                          <span className="font-medium text-emerald-800">{question.correct_answer}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
