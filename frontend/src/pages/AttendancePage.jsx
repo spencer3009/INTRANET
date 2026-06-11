@@ -734,10 +734,14 @@ function TeacherAttendanceTab({ token, schoolId }) {
     setSuccess("");
     
     try {
-      const records = teachers.map(t => ({
-        user_id: t.id,
-        status: t.status
-      }));
+      // Only send teachers with a real status — "pending" is not a valid
+      // backend status (it means "no record yet") and would trigger a 422.
+      const records = teachers
+        .filter(t => t.status && t.status !== "pending")
+        .map(t => ({
+          user_id: t.id,
+          status: t.status
+        }));
       
       await axios.post(`${API}/attendance/teachers/save`, {
         date: selectedDate,
@@ -749,7 +753,8 @@ function TeacherAttendanceTab({ token, schoolId }) {
       setHasSavedRecords(true);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar asistencia");
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Error al guardar asistencia");
     } finally {
       setSaving(false);
     }
@@ -990,7 +995,9 @@ function MaintenanceAttendanceTab({ token }) {
     setError("");
     setSuccess("");
     try {
-      const records = people.map(p => ({ user_id: p.id, status: p.status }));
+      const records = people
+        .filter(p => p.status && p.status !== "pending")
+        .map(p => ({ user_id: p.id, status: p.status }));
       await axios.post(`${API}/attendance/maintenance/save`, {
         date: selectedDate,
         records,
@@ -1000,7 +1007,8 @@ function MaintenanceAttendanceTab({ token }) {
       setHasSavedRecords(true);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar asistencia");
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Error al guardar asistencia");
     } finally {
       setSaving(false);
     }
