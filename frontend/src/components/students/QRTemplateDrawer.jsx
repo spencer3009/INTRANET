@@ -20,8 +20,9 @@ const PALETAS = [
   { nombre: "Turquesa + Coral", principal: "#0d5e6e", acento: "#ff9678" },
 ];
 
-function CarnetClassicPreview({ data, incluirCodigo }) {
+function CarnetClassicPreview({ data, incluirCodigo, badgeText }) {
   if (!data) return null;
+  const band = badgeText != null ? badgeText : [data.nivel, data.grado, data.seccion].filter(Boolean).join(" - ");
   return (
     <div className="flex justify-center" data-testid="carnet-preview-classic">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden">
@@ -48,7 +49,7 @@ function CarnetClassicPreview({ data, incluirCodigo }) {
         </div>
         <p className="text-[13px] font-bold text-[#001f4b] text-center px-3 leading-tight">{data.student_name}</p>
         {incluirCodigo && data.codigo_alumno && <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>}
-        <p className="text-[10px] text-slate-500 text-center mt-0.5">{data.nivel} - {data.grado} - {data.seccion}</p>
+        <p className="text-[10px] text-slate-500 text-center mt-0.5">{band}</p>
         <div className="flex justify-center py-3">
           {data.qr_token ? <QRCodeSVG value={data.qr_token} size={120} /> : <div className="w-[120px] h-[120px] bg-slate-50 border border-dashed border-slate-300 rounded" />}
         </div>
@@ -58,11 +59,12 @@ function CarnetClassicPreview({ data, incluirCodigo }) {
   );
 }
 
-function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal, colorAcento, watermarkUrl }) {
+function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal, colorAcento, watermarkUrl, badgeText }) {
   if (!data) return null;
   const logoSrc = logoCarnet || data.school_logo;
   const cp = colorPrincipal || "#1e3a5f";
   const ca = colorAcento || "#F5B800";
+  const band = badgeText != null ? badgeText : [data.nivel, data.grado, data.seccion].filter(Boolean).join(" - ");
   return (
     <div className="flex justify-center" data-testid="carnet-preview-moderna">
       <div className="w-[240px] bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden relative">
@@ -89,7 +91,7 @@ function CarnetModernaPreview({ data, incluirCodigo, logoCarnet, colorPrincipal,
         <p className="text-[13px] font-bold text-[#1a1a2e] text-center px-3 mt-2 leading-tight">{data.student_name}</p>
         {incluirCodigo && data.codigo_alumno && <p className="text-[9px] text-slate-400 text-center mt-0.5">Cod: {data.codigo_alumno}</p>}
         <div className="flex justify-center mt-1.5">
-          <span className="text-[9px] font-bold px-3 py-0.5 rounded-full" style={{ backgroundColor: ca, color: cp }}>{data.nivel} - {data.grado} - {data.seccion}</span>
+          <span className="text-[9px] font-bold px-3 py-0.5 rounded-full" style={{ backgroundColor: ca, color: cp }}>{band}</span>
         </div>
         {/* Watermark overlay */}
         {watermarkUrl && (
@@ -136,6 +138,11 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
   const [savingColors, setSavingColors] = useState(false);
   const [watermarkUrl, setWatermarkUrl] = useState(null);
   const [uploadingWatermark, setUploadingWatermark] = useState(false);
+  // Yellow-band text customization (staff carnets only)
+  const [bandMode, setBandMode] = useState("default"); // default | specify_role | custom
+  const [bandTexts, setBandTexts] = useState({});        // { user_id: text }
+  const [staffList, setStaffList] = useState([]);
+  const [savingBandMode, setSavingBandMode] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
   // `mode` can now be "student", "teacher", or any staff role
@@ -201,9 +208,17 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
       setSavedColors(sc);
       if (sc.moderna) { setColorPrincipal(sc.moderna.color_principal || "#1e3a5f"); setColorAcento(sc.moderna.color_acento || "#F5B800"); }
       setWatermarkUrl(wmRes.data?.watermark_url || null);
+      setBandMode(colorsRes.data?.band_text_mode || "default");
     }).catch(() => {});
     if (isStaff) {
       setLoadingPreview(true);
+      // Load the editable per-person band list (id, name, specify_role)
+      axios.get(`${API}/api/qr-templates/staff-list`, { headers, params: { role: staffRole } })
+        .then((r) => {
+          const staff = r.data?.staff || [];
+          setStaffList(staff);
+          setBandTexts(Object.fromEntries(staff.map(s => [s.id, s.specify_role || ""])));
+        }).catch(() => {});
       // Teacher uses the legacy preview-teacher/count-teachers endpoints for
       // backwards compatibility. Any other staff role uses the new generic
       // preview-staff/count-staff endpoints with `?role=`.
@@ -288,6 +303,15 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
     finally { setSavingColors(false); }
   };
 
+  const handleSaveBandMode = async () => {
+    setSavingBandMode(true);
+    try {
+      await axios.post(`${API}/api/qr-templates/save-band-mode`, { band_text_mode: bandMode }, { headers });
+      alert("Modo de texto guardado. Se usará por defecto la próxima vez.");
+    } catch { alert("Error al guardar el modo."); }
+    finally { setSavingBandMode(false); }
+  };
+
   const MAX_CLIENT_SIZE = 5 * 1024 * 1024;
 
   const handleUploadWatermark = async (e) => {
@@ -332,6 +356,8 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
         incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
         color_principal: selectedTpl?.supports_custom_colors ? colorPrincipal : null,
         color_acento: selectedTpl?.supports_custom_colors ? colorAcento : null,
+        band_text_mode: isStaff ? bandMode : "default",
+        band_texts: isStaff && bandMode === "custom" ? bandTexts : null,
       }, { headers, responseType: "blob" });
       const isZip = formato === "zip";
       const url = window.URL.createObjectURL(new Blob([res.data], { type: isZip ? "application/zip" : "application/pdf" }));
@@ -347,6 +373,15 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
   const downloadLabel = formato === "zip" ? "Descargar ZIP" : formato === "pdf_lista" ? "Descargar PDF (lista)" : "Descargar PDF";
   const showTemplate = formato !== "zip";
   const showCarnetPreview = formato === "pdf_grid";
+
+  // Resolve the band text shown in the (single) carnet preview for staff modes.
+  let previewBadgeText;
+  if (isStaff && previewData) {
+    const m = staffList.find(s => s.name === previewData.student_name) || staffList[0];
+    if (bandMode === "specify_role") previewBadgeText = m?.specify_role || previewData.nivel;
+    else if (bandMode === "custom") previewBadgeText = (m && bandTexts[m.id]) || m?.specify_role || previewData.nivel;
+    else previewBadgeText = previewData.nivel;
+  }
 
   return (
     <>
@@ -451,6 +486,53 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* 4a. Band text mode (staff carnets only, grid format) */}
+          {isStaff && showCarnetPreview && (
+            <div data-testid="band-text-section">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Texto de la banda</p>
+              <div className="space-y-1.5">
+                {[
+                  { id: "default", label: "Texto por defecto", desc: "Rol genérico (ej. Personal de Mantenimiento)" },
+                  { id: "specify_role", label: 'Usar "Especificar rol" de cada usuario', desc: "Jala el rol específico que se registró por persona" },
+                  { id: "custom", label: "Personalizado (por persona)", desc: "Edita el texto de cada carnet abajo" },
+                ].map(opt => (
+                  <label key={opt.id} className={`flex items-start gap-2.5 p-2 rounded-lg border-2 cursor-pointer transition-all ${bandMode === opt.id ? "border-teal-500 bg-teal-50" : "border-slate-200 hover:border-slate-300"}`}>
+                    <input type="radio" name="bandMode" checked={bandMode === opt.id} onChange={() => setBandMode(opt.id)} className="mt-0.5 w-4 h-4 accent-teal-600" data-testid={`band-mode-${opt.id}`} />
+                    <span>
+                      <span className="block text-xs font-medium text-slate-800">{opt.label}</span>
+                      <span className="block text-[10px] text-slate-500">{opt.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {bandMode === "custom" && (
+                <div className="mt-2 border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-56 overflow-y-auto" data-testid="band-custom-list">
+                  {staffList.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 p-3">No hay personal con QR para mostrar.</p>
+                  ) : staffList.map(s => (
+                    <div key={s.id} className="flex items-center gap-2 p-2">
+                      <span className="text-[11px] text-slate-600 w-32 shrink-0 truncate" title={s.name}>{s.name}</span>
+                      <input
+                        type="text"
+                        value={bandTexts[s.id] ?? ""}
+                        onChange={(e) => setBandTexts(prev => ({ ...prev, [s.id]: e.target.value }))}
+                        placeholder="Texto de la banda"
+                        data-testid={`band-text-input-${s.id}`}
+                        className="flex-1 px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={handleSaveBandMode} disabled={savingBandMode} data-testid="save-band-mode-btn"
+                className="mt-2 text-[11px] font-medium text-teal-700 hover:text-teal-800 disabled:opacity-50">
+                {savingBandMode ? "Guardando..." : "Guardar como predeterminado"}
+              </button>
             </div>
           )}
 
@@ -605,9 +687,9 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
                   <>
                     <p className="text-[10px] text-slate-400 text-center mb-2">{previewData.student_name}</p>
                     {selected === "moderna" ? (
-                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} colorPrincipal={colorPrincipal} colorAcento={colorAcento} watermarkUrl={watermarkUrl} />
+                      <CarnetModernaPreview data={previewData} incluirCodigo={incluirCodigo} logoCarnet={logoCarnet} colorPrincipal={colorPrincipal} colorAcento={colorAcento} watermarkUrl={watermarkUrl} badgeText={previewBadgeText} />
                     ) : (
-                      <CarnetClassicPreview data={previewData} incluirCodigo={incluirCodigo} />
+                      <CarnetClassicPreview data={previewData} incluirCodigo={incluirCodigo} badgeText={previewBadgeText} />
                     )}
                   </>
                 ) : (

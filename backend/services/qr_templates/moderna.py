@@ -58,7 +58,8 @@ class ModernaTemplate(BaseQRTemplate):
 
         students = await db.users.find(
             student_filter,
-            {"_id": 0, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1, "photo_url": 1}
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1, "photo_url": 1,
+             "maintenance_role": 1, "maintenance_role_custom": 1}
         ).to_list(1000)
 
         if not students:
@@ -312,6 +313,10 @@ class ModernaTemplate(BaseQRTemplate):
                     "auxiliar_topico": "Auxiliar de Tópico",
                 }
                 badge_text = staff_role_label_override or _STAFF_LABELS.get(target_role, "Personal")
+                from .base import compute_staff_band_text
+                badge_text = compute_staff_band_text(
+                    s, _get("band_text_mode", "default"), _get("band_texts") or {}, badge_text
+                )
             else:
                 badge_text = f"{nivel_name} - {grado_name} - {seccion_name}"
             c.setFont("Helvetica-Bold", 5)

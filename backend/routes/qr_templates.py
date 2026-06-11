@@ -79,6 +79,10 @@ class TemplateDownloadRequest(BaseModel):
     ordenar_alfabetico: bool = True
     color_principal: Optional[str] = None
     color_acento: Optional[str] = None
+    # Yellow-band text customization (staff carnets only):
+    # mode = "default" | "specify_role" | "custom"; band_texts = {user_id: text}
+    band_text_mode: Optional[str] = "default"
+    band_texts: Optional[dict] = None
 
 
 @router.get("/qr-templates/preview")
@@ -386,8 +390,58 @@ async def get_saved_colors(current_user=Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=403, detail="No autorizado")
     school_id = user.get("school_id")
-    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "qr_template_colors": 1})
-    return {"colors": (settings or {}).get("qr_template_colors", {})}
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "qr_template_colors": 1, "qr_band_text_mode": 1})
+    return {
+        "colors": (settings or {}).get("qr_template_colors", {}),
+        "band_text_mode": (settings or {}).get("qr_band_text_mode", "default"),
+    }
+
+
+class SaveBandModeRequest(BaseModel):
+    band_text_mode: str  # default | specify_role | custom
+
+
+@router.post("/qr-templates/save-band-mode")
+async def save_band_text_mode(data: SaveBandModeRequest, current_user=Depends(get_current_user)):
+    """Save the default yellow-band text mode for staff carnets (per school)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    if data.band_text_mode not in ("default", "specify_role", "custom"):
+        raise HTTPException(status_code=400, detail="Modo inválido")
+    await db.tenant_settings.update_one(
+        {"school_id": user.get("school_id")},
+        {"$set": {"qr_band_text_mode": data.band_text_mode}},
+        upsert=True,
+    )
+    return {"message": "Modo guardado"}
+
+
+@router.get("/qr-templates/staff-list")
+async def staff_list_for_band(role: str = Query(...), current_user=Depends(get_current_user)):
+    """Return the staff users (with QR) of a role plus their 'Especificar rol'
+    text — used to build the editable per-person band-text list in the drawer."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    if role not in STAFF_ROLES_WITH_QR:
+        raise HTTPException(status_code=400, detail=f"Rol no soportado: {role}")
+    from services.qr_templates.base import staff_specify_role_text
+    docs = await db.users.find(
+        {"school_id": user.get("school_id"), "role": role, "qr_token": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "maintenance_role": 1, "maintenance_role_custom": 1},
+    ).to_list(1000)
+    docs.sort(key=lambda d: f"{d.get('last_name', '')} {d.get('name', '')}".strip().lower())
+    return {
+        "staff": [
+            {
+                "id": d.get("id"),
+                "name": f"{d.get('name', '')} {d.get('last_name', '')}".strip(),
+                "specify_role": staff_specify_role_text(d),
+            }
+            for d in docs
+        ]
+    }
 
 
 @router.post("/qr-templates/upload-watermark")

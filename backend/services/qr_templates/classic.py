@@ -82,7 +82,8 @@ class ClassicTemplate(BaseQRTemplate):
         students = await db.users.find(
             student_filter,
             {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1,
-             "codigo_alumno": 1, "username": 1, "photo_url": 1}
+             "codigo_alumno": 1, "username": 1, "photo_url": 1,
+             "maintenance_role": 1, "maintenance_role_custom": 1}
         ).to_list(1000)
 
         logger.info(f"[QR Template Classic] Found {len(students)} students")
@@ -337,7 +338,11 @@ class ClassicTemplate(BaseQRTemplate):
                     "auxiliar_movilidad": "Auxiliar de Movilidad",
                     "auxiliar_topico": "Auxiliar de Tópico",
                 }
-                info_line = staff_role_label_override or _STAFF_LABELS.get(target_role, "Personal")
+                _default_label = staff_role_label_override or _STAFF_LABELS.get(target_role, "Personal")
+                from .base import compute_staff_band_text
+                info_line = compute_staff_band_text(
+                    s, _get("band_text_mode", "default"), _get("band_texts") or {}, _default_label
+                )
             else:
                 info_line = f"{nivel_name} - {curso_label}"
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5 * sf)
