@@ -10,6 +10,20 @@ SUBJECT_ID = "e04de272-54ec-4af9-868a-bc7604e2b4b4"
 
 @pytest.fixture(scope="module")
 def student_token():
+    # Self-provision: admin re-enables the (closed) demo exam for this student so
+    # the test is independent of leftover attempts/overrides from other suites.
+    admin = requests.post(
+        f"{BASE_URL}/api/auth/login",
+        json={"email": "admin@elroble.edu", "password": "1234abc8", "subdomain": "elroble"},
+        timeout=20,
+    )
+    assert admin.status_code == 200, f"admin login failed {admin.status_code} {admin.text}"
+    requests.post(
+        f"{BASE_URL}/api/exams/{EXAM_ID}/enable-retake",
+        headers={"Authorization": f"Bearer {admin.json()['token']}", "Content-Type": "application/json"},
+        json={"student_id": "DEMO-RETAKE-STUDENT", "hours": 24},
+        timeout=20,
+    )
     r = requests.post(
         f"{BASE_URL}/api/auth/login",
         json={"email": "demo.reintento@elroble.edu", "password": "Demo1234!", "subdomain": "elroble"},

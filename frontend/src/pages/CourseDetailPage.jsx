@@ -7905,6 +7905,88 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
           <div className="text-center py-12 text-red-600 text-sm">{error}</div>
         ) : (
           <div className="space-y-4">
+            {/* Auditoría del intento (anti-suplantación) */}
+            {data?.audit && (
+              <div
+                className={`rounded-xl border p-4 ${data.audit.shared_ip ? 'border-red-300 bg-red-50/70' : 'border-slate-200 bg-slate-50'}`}
+                data-testid="review-audit"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  {data.audit.shared_ip ? (
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                  ) : (
+                    <Monitor className="w-4 h-4 text-slate-500" />
+                  )}
+                  <p className={`text-sm font-semibold ${data.audit.shared_ip ? 'text-red-700' : 'text-slate-700'}`}>
+                    Auditoría del intento
+                  </p>
+                </div>
+
+                {!data.audit.has_audit_data ? (
+                  <p className="text-xs text-slate-500" data-testid="review-audit-empty">
+                    Este examen se rindió antes de activar la auditoría, por eso no tiene registro de IP ni dispositivo. Los próximos exámenes sí lo tendrán.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-500">Dirección IP (inicio)</span>
+                      <span className="font-mono font-semibold text-slate-800" data-testid="review-audit-ip">{data.audit.ip_address || '—'}</span>
+                    </div>
+                    {data.audit.submit_ip_address && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-500">IP al enviar</span>
+                        <span className="font-mono font-semibold text-slate-800">{data.audit.submit_ip_address}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-500">Dispositivo</span>
+                      <span className="font-semibold text-slate-800" data-testid="review-audit-device">{data.audit.device || '—'}</span>
+                    </div>
+                    {data.audit.time_used_seconds != null && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-500">Tiempo usado</span>
+                        <span className="font-semibold text-slate-800">
+                          {Math.floor(data.audit.time_used_seconds / 60)}m {data.audit.time_used_seconds % 60}s
+                        </span>
+                      </div>
+                    )}
+                    {data.audit.start_time && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-500">Inició</span>
+                        <span className="font-semibold text-slate-800">{new Date(data.audit.start_time).toLocaleString('es-PE')}</span>
+                      </div>
+                    )}
+                    {data.audit.end_time && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-500">Envió</span>
+                        <span className="font-semibold text-slate-800">{new Date(data.audit.end_time).toLocaleString('es-PE')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {data.audit.shared_ip && (
+                  <div className="mt-3 pt-3 border-t border-red-200" data-testid="review-audit-shared-ip">
+                    <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      ⚠ Misma IP que otro(s) alumno(s) en este examen
+                    </p>
+                    <p className="text-[11px] text-red-600 mt-1">
+                      Estos alumnos rindieron desde la misma dirección IP — podría indicar que se rindió desde el mismo dispositivo/red o que una persona rindió por varios. (Nota: alumnos en el mismo WiFi también comparten IP).
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {data.audit.shared_ip_students.map((s) => (
+                        <li key={s.student_id} className="text-xs text-red-800 flex items-center justify-between gap-2 bg-white/60 rounded-lg px-2.5 py-1.5">
+                          <span className="font-medium truncate">{s.student_name}</span>
+                          <span className="font-mono text-[11px] shrink-0">{s.ip_address}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Evidencia del alumno */}
             {data?.evidence_file ? (
               <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 flex items-center gap-3" data-testid="review-evidence">

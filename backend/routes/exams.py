@@ -55,6 +55,56 @@ from services.register_sync import (
     get_storage_field,
 )
 
+
+def _client_ip(request: Optional["Request"]) -> Optional[str]:
+    """Resolve the real client IP behind the Kubernetes ingress / proxies.
+    Prefers the first hop in X-Forwarded-For, falls back to the socket peer."""
+    if request is None:
+        return None
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    return request.client.host if request.client else None
+
+
+def _short_user_agent(ua: Optional[str]) -> Optional[str]:
+    """Produce a human-friendly device/browser label from a raw User-Agent."""
+    if not ua:
+        return None
+    s = ua
+    # Device / OS
+    if "Android" in s:
+        os_name = "Android"
+    elif "iPhone" in s or "iPad" in s or ("Mac OS X" in s and "Mobile" in s):
+        os_name = "iPhone/iPad"
+    elif "Windows" in s:
+        os_name = "Windows"
+    elif "Mac OS X" in s or "Macintosh" in s:
+        os_name = "Mac"
+    elif "Linux" in s:
+        os_name = "Linux"
+    else:
+        os_name = "Otro"
+    # Browser
+    if "Edg" in s:
+        browser = "Edge"
+    elif "OPR" in s or "Opera" in s:
+        browser = "Opera"
+    elif "Chrome" in s:
+        browser = "Chrome"
+    elif "Firefox" in s:
+        browser = "Firefox"
+    elif "Safari" in s:
+        browser = "Safari"
+    else:
+        browser = "Navegador"
+    return f"{browser} en {os_name}"
+
+
+
 # ONLINE EXAMS MODULE - Premium Implementation
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -2441,6 +2491,57 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
         })
 
     pct = attempt.get("percentage")
+
+    # ── Audit / anti-suplantación ───────────────────────────────────────────
+    # Build a forensic block: IP, device and a "shared IP" alert listing other
+    # students of THIS exam that submitted from the same IP (strong signal that
+    # one person/device took the exam for several students).
+    ip = attempt.get("ip_address")
+    submit_ip = attempt.get("submit_ip_address")
+    shared_ip_students = []
+    check_ips = {x for x in (ip, submit_ip) if x}
+    if check_ips:
+        other_attempts = await db.exam_attempts.find(
+            {
+                "exam_id": exam_id,
+                "school_id": user["school_id"],
+                "student_id": {"$ne": attempt.get("student_id")},
+                "$or": [
+                    {"ip_address": {"$in": list(check_ips)}},
+                    {"submit_ip_address": {"$in": list(check_ips)}},
+                ],
+            },
+            {"_id": 0, "student_id": 1, "student_name": 1, "ip_address": 1, "submit_ip_address": 1},
+        ).to_list(500)
+        seen = set()
+        for oa in other_attempts:
+            sid = oa.get("student_id")
+            if sid in seen:
+                continue
+            seen.add(sid)
+            matched_ip = next(
+                (m for m in (oa.get("ip_address"), oa.get("submit_ip_address")) if m in check_ips),
+                None,
+            )
+            shared_ip_students.append({
+                "student_id": sid,
+                "student_name": oa.get("student_name") or "—",
+                "ip_address": matched_ip,
+            })
+
+    audit = {
+        "ip_address": ip,
+        "submit_ip_address": submit_ip if submit_ip and submit_ip != ip else None,
+        "device": _short_user_agent(attempt.get("user_agent")),
+        "user_agent": attempt.get("user_agent"),
+        "start_time": attempt.get("start_time"),
+        "end_time": attempt.get("end_time"),
+        "time_used_seconds": attempt.get("time_used_seconds"),
+        "shared_ip": len(shared_ip_students) > 0,
+        "shared_ip_students": shared_ip_students,
+        "has_audit_data": bool(ip or submit_ip or attempt.get("user_agent")),
+    }
+
     return {
         "attempt_id": attempt_id,
         "exam_id": exam_id,
@@ -2458,6 +2559,7 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
         "questions": questions_review,
         "allow_evidence_upload": bool(exam.get("allow_evidence_upload")),
         "evidence_file": attempt.get("evidence_file"),
+        "audit": audit,
     }
 
 
@@ -3624,6 +3726,7 @@ async def get_exam_info_for_student(
 @router.post("/exams/{exam_id}/start")
 async def start_exam_attempt(
     exam_id: str,
+    request: Request,
     current_user = Depends(get_current_user)
 ):
     """
@@ -3776,6 +3879,9 @@ async def start_exam_attempt(
             "passed": None,
             "answers": {},  # Dict of question_id -> answer
             "tab_changes": 0,
+            # Audit trail (who/where the exam was actually taken from)
+            "ip_address": _client_ip(request),
+            "user_agent": request.headers.get("user-agent") if request else None,
             "created_at": now.isoformat()
         }
         
@@ -3966,6 +4072,7 @@ async def report_tab_change(
 @router.post("/exam-attempts/{attempt_id}/submit")
 async def submit_exam_attempt(
     attempt_id: str,
+    request: Request,
     data: Optional[SubmitExamRequest] = None,
     current_user = Depends(get_current_user)
 ):
@@ -4137,7 +4244,11 @@ async def submit_exam_attempt(
             "incorrect_count": incorrect_count,
             "unanswered_count": unanswered_count,
             "graded_answers": graded_answers,
-            "time_used_seconds": time_used_seconds
+            "time_used_seconds": time_used_seconds,
+            # Audit: capture where the exam was submitted from too (may differ
+            # from the start IP if the connection changed mid-exam).
+            "submit_ip_address": _client_ip(request),
+            "submit_user_agent": request.headers.get("user-agent") if request else None
         }}
     )
 

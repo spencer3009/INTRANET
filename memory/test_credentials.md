@@ -20,6 +20,13 @@
 - Examen re-habilitado (cerrado + override activo): `Examen de Música - Unidad 2` (id `DEMO-RETAKE-EXAM`)
 - Nota: el override expira 24h. Re-crear con script si caduca.
 
+## Alumno DEMO 2 (para test de auditoría IP compartida)
+- Email: `demo.dos@elroble.edu`
+- Password: `Demo1234!`
+- Subdomain: `elroble`
+- id: `DEMO-RETAKE-STUDENT-2` (misma sección que demo.reintento)
+- Usado por `tests/test_exam_attempt_audit.py` (ambos rinden DEMO-RETAKE-EXAM desde la misma IP → alerta).
+
 ## Profesor sin tutoría
 - Email: `sonia3009@gmail.com`
 - Password: `teacher123`
