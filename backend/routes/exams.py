@@ -3668,11 +3668,6 @@ async def start_exam_attempt(
                 detail=f"El examen no tiene duración configurada (valor recibido: {duration_raw}, tipo: {type(duration_raw).__name__})"
             )
         
-        # Validate exam is published
-        if exam.get("status") != "published":
-            raise HTTPException(status_code=400, detail="Este examen no está disponible")
-        
-        # Validate date range
         now = datetime.now(timezone.utc)
         
         start_datetime_str = exam.get("start_datetime")
@@ -3686,7 +3681,7 @@ async def start_exam_attempt(
         
         # Individual retake override (teacher re-enabled this student after the
         # window closed, e.g. they lost internet). When active, it replaces the
-        # exam's deadline for this student only.
+        # exam's deadline AND lets the student start an already-closed exam.
         override = await db.exam_retake_overrides.find_one(
             {"exam_id": exam_id, "student_id": user["id"]}, {"_id": 0, "expires_at": 1})
         override_active = False
@@ -3698,6 +3693,14 @@ async def start_exam_attempt(
                     end_dt = ov_exp  # personal deadline wins
             except Exception:
                 pass
+        
+        # Validate exam status. A re-enabled student may start an exam whose
+        # status the auto-close cron already moved to "closed".
+        allowed_statuses = {"published"}
+        if override_active:
+            allowed_statuses.add("closed")
+        if exam.get("status") not in allowed_statuses:
+            raise HTTPException(status_code=400, detail="Este examen no está disponible")
         
         if now < start_dt and not override_active:
             raise HTTPException(status_code=400, detail="El examen aún no está disponible")
