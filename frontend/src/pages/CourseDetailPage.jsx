@@ -8041,12 +8041,124 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
   );
 }
 
+function ExamRetakePanel({ exam, token, onBack }) {
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState([]);
+  const [hours, setHours] = useState(24);
+  const [search, setSearch] = useState('');
+  const [busyId, setBusyId] = useState(null);
+  const auth = { headers: { Authorization: `Bearer ${token}` } };
+
+  const loadEligible = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/exams/${exam.id}/eligible-students`, auth);
+      setStudents(res.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error al cargar alumnos');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { loadEligible(); /* eslint-disable-next-line */ }, [exam.id]);
+
+  const enable = async (sid) => {
+    setBusyId(sid);
+    try {
+      const res = await axios.post(`${API}/exams/${exam.id}/enable-retake`, { student_id: sid, hours: Number(hours) || 24 }, auth);
+      toast.success(`Habilitado para ${res.data.student_name} (válido ${res.data.hours} h)`);
+      await loadEligible();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'No se pudo habilitar');
+    } finally { setBusyId(null); }
+  };
+  const disable = async (sid) => {
+    setBusyId(sid);
+    try {
+      await axios.post(`${API}/exams/${exam.id}/disable-retake`, { student_id: sid }, auth);
+      toast.success('Permiso cancelado');
+      await loadEligible();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'No se pudo cancelar');
+    } finally { setBusyId(null); }
+  };
+
+  const statusBadge = (s) => {
+    const map = {
+      completed: { t: 'Completado', c: 'bg-emerald-100 text-emerald-700' },
+      in_progress: { t: 'En progreso', c: 'bg-blue-100 text-blue-700' },
+      expired: { t: 'Expirado', c: 'bg-red-100 text-red-700' },
+    };
+    const m = s ? map[s] : { t: 'No rindió', c: 'bg-gray-100 text-gray-500' };
+    return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${m?.c || 'bg-gray-100 text-gray-500'}`}>{m?.t || s}</span>;
+  };
+
+  const filtered = students.filter(s => s.full_name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0" data-testid="exam-retake-panel">
+      <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg" data-testid="exam-retake-back">
+          <ChevronLeft className="w-4 h-4" /> Volver
+        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs text-gray-500">Válido por</span>
+          <input type="number" min="1" max="720" value={hours} onChange={(e) => setHours(e.target.value)} data-testid="retake-hours-input"
+            className="w-16 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+          <span className="text-xs text-gray-500">horas</span>
+        </div>
+      </div>
+
+      <div className="px-6 pt-3">
+        <p className="text-xs text-gray-500 mb-2">Habilita el examen a un alumno que no pudo rendirlo (ej. se quedó sin internet). Su intento anterior se descarta y podrá rendir de nuevo dentro del plazo.</p>
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar alumno..." data-testid="retake-search"
+          className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 mb-2" />
+      </div>
+
+      <div className="overflow-y-auto px-6 pb-4 flex-1 min-h-0">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 className="w-7 h-7 text-amber-500 animate-spin" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 text-sm">No hay alumnos para mostrar.</div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filtered.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 py-2.5" data-testid={`retake-row-${s.id}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{s.full_name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {statusBadge(s.attempt_status)}
+                    {s.retake_enabled && <span className="text-[11px] font-semibold text-amber-700">✓ Habilitado</span>}
+                  </div>
+                </div>
+                {s.retake_enabled ? (
+                  <button onClick={() => disable(s.id)} disabled={busyId === s.id} data-testid={`retake-cancel-${s.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 shrink-0">
+                    {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Cancelar
+                  </button>
+                ) : (
+                  <button onClick={() => enable(s.id)} disabled={busyId === s.id} data-testid={`retake-enable-${s.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg disabled:opacity-50 shrink-0">
+                    {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />} Habilitar
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function ExamResultsModal({ exam, token, onClose }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [reviewAttempt, setReviewAttempt] = useState(null);
+  const [retakeView, setRetakeView] = useState(false);
 
   const loadResults = async () => {
     try {
@@ -8144,6 +8256,8 @@ function ExamResultsModal({ exam, token, onClose }) {
 
         {reviewAttempt ? (
           <ExamAttemptReview exam={exam} attempt={reviewAttempt} token={token} onBack={() => setReviewAttempt(null)} />
+        ) : retakeView ? (
+          <ExamRetakePanel exam={exam} token={token} onBack={() => { setRetakeView(false); loadResults(); }} />
         ) : (
         <>
         {!loading && !error && (
@@ -8161,6 +8275,9 @@ function ExamResultsModal({ exam, token, onClose }) {
                 <Download className="w-4 h-4" /> Excel/CSV
               </button>
             )}
+            <button onClick={() => setRetakeView(true)} className={`${results.length > 0 ? '' : 'ml-auto'} inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg`} data-testid="exam-enable-retake-open">
+              <RotateCcw className="w-4 h-4" /> Habilitar intento
+            </button>
           </div>
         )}
 

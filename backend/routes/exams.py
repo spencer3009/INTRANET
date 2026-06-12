@@ -1920,6 +1920,125 @@ async def get_omr_students(exam_id: str, current_user=Depends(get_current_user))
     return result
 
 
+# ── Re-enable exam for a specific student (lost-internet retake) ─────────────
+class EnableRetakeRequest(BaseModel):
+    student_id: str
+    hours: float = 24
+
+
+def _can_manage_exam(user) -> bool:
+    """Teacher, admin/director or owner can re-enable retakes."""
+    return is_admin_user(user) or user.get("role") == "teacher"
+
+
+async def _section_students(school_id: str, section_id: str):
+    base = {"school_id": school_id, "role": "student", "student_status": {"$in": ["enrolled", "active"]}}
+    students = await db.users.find({**base, "seccion_id": section_id},
+                                   {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(300)
+    if not students:
+        students = await db.users.find({**base, "section_id": section_id},
+                                       {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(300)
+    return students
+
+
+@router.get("/exams/{exam_id}/eligible-students")
+async def get_exam_eligible_students(exam_id: str, current_user=Depends(get_current_user)):
+    """Roster of the exam's section with each student's attempt status + whether
+    a retake is currently enabled. Used by the teacher to re-enable a student."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not _can_manage_exam(user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0, "section_id": 1, "school_id": 1})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    students = await _section_students(exam["school_id"], exam.get("section_id"))
+    attempts = await db.exam_attempts.find(
+        {"exam_id": exam_id}, {"_id": 0, "student_id": 1, "status": 1}).to_list(500)
+    att_map = {a["student_id"]: a.get("status") for a in attempts}
+    overrides = await db.exam_retake_overrides.find(
+        {"exam_id": exam_id}, {"_id": 0, "student_id": 1, "expires_at": 1}).to_list(500)
+    now = datetime.now(timezone.utc)
+    ov_map = {}
+    for o in overrides:
+        try:
+            ov_map[o["student_id"]] = o["expires_at"] if datetime.fromisoformat(o["expires_at"].replace("Z", "+00:00")) > now else None
+        except Exception:
+            ov_map[o["student_id"]] = None
+
+    result = []
+    for st in students:
+        result.append({
+            "id": st["id"],
+            "full_name": f"{st.get('last_name', '')} {st.get('name', '')}".strip(),
+            "attempt_status": att_map.get(st["id"]),  # None | in_progress | completed | expired
+            "retake_enabled": bool(ov_map.get(st["id"])),
+            "retake_expires_at": ov_map.get(st["id"]),
+        })
+    result.sort(key=lambda r: r["full_name"].lower())
+    return result
+
+
+@router.post("/exams/{exam_id}/enable-retake")
+async def enable_exam_retake(exam_id: str, data: EnableRetakeRequest, current_user=Depends(get_current_user)):
+    """Re-enable the exam for ONE student after the window closed (e.g. they lost
+    internet). Discards their previous attempt and grants an individual time
+    window of `hours` to take it again."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not _can_manage_exam(user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0, "id": 1, "school_id": 1})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+
+    hours = data.hours if (data.hours and data.hours > 0) else 24
+    student = await db.users.find_one(
+        {"id": data.student_id, "school_id": user["school_id"], "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    # Discard previous attempt(s) — the new attempt will count.
+    await db.exam_attempts.delete_many(
+        {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
+
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(hours=hours)).isoformat()
+    await db.exam_retake_overrides.update_one(
+        {"exam_id": exam_id, "student_id": data.student_id},
+        {"$set": {
+            "exam_id": exam_id,
+            "student_id": data.student_id,
+            "school_id": user["school_id"],
+            "expires_at": expires_at,
+            "enabled_by": user["id"],
+            "enabled_at": now.isoformat(),
+            "hours": hours,
+        }},
+        upsert=True,
+    )
+    return {
+        "message": "Examen habilitado para el alumno",
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "expires_at": expires_at,
+        "hours": hours,
+    }
+
+
+@router.post("/exams/{exam_id}/disable-retake")
+async def disable_exam_retake(exam_id: str, data: EnableRetakeRequest, current_user=Depends(get_current_user)):
+    """Cancel a previously granted retake permission for a student."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not _can_manage_exam(user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    await db.exam_retake_overrides.delete_one(
+        {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
+    return {"message": "Permiso de reintento cancelado"}
+
+
+
 @router.post("/exams/{exam_id}/omr-scan")
 async def process_omr_scan_endpoint(
     exam_id: str,
@@ -3521,7 +3640,22 @@ async def start_exam_attempt(
         start_dt = datetime.fromisoformat(start_datetime_str.replace("Z", "+00:00"))
         end_dt = datetime.fromisoformat(end_datetime_str.replace("Z", "+00:00"))
         
-        if now < start_dt:
+        # Individual retake override (teacher re-enabled this student after the
+        # window closed, e.g. they lost internet). When active, it replaces the
+        # exam's deadline for this student only.
+        override = await db.exam_retake_overrides.find_one(
+            {"exam_id": exam_id, "student_id": user["id"]}, {"_id": 0, "expires_at": 1})
+        override_active = False
+        if override:
+            try:
+                ov_exp = datetime.fromisoformat(override["expires_at"].replace("Z", "+00:00"))
+                if now <= ov_exp:
+                    override_active = True
+                    end_dt = ov_exp  # personal deadline wins
+            except Exception:
+                pass
+        
+        if now < start_dt and not override_active:
             raise HTTPException(status_code=400, detail="El examen aún no está disponible")
         if now > end_dt:
             raise HTTPException(status_code=400, detail="El tiempo para este examen ha finalizado")
