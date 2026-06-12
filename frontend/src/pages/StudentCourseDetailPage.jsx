@@ -3037,6 +3037,16 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
   }
 
   const getExamStatus = (exam) => {
+    // Teacher blocked this exam for the student (e.g. inasistencia).
+    if (exam.is_blocked) {
+      return {
+        status: "blocked",
+        label: exam.block_reason || "Bloqueado por inasistencia",
+        color: "bg-red-100 text-red-700",
+        borderColor: "border-red-300",
+      };
+    }
+
     const attempt = examAttempts[exam.id];
     
     if (attempt) {
@@ -3121,7 +3131,7 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
               examStatus.status === 'available' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600' :
               examStatus.status === 'in_progress' ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
               examStatus.status === 'completed' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' :
-              examStatus.status === 'closed' || examStatus.status === 'expired' ? 'bg-gradient-to-r from-red-400 to-red-500' :
+              examStatus.status === 'closed' || examStatus.status === 'expired' || examStatus.status === 'blocked' ? 'bg-gradient-to-r from-red-400 to-red-500' :
               'bg-gradient-to-r from-slate-400 to-slate-500'
             }`}>
               <div className="flex items-center justify-between">
@@ -3235,6 +3245,12 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
                   <div className="w-full py-3 bg-red-50 text-red-500 font-semibold rounded-xl flex items-center justify-center gap-2">
                     <AlertCircle className="w-5 h-5" />
                     Examen cerrado
+                  </div>
+                )}
+                {examStatus.status === "blocked" && (
+                  <div className="w-full py-3 bg-red-50 text-red-600 font-semibold rounded-xl flex items-center justify-center gap-2" data-testid={`exam-blocked-${exam.id}`}>
+                    <Lock className="w-5 h-5" />
+                    {exam.block_reason || "Bloqueado por inasistencia"}
                   </div>
                 )}
                 {examStatus.status === "expired" && (
@@ -5055,7 +5071,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         const examsRes = await axios.get(`${API}/api/course/${courseId}/exams`, { headers });
         // Show published/scheduled exams, plus any exam re-enabled for this
         // student (retake override) even if its status is already "closed".
-        const publishedExams = (examsRes.data || []).filter(e => e.status === 'published' || e.status === 'scheduled' || e.retake_enabled);
+        const publishedExams = (examsRes.data || []).filter(e => e.status === 'published' || e.status === 'scheduled' || e.retake_enabled || e.is_blocked);
         setExams(publishedExams);
       } catch (e) {
         console.log("Could not load exams:", e);

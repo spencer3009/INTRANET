@@ -702,6 +702,47 @@ async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage
     logger.info(f"[SYNC] Student {student_id} exam grade synced: type={field_type} key={field_key} value={grade_value}")
 
 
+async def clear_single_student_exam(db, exam_id: str, student_id: str):
+    """Clear (set to None) a single student's exam grade in the Registro Auxiliar.
+    Used when a teacher BLOCKS/annuls a student's attempt (e.g. inasistencia).
+    Mirrors `sync_single_student_exam` but writes a null value."""
+    exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0})
+    if not exam or not exam.get("register_column"):
+        return
+
+    school_id = exam.get("school_id")
+    register_column = exam["register_column"]
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if grade_field:
+        field_type, field_key = "static", grade_field
+    else:
+        field_type, field_key = await get_storage_field(db, register_column, school_id)
+        if not field_type:
+            return
+
+    period_id = exam.get("period_id")
+    subject_id = exam.get("subject_id")
+    section_id = exam.get("section_id")
+    if not all([period_id, subject_id, school_id]):
+        return
+
+    grade_filter = {
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "period_id": period_id,
+        "student_id": student_id,
+    }
+    resolved_section_id = await _resolve_student_section(db, section_id, student_id)
+    if resolved_section_id:
+        grade_filter["section_id"] = resolved_section_id
+
+    update_fields = _build_grade_update(field_type, field_key, None)
+    if update_fields:
+        await db.student_grades.update_one(grade_filter, {"$set": update_fields})
+        logger.info(f"[SYNC] Student {student_id} exam grade CLEARED (blocked): key={field_key}")
+
+
+
 async def sync_single_student_task(db, task_id: str, student_id: str, grade: float):
     """
     Sync a single student's task grade after grading.

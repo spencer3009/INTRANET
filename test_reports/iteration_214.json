@@ -1,0 +1,44 @@
+{
+  "summary": "Validado 'Bloquear examen por inasistencia'. Backend 100% OK: pytest backend/tests/test_exam_block.py 4/4 PASS (block, student-list, eligible-students, unblock); curl directo confirma POST /api/exams/DEMO-RETAKE-EXAM/block-student responde reason='Bloqueado por inasistencia', POST .../start devuelve 403 con detail 'Bloqueado por inasistencia', GET /api/course/{subject}/exams (token alumno) marca is_blocked=true / block_reason='Bloqueado por inasistencia' / is_available=false, GET /api/exams/{id}/eligible-students marca blocked=true, POST unblock-student lo revierte (blocked=false). Frontend STUDENT: tras un fix de 1 línea aplicado por el testing agent, el examen bloqueado se muestra como tarjeta roja con data-testid 'exam-blocked-DEMO-RETAKE-EXAM' y texto 'Bloqueado por inasistencia' (color rgb(220,38,38)); el boton start-exam-btn-DEMO-RETAKE-EXAM NO aparece. Frontend ADMIN: el ExamRetakePanel (CourseDetailPage.jsx ~L8240) tiene los data-testids correctos exam-block-<id> / exam-unblock-<id> / retake-row-<id> con confirm dialog y label rojo; código revisado (no se pudo ejecutar UI admin porque admin@elroble.edu no es teacher de Música y /elroble/teacher/courses/<id> queda en dashboard 0 cursos; los flujos UI del lado profesor deberían validarse con un teacher real asignado a Música). Estado final dejado limpio: alumno desbloqueado, retake reactivado, sin attempts.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Portal alumno - lista de examenes muestra examen bloqueado",
+        "issue": "BUG ENCONTRADO Y CORREGIDO: StudentCourseDetailPage.jsx linea 5074 filtraba con (status==='published' || status==='scheduled' || retake_enabled). Un examen bloqueado tiene status='closed' y retake_enabled=false, por lo que era descartado antes de renderizar -> el alumno veia 'Sin examenes' aunque el backend incluia el examen con is_blocked=true. Fix aplicado: agregar '|| e.is_blocked' al filtro. Tras el fix, la tarjeta roja exam-blocked-DEMO-RETAKE-EXAM se renderiza correctamente.",
+        "affected_selectors": ["[data-testid=exam-blocked-DEMO-RETAKE-EXAM]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_exam_block.py",
+    "/app/test_reports/pytest/exam_block.xml",
+    "/app/test_reports/screenshots/student_blocked_after_fix.png"
+  ],
+  "action_items": [
+    "Revisar el fix aplicado en /app/frontend/src/pages/StudentCourseDetailPage.jsx L5074 (filtro de exams) - se agrego '|| e.is_blocked' para incluir examenes cerrados bloqueados. Validar que no rompa otros casos (por ejemplo: un examen closed sin block ni retake no debe aparecer).",
+    "El flujo UI del lado profesor/admin (boton Bloquear -> confirm -> etiqueta roja + boton Desbloquear) no se pudo ejecutar end-to-end porque admin@elroble.edu no es teacher de Musica (POST /teacher/courses devuelve 403 y /elroble/teacher/courses/<id> termina en el dashboard). Recomendacion: asignar Musica a admin como teacher o crear seed teacher con la materia, para que el ExamRetakePanel sea accesible via UI. El codigo del panel (CourseDetailPage.jsx ~L8240-8285) esta correcto y los data-testids estan presentes.",
+    "Despues del retest, el override fue re-creado y expira 2026-06-13T20:58:04Z."
+  ],
+  "critical_code_review_comments": [
+    "StudentCourseDetailPage.jsx L5074: el filtro de visibilidad de examenes mezclaba reglas de status con reglas de habilitacion individual. Sugerencia: centralizar en un helper isExamVisibleForStudent(e) para evitar drift con backend (igual al patron sugerido en iter_213 para start/list).",
+    "Inconsistencia historica: el listado backend incluye examenes bloqueados aunque esten cerrados (correcto), pero el filtro frontend los excluia. Falta un test e2e que cubra esto.",
+    "CourseDetailPage.jsx supera 13k lineas - urgente partir en modulos (ExamResults, ExamRetakePanel, ExamAttemptReview, etc.).",
+    "Mensaje al alumno: la availability_message del backend ('Bloqueado por inasistencia') se duplica con el label de la tarjeta. Considerar una sola fuente."
+  ],
+  "updated_files": ["/app/frontend/src/pages/StudentCourseDetailPage.jsx"],
+  "success_rate": {"backend": "100% (4/4 pytest + curls)", "frontend": "100% student (post-fix); admin no testeado en UI por permisos"},
+  "test_credentials": "admin@elroble.edu / 1234abc8 (subdomain elroble) y demo.reintento@elroble.edu / Demo1234! (subdomain elroble). Examen DEMO-RETAKE-EXAM. Course Musica e04de272-54ec-4af9-868a-bc7604e2b4b4.",
+  "seed_data_creation": "Ninguna nueva. Re-aplicado enable-retake (24h) y unblock al final para dejar el demo en estado limpio.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend block/unblock funciona end-to-end. Frontend alumno funciona TRAS el fix en StudentCourseDetailPage L5074. El flujo de admin via UI requiere un teacher real asignado a Musica; admin@elroble.edu no llega al CourseDetailPage de Musica. Tests pytest: backend/tests/test_exam_block.py (4/4). Override re-creado, vence 2026-06-13T20:58Z.",
+  "rca_of_the_issue": {
+    "bug": "Alumno con examen bloqueado veia 'Sin examenes' en vez de la tarjeta roja 'Bloqueado por inasistencia'.",
+    "rca": "El filtro frontend en StudentCourseDetailPage.jsx (L5074) descartaba examenes con status='closed' y retake_enabled=false, aunque vinieran con is_blocked=true. El backend devolvia el examen correctamente, pero el cliente lo eliminaba antes del render.",
+    "reproduction": "1) Admin POST /api/exams/DEMO-RETAKE-EXAM/block-student {student_id:'DEMO-RETAKE-STUDENT'} -> 200. 2) Login alumno demo.reintento/Demo1234! -> /elroble/student/courses/e04de272... -> tab Examenes. 3) Antes del fix: 'Sin examenes'. 4) Despues del fix: tarjeta roja con data-testid exam-blocked-DEMO-RETAKE-EXAM.",
+    "mitigation": "Agregar '|| e.is_blocked' al filtro de examenes visibles en StudentCourseDetailPage L5074. A medio plazo, mover esa logica a un helper compartido con el backend."
+  }
+}

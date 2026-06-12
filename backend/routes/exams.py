@@ -48,6 +48,7 @@ router = APIRouter(prefix="/api")
 from services.register_sync import (
     sync_exam_to_register, sync_single_student, retry_pending_syncs,
     sync_to_register, sync_single_student_task,
+    clear_single_student_exam,
     COLUMN_FIELD_MAP, VALID_COLUMNS, TASK_VALID_COLUMNS,
     get_valid_task_columns_for_school,
     get_valid_exam_columns_for_school,
@@ -600,10 +601,15 @@ async def get_course_exams(
                     override_ids.append(ov["exam_id"])
             except Exception:
                 pass
-        if override_ids:
+        # Blocked exams (e.g. inasistencia) must also surface so the student sees
+        # the red "Bloqueado por inasistencia" state instead of the exam vanishing.
+        block_ids = await db.exam_blocks.distinct(
+            "exam_id", {"student_id": user["id"], "school_id": user["school_id"]})
+        extra_ids = list(set(override_ids) | set(block_ids))
+        if extra_ids:
             query["$or"] = [
                 {"status": ExamStatus.published.value},
-                {"id": {"$in": override_ids}},
+                {"id": {"$in": extra_ids}},
             ]
         else:
             query["status"] = ExamStatus.published.value
@@ -629,9 +635,26 @@ async def get_course_exams(
                     override_map[ov["exam_id"]] = ov["expires_at"]
             except Exception:
                 pass
+        # Per-student blocks (e.g. inasistencia). A blocked exam is shown in the
+        # portal in red and cannot be taken.
+        blocks = await db.exam_blocks.find(
+            {"exam_id": {"$in": exam_ids}, "student_id": user["id"]},
+            {"_id": 0, "exam_id": 1, "reason": 1},
+        ).to_list(200)
+        block_map = {b["exam_id"]: (b.get("reason") or "Bloqueado por inasistencia") for b in blocks}
         for exam in exams:
             start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
             end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
+            # Blocked overrides everything else.
+            if exam["id"] in block_map:
+                exam["is_blocked"] = True
+                exam["block_reason"] = block_map[exam["id"]]
+                exam["retake_enabled"] = False
+                exam["retake_expires_at"] = None
+                exam["is_available"] = False
+                exam["availability_message"] = block_map[exam["id"]]
+                continue
+            exam["is_blocked"] = False
             override_exp = override_map.get(exam["id"])
             exam["retake_enabled"] = bool(override_exp)
             exam["retake_expires_at"] = override_exp
@@ -2087,6 +2110,10 @@ async def get_exam_eligible_students(exam_id: str, current_user=Depends(get_curr
         except Exception:
             ov_map[o["student_id"]] = None
 
+    blocks = await db.exam_blocks.find(
+        {"exam_id": exam_id}, {"_id": 0, "student_id": 1}).to_list(500)
+    blocked_ids = {b["student_id"] for b in blocks}
+
     result = []
     for st in students:
         result.append({
@@ -2095,6 +2122,7 @@ async def get_exam_eligible_students(exam_id: str, current_user=Depends(get_curr
             "attempt_status": att_map.get(st["id"]),  # None | in_progress | completed | expired
             "retake_enabled": bool(ov_map.get(st["id"])),
             "retake_expires_at": ov_map.get(st["id"]),
+            "blocked": st["id"] in blocked_ids,
         })
     result.sort(key=lambda r: r["full_name"].lower())
     return result
@@ -2156,6 +2184,74 @@ async def disable_exam_retake(exam_id: str, data: EnableRetakeRequest, current_u
     await db.exam_retake_overrides.delete_one(
         {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
     return {"message": "Permiso de reintento cancelado"}
+
+
+# ── Bloqueo de examen por alumno (inasistencia) ─────────────────────────────
+BLOCK_REASON_TEXT = "Bloqueado por inasistencia"
+
+
+@router.post("/exams/{exam_id}/block-student")
+async def block_exam_for_student(exam_id: str, data: EnableRetakeRequest, current_user=Depends(get_current_user)):
+    """Block ONE student from an exam (e.g. they did not attend class). The
+    student can no longer see/take the exam; the portal shows it in red as
+    'Bloqueado por inasistencia'. Any existing attempt/grade is ANNULLED:
+    the attempt is discarded and the register cell is cleared."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not _can_manage_exam(user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0, "id": 1, "school_id": 1, "register_column": 1})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    student = await db.users.find_one(
+        {"id": data.student_id, "school_id": user["school_id"], "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    # Annul: discard the student's attempt(s) and any retake permission.
+    await db.exam_attempts.delete_many(
+        {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
+    await db.exam_retake_overrides.delete_one(
+        {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
+    # Clear the grade from the Registro Auxiliar (if linked).
+    if exam.get("register_column"):
+        try:
+            await clear_single_student_exam(db, exam_id, data.student_id)
+        except Exception as e:
+            logger.error(f"[BLOCK] Failed to clear register grade for {data.student_id}: {e}")
+
+    now = datetime.now(timezone.utc)
+    await db.exam_blocks.update_one(
+        {"exam_id": exam_id, "student_id": data.student_id},
+        {"$set": {
+            "exam_id": exam_id,
+            "student_id": data.student_id,
+            "school_id": user["school_id"],
+            "reason": BLOCK_REASON_TEXT,
+            "blocked_by": user["id"],
+            "blocked_at": now.isoformat(),
+        }},
+        upsert=True,
+    )
+    return {
+        "message": "Examen bloqueado para el alumno",
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "reason": BLOCK_REASON_TEXT,
+    }
+
+
+@router.post("/exams/{exam_id}/unblock-student")
+async def unblock_exam_for_student(exam_id: str, data: EnableRetakeRequest, current_user=Depends(get_current_user)):
+    """Remove the inasistencia block for a student. Does NOT restore the annulled
+    grade — if the teacher wants the student to take it again they can use
+    'Habilitar intento'."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not _can_manage_exam(user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    await db.exam_blocks.delete_one(
+        {"exam_id": exam_id, "student_id": data.student_id, "school_id": user["school_id"]})
+    return {"message": "Bloqueo retirado"}
 
 
 
@@ -3773,6 +3869,12 @@ async def start_exam_attempt(
         exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
         if not exam:
             raise HTTPException(status_code=404, detail="Examen no encontrado")
+        
+        # Blocked by the teacher (e.g. inasistencia) — student cannot take it.
+        block = await db.exam_blocks.find_one(
+            {"exam_id": exam_id, "student_id": user["id"]}, {"_id": 0, "reason": 1})
+        if block:
+            raise HTTPException(status_code=403, detail=block.get("reason") or BLOCK_REASON_TEXT)
         
         # DEBUG: Log exam data
         duration_raw = exam.get("duration_minutes")

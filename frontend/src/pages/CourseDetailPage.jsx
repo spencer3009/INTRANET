@@ -8180,6 +8180,27 @@ function ExamRetakePanel({ exam, token, onBack }) {
       toast.error(err.response?.data?.detail || 'No se pudo cancelar');
     } finally { setBusyId(null); }
   };
+  const block = async (sid) => {
+    if (!window.confirm('¿Bloquear este examen para el alumno por inasistencia? Si ya tenía una nota, se ANULARÁ.')) return;
+    setBusyId(sid);
+    try {
+      const res = await axios.post(`${API}/exams/${exam.id}/block-student`, { student_id: sid }, auth);
+      toast.success(`${res.data.student_name}: bloqueado por inasistencia`);
+      await loadEligible();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'No se pudo bloquear');
+    } finally { setBusyId(null); }
+  };
+  const unblock = async (sid) => {
+    setBusyId(sid);
+    try {
+      await axios.post(`${API}/exams/${exam.id}/unblock-student`, { student_id: sid }, auth);
+      toast.success('Bloqueo retirado');
+      await loadEligible();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'No se pudo desbloquear');
+    } finally { setBusyId(null); }
+  };
 
   const statusBadge = (s) => {
     const map = {
@@ -8208,7 +8229,7 @@ function ExamRetakePanel({ exam, token, onBack }) {
       </div>
 
       <div className="px-6 pt-3">
-        <p className="text-xs text-gray-500 mb-2">Habilita el examen a un alumno que no pudo rendirlo (ej. se quedó sin internet). Su intento anterior se descarta y podrá rendir de nuevo dentro del plazo.</p>
+        <p className="text-xs text-gray-500 mb-2">Habilita el examen a un alumno que no pudo rendirlo (ej. se quedó sin internet) o <span className="font-semibold text-red-600">bloquéalo por inasistencia</span> (si lo bloqueas, cualquier nota que ya tuviera se anula y no podrá rendir).</p>
         <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar alumno..." data-testid="retake-search"
           className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 mb-2" />
       </div>
@@ -8226,19 +8247,33 @@ function ExamRetakePanel({ exam, token, onBack }) {
                   <p className="text-sm font-medium text-gray-800 truncate">{s.full_name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {statusBadge(s.attempt_status)}
-                    {s.retake_enabled && <span className="text-[11px] font-semibold text-amber-700">✓ Habilitado</span>}
+                    {s.blocked && <span className="text-[11px] font-semibold text-red-700 inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Bloqueado por inasistencia</span>}
+                    {s.retake_enabled && !s.blocked && <span className="text-[11px] font-semibold text-amber-700">✓ Habilitado</span>}
                   </div>
                 </div>
-                {s.retake_enabled ? (
-                  <button onClick={() => disable(s.id)} disabled={busyId === s.id} data-testid={`retake-cancel-${s.id}`}
+                {s.blocked ? (
+                  <button onClick={() => unblock(s.id)} disabled={busyId === s.id} data-testid={`exam-unblock-${s.id}`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 shrink-0">
-                    {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Cancelar
+                    {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />} Desbloquear
                   </button>
                 ) : (
-                  <button onClick={() => enable(s.id)} disabled={busyId === s.id} data-testid={`retake-enable-${s.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg disabled:opacity-50 shrink-0">
-                    {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />} Habilitar
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {s.retake_enabled ? (
+                      <button onClick={() => disable(s.id)} disabled={busyId === s.id} data-testid={`retake-cancel-${s.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50">
+                        {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Cancelar
+                      </button>
+                    ) : (
+                      <button onClick={() => enable(s.id)} disabled={busyId === s.id} data-testid={`retake-enable-${s.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg disabled:opacity-50">
+                        {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />} Habilitar
+                      </button>
+                    )}
+                    <button onClick={() => block(s.id)} disabled={busyId === s.id} data-testid={`exam-block-${s.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-50">
+                      {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />} Bloquear
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
