@@ -3079,6 +3079,15 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
     const startDate = new Date(exam.start_datetime || exam.start_date);
     const endDate = new Date(exam.end_datetime || exam.end_date);
     
+    // Teacher re-enabled this exam for the student after the window closed
+    // (e.g. they lost internet). The personal deadline replaces end_datetime.
+    if (exam.retake_enabled) {
+      if (now < startDate) {
+        return { status: "upcoming", label: "Próximamente", color: "bg-slate-100 text-slate-600", borderColor: "border-slate-200" };
+      }
+      return { status: "available", label: "Habilitado", color: "bg-amber-100 text-amber-700", borderColor: "border-amber-300" };
+    }
+    
     if (now < startDate) {
       return { status: "upcoming", label: "Próximamente", color: "bg-slate-100 text-slate-600", borderColor: "border-slate-200" };
     }
@@ -3186,6 +3195,7 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
                   <button 
                     onClick={() => handleStartExam(exam)}
                     disabled={startingExam === exam.id}
+                    data-testid={`start-exam-btn-${exam.id}`}
                     className="w-full py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {startingExam === exam.id ? (
@@ -3195,6 +3205,11 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
                     )}
                     Iniciar Examen
                   </button>
+                )}
+                {examStatus.status === "available" && exam.retake_enabled && (
+                  <p className="mt-2 text-xs text-amber-700 text-center font-medium" data-testid={`retake-note-${exam.id}`}>
+                    Tu profesor te habilitó este examen nuevamente. Pulsa "Iniciar Examen" para rendirlo.
+                  </p>
                 )}
                 {examStatus.status === "in_progress" && (
                   <button 
@@ -5038,8 +5053,9 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
       // Load exams - correct endpoint: /api/course/{subject_id}/exams
       try {
         const examsRes = await axios.get(`${API}/api/course/${courseId}/exams`, { headers });
-        // Filter to only show published exams for students
-        const publishedExams = (examsRes.data || []).filter(e => e.status === 'published' || e.status === 'scheduled');
+        // Show published/scheduled exams, plus any exam re-enabled for this
+        // student (retake override) even if its status is already "closed".
+        const publishedExams = (examsRes.data || []).filter(e => e.status === 'published' || e.status === 'scheduled' || e.retake_enabled);
         setExams(publishedExams);
       } catch (e) {
         console.log("Could not load exams:", e);

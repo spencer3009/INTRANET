@@ -509,25 +509,69 @@ async def get_course_exams(
     # Build query based on user role
     query = {"subject_id": subject_id, "school_id": user["school_id"]}
     
-    # Students only see published exams
+    # Students only see published exams, PLUS any exam (even if already closed)
+    # for which they hold an active individual retake override — otherwise a
+    # re-enabled exam would never appear in their list once the cron closed it.
     if is_student(user):
         now = datetime.now(timezone.utc)
-        query["status"] = ExamStatus.published.value
+        override_ids = []
+        async for ov in db.exam_retake_overrides.find(
+            {"student_id": user["id"], "school_id": user["school_id"]},
+            {"_id": 0, "exam_id": 1, "expires_at": 1},
+        ):
+            try:
+                if now <= datetime.fromisoformat(ov["expires_at"].replace("Z", "+00:00")):
+                    override_ids.append(ov["exam_id"])
+            except Exception:
+                pass
+        if override_ids:
+            query["$or"] = [
+                {"status": ExamStatus.published.value},
+                {"id": {"$in": override_ids}},
+            ]
+        else:
+            query["status"] = ExamStatus.published.value
     
     exams = await db.online_exams.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
     # For students, add availability info
     if is_student(user):
         now = datetime.now(timezone.utc)
+        # Individual retake overrides for this student (teacher re-enabled the
+        # exam after the window closed, e.g. lost internet). These extend the
+        # personal deadline for the affected exams only.
+        exam_ids = [e["id"] for e in exams]
+        overrides = await db.exam_retake_overrides.find(
+            {"exam_id": {"$in": exam_ids}, "student_id": user["id"]},
+            {"_id": 0, "exam_id": 1, "expires_at": 1},
+        ).to_list(200)
+        override_map = {}
+        for ov in overrides:
+            try:
+                ov_exp = datetime.fromisoformat(ov["expires_at"].replace("Z", "+00:00"))
+                if now <= ov_exp:
+                    override_map[ov["exam_id"]] = ov["expires_at"]
+            except Exception:
+                pass
         for exam in exams:
             start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
             end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
-            exam["is_available"] = start <= now <= end
-            exam["availability_message"] = None
-            if now < start:
-                exam["availability_message"] = "El examen aún no está disponible"
-            elif now > end:
-                exam["availability_message"] = "El tiempo para este examen ha finalizado"
+            override_exp = override_map.get(exam["id"])
+            exam["retake_enabled"] = bool(override_exp)
+            exam["retake_expires_at"] = override_exp
+            if override_exp:
+                # Personal window replaces the exam deadline for this student.
+                exam["is_available"] = start <= now
+                exam["availability_message"] = None
+                if now < start:
+                    exam["availability_message"] = "El examen aún no está disponible"
+            else:
+                exam["is_available"] = start <= now <= end
+                exam["availability_message"] = None
+                if now < start:
+                    exam["availability_message"] = "El examen aún no está disponible"
+                elif now > end:
+                    exam["availability_message"] = "El tiempo para este examen ha finalizado"
     
     # Get creator info for each exam
     creator_ids = list(set(e.get("created_by") for e in exams if e.get("created_by")))

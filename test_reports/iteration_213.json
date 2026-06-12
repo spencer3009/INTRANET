@@ -1,0 +1,59 @@
+{
+  "summary": "Tested 'Habilitar intento' (retake override) flow as alumno DEMO. UI/list endpoint works correctly: 'Habilitado' badge, 'Iniciar Examen' button (data-testid=start-exam-btn-DEMO-RETAKE-EXAM) and retake note (data-testid=retake-note-DEMO-RETAKE-EXAM) all render. Student can navigate to /elroble/exam/DEMO-RETAKE-EXAM/attempt rules page. CRITICAL: clicking 'Comenzar Examen' triggers POST /api/exams/DEMO-RETAKE-EXAM/start which returns 400 'Este examen no está disponible' because the backend still checks exam.status != 'published' BEFORE consulting the exam_retake_overrides collection. Result: alumno sees 'No disponible / Este examen no está disponible' and cannot rendir el examen rehabilitado. The advertised fix is incomplete.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/exams/{exam_id}/start (routes/exams.py ~line 3672)",
+        "issue": "start_exam_attempt rechaza el examen rehabilitado con 400 'Este examen no está disponible'. La validación 'if exam.get(\"status\") != \"published\"' se ejecuta ANTES de leer exam_retake_overrides (líneas 3690-3700). Como el examen está en status='closed', el endpoint falla aunque exista override activo. Confirmado vía curl directo y vía UI: backend devuelve 400 con body {\"detail\":\"Este examen no está disponible\"}. El override solo bypasa el chequeo de fechas (líneas 3702-3705), no el chequeo de status. Fix sugerido: mover la consulta de override antes del chequeo de status, y permitir status in (\"published\", \"closed\") cuando override_active=True.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Alumno inicia examen rehabilitado (retake override)",
+        "issue": "El flujo se rompe en el último paso: tras aceptar las reglas y pulsar 'Comenzar Examen', el backend devuelve 400 y la UI muestra pantalla 'No disponible / Este examen no está disponible'. El alumno NO puede rendir el examen. La parte visible del fix (listado + tarjeta + botón) funciona, pero el inicio del intento no.",
+        "affected_selectors": [
+          "button:has-text('Comenzar Examen')",
+          "/api/exams/DEMO-RETAKE-EXAM/start"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_retake_override.py",
+    "/app/test_reports/pytest/retake_override.xml"
+  ],
+  "action_items": [
+    "Backend: en /app/backend/routes/exams.py función start_exam_attempt (~línea 3606+), reordenar la lógica: 1) consultar exam_retake_overrides PRIMERO, 2) si override_active=True, omitir el chequeo 'status != published' (o aceptar status in ('published','closed')) y omitir el chequeo de end_dt usando ov_exp como nuevo end_dt. Tal como está, solo el chequeo de fechas usa el override (líneas 3702-3705), pero el chequeo de status en línea 3672 dispara primero y bloquea al alumno con 400.",
+    "Backend: aplicar la misma corrección que ya se hizo en get_course_exams (que sí permite closed+override). El listado dice is_available=true pero /start lo niega — son inconsistentes.",
+    "Después de la corrección, re-ejecutar pytest /app/backend/tests/test_retake_override.py (el test test_start_exam_with_override_returns_200 debe pasar) y volver a probar la UI: pulsar 'Iniciar Examen' -> 'Comenzar Examen' debe llevar al alumno a la pantalla de preguntas, no a 'No disponible'."
+  ],
+  "critical_code_review_comments": [
+    "Inconsistencia entre endpoints: GET /api/course/{subject_id}/exams marca correctamente is_available=true para examen closed+override, pero POST /api/exams/{exam_id}/start no respeta esa misma regla. La lógica de elegibilidad del override debe centralizarse (helper compartido) para evitar este tipo de drift.",
+    "/app/backend/routes/exams.py supera los 5100 líneas — considerar dividirlo en módulos (attempts, overrides, schedules, omr, etc.) para mantenibilidad.",
+    "El mensaje de error 'Este examen no está disponible' es ambiguo: cubre tanto status!=published como otros casos. Sería útil un mensaje más específico ('El examen está cerrado') y diferenciar cuando el override existe pero ya expiró."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_retake_override.py (nuevo)"
+  ],
+  "success_rate": {
+    "backend": "50% (GET listado OK; POST start FAIL)",
+    "frontend": "60% (tarjeta + botón + nota + navegación OK; intento no inicia por 400 del backend)"
+  },
+  "test_credentials": "Alumno DEMO: demo.reintento@elroble.edu / Demo1234! (subdomain elroble). Examen DEMO-RETAKE-EXAM. Override actualmente activo (expires_at 2026-06-13T16:22:39Z).",
+  "seed_data_creation": "No se creó seed nueva. Se reutilizó la seed existente del alumno DEMO y el override ya configurado.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Si el override caducó (24h), recrear documento en exam_retake_overrides {exam_id:'DEMO-RETAKE-EXAM', student_id:'DEMO-RETAKE-STUDENT', expires_at: now+24h}. Para validar el fix, basta correr: pytest /app/backend/tests/test_retake_override.py -v. Si los 2 tests pasan, el backend está OK; luego correr el flujo UI: login alumno DEMO -> curso Música (e04de272-...) -> pestaña Exámenes -> Iniciar Examen -> aceptar reglas -> Comenzar Examen -> debe mostrar las 3 preguntas, no 'No disponible'.",
+  "rca_of_the_issue": {
+    "bug": "POST /api/exams/DEMO-RETAKE-EXAM/start devuelve 400 'Este examen no está disponible' a pesar del retake override activo.",
+    "rca": "En /app/backend/routes/exams.py, función start_exam_attempt, el orden de validaciones es: (1) status==published [línea ~3672], (2) fechas [línea ~3702], (3) override de fechas [línea ~3690-3700]. El override solo se consulta y se aplica para reemplazar end_dt, pero la validación de status ocurre antes y dispara 400 cuando el examen está closed. En get_course_exams sí se contempla closed+override (el listado lo marca como disponible), pero el endpoint de start no fue actualizado consistentemente.",
+    "reproduction": "1) Login alumno demo.reintento@elroble.edu/Demo1234! (subdomain elroble). 2) GET /api/course/e04de272-54ec-4af9-868a-bc7604e2b4b4/exams con el token -> 200, retake_enabled=true, is_available=true. 3) POST /api/exams/DEMO-RETAKE-EXAM/start con el token -> 400 'Este examen no está disponible'. 4) En la UI: pestaña Exámenes muestra botón Iniciar; al pulsar y aceptar reglas, Comenzar Examen muestra 'No disponible'.",
+    "mitigation": "Reordenar la lógica del endpoint start: cargar override antes del chequeo de status. Si override_active es True, permitir status closed además de published, y omitir/relajar la validación de end_dt usando ov_exp. Centralizar la regla de elegibilidad (helper) compartida entre get_course_exams y start_exam_attempt."
+  }
+}
