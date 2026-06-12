@@ -75,6 +75,7 @@ def test_review_returns_audit_block(setup_two_attempts):
     assert audit["ip_address"] == SAME_IP
     assert audit["device"] == "Chrome en Android"
     assert audit["has_audit_data"] is True
+    assert audit["origin"] == "online"
 
 
 def test_shared_ip_alert_lists_other_student(setup_two_attempts):

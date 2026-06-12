@@ -104,6 +104,32 @@ def _short_user_agent(ua: Optional[str]) -> Optional[str]:
     return f"{browser} en {os_name}"
 
 
+def _attempt_origin(attempt: dict) -> dict:
+    """Determine where an exam attempt's grade came from, so the teacher can tell
+    a real online submission apart from a paper scan or an auto-assigned zero.
+
+    Returns {origin, origin_label} where origin is one of:
+      - 'auto_zero'  : sistema asignó 0 por ausencia (nunca pone una nota > 0)
+      - 'omr_scan'   : nota provino del escaneo de una hoja en papel (OMR)
+      - 'online'     : el alumno respondió y envió el examen en línea (hay respuestas marcadas)
+      - 'unknown'    : no se puede determinar (intento antiguo sin metadatos)
+    """
+    if attempt.get("auto_zero"):
+        return {"origin": "auto_zero", "origin_label": "Cero automático por ausencia"}
+    if attempt.get("source") == "omr_scan":
+        return {"origin": "omr_scan", "origin_label": "Escaneo de hoja OMR (papel)"}
+    graded = attempt.get("graded_answers")
+    answers = attempt.get("answers")
+    has_real_answers = (isinstance(graded, dict) and len(graded) > 0) or (
+        isinstance(answers, dict) and len(answers) > 0
+    )
+    if has_real_answers:
+        return {"origin": "online", "origin_label": "Rendido en línea por el alumno"}
+    return {"origin": "unknown", "origin_label": "Origen no determinado"}
+
+
+
+
 
 # ONLINE EXAMS MODULE - Premium Implementation
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2540,6 +2566,7 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
         "shared_ip": len(shared_ip_students) > 0,
         "shared_ip_students": shared_ip_students,
         "has_audit_data": bool(ip or submit_ip or attempt.get("user_agent")),
+        **_attempt_origin(attempt),
     }
 
     return {

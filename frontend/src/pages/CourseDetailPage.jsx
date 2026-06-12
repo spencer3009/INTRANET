@@ -7922,6 +7922,22 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
                   </p>
                 </div>
 
+                {/* Origen de la nota */}
+                {data.audit.origin && (
+                  <div
+                    className={`mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                      data.audit.origin === 'online' ? 'bg-emerald-100 text-emerald-700' :
+                      data.audit.origin === 'omr_scan' ? 'bg-blue-100 text-blue-700' :
+                      data.audit.origin === 'auto_zero' ? 'bg-amber-100 text-amber-700' :
+                      'bg-slate-200 text-slate-600'
+                    }`}
+                    data-testid="review-audit-origin"
+                  >
+                    {data.audit.origin === 'online' ? '✏️' : data.audit.origin === 'omr_scan' ? '📄' : data.audit.origin === 'auto_zero' ? '⚠️' : '❔'}
+                    {' '}Origen: {data.audit.origin_label}
+                  </div>
+                )}
+
                 {!data.audit.has_audit_data ? (
                   <p className="text-xs text-slate-500" data-testid="review-audit-empty">
                     Este examen se rindió antes de activar la auditoría, por eso no tiene registro de IP ni dispositivo. Los próximos exámenes sí lo tendrán.
