@@ -6,7 +6,7 @@
 //   - # alumnos, % comentarios y % conducta del bimestre activo
 //   - Acciones: Asignar / Cambiar / Quitar
 //   - Reasignación masiva: seleccionar varias secciones y transferir a otro tutor
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
@@ -14,10 +14,96 @@ import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
   GraduationCap, RefreshCw, Search, Filter, X, Users, AlertTriangle,
-  CheckCircle2, ArrowRightLeft, UserPlus, UserMinus, Loader2,
+  CheckCircle2, ArrowRightLeft, UserPlus, UserMinus, Loader2, Check,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Accent/case-insensitive normalization for searching.
+const _norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/**
+ * Advanced autocomplete to pick a teacher by name/surname (or DNI).
+ * Filters live as you type, supports keyboard navigation and multi-word search.
+ */
+function TeacherSearchSelect({ teachers, value, onChange, placeholder = "Buscar por nombre o apellido...", testId = "teacher-search" }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const ref = useRef(null);
+
+  const fullName = (t) => `${t.last_name || ""} ${t.first_name || t.name || ""}`.trim();
+  const selected = teachers.find((t) => t.id === value);
+
+  useEffect(() => {
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const tokens = _norm(query).split(/\s+/).filter(Boolean);
+    let list = teachers;
+    if (tokens.length) {
+      list = teachers.filter((t) => {
+        const hay = _norm(`${fullName(t)} ${t.dni || ""}`);
+        return tokens.every((tok) => hay.includes(tok));
+      });
+    }
+    return list.slice(0, 50);
+  }, [teachers, query]);
+
+  const choose = (t) => { onChange(t.id); setQuery(""); setOpen(false); };
+
+  return (
+    <div className="relative" ref={ref}>
+      {selected && !open ? (
+        <div className="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm flex items-center justify-between bg-white" data-testid={`${testId}-selected`}>
+          <span className="truncate font-medium text-slate-800">{fullName(selected)}</span>
+          <button type="button" onClick={() => { onChange(""); setOpen(true); }} className="ml-2 text-slate-400 hover:text-slate-700"><X className="w-4 h-4" /></button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0); }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") { e.preventDefault(); setHighlight((h) => Math.min(h + 1, filtered.length - 1)); }
+              else if (e.key === "ArrowUp") { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
+              else if (e.key === "Enter" && filtered[highlight]) { e.preventDefault(); choose(filtered[highlight]); }
+              else if (e.key === "Escape") setOpen(false);
+            }}
+            placeholder={placeholder}
+            className="w-full mt-1 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none"
+            data-testid={testId}
+          />
+        </div>
+      )}
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-64 overflow-auto" data-testid={`${testId}-list`}>
+          {filtered.length === 0 ? (
+            <div className="px-3 py-3 text-sm text-slate-400">Sin resultados{query ? ` para "${query}"` : ""}</div>
+          ) : filtered.map((t, i) => (
+            <button
+              type="button"
+              key={t.id}
+              onMouseEnter={() => setHighlight(i)}
+              onClick={() => choose(t)}
+              className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors ${i === highlight ? "bg-emerald-50" : "hover:bg-slate-50"} ${t.id === value ? "font-semibold text-emerald-700" : "text-slate-700"}`}
+              data-testid={`${testId}-option-${t.id}`}
+            >
+              <span className="truncate">{fullName(t)}</span>
+              {t.id === value && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminTutoringOverviewPage({ user, token, subdomain, onLogout }) {
   const navigate = useNavigate();
@@ -427,17 +513,12 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
               )}
               <label className="block">
                 <span className="text-xs font-semibold text-slate-600">Nuevo tutor *</span>
-                <select
+                <TeacherSearchSelect
+                  teachers={teachers}
                   value={assignTarget}
-                  onChange={e => setAssignTarget(e.target.value)}
-                  className="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  data-testid="assign-target-select"
-                >
-                  <option value="">— Selecciona un profesor —</option>
-                  {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{`${t.last_name || ""} ${t.first_name || t.name || ""}`.trim()}</option>
-                  ))}
-                </select>
+                  onChange={setAssignTarget}
+                  testId="assign-target-select"
+                />
               </label>
             </div>
             <footer className="px-5 py-3 border-t flex justify-end gap-2">
@@ -470,17 +551,12 @@ export default function AdminTutoringOverviewPage({ user, token, subdomain, onLo
               </p>
               <label className="block">
                 <span className="text-xs font-semibold text-slate-600">Asignar todas a:</span>
-                <select
+                <TeacherSearchSelect
+                  teachers={teachers}
                   value={transferTarget}
-                  onChange={e => setTransferTarget(e.target.value)}
-                  className="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  data-testid="transfer-target-select"
-                >
-                  <option value="">— Selecciona un profesor —</option>
-                  {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{`${t.last_name || ""} ${t.first_name || t.name || ""}`.trim()}</option>
-                  ))}
-                </select>
+                  onChange={setTransferTarget}
+                  testId="transfer-target-select"
+                />
               </label>
               <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2">
                 💡 Si dejas el selector vacío y haces clic en <strong>"Quitar a todos"</strong>, esas secciones quedarán sin tutor.
