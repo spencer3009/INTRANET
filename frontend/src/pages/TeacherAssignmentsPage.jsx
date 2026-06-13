@@ -1557,8 +1557,9 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [viewTab, setViewTab] = useState("assignments"); // "assignments" | "orphans"
+  const [viewTab, setViewTab] = useState("assignments"); // "assignments" | "tutors" | "orphans"
   const [orphans, setOrphans] = useState([]);
+  const [tutorRows, setTutorRows] = useState([]); // assigned tutors (read-only view)
   const [showDeleteOrphans, setShowDeleteOrphans] = useState(false);
   const [deletingOrphans, setDeletingOrphans] = useState(false);
   // Bulk selection (checkboxes) for mass-deleting assignments
@@ -1628,6 +1629,15 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         } catch (e) {
           console.error("Error loading orphan assignments:", e);
         }
+      }
+      // Assigned tutors (read-only) for the "Tutores" tab — reuses the tutoring
+      // overview. Non-blocking: a failure here never breaks the main list.
+      try {
+        const overviewRes = await axios.get(`${API}/admin/tutoring-overview`, { headers });
+        const rows = (overviewRes.data?.rows || []).filter(r => r.tutor_id);
+        setTutorRows(rows);
+      } catch (e) {
+        console.error("Error loading tutors overview:", e);
       }
       setAcademicData({
         levels: levelsRes.data,
@@ -1815,9 +1825,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                 onClear={() => setFilters(prev => ({ ...prev, teacher_id: "" }))}
                 resultCount={assignments.length}
               />
-              {/* Tabs: Asignaciones / Huérfanas — Huérfanas solo para Soporte */}
-              {isSupportSession && (
-              <div className="flex items-center gap-2 mb-4">
+              {/* Tabs: Asignaciones / Tutores / Huérfanas (Huérfanas solo para Soporte) */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <button
                   onClick={() => setViewTab("assignments")}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "assignments" ? "bg-blue-600 text-white shadow-md shadow-blue-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
@@ -1827,23 +1836,83 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                   Asignaciones
                 </button>
                 <button
-                  onClick={() => setViewTab("orphans")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "orphans" ? "bg-red-600 text-white shadow-md shadow-red-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
-                  data-testid="tab-orphans"
+                  onClick={() => setViewTab("tutors")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "tutors" ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+                  data-testid="tab-tutors"
                 >
-                  <Unlink className="w-4 h-4" />
-                  Huérfanas
-                  {orphans.length > 0 && (
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${viewTab === "orphans" ? "bg-white/25 text-white" : "bg-red-100 text-red-600"}`} data-testid="orphans-count-badge">
-                      {orphans.length}
+                  <UserCheck className="w-4 h-4" />
+                  Tutores
+                  {tutorRows.length > 0 && (
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${viewTab === "tutors" ? "bg-white/25 text-white" : "bg-emerald-100 text-emerald-600"}`} data-testid="tutors-count-badge">
+                      {tutorRows.length}
                     </span>
                   )}
                 </button>
-                <span className="ml-1 text-[11px] text-gray-400 italic hidden sm:inline">Herramienta de soporte</span>
+                {isSupportSession && (
+                  <button
+                    onClick={() => setViewTab("orphans")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${viewTab === "orphans" ? "bg-red-600 text-white shadow-md shadow-red-500/25" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+                    data-testid="tab-orphans"
+                  >
+                    <Unlink className="w-4 h-4" />
+                    Huérfanas
+                    {orphans.length > 0 && (
+                      <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${viewTab === "orphans" ? "bg-white/25 text-white" : "bg-red-100 text-red-600"}`} data-testid="orphans-count-badge">
+                        {orphans.length}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {isSupportSession && <span className="ml-1 text-[11px] text-gray-400 italic hidden sm:inline">Huérfanas: herramienta de soporte</span>}
               </div>
-              )}
 
-              {isSupportSession && viewTab === "orphans" ? (
+              {viewTab === "tutors" ? (
+                /* ───── Tutores view (read-only) ───── */
+                <div data-testid="tutors-view">
+                  {tutorRows.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mx-auto mb-4">
+                        <UserCheck className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Aún no hay tutores asignados</h3>
+                      <p className="text-gray-500">Asigna tutores a las secciones desde <span className="font-medium">Gestión de Tutorías</span>.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                      <div className="px-4 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-emerald-600" />
+                        <p className="text-sm font-semibold text-emerald-800">{tutorRows.length} tutor{tutorRows.length !== 1 ? "es" : ""} asignado{tutorRows.length !== 1 ? "s" : ""}</p>
+                        <span className="text-[11px] text-emerald-600/80 hidden sm:inline">— gestiónalos en "Gestión de Tutorías"</span>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        {tutorRows.map((r) => (
+                          <div key={r.section_id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors" data-testid={`tutor-row-${r.section_id}`}>
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                              {(r.tutor_name || "?").trim().charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate" data-testid={`tutor-name-${r.section_id}`}>{r.tutor_name}</p>
+                              <p className="text-xs text-gray-500 truncate">Tutor</p>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-600">
+                              <GraduationCap className="w-3.5 h-3.5 text-blue-500" />
+                              <span>{r.level_name || "—"}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-700 font-medium">
+                              <Layers className="w-3.5 h-3.5 text-purple-500" />
+                              <span>{r.grade_name || "—"} {r.section_name ? `· ${r.section_name}` : ""}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 w-16 justify-end">
+                              <Users className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>{r.student_count ?? 0}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : isSupportSession && viewTab === "orphans" ? (
                 /* ───── Orphans view ───── */
                 <div data-testid="orphans-view">
                   {orphans.length === 0 ? (
