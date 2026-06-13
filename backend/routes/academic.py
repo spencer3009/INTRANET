@@ -2264,6 +2264,11 @@ async def get_academic_assignments(
     
     school_id = user["school_id"]
     query = {"school_id": school_id}
+    # Tutor assignments live in the same collection (role="tutor") but belong to
+    # "Gestión de Tutorías", NOT to teacher↔subject assignment. They legitimately
+    # have no subject, so they must NOT appear here (otherwise they show up as
+    # "Sin curso vinculado"). `$ne` also keeps legacy docs with no role field.
+    query["role"] = {"$ne": "tutor"}
     
     # Apply filters
     if level_id:
@@ -2784,7 +2789,7 @@ async def _get_orphan_assignment_ids(school_id: str):
     points to a subject (course) that no longer exists. These show up in the UI
     with no linked course."""
     rows = await db.academic_assignments.find(
-        {"school_id": school_id}, {"_id": 0, "id": 1, "subject_id": 1}
+        {"school_id": school_id, "role": {"$ne": "tutor"}}, {"_id": 0, "id": 1, "subject_id": 1}
     ).to_list(5000)
     subject_ids = list({r.get("subject_id") for r in rows if r.get("subject_id")})
     existing = set()
