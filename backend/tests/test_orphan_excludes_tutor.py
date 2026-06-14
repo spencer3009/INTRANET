@@ -1,6 +1,5 @@
 # Regression: tutor assignments (role="tutor", no subject) must NOT be flagged as
 # orphan teacher↔subject assignments ("Sin curso vinculado").
-import asyncio
 from datetime import datetime, timezone
 import pytest
 from routes import academic
@@ -12,14 +11,8 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-@pytest.fixture
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-async def _seed_and_check():
+@pytest.mark.asyncio(loop_scope="session")
+async def test_tutor_not_flagged_as_orphan():
     db = academic.db
     await db.academic_assignments.delete_many({"school_id": SCHOOL})
     await db.academic_assignments.insert_many([
@@ -29,11 +22,6 @@ async def _seed_and_check():
     ])
     ids = set(await academic._get_orphan_assignment_ids(SCHOOL))
     await db.academic_assignments.delete_many({"school_id": SCHOOL})
-    return ids
-
-
-def test_tutor_not_flagged_as_orphan(event_loop):
-    ids = event_loop.run_until_complete(_seed_and_check())
     assert "A-TUTOR" not in ids, "Tutor assignment wrongly flagged as orphan"
     assert "A-ORPHAN" in ids, "Assignment with dangling subject should be orphan"
     assert "A-NOSUBJ" in ids, "Teacher assignment without subject should be orphan"

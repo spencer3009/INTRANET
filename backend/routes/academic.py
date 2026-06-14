@@ -2302,7 +2302,7 @@ async def get_academic_assignments(
         levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         grades = await db.grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
-        subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
+        subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(len(subject_ids) + 10)
         
         # Get academic years for assignments that have academic_year_id
         year_ids = list(set([a.get("academic_year_id") for a in assignments if a.get("academic_year_id")]))
@@ -2341,6 +2341,12 @@ async def get_academic_assignments(
                 year_data = years_map.get(a["academic_year_id"], {})
                 a["academic_year"] = year_data.get("year", a.get("school_year"))
                 a["academic_year_status"] = year_data.get("status", "")
+        
+        # Hide orphan assignments (their course was deleted/recreated, so the
+        # subject_id no longer resolves) from the normal "Asignación docente"
+        # view — they only confuse the user as "Sin curso vinculado". They stay
+        # in the DB and remain available to Support via the "Huérfanas" tool.
+        assignments = [a for a in assignments if a.get("subject_id") in subjects_map]
     
     return assignments
 
