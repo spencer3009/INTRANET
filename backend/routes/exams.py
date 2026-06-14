@@ -159,9 +159,12 @@ class ExamCreate(BaseModel):
     options_per_question: Optional[int] = 5  # 2-5 (A-E)
     answer_key: Optional[list] = None        # ["A", "C", "D", ...] length == num_questions
     points_per_question: Optional[float] = 1.0
-    # Evidence upload — when True (digital only), students MUST attach one file
-    # (image/pdf/word) as evidence before submitting.
+    # Evidence upload — when True (digital only), students MUST attach evidence
+    # (image/pdf/word) before submitting.
     allow_evidence_upload: Optional[bool] = False
+    # Evidence mode: "end" → up to 5 files attached at the end of the exam;
+    # "per_question" → 1 mandatory file per question (uploaded while answering).
+    evidence_mode: Optional[str] = "end"
 
 
 class ExamUpdate(BaseModel):
@@ -186,6 +189,7 @@ class ExamUpdate(BaseModel):
     omr_pdf_generated_at: Optional[str] = None
     # Evidence upload toggle
     allow_evidence_upload: Optional[bool] = None
+    evidence_mode: Optional[str] = None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -801,6 +805,7 @@ async def create_exam(
             "duration_minutes": data.duration_minutes,
             "min_score_percentage": data.min_score_percentage or 60.0,
             "allow_evidence_upload": bool(data.allow_evidence_upload),
+            "evidence_mode": (data.evidence_mode if data.evidence_mode in ("end", "per_question") else "end"),
         })
     elif exam_type == "omr":
         num_q = data.num_questions or 20
@@ -1063,6 +1068,9 @@ async def update_exam(
                         status_code=400,
                         detail="Para pedir evidencia primero debes conectar Google Drive (Ajustes → Integraciones). Las evidencias se guardan únicamente en tu Drive.",
                     )
+
+        if data.evidence_mode is not None:
+            update_data["evidence_mode"] = data.evidence_mode if data.evidence_mode in ("end", "per_question") else "end"
     
     # Handle register linkage updates
     old_column = exam.get("register_column")
@@ -2607,6 +2615,7 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
             "columns": q.get("columns"),
             "grid_answer": graded.get("grid_answer"),
             "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
+            "evidence": (attempt.get("question_evidence") or {}).get(q_id),
             "is_correct": graded.get("is_correct", False),
             "points_earned": graded.get("points_earned", 0),
             "points_possible": graded.get("points_possible", q.get("points", 1)),
@@ -2681,7 +2690,10 @@ async def get_exam_attempt_review(exam_id: str, attempt_id: str, current_user=De
         "unanswered_count": attempt.get("unanswered_count", 0),
         "questions": questions_review,
         "allow_evidence_upload": bool(exam.get("allow_evidence_upload")),
+        "evidence_mode": exam.get("evidence_mode") or "end",
         "evidence_file": attempt.get("evidence_file"),
+        "evidence_files": _evidence_list(attempt),
+        "question_evidence": attempt.get("question_evidence") or {},
         "audit": audit,
     }
 
@@ -2692,6 +2704,7 @@ EVIDENCE_ALLOWED_EXTENSIONS = {
     "pdf", "doc", "docx",
 }
 EVIDENCE_MAX_BYTES = 15 * 1024 * 1024  # 15 MB recommended cap
+EVIDENCE_END_MAX_FILES = 5  # "end" mode: máximo de archivos por alumno
 
 
 async def _ensure_exam_evidence_folder(service, materials_folder_id: str) -> str:
@@ -2715,15 +2728,39 @@ async def _ensure_exam_evidence_folder(service, materials_folder_id: str) -> str
     return folder.get("id")
 
 
+def _evidence_list(attempt: dict) -> list:
+    """Normalize an attempt's 'end-mode' evidence into a list. Prefers the new
+    `evidence_files` array; falls back to the legacy single `evidence_file`."""
+    files = attempt.get("evidence_files")
+    if isinstance(files, list) and files:
+        return list(files)
+    legacy = attempt.get("evidence_file")
+    return [legacy] if legacy else []
+
+
+def _all_evidence(attempt: dict) -> list:
+    """All evidence items of an attempt (end-mode list + per-question map)."""
+    items = _evidence_list(attempt)
+    qmap = attempt.get("question_evidence") or {}
+    items += [v for v in qmap.values() if v]
+    return items
+
+
 @router.post("/exam-attempts/{attempt_id}/upload-evidence")
 async def upload_exam_evidence(
     attempt_id: str,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(default_factory=list),
+    question_id: Optional[str] = Form(default=None),
     current_user=Depends(get_current_user),
 ):
-    """Student uploads a single evidence file (image / pdf / word) for an
-    in-progress attempt, when the exam has `allow_evidence_upload` enabled.
-    Stored ONLY in the school's Google Drive ('Evidencias Examenes' folder)."""
+    """Student uploads evidence file(s) (image / pdf / word) for an in-progress
+    attempt, when the exam has `allow_evidence_upload` enabled. Stored ONLY in
+    the school's Google Drive ('Evidencias Examenes' folder).
+
+    Two modes (driven by exam.evidence_mode):
+      • "end"          → multiple files (máx. 5) collected at the end.
+      • "per_question" → exactly 1 file attached to a specific `question_id`.
+    """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -2742,74 +2779,157 @@ async def upload_exam_evidence(
     if not exam.get("allow_evidence_upload"):
         raise HTTPException(status_code=400, detail="Este examen no admite evidencia")
 
-    f_name = file.filename or "evidencia"
-    ext = f_name.split(".")[-1].lower() if "." in f_name else ""
-    if ext not in EVIDENCE_ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail="Formato no permitido. Usa imagen (JPG/PNG), PDF o Word.",
-        )
+    mode = exam.get("evidence_mode") or "end"
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="El archivo está vacío")
-    if len(content) > EVIDENCE_MAX_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail="El archivo supera el límite de 15 MB.",
-        )
+    incoming = [f for f in (files or []) if f is not None]
+    if not incoming:
+        raise HTTPException(status_code=400, detail="No se adjuntó ningún archivo")
 
     school_id = user["school_id"]
     student_id = user["id"]
-    att_id = str(uuid.uuid4())
-    evidence = {
-        "id": att_id,
-        "file_name": f_name,
-        "file_type": file.content_type,
-        "file_size": len(content),
-        "file_url": None,
-        "drive_file_id": None,
-        "storage_type": None,
-        "uploaded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
-    # Storage: Google Drive ONLY (no Cloudinary fallback — per requirement).
+    # Google Drive ONLY (no Cloudinary fallback — per requirement).
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not (school and school.get("google_drive_connected") and school.get("google_drive_materials_folder_id")):
         raise HTTPException(
             status_code=400,
             detail="El colegio aún no tiene Google Drive conectado. Pide a tu profesor o administrador que conecte Google Drive en Ajustes para poder subir tu evidencia.",
         )
-    try:
-        service = await get_drive_service(school_id)
-        folder_id = await _ensure_exam_evidence_folder(
-            service, school["google_drive_materials_folder_id"]
-        )
-        mime_type = MIME_TYPE_MAP.get(ext, file.content_type or "application/octet-stream")
-        drive_file = service.files().create(
-            body={"name": f"{student_id}_{att_id}_{f_name}", "parents": [folder_id]},
-            media_body=MediaIoBaseUpload(io.BytesIO(content), mimetype=mime_type, resumable=True),
-            fields="id, webViewLink",
-        ).execute()
-        evidence["drive_file_id"] = drive_file.get("id")
-        evidence["file_url"] = drive_file.get("webViewLink")
-        evidence["storage_type"] = "google_drive"
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"[EVIDENCE] Drive upload failed: {e}")
-        raise HTTPException(status_code=500, detail="No se pudo subir la evidencia a Google Drive. Inténtalo de nuevo.")
+    service = await get_drive_service(school_id)
+    folder_id = await _ensure_exam_evidence_folder(service, school["google_drive_materials_folder_id"])
 
+    async def _upload_one(f: UploadFile) -> dict:
+        f_name = f.filename or "evidencia"
+        ext = f_name.split(".")[-1].lower() if "." in f_name else ""
+        if ext not in EVIDENCE_ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Formato no permitido. Usa imagen (JPG/PNG), PDF o Word.")
+        content = await f.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="El archivo está vacío")
+        if len(content) > EVIDENCE_MAX_BYTES:
+            raise HTTPException(status_code=400, detail="El archivo supera el límite de 15 MB.")
+        ev_id = str(uuid.uuid4())
+        mime_type = MIME_TYPE_MAP.get(ext, f.content_type or "application/octet-stream")
+        try:
+            drive_file = service.files().create(
+                body={"name": f"{student_id}_{ev_id}_{f_name}", "parents": [folder_id]},
+                media_body=MediaIoBaseUpload(io.BytesIO(content), mimetype=mime_type, resumable=True),
+                fields="id, webViewLink",
+            ).execute()
+        except Exception as e:
+            logger.error(f"[EVIDENCE] Drive upload failed: {e}")
+            raise HTTPException(status_code=500, detail="No se pudo subir la evidencia a Google Drive. Inténtalo de nuevo.")
+        return {
+            "id": ev_id,
+            "file_name": f_name,
+            "file_type": f.content_type,
+            "file_size": len(content),
+            "file_url": drive_file.get("webViewLink"),
+            "drive_file_id": drive_file.get("id"),
+            "storage_type": "google_drive",
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    if mode == "per_question":
+        if not question_id:
+            raise HTTPException(status_code=400, detail="Falta indicar la pregunta de la evidencia")
+        q = await db.exam_questions.find_one({"id": question_id, "exam_id": exam["id"]}, {"_id": 0, "id": 1})
+        if not q:
+            raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+        # Solo 1 archivo por pregunta (reemplaza el anterior si existía).
+        old = (attempt.get("question_evidence") or {}).get(question_id)
+        evidence = await _upload_one(incoming[0])
+        evidence["question_id"] = question_id
+        await db.exam_attempts.update_one(
+            {"id": attempt_id}, {"$set": {f"question_evidence.{question_id}": evidence}}
+        )
+        if old and old.get("drive_file_id"):
+            try:
+                service.files().delete(fileId=old["drive_file_id"]).execute()
+            except Exception:
+                pass
+        updated = await db.exam_attempts.find_one({"id": attempt_id}, {"_id": 0, "question_evidence": 1})
+        return {"evidence_mode": mode, "question_evidence": updated.get("question_evidence", {})}
+
+    # ── "end" mode ──────────────────────────────────────────────────────────
+    existing = _evidence_list(attempt)
+    if len(existing) + len(incoming) > EVIDENCE_END_MAX_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solo puedes adjuntar hasta {EVIDENCE_END_MAX_FILES} archivos como evidencia.",
+        )
+    new_items = []
+    for f in incoming:
+        new_items.append(await _upload_one(f))
+    all_items = existing + new_items
     await db.exam_attempts.update_one(
-        {"id": attempt_id}, {"$set": {"evidence_file": evidence}}
+        {"id": attempt_id},
+        {"$set": {"evidence_files": all_items}, "$unset": {"evidence_file": ""}},
     )
-    return {"evidence_file": evidence}
+    return {"evidence_mode": mode, "evidence_files": all_items}
+
+
+@router.delete("/exam-attempts/{attempt_id}/evidence/{evidence_id}")
+async def delete_exam_evidence(attempt_id: str, evidence_id: str, current_user=Depends(get_current_user)):
+    """Student removes one of their evidence files while the attempt is still in
+    progress (works for both 'end' and 'per_question' modes)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    attempt = await db.exam_attempts.find_one(
+        {"id": attempt_id, "student_id": user["id"]}, {"_id": 0}
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+    if attempt.get("status") != ExamAttemptStatus.in_progress.value:
+        raise HTTPException(status_code=400, detail="El examen ya no está en progreso")
+
+    target = None
+    # End-mode list
+    end_list = _evidence_list(attempt)
+    remaining = [e for e in end_list if e.get("id") != evidence_id]
+    if len(remaining) != len(end_list):
+        target = next((e for e in end_list if e.get("id") == evidence_id), None)
+        await db.exam_attempts.update_one(
+            {"id": attempt_id},
+            {"$set": {"evidence_files": remaining}, "$unset": {"evidence_file": ""}},
+        )
+    else:
+        # Per-question map
+        qmap = attempt.get("question_evidence") or {}
+        qkey = next((k for k, v in qmap.items() if (v or {}).get("id") == evidence_id), None)
+        if qkey:
+            target = qmap[qkey]
+            await db.exam_attempts.update_one(
+                {"id": attempt_id}, {"$unset": {f"question_evidence.{qkey}": ""}}
+            )
+    if not target:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    if target.get("drive_file_id"):
+        try:
+            service = await get_drive_service(user["school_id"])
+            service.files().delete(fileId=target["drive_file_id"]).execute()
+        except Exception:
+            pass
+    updated = await db.exam_attempts.find_one(
+        {"id": attempt_id}, {"_id": 0, "evidence_files": 1, "question_evidence": 1}
+    )
+    return {
+        "evidence_files": updated.get("evidence_files", []),
+        "question_evidence": updated.get("question_evidence", {}),
+    }
 
 
 @router.get("/exams/{exam_id}/attempts/{attempt_id}/evidence")
-async def download_exam_evidence(exam_id: str, attempt_id: str, current_user=Depends(get_current_user)):
-    """Download/stream the evidence file of an attempt. Allowed to teacher/admin
-    of the school or the owning student."""
+async def download_exam_evidence(
+    exam_id: str,
+    attempt_id: str,
+    evidence_id: Optional[str] = Query(default=None),
+    current_user=Depends(get_current_user),
+):
+    """Download/stream an evidence file of an attempt. Allowed to teacher/admin
+    of the school or the owning student. `evidence_id` selects a specific file
+    (multi-file / per-question modes); without it, returns the first one."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -2824,7 +2944,11 @@ async def download_exam_evidence(exam_id: str, attempt_id: str, current_user=Dep
     if not (is_admin_user(user) or user.get("role") == "teacher" or is_owner_student):
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
 
-    ev = attempt.get("evidence_file")
+    all_items = _all_evidence(attempt)
+    if evidence_id:
+        ev = next((e for e in all_items if e.get("id") == evidence_id), None)
+    else:
+        ev = all_items[0] if all_items else None
     if not ev:
         raise HTTPException(status_code=404, detail="Sin evidencia")
 
@@ -4090,7 +4214,10 @@ async def get_exam_questions_for_student(
         "saved_answers": saved_answers,
         "total_questions": len(questions),
         "allow_evidence_upload": bool(exam.get("allow_evidence_upload")) if exam else False,
+        "evidence_mode": (exam.get("evidence_mode") or "end") if exam else "end",
         "evidence_file": attempt.get("evidence_file"),
+        "evidence_files": _evidence_list(attempt),
+        "question_evidence": attempt.get("question_evidence") or {},
     }
 
 
@@ -4231,13 +4358,28 @@ async def submit_exam_attempt(
     if not exam:
         raise HTTPException(status_code=404, detail="Examen no encontrado")
 
-    # Evidence gate — if the teacher enabled evidence upload, the student MUST
-    # have attached their evidence file before the exam can be submitted.
-    if exam.get("allow_evidence_upload") and not attempt.get("evidence_file"):
-        raise HTTPException(
-            status_code=400,
-            detail="Debes adjuntar tu evidencia antes de enviar el examen.",
-        )
+    # Evidence gate — if the teacher enabled evidence, the student MUST attach
+    # it before submitting. Skipped on auto-submit (time expired) so the student
+    # is never trapped by the timer.
+    is_auto = bool(data and data.auto_submitted)
+    if exam.get("allow_evidence_upload") and not is_auto:
+        mode = exam.get("evidence_mode") or "end"
+        if mode == "per_question":
+            q_ids = await db.exam_questions.find(
+                {"exam_id": attempt["exam_id"]}, {"_id": 0, "id": 1}
+            ).to_list(None)
+            qmap = attempt.get("question_evidence") or {}
+            missing = [q["id"] for q in q_ids if not qmap.get(q["id"])]
+            if missing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Debes adjuntar una evidencia en cada pregunta. Te faltan {len(missing)} de {len(q_ids)}.",
+                )
+        elif not _evidence_list(attempt):
+            raise HTTPException(
+                status_code=400,
+                detail="Debes adjuntar tu evidencia antes de enviar el examen.",
+            )
 
     # Get all questions with answers
     questions = await db.exam_questions.find(
@@ -5394,5 +5536,7 @@ async def clone_exam(exam_id: str, data: CloneExamRequest, current_user=Depends(
             await create_clone(dest_subject_id)
         except Exception as e:
             errores.append(str(e))
+
+    return {"clonados": clonados, "errores": errores}
 
     return {"clonados": clonados, "errores": errores}

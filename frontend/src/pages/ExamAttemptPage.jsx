@@ -5,7 +5,7 @@ import {
   Clock, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle, 
   XCircle, Loader2, Send, AlertCircle, Timer, Trophy, Target,
   Zap, Shield, BookOpen, Wifi, Eye, MonitorX, RefreshCw, 
-  FileText, Play, Info, Paperclip, Upload, FileCheck2
+  FileText, Play, Info, Paperclip, Upload, FileCheck2, Trash2
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -134,8 +134,11 @@ export default function ExamAttemptPage() {
   const [savingAnswer, setSavingAnswer] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [allowEvidence, setAllowEvidence] = useState(false);
-  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidenceMode, setEvidenceMode] = useState('end');
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [questionEvidence, setQuestionEvidence] = useState({});
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
+  const [uploadingQuestionId, setUploadingQuestionId] = useState(null);
   const [evidenceError, setEvidenceError] = useState(null);
   const evidenceInputRef = useRef(null);
   const timerRef = useRef(null);
@@ -167,7 +170,9 @@ export default function ExamAttemptPage() {
       setQuestions(questionsRes.data.questions);
       setAnswers(questionsRes.data.saved_answers || {});
       setAllowEvidence(!!questionsRes.data.allow_evidence_upload);
-      setEvidenceFile(questionsRes.data.evidence_file || null);
+      setEvidenceMode(questionsRes.data.evidence_mode || 'end');
+      setEvidenceFiles(questionsRes.data.evidence_files || []);
+      setQuestionEvidence(questionsRes.data.question_evidence || {});
       setPhase('exam');
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudo iniciar el examen');
@@ -223,28 +228,54 @@ export default function ExamAttemptPage() {
     } catch (err) { console.error('Error saving grid:', err); } finally { setSavingAnswer(false); }
   };
 
-  const handleEvidenceUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const MAX_END_FILES = 5;
+
+  const uploadEvidence = async (fileList, questionId = null) => {
+    const arr = Array.from(fileList || []);
+    if (!arr.length) return;
     setEvidenceError(null);
-    if (file.size > 15 * 1024 * 1024) {
-      setEvidenceError('El archivo supera el límite de 15 MB.');
+    for (const f of arr) {
+      if (f.size > 15 * 1024 * 1024) {
+        setEvidenceError(`"${f.name}" supera el límite de 15 MB.`);
+        return;
+      }
+    }
+    if (!questionId && evidenceFiles.length + arr.length > MAX_END_FILES) {
+      setEvidenceError(`Solo puedes adjuntar hasta ${MAX_END_FILES} archivos.`);
       return;
     }
     try {
-      setUploadingEvidence(true);
+      if (questionId) setUploadingQuestionId(questionId); else setUploadingEvidence(true);
       const form = new FormData();
-      form.append('file', file);
+      arr.forEach((f) => form.append('files', f));
+      if (questionId) form.append('question_id', questionId);
       const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/upload-evidence`, form, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' },
       });
-      setEvidenceFile(res.data.evidence_file);
+      if (questionId) setQuestionEvidence(res.data.question_evidence || {});
+      else setEvidenceFiles(res.data.evidence_files || []);
     } catch (err) {
       setEvidenceError(err.response?.data?.detail || 'No se pudo subir el archivo');
     } finally {
       setUploadingEvidence(false);
-      if (evidenceInputRef.current) evidenceInputRef.current.value = '';
+      setUploadingQuestionId(null);
     }
+  };
+
+  const removeEvidence = async (evidenceId) => {
+    setEvidenceError(null);
+    try {
+      const res = await axios.delete(`${API}/api/exam-attempts/${attemptId}/evidence/${evidenceId}`, { headers });
+      setEvidenceFiles(res.data.evidence_files || []);
+      setQuestionEvidence(res.data.question_evidence || {});
+    } catch (err) {
+      setEvidenceError(err.response?.data?.detail || 'No se pudo eliminar el archivo');
+    }
+  };
+
+  const handleEvidenceUpload = (e) => {
+    uploadEvidence(e.target.files);
+    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
   };
 
   const handleSubmit = async (autoSubmit = false) => {
@@ -265,6 +296,11 @@ export default function ExamAttemptPage() {
   const viewResults = () => navigate(`/${subdomain}/exam/${examId}/result/${attemptId}`);
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.keys(answers).filter(qId => answers[qId]?.selected_option_id || answers[qId]?.text_answer || (answers[qId]?.grid_answer && Object.keys(answers[qId].grid_answer).length > 0)).length;
+  const perQuestionDone = questions.length > 0 && questions.every((q) => questionEvidence[q.id]);
+  const evidenceMissingCount = questions.filter((q) => !questionEvidence[q.id]).length;
+  const evidenceComplete = !allowEvidence
+    ? true
+    : (evidenceMode === 'per_question' ? perQuestionDone : evidenceFiles.length > 0);
   const timerStyle = getTimerColor();
 
   // ─── RULES SCREEN ───
@@ -378,15 +414,19 @@ export default function ExamAttemptPage() {
               )}
             </div>
             <p className="text-slate-500 text-sm text-center mb-5">Una vez enviado, no podras modificar tus respuestas.</p>
-            {allowEvidence && !evidenceFile && (
+            {allowEvidence && !evidenceComplete && (
               <div className="flex items-start gap-2 p-3 mb-5 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700" data-testid="confirm-evidence-warning">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>Debes adjuntar tu evidencia antes de enviar. Ciérra esta ventana y usa el bloque "Sube aquí tu evidencia".</span>
+                <span>
+                  {evidenceMode === 'per_question'
+                    ? `Debes adjuntar una evidencia en cada pregunta. Te faltan ${evidenceMissingCount} de ${questions.length}.`
+                    : 'Debes adjuntar al menos un archivo de evidencia. Ciérra esta ventana y usa el bloque "Sube aquí tu evidencia".'}
+                </span>
               </div>
             )}
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmSubmit(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 border border-slate-200" data-testid="cancel-submit-btn">Cancelar</button>
-              <button onClick={() => handleSubmit(false)} disabled={submitting || (allowEvidence && !evidenceFile)} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20" data-testid="confirm-submit-btn">
+              <button onClick={() => handleSubmit(false)} disabled={submitting || (allowEvidence && !evidenceComplete)} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20" data-testid="confirm-submit-btn">
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Enviar
               </button>
             </div>
@@ -549,6 +589,56 @@ export default function ExamAttemptPage() {
                     </div>
                   )}
                   {savingAnswer && <div className="mt-4 flex items-center gap-2 text-indigo-500 text-sm"><Loader2 className="w-4 h-4 animate-spin" />Guardando...</div>}
+
+                  {/* Per-question evidence (mode = per_question) */}
+                  {allowEvidence && evidenceMode === 'per_question' && currentQuestion && (
+                    <div className="mt-6 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50/40 p-4" data-testid={`pq-evidence-${currentIndex}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Paperclip className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-bold text-slate-800">Evidencia de esta pregunta</span>
+                        <span className="text-xs font-semibold text-red-500">Obligatorio</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        onChange={(e) => { uploadEvidence(e.target.files, currentQuestion.id); e.target.value = ''; }}
+                        className="hidden"
+                        id={`pq-evidence-input-${currentQuestion.id}`}
+                        data-testid={`pq-evidence-input-${currentIndex}`}
+                      />
+                      {questionEvidence[currentQuestion.id] ? (
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                          <FileCheck2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          <p className="flex-1 min-w-0 text-sm font-semibold text-emerald-800 truncate">{questionEvidence[currentQuestion.id].file_name}</p>
+                          <label
+                            htmlFor={`pq-evidence-input-${currentQuestion.id}`}
+                            className="text-xs font-semibold text-purple-700 bg-white border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-50 cursor-pointer shrink-0"
+                            data-testid={`pq-evidence-replace-${currentIndex}`}
+                          >
+                            {uploadingQuestionId === currentQuestion.id ? 'Subiendo...' : 'Reemplazar'}
+                          </label>
+                          <button
+                            onClick={() => removeEvidence(questionEvidence[currentQuestion.id].id)}
+                            className="text-red-500 hover:text-red-700 shrink-0"
+                            data-testid={`pq-evidence-remove-${currentIndex}`}
+                            title="Quitar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor={`pq-evidence-input-${currentQuestion.id}`}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors cursor-pointer"
+                          data-testid={`pq-evidence-attach-${currentIndex}`}
+                        >
+                          {uploadingQuestionId === currentQuestion.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                          {uploadingQuestionId === currentQuestion.id ? 'Subiendo...' : 'Subir evidencia de esta pregunta'}
+                        </label>
+                      )}
+                      {evidenceError && uploadingQuestionId === null && <p className="text-xs text-red-600 mt-2">{evidenceError}</p>}
+                    </div>
+                  )}
                 </div>
                 {/* Navigation */}
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
@@ -574,8 +664,8 @@ export default function ExamAttemptPage() {
               </div>
             )}
 
-            {/* Evidence upload — required when teacher enabled it */}
-            {allowEvidence && (
+            {/* Evidence upload (mode = end) — up to 5 files, required */}
+            {allowEvidence && evidenceMode === 'end' && (
               <div className="bg-white rounded-2xl border-2 border-dashed border-purple-300 p-5 mt-6" data-testid="evidence-upload-card">
                 <div className="flex items-center gap-2 mb-1">
                   <Paperclip className="w-5 h-5 text-purple-600" />
@@ -583,33 +673,36 @@ export default function ExamAttemptPage() {
                   <span className="text-xs font-semibold text-red-500 ml-1">Obligatorio</span>
                 </div>
                 <p className="text-sm text-slate-500 mb-4">
-                  Adjunta un archivo (imagen, PDF o Word) con tu procedimiento. Máx. 15 MB. Debes adjuntarlo para poder enviar el examen.
+                  Adjunta tus archivos (imagen, PDF o Word) con tu procedimiento. Máx. 15 MB por archivo, hasta {MAX_END_FILES} archivos. Debes adjuntar al menos uno para enviar el examen.
                 </p>
                 <input
                   ref={evidenceInputRef}
                   type="file"
+                  multiple
                   accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   onChange={handleEvidenceUpload}
                   className="hidden"
                   data-testid="evidence-file-input"
                 />
-                {evidenceFile ? (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                    <FileCheck2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-emerald-800 truncate">{evidenceFile.file_name}</p>
-                      <p className="text-xs text-emerald-600">Evidencia adjuntada correctamente</p>
-                    </div>
-                    <button
-                      onClick={() => evidenceInputRef.current?.click()}
-                      disabled={uploadingEvidence}
-                      data-testid="evidence-replace-btn"
-                      className="text-xs font-semibold text-purple-700 bg-white border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-50 disabled:opacity-50 shrink-0"
-                    >
-                      {uploadingEvidence ? 'Subiendo...' : 'Reemplazar'}
-                    </button>
+                {evidenceFiles.length > 0 && (
+                  <div className="space-y-2 mb-3" data-testid="evidence-list">
+                    {evidenceFiles.map((ev) => (
+                      <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200" data-testid={`evidence-item-${ev.id}`}>
+                        <FileCheck2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <p className="flex-1 min-w-0 text-sm font-semibold text-emerald-800 truncate">{ev.file_name}</p>
+                        <button
+                          onClick={() => removeEvidence(ev.id)}
+                          className="text-red-500 hover:text-red-700 shrink-0"
+                          title="Quitar"
+                          data-testid={`evidence-remove-${ev.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
+                )}
+                {evidenceFiles.length < MAX_END_FILES && (
                   <button
                     onClick={() => evidenceInputRef.current?.click()}
                     disabled={uploadingEvidence}
@@ -617,8 +710,11 @@ export default function ExamAttemptPage() {
                     className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
                     {uploadingEvidence ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                    {uploadingEvidence ? 'Subiendo archivo...' : 'Añadir archivo'}
+                    {uploadingEvidence ? 'Subiendo archivo...' : (evidenceFiles.length > 0 ? 'Añadir otro archivo' : 'Añadir archivo')}
                   </button>
+                )}
+                {evidenceFiles.length >= MAX_END_FILES && (
+                  <p className="text-xs text-slate-500 text-center">Alcanzaste el máximo de {MAX_END_FILES} archivos.</p>
                 )}
                 {evidenceError && <p className="text-sm text-red-600 mt-3" data-testid="evidence-error">{evidenceError}</p>}
               </div>

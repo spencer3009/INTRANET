@@ -5480,6 +5480,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   const [optionsPerQuestion, setOptionsPerQuestion] = useState(5);
   const [pointsPerQuestion, setPointsPerQuestion] = useState(1.0);
   const [allowEvidence, setAllowEvidence] = useState(false);
+  const [evidenceMode, setEvidenceMode] = useState("end");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -5632,6 +5633,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setPointsPerQuestion(exam.points_per_question || 1.0);
       setRegisterColumn(exam.register_column || null);
       setAllowEvidence(!!exam.allow_evidence_upload);
+      setEvidenceMode(exam.evidence_mode === "per_question" ? "per_question" : "end");
     } else {
       setExamType("digital");
       setTitle("");
@@ -5646,6 +5648,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setPointsPerQuestion(1.0);
       setRegisterColumn(null);
       setAllowEvidence(false);
+      setEvidenceMode("end");
     }
     setError("");
   }, [exam, isOpen]);
@@ -5681,6 +5684,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           min_score_percentage: minScore,
           register_column: registerColumn,
           allow_evidence_upload: allowEvidence,
+          evidence_mode: allowEvidence ? evidenceMode : "end",
         }, exam?.id);
         onClose();
       } catch (err) {
@@ -6154,10 +6158,52 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
               <span>
                 <span className="block text-sm font-semibold text-gray-800">Pedir evidencia al alumno</span>
                 <span className="block text-xs text-gray-500 mt-0.5">
-                  Al finalizar, el alumno deberá <strong>adjuntar un archivo</strong> (imagen, PDF o Word) como evidencia de su procedimiento. Máx. 15 MB. <strong>Obligatorio</strong> para poder enviar el examen.
+                  El alumno deberá <strong>adjuntar evidencia</strong> (imagen, PDF o Word) de su procedimiento. Máx. 15 MB por archivo. <strong>Obligatorio</strong> para poder enviar el examen.
                 </span>
               </span>
             </label>
+
+            {allowEvidence && (
+              <div className="mt-4 pl-8 space-y-2.5" data-testid="exam-evidence-mode">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">¿Cuándo subirá la evidencia?</p>
+                <label
+                  className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${evidenceMode === "end" ? "border-purple-400 bg-purple-50/70" : "border-gray-200 hover:border-purple-200"}`}
+                >
+                  <input
+                    type="radio"
+                    name="evidence-mode"
+                    checked={evidenceMode === "end"}
+                    onChange={() => setEvidenceMode("end")}
+                    className="mt-1 w-4 h-4 accent-purple-600 cursor-pointer"
+                    data-testid="exam-evidence-mode-end"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-gray-800">Al final del examen</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      El alumno adjunta sus evidencias al terminar. Puede subir <strong>hasta 5 archivos</strong> en total.
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${evidenceMode === "per_question" ? "border-purple-400 bg-purple-50/70" : "border-gray-200 hover:border-purple-200"}`}
+                >
+                  <input
+                    type="radio"
+                    name="evidence-mode"
+                    checked={evidenceMode === "per_question"}
+                    onChange={() => setEvidenceMode("per_question")}
+                    className="mt-1 w-4 h-4 accent-purple-600 cursor-pointer"
+                    data-testid="exam-evidence-mode-per-question"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-gray-800">Por cada respuesta</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      El alumno sube <strong>1 archivo por pregunta</strong> mientras resuelve. Será <strong>obligatorio en todas</strong> las preguntas para poder enviar.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
           </>
           )}
@@ -7867,15 +7913,16 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
 
   const optLetter = (i) => String.fromCharCode(65 + i);
 
-  const downloadEvidence = async () => {
+  const downloadEvidence = async (evidenceId = null) => {
     try {
-      const res = await axios.get(`${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/evidence`, {
+      const url = `${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/evidence${evidenceId ? `?evidence_id=${evidenceId}` : ''}`;
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
       });
-      const url = URL.createObjectURL(res.data);
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const objUrl = URL.createObjectURL(res.data);
+      window.open(objUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'No se pudo abrir la evidencia');
     }
@@ -8004,31 +8051,42 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
             )}
 
             {/* Evidencia del alumno */}
-            {data?.evidence_file ? (
-              <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 flex items-center gap-3" data-testid="review-evidence">
-                <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                  <Paperclip className="w-4 h-4 text-purple-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">Evidencia adjunta</p>
-                  <p className="text-xs text-gray-500 truncate">{data.evidence_file.file_name}</p>
-                </div>
-                <a
-                  href={`${API}/exams/${exam.id}/attempts/${attempt.attempt_id}/evidence?token=${token}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => { e.preventDefault(); downloadEvidence(); }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-white border border-purple-200 hover:bg-purple-100 rounded-lg shrink-0"
-                  data-testid="review-evidence-download"
-                >
-                  <Download className="w-3.5 h-3.5" /> Ver / Descargar
-                </a>
+            {data?.allow_evidence_upload && (data?.evidence_mode === 'per_question' ? (
+              <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-xs text-purple-800" data-testid="review-evidence-per-question">
+                <span className="font-semibold">Evidencia por pregunta:</span> el alumno adjuntó un archivo en cada pregunta (se muestran abajo en cada una).
               </div>
-            ) : data?.allow_evidence_upload ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800" data-testid="review-evidence-missing">
-                Este examen pedía evidencia, pero el alumno no adjuntó ningún archivo.
-              </div>
-            ) : null}
+            ) : (() => {
+              const endEv = (data?.evidence_files && data.evidence_files.length)
+                ? data.evidence_files
+                : (data?.evidence_file ? [data.evidence_file] : []);
+              return endEv.length ? (
+                <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4" data-testid="review-evidence">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Paperclip className="w-4 h-4 text-purple-600" />
+                    <p className="text-sm font-semibold text-gray-800">Evidencias adjuntas ({endEv.length})</p>
+                  </div>
+                  <div className="space-y-2">
+                    {endEv.map((ev) => (
+                      <div key={ev.id} className="flex items-center gap-3 bg-white/70 rounded-lg p-2.5" data-testid={`review-evidence-item-${ev.id}`}>
+                        <Paperclip className="w-4 h-4 text-purple-500 shrink-0" />
+                        <p className="flex-1 min-w-0 text-xs text-gray-600 truncate">{ev.file_name}</p>
+                        <button
+                          onClick={() => downloadEvidence(ev.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-white border border-purple-200 hover:bg-purple-100 rounded-lg shrink-0"
+                          data-testid={`review-evidence-download-${ev.id}`}
+                        >
+                          <Download className="w-3.5 h-3.5" /> Ver
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800" data-testid="review-evidence-missing">
+                  Este examen pedía evidencia, pero el alumno no adjuntó ningún archivo.
+                </div>
+              );
+            })())}
             {(data?.questions || []).map((q) => (
               <div key={q.id} className={`rounded-xl border p-4 ${q.is_correct ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40'}`} data-testid={`review-question-${q.number}`}>
                 <div className="flex items-start gap-3 mb-3">
@@ -8042,6 +8100,15 @@ function ExamAttemptReview({ exam, attempt, token, onBack }) {
                     </div>
                     <p className="text-sm font-medium text-gray-800 mt-0.5">{q.question_text}</p>
                     {q.image_url && <img src={q.image_url} alt="" className="mt-2 max-h-32 rounded-lg" />}
+                    {q.evidence && (
+                      <button
+                        onClick={() => downloadEvidence(q.evidence.id)}
+                        className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 rounded-lg"
+                        data-testid={`review-q-evidence-${q.number}`}
+                      >
+                        <Paperclip className="w-3 h-3" /> Evidencia: {q.evidence.file_name}
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -1,0 +1,26 @@
+{
+  "summary": "Validated NEW evidence-mode feature for digital exams. Backend: re-executed /app/backend/tests/test_exam_evidence_modes.py → 3/3 PASSED (persistence of evidence_mode, end-mode gate, per_question gate + auto_submit bypass). Frontend: Logged in as admin@elroble.edu, navigated to Música course (e04de272-54ec-4af9-868a-bc7604e2b4b4), opened EXÁMENES tab, clicked 'Nuevo examen'. The 'Pedir evidencia al alumno' checkbox (exam-allow-evidence-toggle) reveals the [data-testid=exam-evidence-mode] block with both radios. 'Al final del examen' (exam-evidence-mode-end) shows text containing 'hasta 5 archivos'. 'Por cada respuesta' (exam-evidence-mode-per-question) shows text containing '1 archivo por pregunta' AND 'obligatorio en todas'. Clicking each radio correctly switches the selected state and visual highlight. No errors in console (only an unrelated recharts width/height warning from the dashboard chart).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_exam_evidence_modes.py",
+    "/app/test_reports/pytest/pytest_exam_evidence_modes.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CourseDetailPage.jsx is 13425 lines — should be split into smaller modules (ExamModal, etc.). Already known tech debt; out of scope for this feature.",
+    "Frontend dashboard emits recharts warning 'width(-1) and height(-1)' due to chart container missing minWidth/minHeight. Cosmetic, not blocking."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin@elroble.edu / 1234abc8 ; demo.reintento@elroble.edu / Demo1234! (both worked)",
+  "seed_data_creation": "Pytest seeds and cleans its own exam/attempt docs inside test_exam_evidence_modes.py",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Feature 'evidence_mode' (radios end / per_question) fully wired in ExamModal of CourseDetailPage.jsx; backend gate logic in routes/exams.py covered by test_exam_evidence_modes.py (3 tests). Drive is intentionally not connected in preview → saving an exam with allow_evidence_upload=true returns 400; this is EXPECTED, do not flag as bug. The persistence test uses allow_evidence_upload=false to bypass the Drive gate while still asserting evidence_mode is stored on the exam doc.",
+  "rca of the issue": "N/A — feature works as specified."
+}
