@@ -2286,7 +2286,7 @@ async def get_academic_assignments(
     if status:
         query["status"] = status
     
-    assignments = await db.academic_assignments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    assignments = await db.academic_assignments.find(query, {"_id": 0}).sort("created_at", -1).to_list(None)
     
     # Enrich with related data
     if assignments:
@@ -2298,11 +2298,11 @@ async def get_academic_assignments(
         subject_ids = list(set(a.get("subject_id") for a in assignments if a.get("subject_id")))
         
         # Fetch related data
-        teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
+        teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(None)
         levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         grades = await db.grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
-        subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(len(subject_ids) + 10)
+        subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(None)
         
         # Get academic years for assignments that have academic_year_id
         year_ids = list(set([a.get("academic_year_id") for a in assignments if a.get("academic_year_id")]))
@@ -2796,13 +2796,13 @@ async def _get_orphan_assignment_ids(school_id: str):
     with no linked course."""
     rows = await db.academic_assignments.find(
         {"school_id": school_id, "role": {"$ne": "tutor"}}, {"_id": 0, "id": 1, "subject_id": 1}
-    ).to_list(5000)
+    ).to_list(None)
     subject_ids = list({r.get("subject_id") for r in rows if r.get("subject_id")})
     existing = set()
     if subject_ids:
         subs = await db.subjects.find(
             {"id": {"$in": subject_ids}}, {"_id": 0, "id": 1}
-        ).to_list(5000)
+        ).to_list(None)
         existing = {s["id"] for s in subs}
     return [r["id"] for r in rows if not r.get("subject_id") or r.get("subject_id") not in existing]
 
