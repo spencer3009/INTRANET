@@ -555,6 +555,11 @@ async def update_course_post(
         # Also update root-level due_date for backwards compatibility
         if data.metadata.get("due_date"):
             update_data["due_date"] = data.metadata.get("due_date")
+        # Keep root-level `max_grade` in sync with metadata.points. Without this
+        # the create path stored max_grade = points but edits left a STALE value
+        # (e.g. task created with 19, later edited to 20 still graded out of /19).
+        # Track points (None clears it so reads fall back to the 20 default).
+        update_data["max_grade"] = data.metadata.get("points")
     
     await db.course_posts.update_one({"id": post_id}, {"$set": update_data})
     
@@ -811,7 +816,7 @@ async def get_task_submissions(
         "task_title": task.get("title"),
         "subject_id": task.get("subject_id"),
         "section_id": task.get("section_id"),
-        "max_grade": task.get("max_grade") or task.get("metadata", {}).get("points", 20),
+        "max_grade": task.get("metadata", {}).get("points") or task.get("max_grade") or 20,
         "due_date": task.get("due_date") or task.get("metadata", {}).get("due_date"),
         "submissions_count": len(submissions),
         "graded_count": sum(1 for s in submissions if s.get("grade") is not None),
@@ -1091,8 +1096,9 @@ async def grade_task_submission(
         logger.error(f"Submission not found: {submission_id}")
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     
-    # Validate grade against max_grade
-    max_grade = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
+    # Validate grade against max_grade. Prefer metadata.points (current source of
+    # truth set by the task form) over a possibly-stale root max_grade.
+    max_grade = task.get("metadata", {}).get("points") or task.get("max_grade") or 20
     if max_grade <= 0:
         max_grade = 20  # Default if no valid max_grade
     

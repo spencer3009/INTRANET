@@ -825,10 +825,10 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "submissions.grade": {"$exists": True, "$ne": None},
             "deleted_at": {"$exists": False},
             "status": {"$ne": "archived"}
-        }, {"_id": 0, "submissions": 1, "max_grade": 1}).to_list(500)
+        }, {"_id": 0, "submissions": 1, "max_grade": 1, "metadata.points": 1}).to_list(500)
         
         for task in tasks_with_grades:
-            max_grade = task.get("max_grade", 20)
+            max_grade = task.get("metadata", {}).get("points") or task.get("max_grade") or 20
             for sub in task.get("submissions", []):
                 if sub.get("student_id") == user["id"] and sub.get("grade") is not None:
                     # Normalize to 20-point scale
