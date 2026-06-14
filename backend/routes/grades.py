@@ -26,6 +26,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+
+def _deny_students(user):
+    """SECURITY guard for staff-only grade endpoints. Blocks students and
+    parents from reading or writing Registro Auxiliar / Consolidado data.
+    Staff roles (teacher/coordinator/admin/owner/director/auxiliar) keep their
+    existing access; the per-course teacher-assignment checks remain in place."""
+    if user.get("role") in ("student", "parent"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta información")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MODELS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -282,6 +292,7 @@ async def get_eval_config(subject_id: str, section_id: str, current_user=Depends
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     school_id = user.get("school_id")
 
     config = await db.evaluation_config.find_one(
@@ -304,6 +315,7 @@ async def update_eval_config(subject_id: str, section_id: str, data: EvalConfigU
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     check_demo_user_block(user)
     school_id = user.get("school_id")
 
@@ -339,6 +351,7 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     school_id = user.get("school_id")
     role = user.get("role")
 
@@ -505,6 +518,7 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     check_demo_user_block(user)
     school_id = user.get("school_id")
     role = user.get("role")
@@ -751,6 +765,7 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     school_id = user.get("school_id")
 
     # Get section info
@@ -892,6 +907,7 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    _deny_students(user)
     school_id = user.get("school_id")
 
     # Get school info

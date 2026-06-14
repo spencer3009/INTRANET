@@ -2751,7 +2751,11 @@ function App() {
             path="/:subdomain/consolidado-notas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
+                {(isStudent(user) || isParent(user)) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -2759,7 +2763,11 @@ function App() {
             path="/consolidado-notas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
+                {(isStudent(user) || isParent(user)) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -3047,7 +3055,11 @@ function App() {
             path="/:subdomain/curso/:subjectId"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                {(isStudent(user) || isParent(user)) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -3057,7 +3069,11 @@ function App() {
             path="/curso/:subjectId"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                {(isStudent(user) || isParent(user)) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />

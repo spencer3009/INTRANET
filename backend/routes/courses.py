@@ -2410,21 +2410,32 @@ async def get_all_notifications(
     
     subject_ids = [s["id"] for s in subjects]
     
-    # Get notifications from these subjects OR school-wide notifications
+    # SECURITY: a notification is visible to the current user ONLY if:
+    #   (a) it belongs to a subject the user has access to (course notifications,
+    #       which carry `subject_id` + `read_by[]` and no `user_id`), OR
+    #   (b) it is addressed personally to this user (`user_id == me`) — e.g.
+    #       matrícula/enrollment notifications created by create_internal_notification, OR
+    #   (c) it is a true school-wide broadcast (no `subject_id` AND no recipient
+    #       `user_id`).
+    # The previous query matched ANY notification with `subject_id == None`,
+    # which leaked admin/parent personal notifications (matrícula, with names and
+    # DNIs) into every student's and teacher's bell. Fixed below.
     notifications = await db.notifications.find(
         {
             "school_id": school_id,
             "$or": [
                 {"subject_id": {"$in": subject_ids}},
-                {"subject_id": None}  # School-wide notifications
+                {"user_id": user_id},
+                {"subject_id": None, "user_id": {"$exists": False}},
             ]
         },
         {"_id": 0}
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
-    # Mark which ones are read and clean response
+    # Mark which ones are read and clean response. Supports both notification
+    # shapes: course notifs use `read_by[]`, personal notifs use a `read` bool.
     for notif in notifications:
-        notif["is_read"] = user_id in notif.get("read_by", [])
+        notif["is_read"] = bool(notif.get("read")) or (user_id in notif.get("read_by", []))
         notif.pop("read_by", None)  # Don't send full list to frontend
     
     # Count unread

@@ -222,6 +222,8 @@ async def get_unified_register_availability(
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if user.get("role") in ("student", "parent"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta información")
 
     school_id = user["school_id"]
 

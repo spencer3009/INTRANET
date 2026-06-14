@@ -239,6 +239,23 @@ export default function NotificationBell({ token, userRole }) {
     return match ? `/${match[1]}` : "";
   }, []);
 
+  // SECURITY/UX: notification `link_destino` is generated pointing at the
+  // teacher/admin routes (e.g. /curso/{id}, /admin/exams). For students and
+  // parents we rewrite it to their OWN portal so a notification never tries to
+  // open a management view (which is also role-guarded at the route level).
+  const resolveLinkForRole = useCallback((link) => {
+    if (!link) return link;
+    if (userRole === "student" || userRole === "parent") {
+      const portal = userRole === "student" ? "student" : "parent";
+      const m = link.match(/^\/curso\/([^?\/]+)/);
+      if (m) return `/${portal}/courses/${m[1]}`;
+      if (link.startsWith("/admin") || link.startsWith("/teacher") || link.startsWith("/curso")) {
+        return `/${portal}`;
+      }
+    }
+    return link;
+  }, [userRole]);
+
   // WebSocket handler for real-time push notifications
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === "new_notification") {
@@ -259,7 +276,7 @@ export default function NotificationBell({ token, userRole }) {
           label: "Ver",
           onClick: () => {
             const prefix = getSchoolPrefix();
-            navigate(`${prefix}${notif.link_destino}`);
+            navigate(`${prefix}${resolveLinkForRole(notif.link_destino)}`);
           }
         } : undefined
       });
@@ -469,7 +486,7 @@ export default function NotificationBell({ token, userRole }) {
     // Navigate if there's a link
     if (notif.link_destino) {
       const prefix = getSchoolPrefix();
-      const fullPath = `${prefix}${notif.link_destino}`;
+      const fullPath = `${prefix}${resolveLinkForRole(notif.link_destino)}`;
       setIsOpen(false);
       navigate(fullPath);
     }
