@@ -352,7 +352,13 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
         nivel_id: isStaff ? null : selLevel,
         grado_id: isStaff ? null : selGrade,
         seccion_id: isStaff ? null : selSection,
-        turno_id: isStaff ? null : (selShift || null),
+        // La vista previa y el conteo filtran SOLO por nivel+grado+sección (no
+        // por turno). El download enviaba además turno_id y, si el turno
+        // seleccionado no coincidía con el guardado del alumno, excluía a TODOS
+        // ("No se encontraron estudiantes") pese a que la vista previa mostraba
+        // alumnos. La sección ya identifica el grupo, así que no filtramos por
+        // turno para que el download coincida con la vista previa.
+        turno_id: null,
         incluir_codigo_alumno: incluirCodigo, ordenar_alfabetico: ordenar, incluir_foto: true,
         color_principal: selectedTpl?.supports_custom_colors ? colorPrincipal : null,
         color_acento: selectedTpl?.supports_custom_colors ? colorAcento : null,
