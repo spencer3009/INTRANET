@@ -1486,3 +1486,112 @@ async def delete_announcement(
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA INTEGRITY — duplicate grade/section detector (READ-ONLY, owner/admin)
+# ──────────────────────────────────────────────────────────────────────────────
+# Production schools sometimes end up with DUPLICATE grade or section documents
+# (same nombre under the same parent), with students/subjects/assignments split
+# across them. This causes the Registro Auxiliar to show a different roster than
+# Usuarios/Estudiantes (the bug reported at Eusebio Arróniz, jun-2026: course
+# "Álgebra 4° A" linked to a duplicate section with a different set of children).
+#
+# This endpoint only READS and reports the duplicates so the owner can see the
+# real state of their data and decide how to clean it up using the existing
+# section/grade/student management screens. It performs NO writes.
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _count_students_in_section(school_id: str, section_id: str) -> int:
+    return await db.users.count_documents({
+        "school_id": school_id,
+        "role": "student",
+        "$or": [{"seccion_id": section_id}, {"section_id": section_id}],
+    })
+
+
+@router.get("/admin/data-integrity/duplicates")
+async def get_data_integrity_duplicates(current_user=Depends(get_current_user)):
+    """READ-ONLY: report duplicate grade and section documents for this school.
+
+    A grade group is duplicated when two `grades` docs share the same (nivel_id,
+    nombre). A section group is duplicated when two `sections` docs share the
+    same (grado_id, nombre). For each duplicated section we surface how many
+    students, subjects (courses) and teacher assignments point to it, so the
+    owner can identify the canonical one and remove/migrate the stragglers."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    school_id = user["school_id"]
+
+    # Caches
+    levels = {l["id"]: l.get("nombre", "") for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(200)}
+    grades = await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(500)
+    grades_by_id = {g["id"]: g for g in grades}
+    sections = await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(2000)
+
+    # ── Duplicate grades (same nivel_id + nombre) ──
+    grade_groups = {}
+    for g in grades:
+        key = (g.get("nivel_id"), (g.get("nombre") or "").strip().lower())
+        grade_groups.setdefault(key, []).append(g)
+    duplicate_grades = []
+    for (nivel_id, _), grp in grade_groups.items():
+        if len(grp) > 1:
+            duplicate_grades.append({
+                "nivel_id": nivel_id,
+                "level_name": levels.get(nivel_id, ""),
+                "nombre": grp[0].get("nombre", ""),
+                "count": len(grp),
+                "grade_ids": [x["id"] for x in grp],
+            })
+
+    # ── Duplicate sections (same grado_id + nombre) ──
+    section_groups = {}
+    for s in sections:
+        key = (s.get("grado_id"), (s.get("nombre") or "").strip().lower())
+        section_groups.setdefault(key, []).append(s)
+
+    duplicate_sections = []
+    for (grado_id, _), grp in section_groups.items():
+        if len(grp) <= 1:
+            continue
+        grade_doc = grades_by_id.get(grado_id, {})
+        items = []
+        for s in grp:
+            sid = s["id"]
+            student_count = await _count_students_in_section(school_id, sid)
+            subject_count = await db.subjects.count_documents({"school_id": school_id, "section_id": sid})
+            assignment_count = await db.academic_assignments.count_documents({"school_id": school_id, "section_id": sid})
+            items.append({
+                "section_id": sid,
+                "nombre": s.get("nombre", ""),
+                "student_count": student_count,
+                "subject_count": subject_count,
+                "assignment_count": assignment_count,
+            })
+        # Sort so the section with the most students (likely canonical) is first.
+        items.sort(key=lambda x: -x["student_count"])
+        duplicate_sections.append({
+            "grado_id": grado_id,
+            "grade_name": grade_doc.get("nombre", ""),
+            "level_name": levels.get(grade_doc.get("nivel_id"), ""),
+            "nombre": grp[0].get("nombre", ""),
+            "count": len(grp),
+            "sections": items,
+        })
+
+    duplicate_sections.sort(key=lambda x: (x["level_name"], x["grade_name"], x["nombre"]))
+
+    return {
+        "school_id": school_id,
+        "has_duplicates": bool(duplicate_grades or duplicate_sections),
+        "duplicate_grades": duplicate_grades,
+        "duplicate_sections": duplicate_sections,
+        "summary": {
+            "duplicate_grade_groups": len(duplicate_grades),
+            "duplicate_section_groups": len(duplicate_sections),
+        },
+    }

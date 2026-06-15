@@ -64,6 +64,46 @@ async def _fetch_section_students(school_id: str, section_id: str):
     return unique
 
 
+async def _resolve_effective_section_id(school_id: str, subject_id: str, section_id: str,
+                                        role: str = None, teacher_id: str = None) -> str:
+    """Resolve the section whose ENROLLED students belong to this course.
+
+    Production bug (Eusebio Arróniz, jun-2026): a subject's stored `section_id`
+    can be SWAPPED/mismatched relative to the section recorded on the course's
+    `academic_assignments` doc (e.g. "Álgebra 4°A" has subject.section_id → B
+    while its assignment → A). The teacher dashboard card and the official
+    Usuarios/Estudiantes list use the ASSIGNMENT section, so the Registro
+    Auxiliar must use the same source to stay consistent — NOT subject.section_id.
+
+    Returns the assignment's section_id when an assignment exists for this
+    subject (preferring the current teacher / a titular / an active one), else
+    falls back to the requested `section_id`."""
+    # Teacher: their own assignment for this subject is authoritative.
+    if role == "teacher" and teacher_id:
+        a = await db.academic_assignments.find_one({
+            "school_id": school_id, "teacher_id": teacher_id,
+            "subject_id": subject_id, "status": "activo",
+        }) or await db.academic_assignments.find_one({
+            "school_id": school_id, "teacher_id": teacher_id, "subject_id": subject_id,
+        })
+        if a and a.get("section_id"):
+            return a["section_id"]
+
+    # Owner/admin/others: use the course's titular/active assignment.
+    a = await db.academic_assignments.find_one({
+        "school_id": school_id, "subject_id": subject_id,
+        "role": "titular", "status": "activo",
+    }) or await db.academic_assignments.find_one({
+        "school_id": school_id, "subject_id": subject_id, "status": "activo",
+    }) or await db.academic_assignments.find_one({
+        "school_id": school_id, "subject_id": subject_id,
+    })
+    if a and a.get("section_id"):
+        return a["section_id"]
+
+    return section_id
+
+
 async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id: str, section_id: str):
     """RBAC guard for teachers on Registro Auxiliar endpoints.
 
@@ -426,13 +466,19 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
 
     # Teachers can only see their own assignments. Permission is relaxed so a
     # subject linked to a different section doc than the teacher's assignment no
-    # longer 403s — but the roster is ALWAYS fetched from the requested
-    # `section_id` (the same one the owner uses), so both see the identical list.
+    # longer 403s.
     if role == "teacher":
         await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
 
-    # Get students for THIS section only (no cross-section merging).
-    students = await _fetch_section_students(school_id, section_id)
+    # Resolve the section whose enrolled students actually belong to this course
+    # (from the course's assignment), so the roster matches the dashboard card
+    # and Usuarios/Estudiantes even when subject.section_id is swapped/mismatched.
+    effective_section_id = await _resolve_effective_section_id(
+        school_id, subject_id, section_id, role=role, teacher_id=user.get("id")
+    )
+
+    # Get students for the effective section only (no cross-section merging).
+    students = await _fetch_section_students(school_id, effective_section_id)
 
     # Get existing grades
     grades = await db.student_grades.find(
