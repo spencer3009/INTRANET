@@ -71,6 +71,21 @@ async def test_duplicate_section_register():
         assignment = await grades._assert_teacher_assignment(school, teacher, subject, sec_A1)
         assert assignment["section_id"] == sec_A2
 
+        # 3b) Teacher guard: subject linked to a section in a DIFFERENT grade
+        #     (duplicate grade/section docs that can't be linked topologically).
+        #     The final fallback (any assignment for teacher+subject) must accept.
+        sec_other = f"{PREFIX}-secOther"
+        await db.sections.insert_one(
+            {"id": sec_other, "school_id": school, "grado_id": f"{PREFIX}-otherGrade", "nombre": "A"}
+        )
+        assignment2 = await grades._assert_teacher_assignment(school, teacher, subject, sec_other)
+        assert assignment2["section_id"] == sec_A2
+        # And resolving students from the assignment section still finds the 3.
+        sibs2 = await grades._resolve_sibling_section_ids(school, assignment2["section_id"])
+        fetched2 = await grades._fetch_section_students(school, sibs2)
+        assert len(fetched2) == 3
+        await db.sections.delete_one({"id": sec_other})
+
         # 4) Teacher guard denies a teacher with no assignment.
         denied = False
         try:

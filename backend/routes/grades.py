@@ -130,6 +130,23 @@ async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id
     if assignment:
         return assignment
 
+    # Final fallback: ANY assignment for this (teacher, subject), regardless of
+    # section/status. This mirrors the teacher dashboard (`/teacher/courses`),
+    # which lists a course whenever the teacher has an assignment for it without
+    # filtering by section or status. It is required because schools sometimes
+    # have DUPLICATE grade/section documents, so the subject's stored
+    # `section_id` cannot be topologically linked (same grado_id + nombre) to
+    # the section recorded on the teacher's assignment. The assignment itself is
+    # the source of truth for "this teacher teaches this subject", so we accept
+    # it and let the caller fetch students from the assignment's real section.
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": teacher_id,
+        "subject_id": subject_id,
+    })
+    if assignment:
+        return assignment
+
     raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
 
 
@@ -454,13 +471,22 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
 
     # Teachers can only see their own assignments (accepts sibling/duplicate
     # sections so a subject linked to a duplicate section doesn't 403).
+    teacher_assignment = None
     if role == "teacher":
-        await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
+        teacher_assignment = await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
 
     # Get students in section — robust against duplicate section documents
     # (same grado_id + nombre) and seccion_id/section_id field divergence.
-    sibling_section_ids = await _resolve_sibling_section_ids(school_id, section_id)
-    students = await _fetch_section_students(school_id, sibling_section_ids)
+    section_ids_for_students = set(await _resolve_sibling_section_ids(school_id, section_id))
+    # For teachers, ALSO include the section recorded on their assignment (and
+    # its siblings). This is the section where students are actually enrolled
+    # and what the teacher dashboard uses for its student counts — it can differ
+    # from the subject's stored section_id when grade/section docs are duplicated.
+    if teacher_assignment and teacher_assignment.get("section_id"):
+        section_ids_for_students.update(
+            await _resolve_sibling_section_ids(school_id, teacher_assignment["section_id"])
+        )
+    students = await _fetch_section_students(school_id, list(section_ids_for_students))
 
     # Get existing grades
     grades = await db.student_grades.find(
