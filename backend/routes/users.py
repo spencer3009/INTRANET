@@ -536,6 +536,79 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     
     return {"message": "Usuario actualizado correctamente", "user": updated_user}
 
+
+class TeacherActiveRequest(BaseModel):
+    active: bool
+
+
+def _generate_temp_password(length: int = 8) -> str:
+    """Readable temporary password (avoids ambiguous chars 0/O/1/l/I)."""
+    import secrets
+    alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+@router.patch("/users/teachers/{teacher_id}/active")
+async def set_teacher_active(teacher_id: str, data: TeacherActiveRequest,
+                             current_user = Depends(get_current_user)):
+    """Activate / deactivate a TEACHER account from the system.
+
+    - Deactivate (active=false): sets status="inactivo" and RESETS the password
+      to an unguessable random value so the teacher can no longer log in
+      (login is also blocked by the status check in auth.login). Idempotent.
+    - Activate (active=true): sets status="activo" and generates a NEW temporary
+      password, returned in plaintext ONCE so the admin can hand it to the
+      teacher. The teacher then logs in with it.
+    Owner/admin only. Restricted to role == "teacher"."""
+    import secrets
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden cambiar el estado de un profesor")
+
+    target = await db.users.find_one({"id": teacher_id, "school_id": user["school_id"]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Profesor no encontrado")
+    if target.get("role") != "teacher":
+        raise HTTPException(status_code=400, detail="Solo se puede activar/desactivar a profesores")
+    if target.get("is_system_user"):
+        raise HTTPException(status_code=403, detail=SYSTEM_USER_BLOCKED_MESSAGE)
+    if target.get("is_protected") or target.get("is_owner"):
+        raise HTTPException(status_code=400, detail="No se puede desactivar al propietario")
+
+    now = datetime.now(timezone.utc).isoformat()
+    temp_password = None
+
+    if data.active:
+        # Reactivate: issue a fresh temporary password.
+        temp_password = _generate_temp_password()
+        update_data = {
+            "status": "activo",
+            "password": hash_password(temp_password),
+            "must_change_password": True,
+            "deactivated_at": None,
+            "reactivated_at": now,
+            "updated_at": now,
+        }
+    else:
+        # Deactivate: scramble the password so the current one stops working.
+        update_data = {
+            "status": "inactivo",
+            "password": hash_password(secrets.token_urlsafe(32)),
+            "deactivated_at": now,
+            "updated_at": now,
+        }
+
+    await db.users.update_one({"id": teacher_id}, {"$set": update_data})
+    logger.info(f"Teacher {teacher_id} {'activated' if data.active else 'deactivated'} by {user['id']}")
+
+    return {
+        "message": "Profesor activado" if data.active else "Profesor desactivado",
+        "status": update_data["status"],
+        "temp_password": temp_password,  # null on deactivate
+    }
+
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     """Delete a user and all their related data (cascade delete)"""

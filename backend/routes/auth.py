@@ -281,7 +281,15 @@ async def login(creds: UserLogin):
         if not user:
             logger.info(f"[LOGIN] ERROR invalid_credentials reason=user_not_found identifier={identifier}")
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
-        
+
+        # Deactivated teacher accounts cannot log in (admin toggled them off).
+        if user.get("role") == "teacher" and user.get("status") == "inactivo":
+            logger.info(f"[LOGIN] ERROR account_deactivated identifier={identifier}")
+            raise HTTPException(
+                status_code=403,
+                detail="Tu cuenta ha sido desactivada. Contacta al administrador del colegio."
+            )
+
         try:
             pwd_valid = verify_password(creds.password, user.get("password", ""))
         except Exception as pwd_err:

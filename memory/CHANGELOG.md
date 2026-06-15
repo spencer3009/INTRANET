@@ -1,5 +1,26 @@
 # EduNet - Changelog
 
+## Jun 15, 2026 - Feature: Switch para activar/desactivar profesores (con reseteo de clave) ✅
+- **Pedido**: en la tarjeta del profesor (Admin → Profesores) un switch verde por defecto; al apagarlo el profesor no puede entrar al sistema y su contraseña se resetea. Al reactivarlo, generar una contraseña temporal mostrada en pantalla.
+- **Backend**:
+  - `users.py`: nuevo `PATCH /api/users/teachers/{teacher_id}/active` (solo admin/owner, solo rol `teacher`). Desactivar → `status="inactivo"` + scramble del password (token aleatorio). Reactivar → `status="activo"` + nueva contraseña temporal legible (8 chars sin ambiguos) devuelta en `temp_password` (solo una vez) + `must_change_password=true`. Bloquea owner/protegidos y system users.
+  - `auth.py` (login): los profesores con `status=="inactivo"` reciben **403** ("Tu cuenta ha sido desactivada...").
+- **Frontend** (`AdminTeachersPage.jsx`): `Switch` (shadcn) en la columna Estado de cada profesor (verde=activo). Desactivar pide confirmación (su clave se resetea). Reactivar muestra modal con la **contraseña temporal** y botón copiar. Spinner por fila durante la operación. data-testids: `teacher-active-switch-{id}`, `teacher-status-badge-{id}`, `temp-password-modal/value`, `copy-temp-password-btn`.
+- **Verificado E2E (curl)**: desactivar → login 403; reactivar → `temp_password` → login 200 con esa clave. Test: `tests/test_teacher_activation.py`. UI compila OK (no se pudo capturar en Preview porque la suscripción del colegio de prueba está vencida y un guard redirige al dashboard — estado de datos del Preview). Requiere **redespliegue** para producción.
+
+## Jun 15, 2026 - Fix (raíz): Registro Auxiliar Profesor vacío / cruzado (secciones-grados duplicados) ✅
+- **Reportado**: en "Álgebra 4°A" el Propietario veía 22 alumnos y el Profesor veía 19 (o vacío/41); los rosters no coincidían entre la tarjeta del curso, el Registro y Usuarios/Estudiantes.
+- **Causa raíz**: data con **secciones/grados "4°A" duplicados** y `subject.section_id` **intercambiado** respecto al `section_id` de la asignación del curso. La tarjeta y Usuarios usan la sección de la **asignación**; el Registro usaba `subject.section_id` → roster distinto. Además un 403 (asignación estricta) se enmascaraba como "No hay alumnos".
+- **Solución** (`grades.py`):
+  - `_resolve_effective_section_id`: el Registro resuelve la sección desde la **asignación del curso** (misma fuente que la tarjeta), no desde `subject.section_id`. Role-agnóstico (profesor y propietario ven lo mismo).
+  - `_fetch_section_students`: roster de UNA sola sección (match `seccion_id` o `section_id`), sin fusionar (se eliminó el merge por "hermanas" que causaba el 41).
+  - `_assert_teacher_assignment`: permiso relajado (exacto → cualquier asignación del profesor para esa asignatura) → ya no hay 403 enmascarado; deniega solo si no hay asignación.
+  - `GradeBookTab.jsx`: ya no enmascara errores 403/red como "sin alumnos" (banner de error claro).
+  - **Solo lectura** `GET /api/admin/data-integrity/duplicates`: detector de grados/secciones duplicados (para limpieza futura).
+- **Verificado**: `tests/test_register_duplicate_sections.py` (PASA). Requiere **redespliegue** para producción.
+
+
+
 ## Jun 3, 2026 - Restricción: pestaña/botón de "Huérfanas" solo para Soporte ✅
 - **Pedido**: el propietario y el administrador del colegio NO deben ver la herramienta de limpieza de huérfanas; solo Soporte.
 - **Backend** (`academic.py`): `GET` y `DELETE /api/academic/assignments/orphans` ahora exigen sesión de Soporte (`user.is_support_session`). Cualquier otro rol (owner/admin/director) recibe **403**.

@@ -8,14 +8,17 @@ import {
   UserCog, UserPlus, ArrowLeft, Loader2, X, Camera,
   Check, AlertCircle, Plus, Eye, EyeOff, Search,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles,
-  Mail, Phone, Calendar, Award, ChevronDown, ExternalLink
+  Mail, Phone, Calendar, Award, ChevronDown, ExternalLink,
+  KeyRound, Copy, ShieldOff
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Teacher Row Component
-function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDetails, onManageAssignments }) {
+function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDetails, onManageAssignments, onToggleActive, toggling }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isActive = teacher.status === 'activo' || !teacher.status;
   
   // Count assigned subjects (exclude tutor-role rows which have no subject_id)
   const teacherAssignments = assignments.filter(a => a.teacher_id === teacher.id && a.subject_id);
@@ -78,13 +81,24 @@ function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDe
         )}
       </td>
       <td className="px-4 py-3">
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          teacher.status === 'activo' || !teacher.status
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-slate-100 text-slate-600'
-        }`}>
-          {teacher.status === 'activo' || !teacher.status ? 'Activo' : teacher.status}
-        </span>
+        <div className="flex items-center gap-2.5">
+          {toggling ? (
+            <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+          ) : (
+            <Switch
+              checked={isActive}
+              onCheckedChange={(val) => onToggleActive(teacher, val)}
+              className="data-[state=checked]:bg-emerald-500"
+              data-testid={`teacher-active-switch-${teacher.id}`}
+              aria-label={isActive ? "Desactivar profesor" : "Activar profesor"}
+            />
+          )}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+          }`} data-testid={`teacher-status-badge-${teacher.id}`}>
+            {isActive ? 'Activo' : 'Inactivo'}
+          </span>
+        </div>
       </td>
       <td className="px-4 py-3">
         <div className="relative">
@@ -788,6 +802,12 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Activate / deactivate teacher
+  const [togglingId, setTogglingId] = useState(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null); // teacher pending deactivation
+  const [tempPasswordInfo, setTempPasswordInfo] = useState(null); // { teacher, password }
+  const [copied, setCopied] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
@@ -876,6 +896,45 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
   const handleManageAssignments = (teacher) => {
     // Navigate to teacher assignments page with teacher filter
     navigateTo(`/asignacion-docente?teacher=${teacher.id}`);
+  };
+
+  // Switch handler: deactivating asks for confirmation; activating runs directly.
+  const handleToggleActive = (teacher, nextActive) => {
+    if (!nextActive) {
+      setConfirmDeactivate(teacher);
+    } else {
+      doToggleActive(teacher, true);
+    }
+  };
+
+  const doToggleActive = async (teacher, active) => {
+    setTogglingId(teacher.id);
+    setConfirmDeactivate(null);
+    try {
+      const res = await axios.patch(
+        `${API}/users/teachers/${teacher.id}/active`,
+        { active },
+        { headers }
+      );
+      const newStatus = res.data.status;
+      setTeachers(prev => prev.map(t => t.id === teacher.id ? { ...t, status: newStatus } : t));
+      if (active && res.data.temp_password) {
+        setTempPasswordInfo({ teacher, password: res.data.temp_password });
+        setCopied(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "No se pudo cambiar el estado del profesor");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const copyTempPassword = () => {
+    if (tempPasswordInfo?.password) {
+      navigator.clipboard?.writeText(tempPasswordInfo.password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const navigateTo = (path) => {
@@ -1036,6 +1095,8 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
                         onDelete={handleDelete}
                         onViewDetails={(t) => console.log('View details:', t)}
                         onManageAssignments={handleManageAssignments}
+                        onToggleActive={handleToggleActive}
+                        toggling={togglingId === teacher.id}
                       />
                     ))}
                   </tbody>
@@ -1072,6 +1133,63 @@ export default function AdminTeachersPage({ user, token, onLogout }) {
         confirmVariant="danger"
         loading={deleteLoading}
       />
+
+      {/* Deactivate Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!confirmDeactivate}
+        onClose={() => setConfirmDeactivate(null)}
+        onConfirm={() => doToggleActive(confirmDeactivate, false)}
+        title="Desactivar Profesor"
+        message={`¿Desactivar a ${confirmDeactivate?.name} ${confirmDeactivate?.last_name}? Su contraseña se restablecerá y no podrá acceder al sistema. Para reactivarlo, vuelve a encender el switch y se generará una nueva contraseña temporal.`}
+        confirmText="Desactivar"
+        confirmVariant="danger"
+      />
+
+      {/* Temporary Password Modal (shown after reactivation) */}
+      {tempPasswordInfo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          data-testid="temp-password-modal"
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center">
+                <KeyRound className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Profesor reactivado</h3>
+                <p className="text-sm text-slate-500">
+                  {tempPasswordInfo.teacher?.name} {tempPasswordInfo.teacher?.last_name}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-3">
+              Entrégale esta <strong>contraseña temporal</strong>. Solo se muestra una vez —
+              cópiala ahora. El profesor podrá iniciar sesión con ella.
+            </p>
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4">
+              <code className="flex-1 text-lg font-mono font-bold tracking-wider text-slate-800" data-testid="temp-password-value">
+                {tempPasswordInfo.password}
+              </code>
+              <button
+                onClick={copyTempPassword}
+                className="p-2 rounded-lg hover:bg-slate-200 transition-colors text-slate-600"
+                data-testid="copy-temp-password-btn"
+                title="Copiar"
+              >
+                {copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+              </button>
+            </div>
+            <button
+              onClick={() => setTempPasswordInfo(null)}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors"
+              data-testid="temp-password-close-btn"
+            >
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
