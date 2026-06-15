@@ -36,6 +36,103 @@ def _deny_students(user):
         raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta información")
 
 
+async def _resolve_sibling_section_ids(school_id: str, section_id: str) -> List[str]:
+    """Return the set of section ids that represent the SAME physical classroom
+    as `section_id`.
+
+    Production bug (Eusebio Arróniz, jun-2026): a single grade+section ("4° A")
+    sometimes has DUPLICATE section documents. Students get enrolled
+    (`seccion_id`) in one of them, while the subject's stored `section_id`
+    points to another duplicate. The Registro Auxiliar then queried students by
+    the subject's section_id and found none → empty register for the teacher.
+
+    Strategy: look up the section's (grado_id, nombre) and gather every
+    section/seccion document that shares the SAME (grado_id, nombre). All of
+    them refer to the same real classroom, so students enrolled in any of them
+    must be surfaced. Always includes the original `section_id`.
+    """
+    ids = {section_id}
+    sec = (
+        await db.sections.find_one({"id": section_id}, {"_id": 0, "grado_id": 1, "nombre": 1})
+        or await db.secciones.find_one({"id": section_id}, {"_id": 0, "grado_id": 1, "nombre": 1})
+    )
+    if sec and sec.get("grado_id") and sec.get("nombre"):
+        sib_query = {"school_id": school_id, "grado_id": sec["grado_id"], "nombre": sec["nombre"]}
+        for coll in (db.sections, db.secciones):
+            try:
+                async for s in coll.find(sib_query, {"_id": 0, "id": 1}):
+                    if s.get("id"):
+                        ids.add(s["id"])
+            except Exception:
+                pass
+    return list(ids)
+
+
+async def _fetch_section_students(school_id: str, section_ids: List[str]):
+    """Fetch enrolled/active students for any of the given (sibling) section ids,
+    matching on either `seccion_id` or `section_id`. De-dupes by student id and
+    sorts by last name, name."""
+    students = await db.users.find(
+        {
+            "school_id": school_id,
+            "role": "student",
+            "student_status": {"$in": ["enrolled", "active"]},
+            "$or": [
+                {"seccion_id": {"$in": section_ids}},
+                {"section_id": {"$in": section_ids}},
+            ],
+        },
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1},
+    ).sort([("last_name", 1), ("name", 1)]).to_list(500)
+
+    # De-dupe by id (a student could match in two duplicate sections).
+    seen = set()
+    unique = []
+    for s in students:
+        sid = s.get("id")
+        if sid and sid not in seen:
+            seen.add(sid)
+            unique.append(s)
+    return unique
+
+
+async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id: str, section_id: str):
+    """RBAC guard for teachers on Registro Auxiliar endpoints.
+
+    Accepts the teacher when they have an ACTIVE assignment for this subject in
+    the exact section OR in any sibling (duplicate) section that maps to the
+    same real classroom. Returns the matched assignment dict.
+
+    This relaxes the previous strict (subject_id + exact section_id) check that
+    produced a masked 403 → "No hay alumnos" when the subject's section_id
+    differed from the teacher's assignment section (duplicate-section bug)."""
+    # Exact match first (fast path, unchanged behaviour).
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": teacher_id,
+        "subject_id": subject_id,
+        "section_id": section_id,
+        "status": "activo",
+    })
+    if assignment:
+        return assignment
+
+    # Fallback: any active assignment for this subject whose section is a
+    # sibling (same grade + nombre) of the requested section.
+    sibling_ids = set(await _resolve_sibling_section_ids(school_id, section_id))
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": teacher_id,
+        "subject_id": subject_id,
+        "section_id": {"$in": list(sibling_ids)},
+        "status": "activo",
+    })
+    if assignment:
+        return assignment
+
+    raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MODELS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -355,43 +452,15 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
     school_id = user.get("school_id")
     role = user.get("role")
 
-    # Teachers can only see their own assignments
+    # Teachers can only see their own assignments (accepts sibling/duplicate
+    # sections so a subject linked to a duplicate section doesn't 403).
     if role == "teacher":
-        assignment = await db.academic_assignments.find_one({
-            "school_id": school_id,
-            "teacher_id": user["id"],
-            "subject_id": subject_id,
-            "section_id": section_id,
-            "status": "activo"
-        })
-        if not assignment:
-            raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
+        await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
 
-    # Get students in section
-    student_filter = {
-        "school_id": school_id,
-        "role": "student",
-        "student_status": {"$in": ["enrolled", "active"]},
-        "seccion_id": section_id,
-    }
-
-    students = await db.users.find(
-        student_filter,
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1}
-    ).sort([("last_name", 1), ("name", 1)]).to_list(200)
-
-    if not students:
-        # Fallback: try with section_id field
-        student_filter_alt = {
-            "school_id": school_id,
-            "role": "student",
-            "student_status": {"$in": ["enrolled", "active"]},
-            "section_id": section_id,
-        }
-        students = await db.users.find(
-            student_filter_alt,
-            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1}
-        ).sort([("last_name", 1), ("name", 1)]).to_list(200)
+    # Get students in section — robust against duplicate section documents
+    # (same grado_id + nombre) and seccion_id/section_id field divergence.
+    sibling_section_ids = await _resolve_sibling_section_ids(school_id, section_id)
+    students = await _fetch_section_students(school_id, sibling_section_ids)
 
     # Get existing grades
     grades = await db.student_grades.find(
@@ -531,17 +600,10 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
         if role not in ADMIN_ROLES:
             raise HTTPException(status_code=403, detail="El registro esta cerrado. Solo un administrador puede reabrirlo.")
 
-    # Teachers can only save their own assignments
+    # Teachers can only save their own assignments (accepts sibling/duplicate
+    # sections, consistent with the GET register guard).
     if role == "teacher":
-        assignment = await db.academic_assignments.find_one({
-            "school_id": school_id,
-            "teacher_id": user["id"],
-            "subject_id": data.subject_id,
-            "section_id": data.section_id,
-            "status": "activo"
-        })
-        if not assignment:
-            raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
+        await _assert_teacher_assignment(school_id, user["id"], data.subject_id, data.section_id)
 
     # Get eval config
     config = await db.evaluation_config.find_one(

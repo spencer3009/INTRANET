@@ -126,6 +126,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
   const [subjectName, setSubjectName] = useState("");
   const [periodName, setPeriodName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -297,6 +298,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
     if (!selectedPeriod || !subjectId || !sectionId) return;
     const loadRegister = async () => {
       setLoading(true);
+      setLoadError(null);
       try {
         const res = await axios.get(
           `${API}/api/grades/register/${subjectId}/${sectionId}/${selectedPeriod}`,
@@ -324,7 +326,18 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                         p5: "part_tg",  P5: "part_tg",
                         p6: "part_p",   P6: "part_p" };
         setLegacyFieldMap({ ...rawMap, ...PATCH });
-      } catch (err) { console.error("Error loading register:", err); }
+      } catch (err) {
+        console.error("Error loading register:", err);
+        const st = err?.response?.status;
+        if (st === 403) {
+          setLoadError("No tienes una asignación activa para este curso o sección. Verifica con el administrador que el curso esté asignado correctamente.");
+        } else if (st === 404) {
+          setLoadError("No se encontró el registro para este curso/sección.");
+        } else {
+          setLoadError("No se pudo cargar el registro auxiliar. Intenta nuevamente.");
+        }
+        setStudents([]);
+      }
       finally { setLoading(false); }
     };
     loadRegister();
@@ -605,8 +618,21 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         </div>
       </div>
 
+      {/* ── ERROR BANNER (real load error, e.g. 403/network) ── */}
+      {!loading && loadError && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }} data-testid="register-load-error">
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle size={18} style={{ color: "#DC2626" }} />
+          </div>
+          <div style={{ fontSize: 13, color: "#991B1B", lineHeight: 1.5 }}>
+            <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#7F1D1D" }}>No se pudo cargar el registro auxiliar</strong>
+            {loadError}
+          </div>
+        </div>
+      )}
+
       {/* ── WARNING BANNER (no students) ── */}
-      {!loading && !hasStudents && selectedPeriod && (
+      {!loading && !loadError && !hasStudents && selectedPeriod && (
         <div style={{ background: "#FFFBEB", border: "1px solid #F59E0B", borderRadius: 8, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }} data-testid="no-students-warning">
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <AlertTriangle size={18} style={{ color: "#D97706" }} />
