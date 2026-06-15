@@ -3,7 +3,7 @@ import os
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://grades-passthrough.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://registro-auxiliar-1.preview.emergentagent.com").rstrip("/")
 EXAM_ID = "DEMO-RETAKE-EXAM"
 SAME_IP = "203.0.113.77"
 UA = "Mozilla/5.0 (Linux; Android 13) Chrome/120"

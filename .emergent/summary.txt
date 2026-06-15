@@ -1,1 +1,153 @@
-<analysis>InstitutionalStamp.jsxSignatureLayoutEditor.jsxreport_cards_pdf.pyLibretaCard.jsxcell_boldcell_sizeall_boldhide_sfbackup.shCourseDetailPage.jsxBroadcastPopup.jsxSignatureLayoutEditor.jsxCourseDetailPage.jsxedunet.pePillowreport_cards_pdf.py.webpSignatureLayoutEditor.jsx{ x, y }LibretaCard.jsxposition: absoluteschools.tenant_settingsshow_grades_studentshow_grades_parentshow_libreta_studentshow_libreta_parentblock_student_photo_changeschoolslibreta_grade_scale_modelibreta_custom_grade_scalelibreta_tutor_comments_periodshide_sf_in_libretalibreta_director_namelibreta_stamp_configlibreta_signature_layoutPillow/app/backend/services/grades_literal.py/app/frontend/src/components/SignatureLayoutEditor.jsx/app/frontend/src/components/InstitutionalStamp.jsx/app/frontend/src/components/LibretasSettingsTab.jsx/app/frontend/src/components/libreta/LibretaCard.jsx/app/frontend/src/components/BroadcastAttachmentsList.jsxCourseDetailPage.jsxUsersPage.jsxLibretasSettingsTab.jsxPUT /api/report-cards/settingsGET /api/settings/public/{subdomain}POST /api/report-cards/upload-imageLibretaCard.jsxreport_cards_pdf.py/app/memory/CHANGELOG.md/app/memory/PRD.mdadmin@elroble.edu1234abc8test_credentials.mdLibretaCard.jsx/app/backend/routes/report_cards_pdf.pysignature_layoutcustom_grade_scalehide_sf_in_libreta</analysis>
+<analysis>**original_problem_statement**: 
+El usuario solicita soporte continuo para una plataforma SaaS Escolar. Los requerimientos actuales incluyen arreglar errores de calificación (notas máximas de 20 que bajan a 19), implementar evidencias de exámenes obligatorias exclusivas para Google Drive, solucionar fugas de seguridad (alumnos accediendo a vistas de profesores/administradores), corregir errores en la exportación masiva de carnets QR, y arreglar un problema crítico de sincronización donde el Registro Auxiliar de un curso aparece vacío para el profesor pero lleno para el propietario.
+
+PRODUCT REQUIREMENTS:
+- Calificación de tareas precisa (sin errores off-by-one).
+- Evidencia de exámenes configurable (al final o por pregunta) vinculada estrictamente a Google Drive.
+- Estricto Control de Acceso Basado en Roles (RBAC) en endpoints de notas y rutas frontend.
+- Generación de PDF (QR) robusta frente a datos nulos y filtros inconsistentes.
+- Consistencia en la vista del Registro Auxiliar entre Profesor y Propietario.
+
+**User's preferred language**: Spanish
+(INSTRUCT NEXT AGENT: The user's primary language is Spanish. You MUST respond to all user messages and write all visible output in Spanish only.)
+
+**what currently exists?** 
+Plataforma SaaS Escolar (React + FastAPI + MongoDB) con gestión de notas, exámenes en línea (con modos de evidencia en Drive), portal académico, panel de tutorías, reportes de asignación docente, exportación de carnets QR y control de acceso por roles (RBAC).
+
+**Last working item**: 
+    - Last item agent was working: Investigating the P0 critical bug in the Auxiliary Register (Registro Auxiliar). The Teacher sees No hay alumnos registrados while the Owner sees all students. The agent reviewed the backend endpoint  in  and discovered that the backend query logic for fetching students (lines 371-394) is *identical* for both roles. Therefore, the issue likely originates from the frontend () sending a different, incorrect, or missing  when the user is logged in as a teacher. The agent has submitted a proposed plan to the user using the  tool and is waiting for their confirmation.
+    - Status: IN PROGRESS (WAITING FOR HUMAN RESPONSE)
+    - Agent Testing Done: N
+    - Which testing method agent to use? both (Frontend screenshot tool for UI requests / manual testing by curl for backend payload checks).
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  - Issue 1: El Profesor ve el Registro Auxiliar vacío, mientras que el Propietario ve a todos los alumnos (P0)
+     - Attempted fixes: Investigated . The backend logic doesn't filter students out based on role once past the authorization check. 
+     - Next debug checklist: 
+        - Frontend: Analyze . Check how the  and parameters are derived and sent to the API for the  role versus the  role.
+        - Network: Verify if the  role is querying the correct .
+     - Why fix this issue and what will be achieved with the fix?: Critical blocker. Teachers cannot record grades or view their assigned students.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both
+     - Blocked on other issue: NA
+
+  - Issue 2: Paridad del PDF exportado desde el Backend () con la vista web (P1)
+     - Attempted fixes: Ninguno.
+     - Next debug checklist: Revisar generación de PDF en backend vs configuraciones visuales (escala de notas, firmas, offsets).
+     - Why fix this issue and what will be achieved with the fix?: Consistencia entre web y documento impreso.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Backend
+     - Blocked on other issue: NA
+
+**In progress Task List**: 
+  - Task 1: Re-cálculo masivo de notas de tareas pasadas (Opcional/A confirmar)
+     - Where to resume: Waiting for user decision.
+     - What will be achieved with this?: Arreglar el registro histórico de tareas calificadas bajo el sistema antiguo.
+     - Status: BLOCKED (User decision pending)
+     - Should Test frontend/backend/both after fix?: Backend
+     - Blocked on something: User approval.
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Notificación Push/Email/WhatsApp al padre cuando se sube una libreta oficial nueva o cuando la nota de Conducta Extendida baja de un umbral aceptable.
+    - P2: Opción para generar plantillas de QR de Auxiliares con borde punteado/perforado (tipo lanyard/carnet) para impresión.
+    - P2: Centralizar los toggles de permisos y visibilidad en un panel Permisos y visibilidad por portal.
+    
+    Future Tasks:
+    - P3: Script  para MongoDB automatizado.
+    - P3: Refactorización profunda de componentes monolíticos como .
+    - P3: Módulo de Encuestas.
+    - P3: Migrar la integración actual de Google Drive OAuth (por usuario) a una Cuenta de Servicio + Unidad Compartida para evitar expiración de tokens.
+
+**Completed work in this session**
+- No coding tasks were completed in this specific session fragment. The agent gathered context, viewed , and formulated a plan via .
+
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1: Componentes frontend masivos y problemáticos.
+     - Debug checklist: Extraer sub-componentes de  (13k+ líneas).
+     - Why to solve this issue and what will be achieved with this?: Previene cuelgues del linter y mejora mantenibilidad.
+     - Should Test frontend/backend/both after fix: Frontend
+     - Is recurring issue? Y
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: El usuario prueba los cambios en Producción mientras el agente codifica en Preview.
+  - Recurrence count: 28+
+  - Status: IN PROGRESS
+  - Note: CONTINUAMENTE RECUERDA al usuario hacer Deploy/Redespliegue para que los cambios hechos en el entorno de pruebas lleguen a su dominio en vivo (Producción) una vez que el ticket esté listo.
+
+**Code Architecture**
+React SPA (Frontend) comunicado mediante Axios a FastAPI (Backend) apoyado en MongoDB.
+
+**Key Technical Concepts**
+- React Compiler arroja falsos positivos en archivos masivos, se requiere mantener .
+- RBAC (Role-Based Access Control): Validar minuciosamente los tokens y los roles (teacher, owner, admin, student) en los endpoints de notas. 
+
+**key DB schema**
+  - : array .
+  - :  (end o per_question).
+
+**changes in tech stack**
+  - Ninguno.
+
+**All files of reference** 
+  -  (Checked in this session; student fetch logic is role-agnostic).
+  -  (Target for next debug steps).
+  -  (Checked for role credentials).
+
+**Areas that need refactoring**
+  -  (excesivamente largo, >13k líneas).
+  -  (Necesita estandarización de Guards por rol).
+
+**key api endpoints**
+  - 
+
+**Critical Info for New Agent**
+- **Immediate Blocker**: The agent sent an  message and is waiting for the user's response. The agent discovered that the backend query logic in  for fetching students is identical for both teacher and owner roles. This heavily points to the frontend () sending incorrect, default, or empty parameters (specifically ) when a teacher views the register. Wait for the user's confirmation on the proposed plan, then dive into the frontend code to verify the Axios requests for both roles.
+- Remember to remind the user to press Deploy to push fixes to production once verified.
+
+**documents and test reports created in this job**
+  -  (Existing from previous session).
+  - No new documents were created in this brief session.
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. [User] Pide que arregle el bug donde la nota máxima 20 se muestra y fuerza a 19. (COMPLETED)
+2. [User] Solicita que el sistema de evidencia de exámenes admita múltiples archivos y use solo Google Drive.
+3. [User] Define los modos de evidencia: Al final del examen o Por cada respuesta. (COMPLETED)
+4. [User] Reporta fuga de seguridad grave: alumnos entran a vistas de edición del profesor. (COMPLETED)
+5. [User] Pide rastrear ruta de vulnerabilidad. Agente descubre que la campana de notificaciones y las URL directas no validan roles. (COMPLETED)
+6. [User] Pide corrección y capturas del problema. Agente soluciona y manda capturas. (COMPLETED)
+7. [User] Reporta error en producción al descargar Plantilla QR Moderna. (COMPLETED)
+8. [User] Hace deploy y reporta que el error cambió a No se encontraron estudiantes. (COMPLETED)
+9. [User] Reporta mediante capturas en Producción que, en Álgebra 4to A, el **Propietario ve el Registro Auxiliar completo**, pero el **Profesor entra y ve No hay alumnos registrados en esta sección**. (IN PROGRESS)
+10. [User] Please use ask_human tool and confirm your plan now. -> (PENDING HUMAN MESSAGE: The agent executed the plan confirmation via  tool, asking the user to confirm the hypothesis that the issue lies in the frontend payload. The next agent will receive the user's response to this query.)
+
+**Project Health Check:**
+Healthy
+
+**3rd Party Integrations** 
+- Google Drive (Gestión de Evidencias de Exámenes) - requires User API Key/OAuth
+- Cloudinary (Marca de agua QR) - requires User API Key
+
+**Testing status**
+  - Testing agent used after significant changes: NO (not in this exact session)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None currently.
+
+**Credentials to test flow:**
+  -  (Contains Owner and Parent test credentials. You might need to check this file further for a Teacher login).
+
+**What agent forgot to execute**
+- The agent successfully formulated a hypothesis but could have preemptively run  or  on  to verify the exact frontend Axios payload behavior before sending the  message, to provide a more definitive plan.
+
+**Debugging checklist for current issue**
+    Issue: Registro Auxiliar muestra alumnos al Owner pero sale vacío (No hay alumnos registrados) para el Teacher.
+
+    Frontend files to check: 
+    - : Look for the  or function that calls . See how  or  is passed when .
+  
+    Backend files to check: 
+    - : (Already checked lines 349-525; query is role-agnostic but verify authorization guards again if frontend payload is actually correct).</analysis>

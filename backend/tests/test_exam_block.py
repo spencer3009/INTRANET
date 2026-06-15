@@ -4,7 +4,7 @@ import os
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://grades-passthrough.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://registro-auxiliar-1.preview.emergentagent.com").rstrip("/")
 EXAM_ID = "DEMO-RETAKE-EXAM"
 SUBJECT_ID = "e04de272-54ec-4af9-868a-bc7604e2b4b4"
 STUDENT_ID = "DEMO-RETAKE-STUDENT"

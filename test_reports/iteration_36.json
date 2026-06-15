@@ -84,8 +84,8 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "schedule_url": "https://grades-passthrough.preview.emergentagent.com/school/elroble/horarios",
-    "student_exams_url": "https://grades-passthrough.preview.emergentagent.com/school/elroble/student/exams"
+    "schedule_url": "https://registro-auxiliar-1.preview.emergentagent.com/school/elroble/horarios",
+    "student_exams_url": "https://registro-auxiliar-1.preview.emergentagent.com/school/elroble/student/exams"
   },
 
   "seed_data_creation": "None - used existing test data. Grade: 3 años, Section: ÚNICA. Classes: Religión (Carlos Miranda Ruiz), Historia (Sonia Velasquez Romero). Break: Recreo 10:00-10:30. Exam on Feb 25.",
