@@ -363,7 +363,20 @@ export default function QRTemplateDrawer({ open, onClose, token, mode = "student
       const url = window.URL.createObjectURL(new Blob([res.data], { type: isZip ? "application/zip" : "application/pdf" }));
       const a = document.createElement("a"); a.href = url; a.download = `qr_export.${isZip ? "zip" : "pdf"}`; a.click();
       window.URL.revokeObjectURL(url);
-    } catch (err) { alert("Error al descargar."); } finally { setDownloading(false); }
+    } catch (err) {
+      // Response is a blob (responseType: "blob"); parse it to surface the real
+      // backend error instead of a generic message.
+      let detail = "Error al descargar.";
+      try {
+        const blob = err.response?.data;
+        if (blob && typeof blob.text === "function") {
+          const txt = await blob.text();
+          const parsed = JSON.parse(txt);
+          if (parsed?.detail) detail = `Error al descargar: ${parsed.detail}`;
+        }
+      } catch { /* keep generic message */ }
+      alert(detail);
+    } finally { setDownloading(false); }
   };
 
   if (!open) return null;

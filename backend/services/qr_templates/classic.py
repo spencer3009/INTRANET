@@ -284,13 +284,13 @@ class ClassicTemplate(BaseQRTemplate):
                         c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                         c.setFillColor(navy)
                         c.setFont("Helvetica-Bold", 16 * sf)
-                        c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, (s.get("name", "?")[:1]).upper())
+                        c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, ((s.get("name") or "?")[:1]).upper())
                 else:
                     c.setFillColor(light_bg)
                     c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                     c.setFillColor(navy)
                     c.setFont("Helvetica-Bold", 16 * sf)
-                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, (s.get("name", "?")[:1]).upper())
+                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3 * sf, ((s.get("name") or "?")[:1]).upper())
                 content_top = photo_y - 4 * sf * mm
 
                 if student_photo_buf:

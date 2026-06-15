@@ -66,7 +66,7 @@ class ModernaTemplate(BaseQRTemplate):
             return None
 
         if _get("ordenar_alfabetico", True):
-            students.sort(key=lambda s: f"{s.get('last_name', '')} {s.get('name', '')}".strip().lower())
+            students.sort(key=lambda s: f"{s.get('last_name') or ''} {s.get('name') or ''}".strip().lower())
         if limit:
             students = students[:limit]
 
@@ -261,7 +261,7 @@ class ModernaTemplate(BaseQRTemplate):
                     c.circle(cx, band_center_y, photo_r, fill=1, stroke=0)
                     c.setFillColor(NAVY)
                     c.setFont("Helvetica-Bold", 16)
-                    c.drawCentredString(cx, band_center_y - 4, (s.get("name", "?")[:1]).upper())
+                    c.drawCentredString(cx, band_center_y - 4, ((s.get("name") or "?")[:1]).upper())
                 finally:
                     try:
                         student_photo_buf.close()
@@ -272,7 +272,7 @@ class ModernaTemplate(BaseQRTemplate):
                 c.circle(cx, band_center_y, photo_r, fill=1, stroke=0)
                 c.setFillColor(NAVY)
                 c.setFont("Helvetica-Bold", 16)
-                c.drawCentredString(cx, band_center_y - 4, (s.get("name", "?")[:1]).upper())
+                c.drawCentredString(cx, band_center_y - 4, ((s.get("name") or "?")[:1]).upper())
 
             # Yellow border circle 3pt
             c.setStrokeColor(YELLOW)
