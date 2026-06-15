@@ -36,56 +36,24 @@ def _deny_students(user):
         raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta información")
 
 
-async def _resolve_sibling_section_ids(school_id: str, section_id: str) -> List[str]:
-    """Return the set of section ids that represent the SAME physical classroom
-    as `section_id`.
-
-    Production bug (Eusebio Arróniz, jun-2026): a single grade+section ("4° A")
-    sometimes has DUPLICATE section documents. Students get enrolled
-    (`seccion_id`) in one of them, while the subject's stored `section_id`
-    points to another duplicate. The Registro Auxiliar then queried students by
-    the subject's section_id and found none → empty register for the teacher.
-
-    Strategy: look up the section's (grado_id, nombre) and gather every
-    section/seccion document that shares the SAME (grado_id, nombre). All of
-    them refer to the same real classroom, so students enrolled in any of them
-    must be surfaced. Always includes the original `section_id`.
-    """
-    ids = {section_id}
-    sec = (
-        await db.sections.find_one({"id": section_id}, {"_id": 0, "grado_id": 1, "nombre": 1})
-        or await db.secciones.find_one({"id": section_id}, {"_id": 0, "grado_id": 1, "nombre": 1})
-    )
-    if sec and sec.get("grado_id") and sec.get("nombre"):
-        sib_query = {"school_id": school_id, "grado_id": sec["grado_id"], "nombre": sec["nombre"]}
-        for coll in (db.sections, db.secciones):
-            try:
-                async for s in coll.find(sib_query, {"_id": 0, "id": 1}):
-                    if s.get("id"):
-                        ids.add(s["id"])
-            except Exception:
-                pass
-    return list(ids)
-
-
-async def _fetch_section_students(school_id: str, section_ids: List[str]):
-    """Fetch enrolled/active students for any of the given (sibling) section ids,
-    matching on either `seccion_id` or `section_id`. De-dupes by student id and
-    sorts by last name, name."""
+async def _fetch_section_students(school_id: str, section_id: str):
+    """Fetch enrolled/active students for a SINGLE section, matching on either
+    `seccion_id` or `section_id` (schools use both field names). Sorted by last
+    name, name. No cross-section merging — each register shows exactly the
+    students of its own section, identical for owner and teacher."""
     students = await db.users.find(
         {
             "school_id": school_id,
             "role": "student",
             "student_status": {"$in": ["enrolled", "active"]},
             "$or": [
-                {"seccion_id": {"$in": section_ids}},
-                {"section_id": {"$in": section_ids}},
+                {"seccion_id": section_id},
+                {"section_id": section_id},
             ],
         },
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1},
     ).sort([("last_name", 1), ("name", 1)]).to_list(500)
 
-    # De-dupe by id (a student could match in two duplicate sections).
     seen = set()
     unique = []
     for s in students:
@@ -100,13 +68,17 @@ async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id
     """RBAC guard for teachers on Registro Auxiliar endpoints.
 
     Accepts the teacher when they have an ACTIVE assignment for this subject in
-    the exact section OR in any sibling (duplicate) section that maps to the
-    same real classroom. Returns the matched assignment dict.
+    the exact section, OR (fallback) ANY assignment for this (teacher, subject).
 
-    This relaxes the previous strict (subject_id + exact section_id) check that
-    produced a masked 403 → "No hay alumnos" when the subject's section_id
-    differed from the teacher's assignment section (duplicate-section bug)."""
-    # Exact match first (fast path, unchanged behaviour).
+    The fallback exists because a subject's stored `section_id` can differ from
+    the section recorded on the teacher's assignment (duplicate grade/section
+    docs in production). The assignment is the source of truth for "this teacher
+    teaches this subject", so we grant permission — but students are STILL
+    fetched from the requested `section_id` (the same section the owner uses),
+    so teacher and owner always see the exact same roster. No section merging.
+
+    Returns the matched assignment dict, or raises 403 when the teacher has no
+    assignment at all for this subject."""
     assignment = await db.academic_assignments.find_one({
         "school_id": school_id,
         "teacher_id": teacher_id,
@@ -117,28 +89,9 @@ async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id
     if assignment:
         return assignment
 
-    # Fallback: any active assignment for this subject whose section is a
-    # sibling (same grade + nombre) of the requested section.
-    sibling_ids = set(await _resolve_sibling_section_ids(school_id, section_id))
-    assignment = await db.academic_assignments.find_one({
-        "school_id": school_id,
-        "teacher_id": teacher_id,
-        "subject_id": subject_id,
-        "section_id": {"$in": list(sibling_ids)},
-        "status": "activo",
-    })
-    if assignment:
-        return assignment
-
-    # Final fallback: ANY assignment for this (teacher, subject), regardless of
-    # section/status. This mirrors the teacher dashboard (`/teacher/courses`),
-    # which lists a course whenever the teacher has an assignment for it without
-    # filtering by section or status. It is required because schools sometimes
-    # have DUPLICATE grade/section documents, so the subject's stored
-    # `section_id` cannot be topologically linked (same grado_id + nombre) to
-    # the section recorded on the teacher's assignment. The assignment itself is
-    # the source of truth for "this teacher teaches this subject", so we accept
-    # it and let the caller fetch students from the assignment's real section.
+    # Fallback: any assignment for this (teacher, subject), regardless of section
+    # or status. Mirrors the teacher dashboard (`/teacher/courses`), which lists
+    # the course whenever such an assignment exists.
     assignment = await db.academic_assignments.find_one({
         "school_id": school_id,
         "teacher_id": teacher_id,
@@ -148,6 +101,8 @@ async def _assert_teacher_assignment(school_id: str, teacher_id: str, subject_id
         return assignment
 
     raise HTTPException(status_code=403, detail="No tienes asignacion para este curso")
+
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -469,24 +424,15 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
     school_id = user.get("school_id")
     role = user.get("role")
 
-    # Teachers can only see their own assignments (accepts sibling/duplicate
-    # sections so a subject linked to a duplicate section doesn't 403).
-    teacher_assignment = None
+    # Teachers can only see their own assignments. Permission is relaxed so a
+    # subject linked to a different section doc than the teacher's assignment no
+    # longer 403s — but the roster is ALWAYS fetched from the requested
+    # `section_id` (the same one the owner uses), so both see the identical list.
     if role == "teacher":
-        teacher_assignment = await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
+        await _assert_teacher_assignment(school_id, user["id"], subject_id, section_id)
 
-    # Get students in section — robust against duplicate section documents
-    # (same grado_id + nombre) and seccion_id/section_id field divergence.
-    section_ids_for_students = set(await _resolve_sibling_section_ids(school_id, section_id))
-    # For teachers, ALSO include the section recorded on their assignment (and
-    # its siblings). This is the section where students are actually enrolled
-    # and what the teacher dashboard uses for its student counts — it can differ
-    # from the subject's stored section_id when grade/section docs are duplicated.
-    if teacher_assignment and teacher_assignment.get("section_id"):
-        section_ids_for_students.update(
-            await _resolve_sibling_section_ids(school_id, teacher_assignment["section_id"])
-        )
-    students = await _fetch_section_students(school_id, list(section_ids_for_students))
+    # Get students for THIS section only (no cross-section merging).
+    students = await _fetch_section_students(school_id, section_id)
 
     # Get existing grades
     grades = await db.student_grades.find(
