@@ -13,8 +13,9 @@ import {
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
   ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX,
-  FileSpreadsheet, Download, FileUp, CheckCircle2, Palette, Settings
+  FileSpreadsheet, Download, FileUp, CheckCircle2, Palette, Settings, Copy
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import StudentQRCard from "@/components/StudentQRCard";
 import TeacherQRCard from "@/components/TeacherQRCard";
 import PhotoUploadModal from "@/components/PhotoUploadModal";
@@ -1734,6 +1735,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [addModalRole, setAddModalRole] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
+
+  // Teacher activate/deactivate switch
+  const [togglingTeacherId, setTogglingTeacherId] = useState(null);
+  const [confirmDeactivateTeacher, setConfirmDeactivateTeacher] = useState(null);
+  const [teacherTempPassword, setTeacherTempPassword] = useState(null); // { teacher, password }
+  const [tempPwdCopied, setTempPwdCopied] = useState(false);
   
   // Modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1822,6 +1829,47 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const handleCardPhotoClick = (user) => {
     setPhotoModalUser(user);
+  };
+
+  // Activate / deactivate teacher (switch on the teacher card)
+  const handleToggleTeacherActive = (teacher, nextActive) => {
+    if (!nextActive) {
+      setConfirmDeactivateTeacher(teacher);
+    } else {
+      doToggleTeacherActive(teacher, true);
+    }
+  };
+
+  const doToggleTeacherActive = async (teacher, active) => {
+    setTogglingTeacherId(teacher.id);
+    setConfirmDeactivateTeacher(null);
+    try {
+      const res = await axios.patch(
+        `${API}/users/teachers/${teacher.id}/active`,
+        { active },
+        { headers }
+      );
+      const newStatus = res.data.status;
+      setUsers(prev => prev.map(u => u.id === teacher.id ? { ...u, status: newStatus } : u));
+      if (active && res.data.temp_password) {
+        setTeacherTempPassword({ teacher, password: res.data.temp_password });
+        setTempPwdCopied(false);
+      } else {
+        toast.success("Profesor desactivado. No podrá acceder al sistema.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cambiar el estado del profesor");
+    } finally {
+      setTogglingTeacherId(null);
+    }
+  };
+
+  const copyTeacherTempPassword = () => {
+    if (teacherTempPassword?.password) {
+      navigator.clipboard?.writeText(teacherTempPassword.password);
+      setTempPwdCopied(true);
+      setTimeout(() => setTempPwdCopied(false), 2000);
+    }
   };
 
   // ── Support-only: Orphan students panel ──
@@ -4216,6 +4264,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
             {roleConfig.labelSingular}
           </span>
+          {selectedRole === 'teacher' && !u.is_system_user && !u.is_protected && !u.is_owner && (() => {
+            const isActive = u.status === 'activo' || !u.status;
+            return (
+              <div className="mt-3 flex items-center justify-center gap-2.5" data-testid={`teacher-active-row-${u.id}`}>
+                {togglingTeacherId === u.id ? (
+                  <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                ) : (
+                  <Switch
+                    checked={isActive}
+                    onCheckedChange={(val) => handleToggleTeacherActive(u, val)}
+                    className="data-[state=checked]:bg-emerald-500"
+                    data-testid={`teacher-active-switch-${u.id}`}
+                    aria-label={isActive ? "Desactivar profesor" : "Activar profesor"}
+                  />
+                )}
+                <span className={`text-xs font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} data-testid={`teacher-status-label-${u.id}`}>
+                  {isActive ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+            );
+          })()}
         </div>
         <div className={`pt-3 border-t ${roleConfig.borderColor}`}>
           <div className="flex justify-between items-start gap-2">
@@ -4490,6 +4559,64 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       />
 
       {/* Delete Confirmation Modal */}
+      {/* Deactivate Teacher Confirmation */}
+      <ConfirmModal
+        isOpen={!!confirmDeactivateTeacher}
+        onClose={() => setConfirmDeactivateTeacher(null)}
+        onConfirm={() => doToggleTeacherActive(confirmDeactivateTeacher, false)}
+        title="Desactivar Profesor"
+        message={`¿Desactivar a ${confirmDeactivateTeacher?.name || ''} ${confirmDeactivateTeacher?.last_name || ''}? Su contraseña se restablecerá y no podrá acceder al sistema. Para reactivarlo, vuelve a encender el switch y se generará una nueva contraseña temporal.`}
+        confirmText="Desactivar"
+        confirmVariant="danger"
+      />
+
+      {/* Teacher Temporary Password Modal (after reactivation) */}
+      {teacherTempPassword && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          data-testid="teacher-temp-password-modal"
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center">
+                <Key className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Profesor reactivado</h3>
+                <p className="text-sm text-slate-500">
+                  {teacherTempPassword.teacher?.name} {teacherTempPassword.teacher?.last_name}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-3">
+              Entrégale esta <strong>contraseña temporal</strong>. Solo se muestra una vez —
+              cópiala ahora. El profesor podrá iniciar sesión con ella.
+            </p>
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4">
+              <code className="flex-1 text-lg font-mono font-bold tracking-wider text-slate-800" data-testid="teacher-temp-password-value">
+                {teacherTempPassword.password}
+              </code>
+              <button
+                onClick={copyTeacherTempPassword}
+                className="p-2 rounded-lg hover:bg-slate-200 transition-colors text-slate-600"
+                data-testid="copy-teacher-temp-password-btn"
+                title="Copiar"
+              >
+                {tempPwdCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+              </button>
+            </div>
+            <button
+              onClick={() => setTeacherTempPassword(null)}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors"
+              data-testid="teacher-temp-password-close-btn"
+            >
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
+
+
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => {
