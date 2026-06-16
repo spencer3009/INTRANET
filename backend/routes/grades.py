@@ -71,14 +71,18 @@ async def _resolve_effective_section_id(school_id: str, subject_id: str, section
     Production bug (Eusebio Arróniz, jun-2026): a subject's stored `section_id`
     can be SWAPPED/mismatched relative to the section recorded on the course's
     `academic_assignments` doc (e.g. "Álgebra 4°A" has subject.section_id → B
-    while its assignment → A). The teacher dashboard card and the official
-    Usuarios/Estudiantes list use the ASSIGNMENT section, so the Registro
-    Auxiliar must use the same source to stay consistent — NOT subject.section_id.
+    while the teacher's assignment → A). The teacher dashboard card and the
+    official Usuarios/Estudiantes list use the teacher's ASSIGNMENT section, so
+    the TEACHER's Registro Auxiliar must use that same source.
 
-    Returns the assignment's section_id when an assignment exists for this
-    subject (preferring the current teacher / a titular / an active one), else
-    falls back to the requested `section_id`."""
-    # Teacher: their own assignment for this subject is authoritative.
+    Scope of the override: TEACHERS ONLY. Owners/admins/coordinators navigate
+    the register BY SECTION explicitly (they can view every section of a
+    subject), so for them the requested `section_id` is authoritative and must
+    NOT be overridden — otherwise all of a subject's sections collapse to one
+    assignment section and the rosters appear swapped between A and B.
+
+    Returns the teacher's assignment section_id when applicable, else the
+    requested `section_id` unchanged."""
     if role == "teacher" and teacher_id:
         a = await db.academic_assignments.find_one({
             "school_id": school_id, "teacher_id": teacher_id,
@@ -89,18 +93,7 @@ async def _resolve_effective_section_id(school_id: str, subject_id: str, section
         if a and a.get("section_id"):
             return a["section_id"]
 
-    # Owner/admin/others: use the course's titular/active assignment.
-    a = await db.academic_assignments.find_one({
-        "school_id": school_id, "subject_id": subject_id,
-        "role": "titular", "status": "activo",
-    }) or await db.academic_assignments.find_one({
-        "school_id": school_id, "subject_id": subject_id, "status": "activo",
-    }) or await db.academic_assignments.find_one({
-        "school_id": school_id, "subject_id": subject_id,
-    })
-    if a and a.get("section_id"):
-        return a["section_id"]
-
+    # Owner/admin/others: honor the explicitly requested section.
     return section_id
 
 

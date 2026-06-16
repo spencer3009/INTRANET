@@ -4265,7 +4265,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             {roleConfig.labelSingular}
           </span>
           {selectedRole === 'teacher' && !u.is_system_user && !u.is_protected && !u.is_owner && (() => {
-            const isActive = u.status === 'activo' || !u.status;
+            const isActive = u.status !== 'inactivo';
             return (
               <div className="mt-3 flex items-center justify-center gap-2.5" data-testid={`teacher-active-row-${u.id}`}>
                 {togglingTeacherId === u.id ? (

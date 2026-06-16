@@ -18,7 +18,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Teacher Row Component
 function TeacherRow({ teacher, assignments, subjects, onEdit, onDelete, onViewDetails, onManageAssignments, onToggleActive, toggling }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const isActive = teacher.status === 'activo' || !teacher.status;
+  const isActive = teacher.status !== 'inactivo';
   
   // Count assigned subjects (exclude tutor-role rows which have no subject_id)
   const teacherAssignments = assignments.filter(a => a.teacher_id === teacher.id && a.subject_id);

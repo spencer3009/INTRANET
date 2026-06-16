@@ -62,14 +62,19 @@ async def test_effective_section_resolves_from_assignment():
             "subject_id": subject, "section_id": sec_A, "status": "activo", "role": "titular",
         })
 
-        # 1) Subject.section_id is SWAPPED (points to B), but the register must
-        #    resolve to the assignment section (A) for both teacher and owner.
+        # 1) Subject.section_id is SWAPPED (points to B), but for a TEACHER the
+        #    register must resolve to their assignment section (A).
         eff_teacher = await grades._resolve_effective_section_id(
             school, subject, sec_B, role="teacher", teacher_id=teacher)
         assert eff_teacher == sec_A, eff_teacher
-        eff_owner = await grades._resolve_effective_section_id(
+        # For an OWNER/ADMIN the requested section is authoritative (NOT overridden),
+        # so they can view each section independently (A shows A, B shows B).
+        eff_owner_A = await grades._resolve_effective_section_id(
+            school, subject, sec_A, role="owner", teacher_id=None)
+        assert eff_owner_A == sec_A, eff_owner_A
+        eff_owner_B = await grades._resolve_effective_section_id(
             school, subject, sec_B, role="owner", teacher_id=None)
-        assert eff_owner == sec_A, eff_owner
+        assert eff_owner_B == sec_B, eff_owner_B
 
         # 2) Roster for the resolved section = the 3 A students (matches the card).
         roster = await grades._fetch_section_students(school, eff_teacher)
