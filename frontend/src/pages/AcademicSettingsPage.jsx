@@ -11,7 +11,7 @@ import {
   Plus, Pencil, Trash2, MoreVertical, Loader2, Check, X,
   BookOpen, Users, ChevronRight, ArrowLeft, Camera,
   AlertCircle, Layers, Play, CalendarDays, Settings, GripVertical,
-  ChevronUp, ChevronDown, Stethoscope
+  ChevronUp, ChevronDown, Stethoscope, Search
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1198,6 +1198,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
 
   const [fixingKey, setFixingKey] = useState(null);
   const [fixingAll, setFixingAll] = useState(false);
+  const [diagSearch, setDiagSearch] = useState("");
 
   const fixOneMismatch = async (m) => {
     const target = m.assignment_section?.section_id;
@@ -1212,24 +1213,35 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
-  const handleFixOne = async (m, idx) => {
-    setFixingKey(idx);
-    const ok = await fixOneMismatch(m);
-    setFixingKey(null);
-    if (ok) await loadDiagnostics();
+  // Remove a fixed row locally so the list does NOT reload (search stays intact).
+  const removeFixedRow = (m) => {
+    setDiagMismatches(prev => {
+      if (!prev) return prev;
+      const next = (prev.mismatches || []).filter(
+        x => !(x.subject_id === m.subject_id && x.assignment_section?.section_id === m.assignment_section?.section_id)
+      );
+      return { ...prev, mismatches: next, count: next.length };
+    });
   };
 
-  const handleFixAll = async () => {
-    const list = diagMismatches?.mismatches || [];
-    if (list.length === 0) return;
-    if (!window.confirm(`¿Corregir los ${list.length} cursos cruzados? Cada curso se vinculará a la sección de la asignación del profesor (se migran sus notas).`)) return;
+  const handleFixOne = async (m) => {
+    const key = `${m.subject_id}|${m.assignment_section?.section_id}`;
+    setFixingKey(key);
+    const ok = await fixOneMismatch(m);
+    setFixingKey(null);
+    if (ok) removeFixedRow(m);
+  };
+
+  const handleFixAll = async (list) => {
+    if (!list || list.length === 0) return;
+    if (!window.confirm(`¿Corregir los ${list.length} cursos mostrados? Cada curso se vinculará a la sección de la asignación del profesor (se migran sus notas).`)) return;
     setFixingAll(true);
     for (const m of list) {
       // eslint-disable-next-line no-await-in-loop
-      await fixOneMismatch(m);
+      const ok = await fixOneMismatch(m);
+      if (ok) removeFixedRow(m);
     }
     setFixingAll(false);
-    await loadDiagnostics();
   };
 
   useEffect(() => {
@@ -1516,6 +1528,14 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     const mismatchList = diagMismatches?.mismatches || [];
     const dupSections = diagDups?.duplicate_sections || [];
     const allClean = !diagLoading && mismatchList.length === 0 && dupSections.length === 0;
+    // Autocomplete suggestions: unique teacher names.
+    const teacherNames = Array.from(new Set(mismatchList.map(m => m.teacher_name).filter(Boolean))).sort();
+    const q = diagSearch.trim().toLowerCase();
+    const filteredMismatches = q
+      ? mismatchList.filter(m =>
+          (m.teacher_name || "").toLowerCase().includes(q) ||
+          (m.subject_name || "").toLowerCase().includes(q))
+      : mismatchList;
     return (
       <div data-testid="diagnostico-view">
         <button onClick={() => setSelectedCategory(null)} className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-6 group">
@@ -1547,40 +1567,74 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
             )}
 
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
                 <h3 className="font-semibold text-slate-800">Cursos con sección cruzada</h3>
-                <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700" data-testid="diagnostico-mismatch-count">{mismatchList.length}</span>
-                {mismatchList.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700" data-testid="diagnostico-mismatch-count">{mismatchList.length}</span>
+                {filteredMismatches.length > 0 && (
                   <button
-                    onClick={handleFixAll}
+                    onClick={() => handleFixAll(filteredMismatches)}
                     disabled={fixingAll || fixingKey !== null}
-                    className="ml-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+                    className="ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 flex items-center gap-1.5"
                     data-testid="diagnostico-fix-all"
                   >
                     {fixingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                    Corregir todos
+                    {q ? `Corregir filtrados (${filteredMismatches.length})` : "Corregir todos"}
                   </button>
                 )}
               </div>
+
+              {/* Buscador autocompletador por docente / curso */}
+              {mismatchList.length > 0 && (
+                <div className="px-5 pt-4">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      list="diagnostico-teacher-options"
+                      value={diagSearch}
+                      onChange={(e) => setDiagSearch(e.target.value)}
+                      placeholder="Buscar docente o curso…"
+                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                      data-testid="diagnostico-search"
+                    />
+                    {diagSearch && (
+                      <button onClick={() => setDiagSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-testid="diagnostico-search-clear">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    <datalist id="diagnostico-teacher-options">
+                      {teacherNames.map((n, i) => <option key={i} value={n} />)}
+                    </datalist>
+                  </div>
+                  {q && (
+                    <p className="text-xs text-slate-500 mt-2">Mostrando {filteredMismatches.length} de {mismatchList.length} cursos.</p>
+                  )}
+                </div>
+              )}
+
               {mismatchList.length === 0 ? (
                 <p className="px-5 py-4 text-sm text-slate-400">No hay cursos con la sección cruzada. ✅</p>
+              ) : filteredMismatches.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">Ningún curso coincide con "{diagSearch}".</p>
               ) : (
                 <div className="divide-y divide-slate-100">
                   <p className="px-5 pt-3 text-xs text-slate-500">El profesor ya ve la lista correcta (se corrige solo). "Corregir" vincula el curso a la sección de la asignación del profesor (verde) y migra sus notas. Recomendado.</p>
-                  {mismatchList.map((m, i) => (
-                    <div key={i} className="px-5 py-3" data-testid={`diagnostico-mismatch-${i}`}>
+                  {filteredMismatches.map((m) => {
+                    const rowKey = `${m.subject_id}|${m.assignment_section?.section_id}`;
+                    return (
+                    <div key={rowKey} className="px-5 py-3" data-testid={`diagnostico-mismatch-${m.subject_id}`}>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="font-semibold text-slate-800">{m.subject_name}</span>
                         <span className="text-xs text-slate-400">·</span>
                         <span className="text-sm text-slate-600">{m.teacher_name || "Sin docente"}</span>
                         <button
-                          onClick={() => handleFixOne(m, i)}
+                          onClick={() => handleFixOne(m)}
                           disabled={fixingAll || fixingKey !== null}
                           className="ml-auto px-3 py-1 text-xs font-semibold rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 flex items-center gap-1.5"
-                          data-testid={`diagnostico-fix-${i}`}
+                          data-testid={`diagnostico-fix-${m.subject_id}`}
                         >
-                          {fixingKey === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          {fixingKey === rowKey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                           Corregir
                         </button>
                       </div>
@@ -1598,7 +1652,8 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
