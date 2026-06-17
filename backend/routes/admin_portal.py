@@ -1772,3 +1772,74 @@ async def fix_section_mismatch(data: FixSectionMismatchRequest, current_user=Dep
         "migrated": migrated,
     }
 
+
+
+@router.get("/admin/data-integrity/teacher-sections")
+async def get_teacher_sections(current_user=Depends(get_current_user)):
+    """SUPPORT ONLY (read-only): full roster of every teacher assignment with the
+    section/grade the course currently points to vs the section of the
+    assignment, plus a `matches` flag. Lets support verify that a correction was
+    applied as expected (matches == true)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder a este diagnóstico")
+    school_id = user["school_id"]
+
+    subjects = {s["id"]: s for s in await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "section_id": 1}).to_list(5000)}
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(5000)}
+    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(2000)}
+
+    async def _student_count(section_id):
+        if not section_id:
+            return 0
+        return await db.users.count_documents({
+            "school_id": school_id, "role": "student",
+            "$or": [{"seccion_id": section_id}, {"section_id": section_id}],
+        })
+
+    def _label(section_id):
+        sec = sections.get(section_id)
+        if not sec:
+            return {"section_id": section_id, "exists": bool(section_id), "nombre": None, "grade_name": None}
+        return {"section_id": section_id, "exists": True, "nombre": sec.get("nombre"),
+                "grade_name": grades.get(sec.get("grado_id"), {}).get("nombre")}
+
+    assignments = await db.academic_assignments.find({
+        "school_id": school_id,
+        "subject_id": {"$nin": [None, ""]},
+        "section_id": {"$nin": [None, ""]},
+    }, {"_id": 0, "teacher_id": 1, "subject_id": 1, "section_id": 1}).to_list(20000)
+
+    teacher_ids = list({a["teacher_id"] for a in assignments if a.get("teacher_id")})
+    teachers = {t["id"]: t for t in await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1}).to_list(20000)}
+
+    rows = []
+    for a in assignments:
+        subj = subjects.get(a["subject_id"])
+        if not subj:
+            continue
+        subj_section = subj.get("section_id")
+        assign_section = a.get("section_id")
+        t = teachers.get(a.get("teacher_id"), {})
+        rows.append({
+            "teacher_id": a.get("teacher_id"),
+            "teacher_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip() or t.get("email", ""),
+            "subject_id": a["subject_id"],
+            "subject_name": subj.get("name"),
+            "assignment_section": {**_label(assign_section), "student_count": await _student_count(assign_section)},
+            "subject_section": {**_label(subj_section), "student_count": await _student_count(subj_section)},
+            "matches": bool(subj_section) and subj_section == assign_section,
+        })
+
+    rows.sort(key=lambda r: (r.get("teacher_name") or "", r.get("subject_name") or ""))
+    return {
+        "school_id": school_id,
+        "count": len(rows),
+        "ok_count": sum(1 for r in rows if r["matches"]),
+        "mismatch_count": sum(1 for r in rows if not r["matches"]),
+        "rows": rows,
+    }
+

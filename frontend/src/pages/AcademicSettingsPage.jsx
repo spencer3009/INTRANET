@@ -1199,6 +1199,27 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [fixingKey, setFixingKey] = useState(null);
   const [fixingAll, setFixingAll] = useState(false);
   const [diagSearch, setDiagSearch] = useState("");
+  const [diagSubTab, setDiagSubTab] = useState("cruzados"); // 'cruzados' | 'todos'
+  const [teacherRows, setTeacherRows] = useState(null);
+  const [teacherLoading, setTeacherLoading] = useState(false);
+  const [teacherSearch, setTeacherSearch] = useState("");
+
+  const loadTeacherSections = async () => {
+    setTeacherLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/data-integrity/teacher-sections`, { headers });
+      setTeacherRows(res.data);
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo cargar la lista de docentes");
+    } finally {
+      setTeacherLoading(false);
+    }
+  };
+
+  const goToTeacherTab = () => {
+    setDiagSubTab("todos");
+    if (!teacherRows) loadTeacherSections();
+  };
 
   const fixOneMismatch = async (m) => {
     const target = m.assignment_section?.section_id;
@@ -1221,6 +1242,16 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         x => !(x.subject_id === m.subject_id && x.assignment_section?.section_id === m.assignment_section?.section_id)
       );
       return { ...prev, mismatches: next, count: next.length };
+    });
+    // Reflect the correction in the "Todos los docentes" view if it's loaded.
+    setTeacherRows(prev => {
+      if (!prev) return prev;
+      const rows = (prev.rows || []).map(r =>
+        r.subject_id === m.subject_id
+          ? { ...r, subject_section: { ...m.assignment_section }, matches: true }
+          : r
+      );
+      return { ...prev, rows, ok_count: rows.filter(r => r.matches).length, mismatch_count: rows.filter(r => !r.matches).length };
     });
   };
 
@@ -1524,6 +1555,86 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   );
 
   // Diagnóstico render (solo lectura)
+  // Vista: todos los docentes con sus secciones/grados (verificación post-corrección)
+  const renderTeacherSections = () => {
+    const data = teacherRows;
+    const rows = data?.rows || [];
+    const q = teacherSearch.trim().toLowerCase();
+    const filtered = q
+      ? rows.filter(r =>
+          (r.teacher_name || "").toLowerCase().includes(q) ||
+          (r.subject_name || "").toLowerCase().includes(q))
+      : rows;
+    const teacherNames = Array.from(new Set(rows.map(r => r.teacher_name).filter(Boolean))).sort();
+    return (
+      <div data-testid="teacher-sections-view">
+        {teacherLoading && (
+          <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+        )}
+        {!teacherLoading && data && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold" data-testid="ts-ok-count">{data.ok_count} correctos</span>
+                <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold" data-testid="ts-mismatch-count">{data.mismatch_count} cruzados</span>
+                <span className="text-slate-400">de {data.count} cursos</span>
+              </div>
+              <button onClick={loadTeacherSections} className="ml-auto px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 font-medium" data-testid="ts-refresh">Actualizar</button>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                list="ts-teacher-options"
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                placeholder="Buscar docente o curso…"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                data-testid="ts-search"
+              />
+              {teacherSearch && (
+                <button onClick={() => setTeacherSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-testid="ts-search-clear"><X className="w-4 h-4" /></button>
+              )}
+              <datalist id="ts-teacher-options">
+                {teacherNames.map((n, i) => <option key={i} value={n} />)}
+              </datalist>
+            </div>
+            {q && <p className="text-xs text-slate-500">Mostrando {filtered.length} de {rows.length} cursos.</p>}
+
+            <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+              {filtered.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">{rows.length === 0 ? "No hay asignaciones." : `Ningún resultado para "${teacherSearch}".`}</p>
+              ) : filtered.map((r, i) => (
+                <div key={i} className="px-5 py-3 flex flex-wrap items-center gap-3" data-testid={`ts-row-${i}`}>
+                  <div className="min-w-[200px] flex-1">
+                    <div className="flex items-center gap-2">
+                      {r.matches
+                        ? <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        : <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />}
+                      <span className="font-semibold text-slate-800">{r.subject_name}</span>
+                    </div>
+                    <span className="text-xs text-slate-500 ml-6">{r.teacher_name || "Sin docente"}</span>
+                  </div>
+                  <div className={`text-sm px-3 py-1.5 rounded-lg ${r.matches ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                    {r.assignment_section?.grade_name || "?"} – {r.assignment_section?.nombre || "?"}
+                    <span className="text-slate-400 text-xs"> ({r.assignment_section?.student_count} alumnos)</span>
+                  </div>
+                  {!r.matches && (
+                    <div className="text-xs px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700">
+                      Curso apunta a: {r.subject_section?.exists ? `${r.subject_section?.grade_name || "?"} – ${r.subject_section?.nombre || "?"}` : "sección inexistente"}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
   const renderDiagnostico = () => {
     const mismatchList = diagMismatches?.mismatches || [];
     const dupSections = diagDups?.duplicate_sections || [];
@@ -1550,14 +1661,34 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           <button onClick={loadDiagnostics} className="px-4 py-2 text-sm rounded-xl border border-slate-200 hover:bg-slate-50 font-medium" data-testid="diagnostico-refresh">Actualizar</button>
         </div>
 
-        {diagLoading && (
+        {/* Sub-pestañas */}
+        <div className="flex gap-2 mb-6 border-b border-slate-200">
+          <button
+            onClick={() => setDiagSubTab("cruzados")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${diagSubTab === "cruzados" ? "border-rose-500 text-rose-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+            data-testid="diag-subtab-cruzados"
+          >
+            Cursos cruzados {diagMismatches ? `(${(diagMismatches.mismatches || []).length})` : ""}
+          </button>
+          <button
+            onClick={goToTeacherTab}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${diagSubTab === "todos" ? "border-indigo-500 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+            data-testid="diag-subtab-todos"
+          >
+            Todos los docentes y secciones
+          </button>
+        </div>
+
+        {diagSubTab === "todos" && renderTeacherSections()}
+
+        {diagSubTab === "cruzados" && diagLoading && (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
         )}
-        {diagError && !diagLoading && (
+        {diagSubTab === "cruzados" && diagError && !diagLoading && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">{diagError}</div>
         )}
 
-        {!diagLoading && !diagError && (
+        {diagSubTab === "cruzados" && !diagLoading && !diagError && (
           <div className="space-y-6">
             {allClean && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3" data-testid="diagnostico-clean">
