@@ -1522,8 +1522,9 @@ async def get_data_integrity_duplicates(current_user=Depends(get_current_user)):
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    if not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder a este diagnóstico")
     school_id = user["school_id"]
 
     # Caches
@@ -1615,8 +1616,9 @@ async def get_section_mismatches(current_user=Depends(get_current_user)):
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    if not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder a este diagnóstico")
     school_id = user["school_id"]
 
     # Caches

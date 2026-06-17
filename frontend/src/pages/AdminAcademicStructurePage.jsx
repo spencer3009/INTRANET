@@ -7,7 +7,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import {
   Calendar, Layers, GraduationCap, Users2, Clock, BookOpen,
   Plus, Pencil, Trash2, Loader2, AlertCircle, Check, X,
-  ChevronRight, ToggleLeft, ToggleRight, ArrowLeft, Stethoscope
+  ChevronRight, ToggleLeft, ToggleRight, ArrowLeft
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1552,155 +1552,6 @@ function ShiftsTab({ token, headers }) {
 }
 
 // Main Component
-// ── Diagnóstico: secciones duplicadas + cursos con sección cruzada (solo lectura) ──
-function DiagnosticsTab({ token, headers }) {
-  const [loading, setLoading] = useState(true);
-  const [dups, setDups] = useState(null);
-  const [mismatches, setMismatches] = useState(null);
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [dupRes, misRes] = await Promise.all([
-        axios.get(`${API}/admin/data-integrity/duplicates`, { headers }),
-        axios.get(`${API}/admin/data-integrity/section-mismatches`, { headers }),
-      ]);
-      setDups(dupRes.data);
-      setMismatches(misRes.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || "No se pudo cargar el diagnóstico");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16" data-testid="diagnostics-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" data-testid="diagnostics-error">
-        {error}
-      </div>
-    );
-  }
-
-  const mismatchList = mismatches?.mismatches || [];
-  const dupSections = dups?.duplicate_sections || [];
-  const dupGrades = dups?.duplicate_grades || [];
-  const allClean = mismatchList.length === 0 && dupSections.length === 0 && dupGrades.length === 0;
-
-  return (
-    <div className="space-y-6" data-testid="diagnostics-tab">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">Diagnóstico de integridad</h2>
-          <p className="text-sm text-slate-500">Solo lectura — detecta datos cruzados o duplicados. No modifica nada.</p>
-        </div>
-        <button
-          onClick={load}
-          className="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center gap-2"
-          data-testid="diagnostics-refresh"
-        >
-          <ToggleRight className="w-4 h-4" /> Actualizar
-        </button>
-      </div>
-
-      {allClean && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3" data-testid="diagnostics-clean">
-          <Check className="w-5 h-5 text-emerald-600" />
-          <span className="text-sm text-emerald-800 font-medium">No se detectaron secciones cruzadas ni duplicadas. Tu data está limpia.</span>
-        </div>
-      )}
-
-      {/* Cursos con sección cruzada (invertida) */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-amber-500" />
-          <h3 className="font-semibold text-slate-800">Cursos con sección cruzada</h3>
-          <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700" data-testid="mismatch-count">
-            {mismatchList.length}
-          </span>
-        </div>
-        {mismatchList.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-slate-400">No hay cursos con la sección cruzada. ✅</p>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            <p className="px-5 pt-3 text-xs text-slate-500">
-              El profesor ya ve la lista correcta (se corrige automáticamente). Estos cursos tienen el dato de sección
-              del curso distinto al de la asignación del profesor — conviene corregirlos en Secciones/Asignación.
-            </p>
-            {mismatchList.map((m, i) => (
-              <div key={i} className="px-5 py-3" data-testid={`mismatch-row-${i}`}>
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="font-semibold text-slate-800">{m.subject_name}</span>
-                  <span className="text-xs text-slate-400">·</span>
-                  <span className="text-sm text-slate-600">{m.teacher_name || "Sin docente"}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="bg-emerald-50 rounded-lg px-3 py-2">
-                    <span className="text-emerald-700 font-semibold">Asignación (profesor): </span>
-                    {m.assignment_section?.grade_name || "?"} – {m.assignment_section?.nombre || "?"}
-                    <span className="text-slate-500"> ({m.assignment_section?.student_count} alumnos)</span>
-                  </div>
-                  <div className="bg-rose-50 rounded-lg px-3 py-2">
-                    <span className="text-rose-700 font-semibold">Curso apunta a: </span>
-                    {m.subject_section?.exists
-                      ? <>{m.subject_section?.grade_name || "?"} – {m.subject_section?.nombre || "?"} <span className="text-slate-500">({m.subject_section?.student_count} alumnos)</span></>
-                      : <span className="text-slate-500">sección inexistente</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Secciones duplicadas */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Users2 className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-semibold text-slate-800">Secciones duplicadas</h3>
-          <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700" data-testid="dup-section-count">
-            {dupSections.length}
-          </span>
-        </div>
-        {dupSections.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-slate-400">No hay secciones duplicadas. ✅</p>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {dupSections.map((g, i) => (
-              <div key={i} className="px-5 py-3" data-testid={`dup-section-row-${i}`}>
-                <p className="font-semibold text-slate-800 mb-1">
-                  {g.level_name} · {g.grade_name} · Sección {g.nombre}
-                  <span className="text-xs text-slate-400 font-normal"> — {g.count} documentos duplicados</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {g.sections.map((s, j) => (
-                    <span key={j} className="text-xs bg-slate-100 rounded-lg px-2.5 py-1 text-slate-600">
-                      {s.student_count} alumnos · {s.subject_count} cursos · {s.assignment_count} asignaciones
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
 export default function AdminAcademicStructurePage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1751,7 +1602,6 @@ export default function AdminAcademicStructurePage({ user, token, onLogout }) {
     { id: "grades", label: "Grados", icon: GraduationCap, count: counts.grades },
     { id: "sections", label: "Secciones", icon: Users2, count: counts.sections },
     { id: "shifts", label: "Turnos", icon: Clock, count: counts.shifts },
-    { id: "diagnostico", label: "Diagnóstico", icon: Stethoscope },
   ];
 
   return (
@@ -1815,7 +1665,6 @@ export default function AdminAcademicStructurePage({ user, token, onLogout }) {
               {activeTab === "grades" && <GradesTab token={token} headers={headers} />}
               {activeTab === "sections" && <SectionsTab token={token} headers={headers} />}
               {activeTab === "shifts" && <ShiftsTab token={token} headers={headers} />}
-              {activeTab === "diagnostico" && <DiagnosticsTab token={token} headers={headers} />}
             </div>
           </div>
         </div>

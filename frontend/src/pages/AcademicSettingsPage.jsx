@@ -1173,6 +1173,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const headers = { Authorization: `Bearer ${token}` };
 
   // Diagnóstico (solo lectura)
+  const isSupportSession = user?.is_support_session || user?.original_role === "system_admin_global";
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagError, setDiagError] = useState("");
   const [diagMismatches, setDiagMismatches] = useState(null);
@@ -1440,7 +1441,8 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         </div>
       </button>
 
-      {/* Diagnóstico (solo lectura): secciones cruzadas / duplicadas */}
+      {/* Diagnóstico (solo lectura): SOLO visible en sesión de soporte técnico */}
+      {isSupportSession && (
       <button
         onClick={() => { setSelectedCategory("diagnostico"); loadDiagnostics(); }}
         className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50"
@@ -1448,6 +1450,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       >
         <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity" />
         <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-rose-500 to-orange-600 opacity-10" />
+        <div className="absolute top-3 right-3 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">Solo soporte</div>
         <div className="relative z-10">
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-2xl bg-white shadow-lg p-4 border-2 border-rose-200">
@@ -1468,6 +1471,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           </div>
         </div>
       </button>
+      )}
     </div>
   );
 
@@ -1864,7 +1868,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           {selectedCategory === "grados" && renderGrados()}
           {selectedCategory === "secciones" && renderSecciones()}
           {selectedCategory === "turnos" && renderTurnos()}
-          {selectedCategory === "diagnostico" && renderDiagnostico()}
+          {selectedCategory === "diagnostico" && isSupportSession && renderDiagnostico()}
         </main>
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
