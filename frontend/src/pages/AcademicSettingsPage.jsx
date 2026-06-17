@@ -1284,6 +1284,79 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     setFixingAll(false);
   };
 
+  // ── Acciones sobre filas de "Todos los docentes y secciones" ──
+  // "Corregir": re-vincula el curso a la sección de la asignación (reusa el fix).
+  const handleFixRow = async (r) => {
+    const key = `ts|${r.subject_id}|${r.assignment_section?.section_id}`;
+    setFixingKey(key);
+    const target = r.assignment_section?.section_id;
+    let ok = false;
+    if (target) {
+      try {
+        await axios.post(`${API}/admin/data-integrity/fix-section-mismatch`,
+          { subject_id: r.subject_id, target_section_id: target }, { headers });
+        ok = true;
+      } catch (err) {
+        setDiagError(err.response?.data?.detail || "No se pudo corregir el curso");
+      }
+    }
+    setFixingKey(null);
+    if (ok) {
+      setTeacherRows(prev => {
+        if (!prev) return prev;
+        const rows = (prev.rows || []).map(x =>
+          x.subject_id === r.subject_id
+            ? { ...x, subject_section: { ...r.assignment_section }, matches: true }
+            : x
+        );
+        return { ...prev, rows, ok_count: rows.filter(z => z.matches).length, mismatch_count: rows.filter(z => !z.matches).length };
+      });
+    }
+  };
+
+  // "Eliminar duplicado": consulta el impacto, confirma con el detalle, y borra.
+  const [deletingKey, setDeletingKey] = useState(null);
+  const handleDeleteSubject = async (r) => {
+    const key = `del|${r.subject_id}|${r.assignment_section?.section_id}`;
+    setDeletingKey(key);
+    try {
+      const impRes = await axios.get(`${API}/admin/data-integrity/subject/${r.subject_id}/impact`, { headers });
+      const imp = impRes.data?.impact || {};
+      const lines = [
+        `¿Eliminar definitivamente el curso «${r.subject_name}»?`,
+        ``,
+        `Se borrará el curso y TODO lo asociado:`,
+        `• ${imp.assignments || 0} asignación(es) docente`,
+        `• ${imp.grades || 0} nota(s) registrada(s)`,
+        `• ${imp.evaluation_config || 0} configuración(es) de evaluación`,
+        `• ${imp.course_posts || 0} publicación(es)/tarea(s)`,
+        ``,
+        `Esta acción NO se puede deshacer.`,
+      ].join("\n");
+      if (!window.confirm(lines)) {
+        setDeletingKey(null);
+        return;
+      }
+      await axios.delete(`${API}/admin/data-integrity/subject/${r.subject_id}`, { headers });
+      // Quita TODAS las filas de ese subject de la lista (sin recargar).
+      setTeacherRows(prev => {
+        if (!prev) return prev;
+        const rows = (prev.rows || []).filter(x => x.subject_id !== r.subject_id);
+        return { ...prev, rows, count: rows.length, ok_count: rows.filter(z => z.matches).length, mismatch_count: rows.filter(z => !z.matches).length };
+      });
+      // También quítalo de la pestaña de cruzados si está cargada.
+      setDiagMismatches(prev => {
+        if (!prev) return prev;
+        const next = (prev.mismatches || []).filter(x => x.subject_id !== r.subject_id);
+        return { ...prev, mismatches: next, count: next.length };
+      });
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo eliminar el curso");
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1632,6 +1705,32 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       Curso apunta a: {r.subject_section?.exists ? `${r.subject_section?.grade_name || "?"} – ${r.subject_section?.nombre || "?"}` : "sección inexistente"}
                     </div>
                   )}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {!r.matches && (
+                      <button
+                        onClick={() => handleFixRow(r)}
+                        disabled={fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}` || deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-semibold disabled:opacity-50"
+                        data-testid={`ts-fix-btn-${i}`}
+                      >
+                        {fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}`
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Check className="w-3.5 h-3.5" />}
+                        Corregir
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteSubject(r)}
+                      disabled={deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}` || fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-semibold disabled:opacity-50"
+                      data-testid={`ts-delete-btn-${i}`}
+                    >
+                      {deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}`
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />}
+                      Eliminar duplicado
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

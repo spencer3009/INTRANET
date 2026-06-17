@@ -1,5 +1,15 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Eliminar/Corregir cursos duplicados desde "Todos los docentes y secciones" (Soporte) ✅
+- **Pedido**: en el panel de Diagnóstico (solo soporte), la profesora Diana tenía cursos duplicados ("INGLES" vs "INGLÉS"). Se necesitaba poder **corregir** y **eliminar** el curso duplicado/erróneo directamente desde la sub-pestaña "Todos los docentes y secciones".
+- **Backend** (`admin_portal.py`):
+  - `GET /api/admin/data-integrity/subject/{subject_id}/impact` (solo soporte, read-only): previsualiza cuántos registros referencian al curso (asignaciones, notas, config de evaluación, grade_register_status, subject_teachers, course_posts).
+  - `DELETE /api/admin/data-integrity/subject/{subject_id}` (solo soporte): elimina el curso y purga TODO lo asociado (asignaciones, notas, evaluation_config, grade_register_status, subject_teachers, course_posts) → sin huérfanos. Devuelve el desglose borrado.
+- **Frontend** (`AcademicSettingsPage.jsx`): en cada fila de "Todos los docentes y secciones" se agregaron 2 botones:
+  - **"Corregir"** (`ts-fix-btn-{i}`, solo si la fila está cruzada): re-vincula el curso a la sección de la asignación (reusa `fix-section-mismatch`); actualiza la fila a "correcto" sin recargar.
+  - **"Eliminar duplicado"** (`ts-delete-btn-{i}`): consulta el impacto, muestra un `confirm` con el detalle (X asignaciones, Y notas, etc.) y al confirmar borra; quita TODAS las filas de ese subject de la lista (y de la pestaña de cruzados) sin recargar.
+- **Verificado E2E (pytest)**: `tests/test_delete_duplicate_subject.py` — impact cuenta bien, delete purga subject+asignación+nota sin dejar huérfanos, y un token no-soporte recibe 403. Frontend compila OK. Requiere **redespliegue** para producción (edunet.pe).
+
 ## Jun 15, 2026 - Feature: Switch para activar/desactivar profesores (con reseteo de clave) ✅
 - **Pedido**: en la tarjeta del profesor (Admin → Profesores) un switch verde por defecto; al apagarlo el profesor no puede entrar al sistema y su contraseña se resetea. Al reactivarlo, generar una contraseña temporal mostrada en pantalla.
 - **Backend**:

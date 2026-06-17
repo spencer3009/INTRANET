@@ -1843,3 +1843,85 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
         "rows": rows,
     }
 
+
+async def _subject_delete_impact(school_id: str, subject_id: str) -> dict:
+    """Count everything that references a subject so support can see the blast
+    radius before deleting a duplicate/wrong course."""
+    return {
+        "assignments": await db.academic_assignments.count_documents({"school_id": school_id, "subject_id": subject_id}),
+        "grades": await db.student_grades.count_documents({"school_id": school_id, "subject_id": subject_id}),
+        "evaluation_config": await db.evaluation_config.count_documents({"school_id": school_id, "subject_id": subject_id}),
+        "grade_register_status": await db.grade_register_status.count_documents({"school_id": school_id, "subject_id": subject_id}),
+        "subject_teachers": await db.subject_teachers.count_documents({"school_id": school_id, "subject_id": subject_id}),
+        "course_posts": await db.course_posts.count_documents({"school_id": school_id, "subject_id": subject_id}),
+    }
+
+
+@router.get("/admin/data-integrity/subject/{subject_id}/impact")
+async def get_subject_delete_impact(subject_id: str, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY (read-only): preview how many records reference a course so
+    support can decide whether to delete a duplicate/wrong course safely."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder a este diagnóstico")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "section_id": 1})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    impact = await _subject_delete_impact(school_id, subject_id)
+    return {"subject_id": subject_id, "subject_name": subject.get("name"), "impact": impact}
+
+
+@router.delete("/admin/data-integrity/subject/{subject_id}")
+async def delete_duplicate_subject(subject_id: str, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: permanently delete a duplicate/wrong course and clean up
+    everything that references it so no orphans are left behind:
+      - academic_assignments (teacher links to this subject)
+      - student_grades, evaluation_config, grade_register_status
+      - subject_teachers links
+      - course_posts (tasks/announcements/materials) of this subject
+      - the subject document itself
+
+    Designed for the El Roble "INGLES" vs "INGLÉS" duplicate cleanup. Returns a
+    breakdown of how many docs were removed."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta eliminación")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "section_id": 1})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    before = await _subject_delete_impact(school_id, subject_id)
+
+    deleted = {}
+    flt = {"school_id": school_id, "subject_id": subject_id}
+    deleted["assignments"] = (await db.academic_assignments.delete_many(flt)).deleted_count
+    deleted["grades"] = (await db.student_grades.delete_many(flt)).deleted_count
+    deleted["evaluation_config"] = (await db.evaluation_config.delete_many(flt)).deleted_count
+    deleted["grade_register_status"] = (await db.grade_register_status.delete_many(flt)).deleted_count
+    deleted["subject_teachers"] = (await db.subject_teachers.delete_many(flt)).deleted_count
+    deleted["course_posts"] = (await db.course_posts.delete_many(flt)).deleted_count
+    deleted["subject"] = (await db.subjects.delete_one({"id": subject_id, "school_id": school_id})).deleted_count
+
+    logger.info(
+        f"[DATA-FIX] subject {subject_id} ('{subject.get('name')}') DELETED by {user['id']} "
+        f"| before={before} | deleted={deleted}"
+    )
+
+    return {
+        "message": f"Curso «{subject.get('name')}» eliminado junto con sus datos asociados",
+        "subject_id": subject_id,
+        "subject_name": subject.get("name"),
+        "deleted": deleted,
+    }
+
