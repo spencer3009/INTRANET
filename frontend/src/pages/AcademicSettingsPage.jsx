@@ -11,7 +11,7 @@ import {
   Plus, Pencil, Trash2, MoreVertical, Loader2, Check, X,
   BookOpen, Users, ChevronRight, ArrowLeft, Camera,
   AlertCircle, Layers, Play, CalendarDays, Settings, GripVertical,
-  ChevronUp, ChevronDown
+  ChevronUp, ChevronDown, Stethoscope
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1172,6 +1172,29 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Diagnóstico (solo lectura)
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diagError, setDiagError] = useState("");
+  const [diagMismatches, setDiagMismatches] = useState(null);
+  const [diagDups, setDiagDups] = useState(null);
+
+  const loadDiagnostics = async () => {
+    setDiagLoading(true);
+    setDiagError("");
+    try {
+      const [misRes, dupRes] = await Promise.all([
+        axios.get(`${API}/admin/data-integrity/section-mismatches`, { headers }),
+        axios.get(`${API}/admin/data-integrity/duplicates`, { headers }),
+      ]);
+      setDiagMismatches(misRes.data);
+      setDiagDups(dupRes.data);
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo cargar el diagnóstico");
+    } finally {
+      setDiagLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1416,8 +1439,143 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           </div>
         </div>
       </button>
+
+      {/* Diagnóstico (solo lectura): secciones cruzadas / duplicadas */}
+      <button
+        onClick={() => { setSelectedCategory("diagnostico"); loadDiagnostics(); }}
+        className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50"
+        data-testid="diagnostico-card"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity" />
+        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-rose-500 to-orange-600 opacity-10" />
+        <div className="relative z-10">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 rounded-2xl bg-white shadow-lg p-4 border-2 border-rose-200">
+              <Stethoscope className="w-full h-full text-rose-600" />
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-center mb-2 text-rose-600">Diagnóstico</h3>
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-rose-200 text-rose-600 font-medium text-sm">
+              <span className="w-2 h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-600"></span>
+              Secciones cruzadas / duplicadas
+            </span>
+          </div>
+          <div className="flex justify-center mt-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-rose-500 to-orange-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+      </button>
     </div>
   );
+
+  // Diagnóstico render (solo lectura)
+  const renderDiagnostico = () => {
+    const mismatchList = diagMismatches?.mismatches || [];
+    const dupSections = diagDups?.duplicate_sections || [];
+    const allClean = !diagLoading && mismatchList.length === 0 && dupSections.length === 0;
+    return (
+      <div data-testid="diagnostico-view">
+        <button onClick={() => setSelectedCategory(null)} className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-6 group">
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200"><ArrowLeft className="w-4 h-4" /></div>
+          <span className="font-medium">Volver</span>
+        </button>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Diagnóstico de integridad</h2>
+            <p className="text-sm text-slate-500">Solo lectura — no modifica nada. Detecta cursos con sección cruzada y secciones duplicadas.</p>
+          </div>
+          <button onClick={loadDiagnostics} className="px-4 py-2 text-sm rounded-xl border border-slate-200 hover:bg-slate-50 font-medium" data-testid="diagnostico-refresh">Actualizar</button>
+        </div>
+
+        {diagLoading && (
+          <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+        )}
+        {diagError && !diagLoading && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">{diagError}</div>
+        )}
+
+        {!diagLoading && !diagError && (
+          <div className="space-y-6">
+            {allClean && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3" data-testid="diagnostico-clean">
+                <Check className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm text-emerald-800 font-medium">No se detectaron secciones cruzadas ni duplicadas. Tu data está limpia.</span>
+              </div>
+            )}
+
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+                <h3 className="font-semibold text-slate-800">Cursos con sección cruzada</h3>
+                <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700" data-testid="diagnostico-mismatch-count">{mismatchList.length}</span>
+              </div>
+              {mismatchList.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">No hay cursos con la sección cruzada. ✅</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  <p className="px-5 pt-3 text-xs text-slate-500">El profesor ya ve la lista correcta (se corrige solo). Estos cursos tienen la sección del curso distinta a la de la asignación del profesor — conviene corregirlos en Secciones / Asignación Docente.</p>
+                  {mismatchList.map((m, i) => (
+                    <div key={i} className="px-5 py-3" data-testid={`diagnostico-mismatch-${i}`}>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-800">{m.subject_name}</span>
+                        <span className="text-xs text-slate-400">·</span>
+                        <span className="text-sm text-slate-600">{m.teacher_name || "Sin docente"}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="bg-emerald-50 rounded-lg px-3 py-2">
+                          <span className="text-emerald-700 font-semibold">Asignación (profesor): </span>
+                          {m.assignment_section?.grade_name || "?"} – {m.assignment_section?.nombre || "?"}
+                          <span className="text-slate-500"> ({m.assignment_section?.student_count} alumnos)</span>
+                        </div>
+                        <div className="bg-rose-50 rounded-lg px-3 py-2">
+                          <span className="text-rose-700 font-semibold">Curso apunta a: </span>
+                          {m.subject_section?.exists
+                            ? <>{m.subject_section?.grade_name || "?"} – {m.subject_section?.nombre || "?"} <span className="text-slate-500">({m.subject_section?.student_count} alumnos)</span></>
+                            : <span className="text-slate-500">sección inexistente</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-500" />
+                <h3 className="font-semibold text-slate-800">Secciones duplicadas</h3>
+                <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700" data-testid="diagnostico-dup-count">{dupSections.length}</span>
+              </div>
+              {dupSections.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">No hay secciones duplicadas. ✅</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {dupSections.map((g, i) => (
+                    <div key={i} className="px-5 py-3" data-testid={`diagnostico-dup-${i}`}>
+                      <p className="font-semibold text-slate-800 mb-1">
+                        {g.level_name} · {g.grade_name} · Sección {g.nombre}
+                        <span className="text-xs text-slate-400 font-normal"> — {g.count} documentos duplicados</span>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {g.sections.map((s, j) => (
+                          <span key={j} className="text-xs bg-slate-100 rounded-lg px-2.5 py-1 text-slate-600">
+                            {s.student_count} alumnos · {s.subject_count} cursos · {s.assignment_count} asignaciones
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Section header component
   const SectionHeader = ({ category, count, countLabel, onAdd, addLabel }) => (
@@ -1706,6 +1864,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           {selectedCategory === "grados" && renderGrados()}
           {selectedCategory === "secciones" && renderSecciones()}
           {selectedCategory === "turnos" && renderTurnos()}
+          {selectedCategory === "diagnostico" && renderDiagnostico()}
         </main>
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
