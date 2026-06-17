@@ -1684,3 +1684,91 @@ async def get_section_mismatches(current_user=Depends(get_current_user)):
         "count": len(mismatches),
         "mismatches": mismatches,
     }
+
+
+class FixSectionMismatchRequest(BaseModel):
+    subject_id: str
+    target_section_id: str
+
+
+@router.post("/admin/data-integrity/fix-section-mismatch")
+async def fix_section_mismatch(data: FixSectionMismatchRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY. Re-point a course's `subject.section_id` to the section
+    recorded on the teacher's assignment (the correct one), and migrate any data
+    stored under the old (wrong) section so nothing is lost:
+      - subjects.section_id  → target
+      - student_grades / evaluation_config / grade_register_status for this
+        subject: section_id old → target (skipping rows that would collide).
+
+    `target_section_id` MUST be a section that an active assignment of this
+    subject actually points to, so we only ever align to a real teaching section."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta corrección")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    old_section = subject.get("section_id")
+    new_section = data.target_section_id
+    if not new_section:
+        raise HTTPException(status_code=400, detail="Sección destino inválida")
+    if old_section == new_section:
+        return {"message": "El curso ya apunta a la sección correcta", "changed": False}
+
+    # Safety: target must match a real assignment section for this subject.
+    valid_assignment = await db.academic_assignments.find_one({
+        "school_id": school_id, "subject_id": data.subject_id, "section_id": new_section,
+    })
+    if not valid_assignment:
+        raise HTTPException(status_code=400, detail="La sección destino no corresponde a ninguna asignación de este curso")
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # 1) Re-point the subject.
+    await db.subjects.update_one({"id": data.subject_id}, {"$set": {"section_id": new_section, "updated_at": now}})
+
+    migrated = {"student_grades": 0, "evaluation_config": 0, "grade_register_status": 0, "skipped_grades": 0}
+
+    # 2) Migrate student_grades (skip rows that collide at target by student+period).
+    async for g in db.student_grades.find({"school_id": school_id, "subject_id": data.subject_id, "section_id": old_section}):
+        collision = await db.student_grades.find_one({
+            "school_id": school_id, "subject_id": data.subject_id, "section_id": new_section,
+            "student_id": g.get("student_id"), "period_id": g.get("period_id"),
+        })
+        if collision:
+            migrated["skipped_grades"] += 1
+            continue
+        await db.student_grades.update_one({"id": g["id"]} if g.get("id") else {"_id": g["_id"]},
+                                           {"$set": {"section_id": new_section}})
+        migrated["student_grades"] += 1
+
+    # 3) Migrate evaluation_config (only if target has none).
+    for coll_name in ("evaluation_config", "grade_register_status"):
+        coll = db[coll_name]
+        async for doc in coll.find({"school_id": school_id, "subject_id": data.subject_id, "section_id": old_section}):
+            exists_target = await coll.find_one({
+                "school_id": school_id, "subject_id": data.subject_id, "section_id": new_section,
+                **({"period_id": doc.get("period_id")} if doc.get("period_id") else {}),
+            })
+            if exists_target:
+                continue
+            await coll.update_one({"_id": doc["_id"]}, {"$set": {"section_id": new_section}})
+            migrated[coll_name] += 1
+
+    logger.info(f"[DATA-FIX] subject {data.subject_id} re-pointed {old_section}->{new_section} by {user['id']} | migrated={migrated}")
+
+    return {
+        "message": "Curso corregido y vinculado a la sección correcta",
+        "changed": True,
+        "subject_id": data.subject_id,
+        "old_section_id": old_section,
+        "new_section_id": new_section,
+        "migrated": migrated,
+    }
+

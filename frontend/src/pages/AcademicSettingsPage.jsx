@@ -1196,6 +1196,42 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  const [fixingKey, setFixingKey] = useState(null);
+  const [fixingAll, setFixingAll] = useState(false);
+
+  const fixOneMismatch = async (m) => {
+    const target = m.assignment_section?.section_id;
+    if (!target) return false;
+    try {
+      await axios.post(`${API}/admin/data-integrity/fix-section-mismatch`,
+        { subject_id: m.subject_id, target_section_id: target }, { headers });
+      return true;
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo corregir el curso");
+      return false;
+    }
+  };
+
+  const handleFixOne = async (m, idx) => {
+    setFixingKey(idx);
+    const ok = await fixOneMismatch(m);
+    setFixingKey(null);
+    if (ok) await loadDiagnostics();
+  };
+
+  const handleFixAll = async () => {
+    const list = diagMismatches?.mismatches || [];
+    if (list.length === 0) return;
+    if (!window.confirm(`¿Corregir los ${list.length} cursos cruzados? Cada curso se vinculará a la sección de la asignación del profesor (se migran sus notas).`)) return;
+    setFixingAll(true);
+    for (const m of list) {
+      // eslint-disable-next-line no-await-in-loop
+      await fixOneMismatch(m);
+    }
+    setFixingAll(false);
+    await loadDiagnostics();
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1515,18 +1551,38 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                 <AlertCircle className="w-5 h-5 text-amber-500" />
                 <h3 className="font-semibold text-slate-800">Cursos con sección cruzada</h3>
                 <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700" data-testid="diagnostico-mismatch-count">{mismatchList.length}</span>
+                {mismatchList.length > 0 && (
+                  <button
+                    onClick={handleFixAll}
+                    disabled={fixingAll || fixingKey !== null}
+                    className="ml-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+                    data-testid="diagnostico-fix-all"
+                  >
+                    {fixingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Corregir todos
+                  </button>
+                )}
               </div>
               {mismatchList.length === 0 ? (
                 <p className="px-5 py-4 text-sm text-slate-400">No hay cursos con la sección cruzada. ✅</p>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  <p className="px-5 pt-3 text-xs text-slate-500">El profesor ya ve la lista correcta (se corrige solo). Estos cursos tienen la sección del curso distinta a la de la asignación del profesor — conviene corregirlos en Secciones / Asignación Docente.</p>
+                  <p className="px-5 pt-3 text-xs text-slate-500">El profesor ya ve la lista correcta (se corrige solo). "Corregir" vincula el curso a la sección de la asignación del profesor (verde) y migra sus notas. Recomendado.</p>
                   {mismatchList.map((m, i) => (
                     <div key={i} className="px-5 py-3" data-testid={`diagnostico-mismatch-${i}`}>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="font-semibold text-slate-800">{m.subject_name}</span>
                         <span className="text-xs text-slate-400">·</span>
                         <span className="text-sm text-slate-600">{m.teacher_name || "Sin docente"}</span>
+                        <button
+                          onClick={() => handleFixOne(m, i)}
+                          disabled={fixingAll || fixingKey !== null}
+                          className="ml-auto px-3 py-1 text-xs font-semibold rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 flex items-center gap-1.5"
+                          data-testid={`diagnostico-fix-${i}`}
+                        >
+                          {fixingKey === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          Corregir
+                        </button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <div className="bg-emerald-50 rounded-lg px-3 py-2">
