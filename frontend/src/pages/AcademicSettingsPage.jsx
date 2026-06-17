@@ -1221,6 +1221,15 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     if (!teacherRows) loadTeacherSections();
   };
 
+  // Token-based match: every word in the query must appear (any order),
+  // so "diana osorio huaman" matches "DIANA GABRIELA OSORIO HUAMAN".
+  const matchesQuery = (haystack, query) => {
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return true;
+    const t = (haystack || "").toLowerCase();
+    return tokens.every(tok => t.includes(tok));
+  };
+
   const fixOneMismatch = async (m) => {
     const target = m.assignment_section?.section_id;
     if (!target) return false;
@@ -1561,9 +1570,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     const rows = data?.rows || [];
     const q = teacherSearch.trim().toLowerCase();
     const filtered = q
-      ? rows.filter(r =>
-          (r.teacher_name || "").toLowerCase().includes(q) ||
-          (r.subject_name || "").toLowerCase().includes(q))
+      ? rows.filter(r => matchesQuery(`${r.teacher_name || ""} ${r.subject_name || ""}`, q))
       : rows;
     const teacherNames = Array.from(new Set(rows.map(r => r.teacher_name).filter(Boolean))).sort();
     return (
@@ -1643,9 +1650,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     const teacherNames = Array.from(new Set(mismatchList.map(m => m.teacher_name).filter(Boolean))).sort();
     const q = diagSearch.trim().toLowerCase();
     const filteredMismatches = q
-      ? mismatchList.filter(m =>
-          (m.teacher_name || "").toLowerCase().includes(q) ||
-          (m.subject_name || "").toLowerCase().includes(q))
+      ? mismatchList.filter(m => matchesQuery(`${m.teacher_name || ""} ${m.subject_name || ""}`, q))
       : mismatchList;
     return (
       <div data-testid="diagnostico-view">
