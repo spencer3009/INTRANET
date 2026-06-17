@@ -1595,3 +1595,90 @@ async def get_data_integrity_duplicates(current_user=Depends(get_current_user)):
             "duplicate_section_groups": len(duplicate_sections),
         },
     }
+
+
+
+@router.get("/admin/data-integrity/section-mismatches")
+async def get_section_mismatches(current_user=Depends(get_current_user)):
+    """READ-ONLY: list courses whose stored `subject.section_id` does NOT match
+    the section recorded on the teacher's assignment (the "inverted/crossed"
+    register problem). Performs NO writes.
+
+    For each active teacher/titular assignment that has a subject_id and a
+    section_id, we compare the assignment section vs the subject's stored
+    section. When they differ, the course is flagged: the teacher register is
+    auto-corrected by the backend (it uses the assignment section), but the
+    underlying data is still mismatched and worth cleaning up.
+
+    Returns enriched rows so the owner can see exactly which teacher / subject /
+    grade / sections are affected and how many students sit in each section."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    school_id = user["school_id"]
+
+    # Caches
+    subjects = {s["id"]: s for s in await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "section_id": 1, "grade_id": 1}).to_list(5000)}
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(5000)}
+    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(2000)}
+
+    async def _student_count(section_id):
+        if not section_id:
+            return 0
+        return await db.users.count_documents({
+            "school_id": school_id, "role": "student",
+            "$or": [{"seccion_id": section_id}, {"section_id": section_id}],
+        })
+
+    def _section_label(section_id):
+        sec = sections.get(section_id)
+        if not sec:
+            return {"section_id": section_id, "exists": False, "nombre": None, "grade_name": None}
+        return {
+            "section_id": section_id,
+            "exists": True,
+            "nombre": sec.get("nombre"),
+            "grade_name": grades.get(sec.get("grado_id"), {}).get("nombre"),
+        }
+
+    assignments = await db.academic_assignments.find({
+        "school_id": school_id,
+        "subject_id": {"$nin": [None, ""]},
+        "section_id": {"$nin": [None, ""]},
+    }, {"_id": 0, "teacher_id": 1, "subject_id": 1, "section_id": 1, "role": 1, "status": 1}).to_list(20000)
+
+    teacher_ids = list({a["teacher_id"] for a in assignments if a.get("teacher_id")})
+    teachers = {t["id"]: t for t in await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1}).to_list(20000)}
+
+    mismatches = []
+    for a in assignments:
+        subj = subjects.get(a["subject_id"])
+        if not subj:
+            continue
+        subj_section = subj.get("section_id")
+        assign_section = a.get("section_id")
+        # Flag only when the subject HAS a section stored and it differs.
+        if not subj_section or subj_section == assign_section:
+            continue
+        t = teachers.get(a.get("teacher_id"), {})
+        mismatches.append({
+            "teacher_id": a.get("teacher_id"),
+            "teacher_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip() or t.get("email", ""),
+            "subject_id": a["subject_id"],
+            "subject_name": subj.get("name"),
+            "assignment_role": a.get("role"),
+            "assignment_status": a.get("status"),
+            "assignment_section": {**_section_label(assign_section), "student_count": await _student_count(assign_section)},
+            "subject_section": {**_section_label(subj_section), "student_count": await _student_count(subj_section)},
+        })
+
+    mismatches.sort(key=lambda m: (m.get("subject_name") or "", m.get("teacher_name") or ""))
+
+    return {
+        "school_id": school_id,
+        "has_mismatches": bool(mismatches),
+        "count": len(mismatches),
+        "mismatches": mismatches,
+    }
