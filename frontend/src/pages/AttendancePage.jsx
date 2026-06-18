@@ -16,7 +16,7 @@ import {
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
   User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
   Eye, ChevronLeft, CheckCircle, UtensilsCrossed, MessageSquareText, Bus,
-  Wrench
+  Wrench, CalendarDays
 } from "lucide-react";
 import JustificationModal, { JustificationInfoPopover } from "../components/JustificationModal";
 import { toast } from "sonner";
@@ -684,6 +684,7 @@ function TeacherAttendanceTab({ token, schoolId }) {
   const [perLevelActive, setPerLevelActive] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [viewMode, setViewMode] = useState("day"); // "day" | "month"
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -771,6 +772,40 @@ function TeacherAttendanceTab({ token, schoolId }) {
 
   return (
     <div className="space-y-6">
+      {/* View mode toggle: Día / Mes */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Reporte de Asistencia de Profesores</h2>
+          <p className="text-sm text-slate-500">Marca y consulta la asistencia docente por día o por mes</p>
+        </div>
+        <div className="inline-flex p-1 bg-slate-100 rounded-2xl shadow-inner" data-testid="teacher-attendance-viewmode">
+          {[
+            { id: "day", label: "Por día", icon: Calendar },
+            { id: "month", label: "Por mes", icon: CalendarDays },
+          ].map((m) => {
+            const Icon = m.icon;
+            const active = viewMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setViewMode(m.id)}
+                data-testid={`teacher-attendance-view-${m.id}`}
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  active ? "bg-white text-indigo-600 shadow-md" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {viewMode === "month" ? (
+        <TeacherMonthlyReport token={token} />
+      ) : (
+      <>
       {/* Date filter */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-center gap-4 flex-wrap">
@@ -933,6 +968,166 @@ function TeacherAttendanceTab({ token, schoolId }) {
           <UserCheck className="w-16 h-16 mx-auto mb-4 text-slate-300" />
           <h3 className="text-xl font-bold text-slate-700 mb-2">Sin profesores</h3>
           <p className="text-slate-500">No hay profesores registrados en el sistema.</p>
+        </div>
+      )}
+      </>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEACHER MONTHLY REPORT (premium)
+// ══════════════════════════════════════════════════════════════════════════════
+const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const STATUS_DOT = {
+  present: "bg-emerald-500",
+  late: "bg-amber-500",
+  absent: "bg-rose-500",
+  justified: "bg-sky-500",
+  pending: "bg-slate-200",
+};
+
+function TeacherMonthlyReport({ token }) {
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.get(`${API}/attendance/teachers/monthly`, { headers, params: { month, year } });
+      setData(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al cargar el reporte mensual");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [month, year]);
+
+  const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); };
+  const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); };
+
+  const totals = data?.totals || { present: 0, late: 0, absent: 0, justified: 0 };
+  const grandTotal = totals.present + totals.late + totals.absent + totals.justified;
+
+  return (
+    <div className="space-y-6">
+      {/* Month navigator */}
+      <div className="bg-white rounded-2xl shadow-lg p-5 flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <button onClick={prevMonth} className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors" data-testid="monthly-prev">
+            <ChevronLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <div className="px-4 text-center min-w-[180px]">
+            <p className="text-lg font-bold text-slate-800">{MONTH_NAMES[month - 1]} {year}</p>
+            <p className="text-xs text-slate-400">{data?.total_teachers || 0} profesores</p>
+          </div>
+          <button onClick={nextMonth} className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors" data-testid="monthly-next">
+            <ChevronRight className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400" data-testid="monthly-month-select">
+            {MONTH_NAMES.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+          </select>
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400" data-testid="monthly-year-select">
+            {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" />{error}
+        </div>
+      )}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Asistencias", value: totals.present, color: "from-emerald-500 to-teal-600", icon: Check },
+          { label: "Tardanzas", value: totals.late, color: "from-amber-500 to-orange-500", icon: Clock },
+          { label: "Faltas", value: totals.absent, color: "from-rose-500 to-red-600", icon: AlertCircle },
+          { label: "Justificadas", value: totals.justified, color: "from-sky-500 to-blue-600", icon: UserCheck },
+        ].map((c) => {
+          const Icon = c.icon;
+          const pct = grandTotal ? Math.round((c.value / grandTotal) * 100) : 0;
+          return (
+            <div key={c.label} className={`rounded-2xl p-5 text-white bg-gradient-to-br ${c.color} shadow-lg`} data-testid={`monthly-summary-${c.label}`}>
+              <div className="flex items-center justify-between">
+                <Icon className="w-6 h-6 opacity-90" />
+                <span className="text-xs font-semibold bg-white/25 px-2 py-0.5 rounded-full">{pct}%</span>
+              </div>
+              <p className="text-3xl font-bold mt-3">{c.value}</p>
+              <p className="text-sm opacity-90">{c.label}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Per-teacher table */}
+      {loading ? (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
+        </div>
+      ) : (data?.teachers || []).length === 0 ? (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <CalendarDays className="w-14 h-14 mx-auto mb-3 text-slate-300" />
+          <p className="text-slate-500">No hay registros de asistencia este mes.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4 text-xs text-slate-500 flex-wrap">
+            <span className="font-semibold text-slate-700">Detalle por profesor</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Presente</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Tardanza</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Falta</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500" /> Justificada</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {data.teachers.map((t, idx) => (
+              <div key={t.id} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors" data-testid={`monthly-teacher-row-${idx}`}>
+                <div className="flex-shrink-0">
+                  {t.photo_url ? (
+                    <img src={t.photo_url} alt="" className="w-11 h-11 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                      {(t.last_name || t.name || "P").charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 truncate">{((t.last_name || "") + " " + (t.name || "")).trim() || t.full_name}</p>
+                  {/* Mini calendar heatmap */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {Array.from({ length: data.days_in_month }, (_, i) => {
+                      const dstr = `${year}-${String(month).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`;
+                      const st = t.days?.[dstr] || "pending";
+                      return <span key={i} title={`${i + 1}: ${st}`} className={`w-2.5 h-2.5 rounded-sm ${STATUS_DOT[st]}`} />;
+                    })}
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-3 text-sm flex-shrink-0">
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" title="Presente">{t.counts.present}</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 font-semibold" title="Tardanza">{t.counts.late}</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-semibold" title="Falta">{t.counts.absent}</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-semibold" title="Justificada">{t.counts.justified}</span>
+                </div>
+                <div className="flex-shrink-0 w-16 text-right">
+                  <p className={`text-lg font-bold ${t.attendance_rate >= 90 ? "text-emerald-600" : t.attendance_rate >= 75 ? "text-amber-600" : "text-rose-600"}`}>{t.attendance_rate}%</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide">asistencia</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

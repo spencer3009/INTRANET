@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Reporte de Asistencia de Profesores con vista Día / Mes (diseño premium) ✅
+- **Pedido**: en "Reporte de Asistencia de Profesores", poder ver por día y por mes, con botones de selección y selector de fecha; diseño premium.
+- **Backend** (`attendance.py`): nuevo `GET /api/attendance/teachers/monthly?month=&year=` → por profesor: conteos present/late/absent/justified, % asistencia, mapa día→estado; + totales del mes. Verificado E2E.
+- **Frontend** (`AttendancePage.jsx` → `TeacherAttendanceTab`): toggle segmentado **"Por día / Por mes"** (`teacher-attendance-view-day/month`). 
+  - Día: vista de marcado existente (intacta).
+  - Mes: nuevo componente `TeacherMonthlyReport` con navegador de mes (◀▶ + selects mes/año), 4 tarjetas resumen con gradiente y %, y tabla por profesor con avatar, **heatmap de calendario diario** (verde/ámbar/rosa/azul), conteos y % de asistencia con color por umbral.
+- Compila sin errores. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Feature: Permiso "Información Paciente" para Tópico + vista de datos de contacto del alumno ✅
 - **Req 1 (Propietario → Usuarios → Tópico)**: switch **"Información Paciente"** por usuario `auxiliar_topico` en su tarjeta (`UsersPage.jsx`, `topico-contact-switch-{id}`). Persiste en `users.can_view_patient_contact` (MongoDB), individual por usuario.
   - Backend: `PATCH /api/users/topico/{user_id}/contact-permission` {can_view} (solo admin/owner; valida rol auxiliar_topico).

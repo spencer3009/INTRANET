@@ -761,6 +761,77 @@ async def get_teachers_for_attendance(
         "per_level_schedule_active": per_level_active,
     }
 
+@router.get("/attendance/teachers/monthly")
+async def get_teachers_monthly_report(
+    month: int,
+    year: int,
+    current_user = Depends(get_current_user)
+):
+    """Monthly teacher attendance report: per-teacher counts of
+    present/late/absent/justified across the month + a per-day status map
+    (for an optional calendar view)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Mes inválido")
+
+    import calendar as _cal
+    days_in_month = _cal.monthrange(year, month)[1]
+    start = f"{year:04d}-{month:02d}-01"
+    end = f"{year:04d}-{month:02d}-{days_in_month:02d}"
+
+    teachers = await db.users.find(
+        {"school_id": school_id, "role": "teacher"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1, "photo_url": 1},
+    ).to_list(500)
+
+    records = await db.attendances.find(
+        {"school_id": school_id, "type": "teacher", "date": {"$gte": start, "$lte": end}},
+        {"_id": 0, "user_id": 1, "date": 1, "status": 1},
+    ).to_list(20000)
+
+    by_teacher = {}
+    for r in records:
+        by_teacher.setdefault(r["user_id"], {})[r["date"]] = r["status"]
+
+    rows = []
+    totals = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+    for t in teachers:
+        day_map = by_teacher.get(t["id"], {})
+        counts = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+        for st in day_map.values():
+            if st in counts:
+                counts[st] += 1
+        recorded = sum(counts.values())
+        for k in totals:
+            totals[k] += counts[k]
+        rows.append({
+            "id": t["id"],
+            "name": t.get("name", ""),
+            "last_name": t.get("last_name", ""),
+            "full_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip(),
+            "email": t.get("email"),
+            "photo_url": t.get("photo_url"),
+            "counts": counts,
+            "recorded_days": recorded,
+            "attendance_rate": round((counts["present"] + counts["late"]) / recorded * 100) if recorded else 0,
+            "days": day_map,
+        })
+
+    rows.sort(key=lambda x: (x.get("last_name") or "").lower() or x["full_name"].lower())
+    return {
+        "month": month,
+        "year": year,
+        "days_in_month": days_in_month,
+        "teachers": rows,
+        "total_teachers": len(rows),
+        "totals": totals,
+    }
+
+
+
 @router.post("/attendance/teachers/save")
 async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = Depends(get_current_user)):
     """
