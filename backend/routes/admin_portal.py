@@ -2107,6 +2107,69 @@ async def list_grade_students(subject_id: str, section_id: str, current_user=Dep
     }
 
 
+class ReenrollStudentsRequest(BaseModel):
+    student_ids: List[str]
+    target_section_id: str
+    move_subject_id: Optional[str] = None   # if set, also relocate this subject's grades for those students
+
+
+@router.post("/admin/data-integrity/reenroll-students")
+async def reenroll_students(data: ReenrollStudentsRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: re-enroll students into the correct section (updates their
+    seccion_id/section_id) and OPTIONALLY relocate their grades of a given
+    subject to that section. Used to fix students wrongly matriculated in the
+    "3 años" section who are really 4 años. Relocates, never deletes."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta acción")
+    school_id = user["school_id"]
+
+    if not data.student_ids:
+        raise HTTPException(status_code=400, detail="No se seleccionaron alumnos")
+    target = await db.sections.find_one({"id": data.target_section_id, "school_id": school_id}, {"_id": 0, "id": 1})
+    if not target:
+        raise HTTPException(status_code=400, detail="La sección destino no existe en este colegio")
+
+    now = datetime.now(timezone.utc).isoformat()
+    reenrolled = (await db.users.update_many(
+        {"school_id": school_id, "id": {"$in": data.student_ids}, "role": "student"},
+        {"$set": {"seccion_id": data.target_section_id, "section_id": data.target_section_id, "updated_at": now}},
+    )).modified_count
+
+    grades_moved = 0
+    grades_skipped = 0
+    if data.move_subject_id:
+        async for g in db.student_grades.find({
+            "school_id": school_id, "subject_id": data.move_subject_id, "student_id": {"$in": data.student_ids},
+        }):
+            if g.get("section_id") == data.target_section_id:
+                continue
+            collision = await db.student_grades.find_one({
+                "school_id": school_id, "subject_id": data.move_subject_id, "section_id": data.target_section_id,
+                "student_id": g.get("student_id"), "period_id": g.get("period_id"),
+            })
+            if collision:
+                grades_skipped += 1
+                continue
+            await db.student_grades.update_one(
+                {"id": g["id"]} if g.get("id") else {"_id": g["_id"]},
+                {"$set": {"section_id": data.target_section_id}},
+            )
+            grades_moved += 1
+
+    logger.info(f"[DATA-FIX] reenroll {len(data.student_ids)} students -> {data.target_section_id} by {user['id']} | reenrolled={reenrolled} grades_moved={grades_moved}")
+    return {
+        "message": f"{reenrolled} alumno(s) re-matriculado(s)" + (f"; {grades_moved} nota(s) movida(s)" if data.move_subject_id else ""),
+        "reenrolled": reenrolled,
+        "grades_moved": grades_moved,
+        "grades_skipped": grades_skipped,
+    }
+
+
+
 
 @router.get("/admin/data-integrity/rehome-grades/{subject_id}/preview")
 async def preview_rehome_grades(subject_id: str, current_user=Depends(get_current_user)):

@@ -1,5 +1,11 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Re-matrícula en lote desde soporte (corrige alumnos mal matriculados) ✅
+- **Diagnóstico**: el curso INGLES·3 años tiene 15 alumnos pero el Registro muestra 17 con notas → esos alumnos están matriculados (en la BD) en la sección de 3 años pero pertenecen a 4 años. "Reparar notas" no los movía porque su matrícula coincidía con la sección de sus notas → la causa real es la MATRÍCULA, no la nota.
+- **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/reenroll-students` {student_ids, target_section_id, move_subject_id?} (solo soporte): actualiza `seccion_id`/`section_id` de los alumnos a la sección correcta y, opcionalmente, reubica sus notas de ese curso a la nueva sección (salta colisiones). Relocaliza, nunca borra.
+- **Frontend** (`AcademicSettingsPage.jsx`): el panel que abre el badge "N con notas" ahora permite **seleccionar alumnos** (checkbox, "seleccionar todos"), elegir **sección destino** y marcar "mover también sus notas de este curso", con botón **"Re-matricular (N)"** (`ts-reenroll-confirm`). Resalta en ámbar a los alumnos cuya matrícula no coincide con la sección.
+- **Verificado E2E (pytest)**: `tests/test_reenroll_students.py` — re-matricula al alumno y mueve su nota a la sección destino. Frontend compila. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Feature: Badge "N con notas" clickeable → lista de alumnos dueños + su sección matriculada ✅
 - **Necesidad**: el usuario cree que las 31 notas de INGLES·3 años son de alumnos de 4 años, pero "Reparar notas" dice que ya están correctas. Hay que mostrar de QUIÉN son esas notas para decidir.
 - **Backend** (`admin_portal.py`): nuevo `GET /api/admin/data-integrity/subject/{subject_id}/grades-students?section_id=...` (solo soporte, read-only): lista los alumnos con notas en (subject, section), su nombre y la sección donde están MATRICULADOS hoy (+ flag `matches_grade_section`).

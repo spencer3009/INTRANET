@@ -1422,11 +1422,17 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [studentsPanelKey, setStudentsPanelKey] = useState(null);
   const [studentsList, setStudentsList] = useState(null);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState({});   // {student_id: true}
+  const [reenrollTarget, setReenrollTarget] = useState("");
+  const [reenrollMoveGrades, setReenrollMoveGrades] = useState(true);
+  const [reenrollSaving, setReenrollSaving] = useState(false);
   const toggleGradeStudents = async (r) => {
     const key = `gs|${r.subject_id}|${r.assignment_section?.section_id}`;
     if (studentsPanelKey === key) { setStudentsPanelKey(null); setStudentsList(null); return; }
     setStudentsPanelKey(key);
     setStudentsList(null);
+    setSelectedStudents({});
+    setReenrollTarget("");
     setStudentsLoading(true);
     try {
       const res = await axios.get(`${API}/admin/data-integrity/subject/${r.subject_id}/grades-students`, {
@@ -1438,6 +1444,31 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       setStudentsPanelKey(null);
     } finally {
       setStudentsLoading(false);
+    }
+  };
+
+  const handleReenroll = async (r) => {
+    const ids = Object.keys(selectedStudents).filter(k => selectedStudents[k]);
+    if (ids.length === 0 || !reenrollTarget) return;
+    const targetLabel = sections.find(s => s.id === reenrollTarget);
+    const lbl = targetLabel ? sectionOptionLabel(targetLabel) : reenrollTarget;
+    if (!window.confirm(`¿Re-matricular ${ids.length} alumno(s) a «${lbl}»?${reenrollMoveGrades ? "\nTambién se moverán sus notas de este curso a esa sección." : ""}\n\nEsto cambia su sección en todo el sistema.`)) return;
+    setReenrollSaving(true);
+    try {
+      const res = await axios.post(`${API}/admin/data-integrity/reenroll-students`, {
+        student_ids: ids,
+        target_section_id: reenrollTarget,
+        move_subject_id: reenrollMoveGrades ? r.subject_id : null,
+      }, { headers });
+      window.alert(res.data?.message || "Alumnos re-matriculados.");
+      setStudentsPanelKey(null);
+      setStudentsList(null);
+      setSelectedStudents({});
+      await loadTeacherSections();
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo re-matricular");
+    } finally {
+      setReenrollSaving(false);
     }
   };
 
@@ -1932,18 +1963,61 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                      ) : studentsList ? (
                        <div>
                          <div className="text-xs text-slate-600 mb-2">
-                           Alumnos con notas en <b>{studentsList.section_label}</b> ({studentsList.count}). La columna derecha indica en qué sección está <b>matriculado</b> cada alumno hoy:
+                           Alumnos con notas en <b>{studentsList.section_label}</b> ({studentsList.count}). Marca a los que NO pertenecen aquí y re-matricúlalos a su sección real:
                          </div>
                          <div className="max-h-60 overflow-auto rounded-lg border border-violet-100 bg-white">
                            {studentsList.students.map((s, si) => (
-                             <div key={si} className={`flex items-center justify-between px-3 py-1.5 text-xs border-b border-slate-50 ${s.matches_grade_section ? "" : "bg-amber-50"}`}>
-                               <span className="font-medium text-slate-700">{s.name}</span>
+                             <label key={si} className={`flex items-center gap-2 px-3 py-1.5 text-xs border-b border-slate-50 cursor-pointer ${s.matches_grade_section ? "" : "bg-amber-50"}`}>
+                               <input
+                                 type="checkbox"
+                                 checked={!!selectedStudents[s.student_id]}
+                                 onChange={(e) => setSelectedStudents(p => ({ ...p, [s.student_id]: e.target.checked }))}
+                                 className="rounded border-slate-300"
+                                 data-testid={`ts-student-check-${i}-${si}`}
+                               />
+                               <span className="font-medium text-slate-700 flex-1">{s.name}</span>
                                <span className={s.matches_grade_section ? "text-emerald-600" : "text-amber-700 font-semibold"}>{s.enrolled_section}</span>
-                             </div>
+                             </label>
                            ))}
                          </div>
+                         <div className="flex flex-wrap items-center gap-2 mt-3">
+                           <button
+                             onClick={() => setSelectedStudents(Object.fromEntries(studentsList.students.map(s => [s.student_id, true])))}
+                             className="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-white"
+                             data-testid={`ts-select-all-${i}`}
+                           >Seleccionar todos</button>
+                           <button
+                             onClick={() => setSelectedStudents({})}
+                             className="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-white"
+                           >Limpiar</button>
+                           <span className="text-xs text-slate-500 ml-1">Re-matricular a:</span>
+                           <select
+                             value={reenrollTarget}
+                             onChange={(e) => setReenrollTarget(e.target.value)}
+                             className="px-2 py-1 text-xs rounded-lg border border-slate-300 bg-white"
+                             data-testid={`ts-reenroll-select-${i}`}
+                           >
+                             <option value="">Sección destino…</option>
+                             {[...sections].sort((a, b) => sectionOptionLabel(a).localeCompare(sectionOptionLabel(b))).map(s => (
+                               <option key={s.id} value={s.id}>{sectionOptionLabel(s)}</option>
+                             ))}
+                           </select>
+                           <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer">
+                             <input type="checkbox" checked={reenrollMoveGrades} onChange={(e) => setReenrollMoveGrades(e.target.checked)} className="rounded border-slate-300" />
+                             Mover también sus notas de este curso
+                           </label>
+                           <button
+                             onClick={() => handleReenroll(r)}
+                             disabled={reenrollSaving || !reenrollTarget || Object.values(selectedStudents).filter(Boolean).length === 0}
+                             className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-semibold disabled:opacity-50"
+                             data-testid={`ts-reenroll-confirm-${i}`}
+                           >
+                             {reenrollSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                             Re-matricular ({Object.values(selectedStudents).filter(Boolean).length})
+                           </button>
+                         </div>
                          <div className="text-[11px] text-slate-500 mt-2">
-                           Si los alumnos están matriculados en una sección distinta a esta, sus matrículas necesitan corregirse (no las notas).
+                           En ámbar: alumnos cuya sección matriculada no coincide con esta. Re-matricular cambia su sección en todo el sistema.
                          </div>
                        </div>
                      ) : null}
