@@ -684,7 +684,6 @@ function TeacherAttendanceTab({ token, schoolId }) {
   const [perLevelActive, setPerLevelActive] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [viewMode, setViewMode] = useState("day"); // "day" | "month"
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -772,40 +771,6 @@ function TeacherAttendanceTab({ token, schoolId }) {
 
   return (
     <div className="space-y-6">
-      {/* View mode toggle: Día / Mes */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Reporte de Asistencia de Profesores</h2>
-          <p className="text-sm text-slate-500">Marca y consulta la asistencia docente por día o por mes</p>
-        </div>
-        <div className="inline-flex p-1 bg-slate-100 rounded-2xl shadow-inner" data-testid="teacher-attendance-viewmode">
-          {[
-            { id: "day", label: "Por día", icon: Calendar },
-            { id: "month", label: "Por mes", icon: CalendarDays },
-          ].map((m) => {
-            const Icon = m.icon;
-            const active = viewMode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setViewMode(m.id)}
-                data-testid={`teacher-attendance-view-${m.id}`}
-                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  active ? "bg-white text-indigo-600 shadow-md" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {viewMode === "month" ? (
-        <TeacherMonthlyReport token={token} />
-      ) : (
-      <>
       {/* Date filter */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-center gap-4 flex-wrap">
@@ -969,8 +934,6 @@ function TeacherAttendanceTab({ token, schoolId }) {
           <h3 className="text-xl font-bold text-slate-700 mb-2">Sin profesores</h3>
           <p className="text-slate-500">No hay profesores registrados en el sistema.</p>
         </div>
-      )}
-      </>
       )}
     </div>
   );
@@ -2330,13 +2293,21 @@ function TeacherReportsTab({ token }) {
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+  // Modo de consulta rápido: por día / por mes / rango personalizado
+  const [mode, setMode] = useState("day");
+  const [dayDate, setDayDate] = useState(new Date().toISOString().split("T")[0]);
+  const _now = new Date();
+  const [monthSel, setMonthSel] = useState(_now.getMonth() + 1);
+  const [yearSel, setYearSel] = useState(_now.getFullYear());
+  const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
   const headers = { Authorization: `Bearer ${token}` };
 
-  const loadReport = async () => {
+  const loadReport = async (sd = startDate, ed = endDate) => {
+    setStartDate(sd); setEndDate(ed);
     setLoading(true);
     try {
-      const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+      const params = new URLSearchParams({ start_date: sd, end_date: ed });
       const res = await axios.get(`${API}/attendance/reports/teachers?${params}`, { headers });
       setReport(res.data);
     } catch (err) {
@@ -2344,6 +2315,12 @@ function TeacherReportsTab({ token }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const runDay = (d) => { setDayDate(d); loadReport(d, d); };
+  const runMonth = (m, y) => {
+    const last = new Date(y, m, 0).getDate();
+    loadReport(`${y}-${String(m).padStart(2,"0")}-01`, `${y}-${String(m).padStart(2,"0")}-${String(last).padStart(2,"0")}`);
   };
 
   const exportToPDF = () => {
@@ -2417,32 +2394,103 @@ function TeacherReportsTab({ token }) {
     <div className="space-y-6" data-testid="teacher-reports-tab">
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Filter className="w-5 h-5 text-violet-600" />
-          Reporte de Asistencia de Profesores
-        </h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
-              data-testid="teacher-report-start-date" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
-              data-testid="teacher-report-end-date" />
-          </div>
-          <div className="flex items-end">
-            <button onClick={loadReport} disabled={loading}
-              className="w-full px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              data-testid="teacher-report-generate">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-              Generar Reporte
-            </button>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Filter className="w-5 h-5 text-violet-600" />
+            Reporte de Asistencia de Profesores
+          </h3>
+          {/* Segmented toggle */}
+          <div className="inline-flex p-1 bg-slate-100 rounded-2xl shadow-inner" data-testid="teacher-report-mode">
+            {[
+              { id: "day", label: "Por día", icon: Calendar },
+              { id: "month", label: "Por mes", icon: CalendarDays },
+              { id: "custom", label: "Personalizado", icon: Filter },
+            ].map((m) => {
+              const Icon = m.icon;
+              const active = mode === m.id;
+              return (
+                <button key={m.id} onClick={() => setMode(m.id)} data-testid={`teacher-report-mode-${m.id}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${active ? "bg-white text-violet-600 shadow-md" : "text-slate-500 hover:text-slate-700"}`}>
+                  <Icon className="w-4 h-4" />
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {mode === "day" && (
+          <div className="flex items-end gap-3 flex-wrap">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Selecciona el día</label>
+              <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                data-testid="teacher-report-day-date" />
+            </div>
+            <button onClick={() => runDay(dayDate)} disabled={loading}
+              className="px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              data-testid="teacher-report-day-generate">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              Ver día
+            </button>
+            <button onClick={() => runDay(new Date().toISOString().split("T")[0])}
+              className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors">
+              Hoy
+            </button>
+          </div>
+        )}
+
+        {mode === "month" && (
+          <div className="flex items-end gap-3 flex-wrap">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Mes</label>
+              <select value={monthSel} onChange={(e) => setMonthSel(Number(e.target.value))}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 min-w-[150px]"
+                data-testid="teacher-report-month-select">
+                {MONTHS_ES.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Año</label>
+              <select value={yearSel} onChange={(e) => setYearSel(Number(e.target.value))}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                data-testid="teacher-report-year-select">
+                {[_now.getFullYear(), _now.getFullYear() - 1, _now.getFullYear() - 2].map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <button onClick={() => runMonth(monthSel, yearSel)} disabled={loading}
+              className="px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              data-testid="teacher-report-month-generate">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              Ver mes
+            </button>
+          </div>
+        )}
+
+        {mode === "custom" && (
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                data-testid="teacher-report-start-date" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                data-testid="teacher-report-end-date" />
+            </div>
+            <div className="flex items-end">
+              <button onClick={() => loadReport(startDate, endDate)} disabled={loading}
+                className="w-full px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="teacher-report-generate">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+                Generar Reporte
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Report results */}
