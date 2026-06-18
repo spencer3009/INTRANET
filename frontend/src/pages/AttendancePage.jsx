@@ -951,6 +951,23 @@ const STATUS_DOT = {
   pending: "bg-slate-200",
 };
 
+// ── Estados unificados para el reporte diario de profesores (fusión premium) ──
+const ESTADO_STYLES = {
+  "Completo": { bg: "#E1F5EE", text: "#0F6E56" },
+  "Tardanza": { bg: "#FAEEDA", text: "#854F0B" },
+  "Salida anticipada": { bg: "#FAEEDA", text: "#854F0B" },
+  "Ausente": { bg: "#FCEBEB", text: "#A32D2D" },
+  "Pendiente": { bg: "#E6F1FB", text: "#185FA5" },
+  "Justificado": { bg: "#E6F1FB", text: "#185FA5" },
+};
+const WARNING_COLOR = "#854F0B"; // resalta entrada con tardanza / salida anticipada
+const formatMinutes = (min) => {
+  if (min == null) return "—";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
+};
+
 function TeacherMonthlyReport({ token }) {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -2292,6 +2309,7 @@ function TeacherReportsTab({ token }) {
   });
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [report, setReport] = useState(null);
+  const [dayReport, setDayReport] = useState(null);
   const [loading, setLoading] = useState(false);
   // Modo de consulta rápido: por día / por mes / rango personalizado
   const [mode, setMode] = useState("day");
@@ -2317,7 +2335,30 @@ function TeacherReportsTab({ token }) {
     }
   };
 
-  const runDay = (d) => { setDayDate(d); loadReport(d, d); };
+  const runDay = (d) => {
+    setDayDate(d);
+    loadDayReport(d);
+  };
+
+  const loadDayReport = async (d) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/asistencia/profesores`, { headers, params: { fecha: d } });
+      setDayReport(res.data);
+    } catch (err) {
+      console.error("Error loading daily teacher report:", err);
+      setDayReport(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carga automática del día actual al montar (modo "day" por defecto)
+  useEffect(() => {
+    loadDayReport(dayDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const runMonth = (m, y) => {
     const last = new Date(y, m, 0).getDate();
     loadReport(`${y}-${String(m).padStart(2,"0")}-01`, `${y}-${String(m).padStart(2,"0")}-${String(last).padStart(2,"0")}`);
@@ -2377,6 +2418,67 @@ function TeacherReportsTab({ token }) {
     }
 
     doc.save(`reporte_asistencia_profesores_${startDate}_${endDate}.pdf`);
+  };
+
+  const exportDayToPDF = () => {
+    if (!dayReport) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(18);
+    doc.setTextColor(88, 28, 135);
+    doc.text("Asistencia de Profesores", pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Fecha: ${new Date(dayReport.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`, pageWidth / 2, 28, { align: "center" });
+
+    const r = dayReport.resumen || {};
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text(
+      `Total: ${r.total || 0}   |   Completos: ${r.completos || 0}   |   Tardanzas: ${r.tardanzas || 0}   |   Ausentes: ${r.ausentes || 0}   |   Justificados: ${r.justificados || 0}`,
+      pageWidth / 2, 36, { align: "center" }
+    );
+
+    const tableData = (dayReport.profesores || []).map((p) => [
+      p.nombre,
+      p.tipo || "Profesor",
+      `${p.horario_inicio || "—"} - ${p.horario_fin || "—"}`,
+      p.entrada || "—",
+      p.salida || "—",
+      formatMinutes(p.minutos_trabajados),
+      p.estado,
+    ]);
+
+    autoTable(doc, {
+      startY: 44,
+      head: [["Profesor", "Tipo", "Horario", "Entrada", "Salida", "Horas", "Estado"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontSize: 9, fontStyle: "bold" },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 42 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 28, halign: "center" },
+        3: { cellWidth: 18, halign: "center" },
+        4: { cellWidth: 18, halign: "center" },
+        5: { cellWidth: 20, halign: "center" },
+        6: { cellWidth: 28, halign: "center" },
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.text(`Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+    }
+
+    doc.save(`asistencia_profesores_${dayReport.fecha}.pdf`);
   };
 
   const getStatusBadge = (status) => {
@@ -2493,8 +2595,107 @@ function TeacherReportsTab({ token }) {
         )}
       </div>
 
+      {/* ── Vista DÍA (fusión premium): Horario / Entrada / Salida / Horas / Estado ── */}
+      {mode === "day" && dayReport && (
+        <>
+          {/* Tarjetas de resumen (5) */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="teacher-day-summary">
+            {[
+              { key: "total", label: "Total", value: dayReport.resumen.total, color: "#475569", bg: "#F1F5F9" },
+              { key: "completos", label: "Completos", value: dayReport.resumen.completos, color: ESTADO_STYLES["Completo"].text, bg: ESTADO_STYLES["Completo"].bg },
+              { key: "tardanzas", label: "Tardanzas", value: dayReport.resumen.tardanzas, color: ESTADO_STYLES["Tardanza"].text, bg: ESTADO_STYLES["Tardanza"].bg },
+              { key: "ausentes", label: "Ausentes", value: dayReport.resumen.ausentes, color: ESTADO_STYLES["Ausente"].text, bg: ESTADO_STYLES["Ausente"].bg },
+              { key: "justificados", label: "Justificados", value: dayReport.resumen.justificados, color: ESTADO_STYLES["Justificado"].text, bg: ESTADO_STYLES["Justificado"].bg },
+            ].map((c) => (
+              <div key={c.key} className="rounded-2xl p-4 text-center border" style={{ backgroundColor: c.bg, borderColor: "rgba(0,0,0,0.06)" }} data-testid={`teacher-day-card-${c.key}`}>
+                <p className="text-2xl font-medium" style={{ color: c.color }}>{c.value}</p>
+                <p className="text-xs font-medium mt-0.5" style={{ color: c.color, opacity: 0.85 }}>{c.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla detallada (7 columnas) */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-violet-600" />
+                Asistencia del {new Date(dayReport.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
+                <span className="text-slate-400 font-medium">({dayReport.profesores.length})</span>
+              </h3>
+              <button onClick={exportDayToPDF}
+                className="px-4 py-2 bg-violet-100 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-200 transition-colors flex items-center gap-2"
+                data-testid="teacher-day-export-pdf">
+                <Download className="w-4 h-4" /> Exportar PDF
+              </button>
+            </div>
+
+            {dayReport.profesores.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No hay profesores registrados.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Profesor</th>
+                      <th className="text-left px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Tipo</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horario</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Entrada</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Salida</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horas</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {dayReport.profesores.map((p) => {
+                      const st = ESTADO_STYLES[p.estado] || { bg: "#F1F5F9", text: "#475569" };
+                      const isLate = p.estado === "Tardanza";
+                      const isEarlyExit = p.estado === "Salida anticipada";
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50/70 transition-colors" data-testid={`teacher-day-row-${p.id}`}>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-3">
+                              {p.photo_url ? (
+                                <img src={p.photo_url} alt="" className="w-[30px] h-[30px] rounded-full object-cover" />
+                              ) : (
+                                <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-bold" style={{ backgroundColor: st.bg, color: st.text }}>
+                                  {p.iniciales}
+                                </div>
+                              )}
+                              <span className="font-medium text-slate-800 text-sm">{p.nombre}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-sm text-slate-500">{p.tipo}</td>
+                          <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">
+                            {p.horario_inicio || "—"} <span className="text-slate-300">–</span> {p.horario_fin || "—"}
+                          </td>
+                          <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.entrada ? (isLate ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>
+                            {p.entrada || "—"}
+                          </td>
+                          <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.salida ? (isEarlyExit ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>
+                            {p.salida || "—"}
+                          </td>
+                          <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">{formatMinutes(p.minutos_trabajados)}</td>
+                          <td className="text-center px-3 py-3">
+                            <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: st.bg, color: st.text }}>
+                              {p.estado}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Report results */}
-      {report && (
+      {mode !== "day" && report && (
         <>
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="teacher-report-summary">

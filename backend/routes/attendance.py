@@ -831,6 +831,150 @@ async def get_teachers_monthly_report(
     }
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DAILY TEACHER ATTENDANCE — fused premium view (Horario / Entrada / Salida / Horas / Estado)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Tolerancia (minutos) para considerar tardanza tras la hora de inicio.
+TOLERANCIA_TARDANZA_MIN = 10
+
+
+def _hhmm_to_minutes(value):
+    """Convert an 'HH:MM' string to minutes since midnight. Returns None if invalid."""
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        h, m = value.split(":")[:2]
+        return int(h) * 60 + int(m)
+    except Exception:
+        return None
+
+
+def _initials(name: str) -> str:
+    parts = [p for p in (name or "").strip().split() if p]
+    if not parts:
+        return "P"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+@router.get("/asistencia/profesores")
+async def get_daily_teacher_attendance(
+    fecha: str,
+    current_user = Depends(get_current_user),
+):
+    """Reporte diario de asistencia de profesores con horario programado,
+    entrada/salida marcadas, horas trabajadas y estado calculado.
+
+    Estado (en orden de prioridad):
+      - Justificación manual registrada      → Justificado
+      - Sin marca de entrada                  → Ausente
+      - Entrada sin salida (en curso)         → Pendiente
+      - Entrada > inicio + tolerancia         → Tardanza
+      - Salida < fin del horario              → Salida anticipada
+      - En otro caso                          → Completo
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    # Profesores del colegio
+    teachers = await db.users.find(
+        {"school_id": school_id, "role": "teacher"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1, "photo_url": 1},
+    ).to_list(500)
+
+    # Registros de asistencia del día
+    records = await db.attendances.find(
+        {"school_id": school_id, "type": "teacher", "date": fecha},
+        {"_id": 0},
+    ).to_list(2000)
+    rec_map = {r["user_id"]: r for r in records}
+
+    resumen = {"total": 0, "completos": 0, "tardanzas": 0, "ausentes": 0, "justificados": 0}
+    profesores = []
+
+    for t in teachers:
+        nombre = f"{(t.get('last_name') or '').strip()} {(t.get('name') or '').strip()}".strip() or (t.get("email") or "Profesor")
+        eff = await get_horario_efectivo_docente(t["id"], school_id)
+        horario_inicio = eff.get("entry_time")
+        horario_fin = eff.get("exit_time")
+
+        rec = rec_map.get(t["id"])
+        entrada = None
+        salida = None
+        minutos_trabajados = None
+        justificado_manual = False
+
+        if rec:
+            entrada = to_peru_hhmm(rec.get("entry_time")) or rec.get("entry_time_hhmm") or rec.get("check_in_time")
+            salida = to_peru_hhmm(rec.get("exit_time")) or rec.get("exit_time_hhmm") or rec.get("check_out_time")
+            minutos_trabajados = rec.get("total_minutes")
+            if minutos_trabajados is None and rec.get("entry_time") and rec.get("exit_time"):
+                try:
+                    e_dt = datetime.fromisoformat(str(rec["entry_time"]).replace("Z", "+00:00"))
+                    s_dt = datetime.fromisoformat(str(rec["exit_time"]).replace("Z", "+00:00"))
+                    minutos_trabajados = int((s_dt - e_dt).total_seconds() / 60)
+                except Exception:
+                    minutos_trabajados = None
+            justificado_manual = (rec.get("status") == "justified") or bool(rec.get("justification_reason"))
+
+        # ── Determinar estado ──
+        ini_min = _hhmm_to_minutes(horario_inicio)
+        fin_min = _hhmm_to_minutes(horario_fin)
+        ent_min = _hhmm_to_minutes(entrada)
+        sal_min = _hhmm_to_minutes(salida)
+
+        if justificado_manual:
+            estado = "Justificado"
+        elif not entrada:
+            estado = "Ausente"
+        elif not salida:
+            estado = "Pendiente"
+        elif ent_min is not None and ini_min is not None and ent_min > ini_min + TOLERANCIA_TARDANZA_MIN:
+            estado = "Tardanza"
+        elif sal_min is not None and fin_min is not None and sal_min < fin_min:
+            estado = "Salida anticipada"
+        else:
+            estado = "Completo"
+
+        # ── Conteos del resumen ──
+        resumen["total"] += 1
+        if estado == "Completo":
+            resumen["completos"] += 1
+        elif estado == "Tardanza":
+            resumen["tardanzas"] += 1
+        elif estado == "Ausente":
+            resumen["ausentes"] += 1
+        elif estado == "Justificado":
+            resumen["justificados"] += 1
+
+        profesores.append({
+            "id": t["id"],
+            "nombre": nombre,
+            "iniciales": _initials(nombre),
+            "tipo": "Profesor",
+            "horario_inicio": horario_inicio,
+            "horario_fin": horario_fin,
+            "entrada": entrada or None,
+            "salida": salida or None,
+            "minutos_trabajados": minutos_trabajados,
+            "estado": estado,
+            "photo_url": t.get("photo_url"),
+        })
+
+    profesores.sort(key=lambda p: p["nombre"].lower())
+
+    return {
+        "fecha": fecha,
+        "resumen": resumen,
+        "profesores": profesores,
+    }
+
+
+
 
 @router.post("/attendance/teachers/save")
 async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = Depends(get_current_user)):

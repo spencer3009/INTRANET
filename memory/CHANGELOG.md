@@ -711,3 +711,10 @@
 ### Feature: Complete UI Unification - COMPLETED
 ### Feature: Replicate Subjects Between Sections - COMPLETED
 ### Feature: Mass Student Import Backend - COMPLETED
+
+### 2026-06-18 — Asistencia de Profesores: vista diaria premium (FUSIÓN) - COMPLETED
+- Backend: nuevo endpoint `GET /api/asistencia/profesores?fecha=YYYY-MM-DD` (routes/attendance.py). Devuelve `resumen` (total/completos/tardanzas/ausentes/justificados) + `profesores[]` con horario_inicio/fin, entrada, salida, minutos_trabajados, estado, iniciales, tipo.
+- Estados unificados (prioridad): Justificado → Ausente → Pendiente → Tardanza (entrada > inicio + TOLERANCIA_TARDANZA_MIN=10) → Salida anticipada (salida < fin) → Completo.
+- Frontend (AttendancePage.jsx → TeacherReportsTab, modo "Por día"): fusión de tarjetas de resumen (5) + tabla 7 columnas (Profesor avatar-iniciales, Tipo, Horario, Entrada, Salida, Horas, Estado) + Exportar PDF. Helpers formatMinutes + ESTADO_STYLES. Entrada resaltada en tardanza y salida en salida anticipada (#854F0B). Carga automática del día actual al entrar.
+- Modos "Por mes"/"Personalizado" intactos (no se tocó reporte de alumnos).
+- Tests: backend/tests/test_daily_teacher_attendance.py (4 passed). Validado en preview con datos reales (caso Tardanza 19:01).
