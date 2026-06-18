@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Fix + Feature: Duplicados por nombre (INGLES/INGLÉS) detectados + "Mover a otra sección" + Registro multi-sección ✅
+- **Reportado**: Diana (Eusebio Arróniz) tenía cursos de inglés en muchas secciones y, al abrir 3 años en el Registro Auxiliar, veía alumnos de 4 años. El panel mostraba TODO en verde (no detectaba el problema). Causa real: existen **dos cursos con el mismo nombre normalizado** ("INGLES" sin tilde e "INGLÉS" con tilde) en las MISMAS secciones (4 y 5 años) → duplicados que confunden el Registro.
+- **Fix raíz backend** (`grades.py` `_resolve_effective_section_id`): cuando una profesora tiene el mismo `subject_id` asignado a varias secciones, el Registro ahora **respeta la sección que abre** (si tiene asignación para ella); solo usa el override de "sección de la asignación" cuando la sección pedida no corresponde a ninguna de sus asignaciones (caso swap original). Test: `tests/test_register_multi_assignment_section.py`.
+- **Detección de duplicados** (`admin_portal.py` `teacher-sections`): cada fila ahora trae `dup_in_section` (true cuando, dentro de la misma sección, hay 2+ cursos con el mismo nombre ignorando tildes/mayúsculas) y `multi_section`. Se devuelve `dup_subject_count`.
+- **Nuevo endpoint** `POST /api/admin/data-integrity/move-subject-section` (solo soporte): re-vincula un curso (asignación docente + `subject.section_id` + notas/config) a CUALQUIER sección elegida, migrando datos y saltando colisiones. Test: `tests/test_move_subject_section.py` (incluye detección de duplicados).
+- **Frontend** (`AcademicSettingsPage.jsx` → "Todos los docentes y secciones"): badge **"Duplicado en esta sección"** (ámbar) + contador `ts-dup-count` + filtro **"Solo duplicados"** (`ts-only-dups`). En cada fila: botones **Corregir**, **Mover a otra sección** (selector de secciones del colegio, `ts-move-btn`/`ts-move-select`/`ts-move-confirm`) y **Eliminar duplicado**. La lista se refresca tras mover.
+- **Verificado E2E (pytest)**: detección de duplicados (ambos INGLES/INGLÉS marcados), move (asignación+subject+notas migran a la nueva sección), resolver honra la sección pedida, regresión swap original OK. Frontend compila. Requiere **redespliegue** para producción (edunet.pe).
+
 ## Jun 17, 2026 - Feature: Eliminar/Corregir cursos duplicados desde "Todos los docentes y secciones" (Soporte) ✅
 - **Pedido**: en el panel de Diagnóstico (solo soporte), la profesora Diana tenía cursos duplicados ("INGLES" vs "INGLÉS"). Se necesitaba poder **corregir** y **eliminar** el curso duplicado/erróneo directamente desde la sub-pestaña "Todos los docentes y secciones".
 - **Backend** (`admin_portal.py`):

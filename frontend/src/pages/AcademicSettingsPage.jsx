@@ -1357,6 +1357,39 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  // "Mover a otra sección": re-vincula el curso (asignación + notas) a la sección elegida.
+  const [movingRowKey, setMovingRowKey] = useState(null);   // fila con el selector abierto
+  const [moveTarget, setMoveTarget] = useState("");          // section_id destino elegido
+  const [moveSaving, setMoveSaving] = useState(false);
+  const [onlyDups, setOnlyDups] = useState(false);           // filtro: solo cursos duplicados
+
+  const sectionOptionLabel = (s) => {
+    const g = grades.find(gr => gr.id === s.grado_id);
+    return `${g?.nombre || "?"} – ${s.nombre || "?"}`;
+  };
+
+  const handleMoveSubject = async (r) => {
+    if (!moveTarget) return;
+    const from = r.assignment_section?.section_id;
+    if (moveTarget === from) { setMovingRowKey(null); setMoveTarget(""); return; }
+    setMoveSaving(true);
+    try {
+      await axios.post(`${API}/admin/data-integrity/move-subject-section`, {
+        subject_id: r.subject_id,
+        from_section_id: from,
+        target_section_id: moveTarget,
+        teacher_id: r.teacher_id,
+      }, { headers });
+      setMovingRowKey(null);
+      setMoveTarget("");
+      await loadTeacherSections(); // refresca con los conteos reales de la nueva sección
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo mover el curso");
+    } finally {
+      setMoveSaving(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1642,9 +1675,10 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     const data = teacherRows;
     const rows = data?.rows || [];
     const q = teacherSearch.trim().toLowerCase();
-    const filtered = q
+    let filtered = q
       ? rows.filter(r => matchesQuery(`${r.teacher_name || ""} ${r.subject_name || ""}`, q))
       : rows;
+    if (onlyDups) filtered = filtered.filter(r => r.dup_in_section);
     const teacherNames = Array.from(new Set(rows.map(r => r.teacher_name).filter(Boolean))).sort();
     return (
       <div data-testid="teacher-sections-view">
@@ -1657,8 +1691,15 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
               <div className="flex items-center gap-2 text-sm">
                 <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold" data-testid="ts-ok-count">{data.ok_count} correctos</span>
                 <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold" data-testid="ts-mismatch-count">{data.mismatch_count} cruzados</span>
+                {data.dup_subject_count > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold" data-testid="ts-dup-count">{data.dup_subject_count} duplicados por nombre</span>
+                )}
                 <span className="text-slate-400">de {data.count} cursos</span>
               </div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-600 ml-2 cursor-pointer select-none">
+                <input type="checkbox" checked={onlyDups} onChange={(e) => setOnlyDups(e.target.checked)} className="rounded border-slate-300" data-testid="ts-only-dups" />
+                Solo duplicados
+              </label>
               <button onClick={loadTeacherSections} className="ml-auto px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 font-medium" data-testid="ts-refresh">Actualizar</button>
             </div>
 
@@ -1685,14 +1726,24 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
             <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
               {filtered.length === 0 ? (
                 <p className="px-5 py-4 text-sm text-slate-400">{rows.length === 0 ? "No hay asignaciones." : `Ningún resultado para "${teacherSearch}".`}</p>
-              ) : filtered.map((r, i) => (
-                <div key={i} className="px-5 py-3 flex flex-wrap items-center gap-3" data-testid={`ts-row-${i}`}>
+              ) : filtered.map((r, i) => {
+                const moveKey = `mv|${r.subject_id}|${r.assignment_section?.section_id}`;
+                const busy = fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}`
+                  || deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}`;
+                return (
+                <div key={i} className={`px-5 py-3 ${r.dup_in_section ? "bg-amber-50/40" : ""}`} data-testid={`ts-row-${i}`}>
+                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[200px] flex-1">
                     <div className="flex items-center gap-2">
-                      {r.matches
-                        ? <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                        : <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />}
+                      {r.dup_in_section
+                        ? <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        : r.matches
+                          ? <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          : <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />}
                       <span className="font-semibold text-slate-800">{r.subject_name}</span>
+                      {r.dup_in_section && (
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 font-bold" data-testid={`ts-dup-badge-${i}`}>Duplicado en esta sección</span>
+                      )}
                     </div>
                     <span className="text-xs text-slate-500 ml-6">{r.teacher_name || "Sin docente"}</span>
                   </div>
@@ -1709,7 +1760,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     {!r.matches && (
                       <button
                         onClick={() => handleFixRow(r)}
-                        disabled={fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}` || deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}`}
+                        disabled={busy}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-semibold disabled:opacity-50"
                         data-testid={`ts-fix-btn-${i}`}
                       >
@@ -1720,8 +1771,17 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       </button>
                     )}
                     <button
+                      onClick={() => { setMovingRowKey(movingRowKey === moveKey ? null : moveKey); setMoveTarget(""); }}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 font-semibold disabled:opacity-50"
+                      data-testid={`ts-move-btn-${i}`}
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                      Mover a otra sección
+                    </button>
+                    <button
                       onClick={() => handleDeleteSubject(r)}
-                      disabled={deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}` || fixingKey === `ts|${r.subject_id}|${r.assignment_section?.section_id}`}
+                      disabled={busy}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-semibold disabled:opacity-50"
                       data-testid={`ts-delete-btn-${i}`}
                     >
@@ -1731,8 +1791,40 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       Eliminar duplicado
                     </button>
                   </div>
+                 </div>
+                 {movingRowKey === moveKey && (
+                   <div className="mt-3 ml-6 flex flex-wrap items-center gap-2 bg-sky-50 border border-sky-200 rounded-xl p-3" data-testid={`ts-move-panel-${i}`}>
+                     <span className="text-xs text-slate-600">Mover «{r.subject_name}» a:</span>
+                     <select
+                       value={moveTarget}
+                       onChange={(e) => setMoveTarget(e.target.value)}
+                       className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white"
+                       data-testid={`ts-move-select-${i}`}
+                     >
+                       <option value="">Selecciona una sección…</option>
+                       {[...sections]
+                         .sort((a, b) => sectionOptionLabel(a).localeCompare(sectionOptionLabel(b)))
+                         .map(s => (
+                           <option key={s.id} value={s.id} disabled={s.id === r.assignment_section?.section_id}>
+                             {sectionOptionLabel(s)}{s.id === r.assignment_section?.section_id ? " (actual)" : ""}
+                           </option>
+                         ))}
+                     </select>
+                     <button
+                       onClick={() => handleMoveSubject(r)}
+                       disabled={!moveTarget || moveSaving}
+                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 font-semibold disabled:opacity-50"
+                       data-testid={`ts-move-confirm-${i}`}
+                     >
+                       {moveSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                       Mover
+                     </button>
+                     <button onClick={() => { setMovingRowKey(null); setMoveTarget(""); }} className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-white font-medium" data-testid={`ts-move-cancel-${i}`}>Cancelar</button>
+                   </div>
+                 )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

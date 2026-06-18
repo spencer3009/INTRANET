@@ -1835,12 +1835,146 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
         })
 
     rows.sort(key=lambda r: (r.get("teacher_name") or "", r.get("subject_name") or ""))
+
+    # ── Detección de DUPLICADOS reales ──────────────────────────────────────
+    # Caso Diana (Eusebio Arróniz): existen dos cursos con el MISMO nombre
+    # normalizado ("INGLES" vs "INGLÉS") en la MISMA sección. Cada fila se ve
+    # verde ("coincide") por separado, pero entre sí son duplicados que
+    # confunden el Registro Auxiliar. Detectamos cuando, dentro de una misma
+    # sección, hay 2+ subjects DISTINTOS cuyo nombre coincide ignorando
+    # tildes/mayúsculas/espacios.
+    import unicodedata
+    from collections import defaultdict
+
+    def _norm_name(n):
+        n = (n or "").strip().lower()
+        n = "".join(c for c in unicodedata.normalize("NFD", n) if unicodedata.category(c) != "Mn")
+        return " ".join(n.split())
+
+    dup_groups = defaultdict(set)   # (section_id, norm_name) -> {subject_id,...}
+    for r in rows:
+        sec_id = (r.get("assignment_section") or {}).get("section_id")
+        dup_groups[(sec_id, _norm_name(r.get("subject_name")))].add(r.get("subject_id"))
+
+    dup_subject_count = 0
+    for r in rows:
+        sec_id = (r.get("assignment_section") or {}).get("section_id")
+        key = (sec_id, _norm_name(r.get("subject_name")))
+        if len(dup_groups.get(key, set())) > 1:
+            r["dup_in_section"] = True
+            dup_subject_count += 1
+        else:
+            r["dup_in_section"] = False
+
+    # Misma asignatura (subject_id) ligada a varias secciones (señal secundaria).
+    sid_groups = defaultdict(set)
+    for r in rows:
+        sid_groups[(r["teacher_id"], r["subject_id"])].add((r.get("assignment_section") or {}).get("section_id"))
+    for r in rows:
+        r["multi_section"] = len(sid_groups[(r["teacher_id"], r["subject_id"])]) > 1
+
     return {
         "school_id": school_id,
         "count": len(rows),
         "ok_count": sum(1 for r in rows if r["matches"]),
         "mismatch_count": sum(1 for r in rows if not r["matches"]),
+        "dup_subject_count": dup_subject_count,
         "rows": rows,
+    }
+
+
+class MoveSubjectSectionRequest(BaseModel):
+    subject_id: str
+    from_section_id: str
+    target_section_id: str
+    teacher_id: Optional[str] = None
+
+
+@router.post("/admin/data-integrity/move-subject-section")
+async def move_subject_section(data: MoveSubjectSectionRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: re-link a course to a DIFFERENT section chosen by support.
+
+    Moves the teacher assignment(s) for (subject, from_section) to the target
+    section, aligns the subject's stored section when it pointed at the old one,
+    and migrates the course data (grades / eval config / register status) so the
+    Registro Auxiliar of the target section shows the right roster.
+
+    Unlike `fix-section-mismatch` (which only aligns to an existing assignment
+    section), this lets support pick ANY real section of the school — used to
+    untangle cases like Diana's course wrongly linked to 4 años · ÚNICA."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta corrección")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    if not data.target_section_id:
+        raise HTTPException(status_code=400, detail="Sección destino inválida")
+    if data.from_section_id == data.target_section_id:
+        return {"message": "El curso ya está en esa sección", "changed": False}
+
+    target_section = await db.sections.find_one({"id": data.target_section_id, "school_id": school_id}, {"_id": 0, "id": 1})
+    if not target_section:
+        raise HTTPException(status_code=400, detail="La sección destino no existe en este colegio")
+
+    now = datetime.now(timezone.utc).isoformat()
+    moved = {"assignments": 0, "subject_repointed": False, "student_grades": 0,
+             "evaluation_config": 0, "grade_register_status": 0, "skipped_grades": 0}
+
+    # 1) Move the teacher assignment(s) for (subject, from_section).
+    assign_filter = {"school_id": school_id, "subject_id": data.subject_id, "section_id": data.from_section_id}
+    if data.teacher_id:
+        assign_filter["teacher_id"] = data.teacher_id
+    res = await db.academic_assignments.update_many(assign_filter, {"$set": {"section_id": data.target_section_id, "updated_at": now}})
+    moved["assignments"] = res.modified_count
+
+    # 2) Align the subject's stored section when it pointed at the old section.
+    if subject.get("section_id") == data.from_section_id:
+        await db.subjects.update_one({"id": data.subject_id}, {"$set": {"section_id": data.target_section_id, "updated_at": now}})
+        moved["subject_repointed"] = True
+
+    # 3) Migrate course data from old section → target (skip collisions).
+    async for g in db.student_grades.find({"school_id": school_id, "subject_id": data.subject_id, "section_id": data.from_section_id}):
+        collision = await db.student_grades.find_one({
+            "school_id": school_id, "subject_id": data.subject_id, "section_id": data.target_section_id,
+            "student_id": g.get("student_id"), "period_id": g.get("period_id"),
+        })
+        if collision:
+            moved["skipped_grades"] += 1
+            continue
+        await db.student_grades.update_one({"id": g["id"]} if g.get("id") else {"_id": g["_id"]},
+                                           {"$set": {"section_id": data.target_section_id}})
+        moved["student_grades"] += 1
+
+    for coll_name in ("evaluation_config", "grade_register_status"):
+        coll = db[coll_name]
+        async for doc in coll.find({"school_id": school_id, "subject_id": data.subject_id, "section_id": data.from_section_id}):
+            exists_target = await coll.find_one({
+                "school_id": school_id, "subject_id": data.subject_id, "section_id": data.target_section_id,
+                **({"period_id": doc.get("period_id")} if doc.get("period_id") else {}),
+            })
+            if exists_target:
+                continue
+            await coll.update_one({"_id": doc["_id"]}, {"$set": {"section_id": data.target_section_id}})
+            moved[coll_name] += 1
+
+    logger.info(
+        f"[DATA-FIX] subject {data.subject_id} MOVED {data.from_section_id}->{data.target_section_id} "
+        f"(teacher={data.teacher_id}) by {user['id']} | moved={moved}"
+    )
+
+    return {
+        "message": "Curso movido a la sección seleccionada",
+        "changed": True,
+        "subject_id": data.subject_id,
+        "from_section_id": data.from_section_id,
+        "target_section_id": data.target_section_id,
+        "moved": moved,
     }
 
 
