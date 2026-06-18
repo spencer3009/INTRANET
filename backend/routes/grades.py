@@ -84,6 +84,21 @@ async def _resolve_effective_section_id(school_id: str, subject_id: str, section
     Returns the teacher's assignment section_id when applicable, else the
     requested `section_id` unchanged."""
     if role == "teacher" and teacher_id:
+        # 1) If the teacher has an assignment for the EXACT requested section,
+        #    honor it. This disambiguates the case where the same subject is
+        #    assigned to MULTIPLE sections (e.g. Diana teaches "X" in both
+        #    3 años · ÚNICA and 4 años · ÚNICA): the section the teacher opened
+        #    must win, instead of an arbitrary `find_one` picking the wrong one.
+        if section_id:
+            exact = await db.academic_assignments.find_one({
+                "school_id": school_id, "teacher_id": teacher_id,
+                "subject_id": subject_id, "section_id": section_id,
+            })
+            if exact:
+                return section_id
+        # 2) No assignment matches the requested section → the subject's stored
+        #    section is swapped relative to the teacher's assignment. Fall back
+        #    to the assignment's section (original swap-correction behavior).
         a = await db.academic_assignments.find_one({
             "school_id": school_id, "teacher_id": teacher_id,
             "subject_id": subject_id, "status": "activo",
