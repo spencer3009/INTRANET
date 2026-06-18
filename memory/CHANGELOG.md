@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Permiso "Información Paciente" para Tópico + vista de datos de contacto del alumno ✅
+- **Req 1 (Propietario → Usuarios → Tópico)**: switch **"Información Paciente"** por usuario `auxiliar_topico` en su tarjeta (`UsersPage.jsx`, `topico-contact-switch-{id}`). Persiste en `users.can_view_patient_contact` (MongoDB), individual por usuario.
+  - Backend: `PATCH /api/users/topico/{user_id}/contact-permission` {can_view} (solo admin/owner; valida rol auxiliar_topico).
+- **Req 2 (Portal Tópico)**: botón **"Contacto"** por alumno → modal con teléfono del alumno + nombre y teléfono de los padres/apoderados vinculados (`TopicoPage.jsx`, `contact-btn-{id}`, `contact-modal`).
+  - Backend: `GET /api/health/contact-access` (devuelve si el usuario puede ver) y `GET /api/health/topico/student/{student_id}/contact` (datos de contacto). **Gating en backend**: 403 salvo owner/admin o auxiliar_topico con el switch activo. El frontend oculta el botón si no tiene permiso.
+  - Datos de padres: resuelve `student.padre_id/parent_id` y padres con `children` incluyendo al alumno.
+- **Verificado E2E (pytest)**: `tests/test_topico_contact_permission.py` — OFF→403, admin activa→datos visibles, OFF de nuevo→403. Frontend compila. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Hotfix: crash "sib is not defined" en panel de diagnóstico ✅
 - **Bug**: al abrir "Todos los docentes y secciones" la app crasheaba con `sib is not defined`. Causa: al reordenar los botones quedó un bloque JSX **duplicado** del botón "Pasar notas a «...»" FUERA del `.map((sib) => ...)`, referenciando `sib` sin estar definido.
 - **Fix**: eliminado el bloque duplicado; queda un único botón dentro del map. Frontend compila sin errores.

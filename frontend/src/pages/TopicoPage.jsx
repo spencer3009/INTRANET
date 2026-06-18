@@ -4,7 +4,7 @@ import axios from "axios";
 import {
   ArrowLeft, Cross, RefreshCw, Loader2, Search, Plus, X, Check,
   Clock, Calendar, AlertTriangle, Edit2, Trash2, Eye, ChevronDown,
-  Filter, UserCheck, Activity, HeartPulse
+  Filter, UserCheck, Activity, HeartPulse, Phone, Users as UsersIcon
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -106,6 +106,35 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
   const [activeTab, setActiveTab] = useState("alumnos"); // "alumnos" | "historial"
   const [studentSearch, setStudentSearch] = useState("");
   const [schoolSettings, setSchoolSettings] = useState(null);
+
+  // ─── "Información Paciente": contact-data access + modal ───────────────────
+  const [canViewContact, setCanViewContact] = useState(false);
+  const [contactStudent, setContactStudent] = useState(null);   // student row clicked
+  const [contactData, setContactData] = useState(null);
+  const [contactLoading, setContactLoading] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API}/health/contact-access`, { headers })
+      .then(r => setCanViewContact(!!r.data?.can_view))
+      .catch(() => setCanViewContact(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  const openContact = async (s) => {
+    const sid = s.id || s.student_id;
+    setContactStudent(s);
+    setContactData(null);
+    setContactLoading(true);
+    try {
+      const res = await axios.get(`${API}/health/topico/student/${sid}/contact`, { headers });
+      setContactData(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudieron cargar los datos de contacto");
+      setContactStudent(null);
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   // ─── Load grades on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -443,6 +472,17 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               {studentRecordCounts[s.id || s.student_id]} registro{studentRecordCounts[s.id || s.student_id] > 1 ? "s" : ""}
                             </span>
                           )}
+                          {canViewContact && (
+                          <button
+                            onClick={() => openContact(s)}
+                            className="px-3 py-2 mr-2 bg-sky-50 hover:bg-sky-100 text-sky-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5"
+                            data-testid={`contact-btn-${s.id || s.student_id}`}
+                            title="Ver datos de contacto del alumno"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Contacto
+                          </button>
+                          )}
                           {canWrite && (
                           <button
                             onClick={() => openNewRecord(s)}
@@ -563,6 +603,15 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
       {detailRecord && (
         <DetailModal record={detailRecord} students={students} onClose={() => setDetailRecord(null)} />
       )}
+
+      {/* Contact Modal */}
+      <ContactModal
+        open={!!contactStudent}
+        loading={contactLoading}
+        data={contactData}
+        studentName={contactStudent ? `${contactStudent.name || contactStudent.first_name || ""} ${contactStudent.last_name || ""}`.trim() : ""}
+        onClose={() => { setContactStudent(null); setContactData(null); }}
+      />
     </div>
   );
 }
@@ -855,3 +904,67 @@ function DetailModal({ record, students, onClose }) {
     </div>
   );
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTACT MODAL — student + parents contact data (gated by "Información Paciente")
+// ═══════════════════════════════════════════════════════════════════════════════
+function ContactModal({ open, loading, data, studentName, onClose }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose} data-testid="contact-modal">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-sky-100 flex items-center justify-center">
+              <Phone className="w-4 h-4 text-sky-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Datos de contacto</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100" data-testid="contact-modal-close">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm font-semibold text-slate-700">{data?.student_name || studentName}</p>
+          {loading ? (
+            <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-sky-500" /></div>
+          ) : data ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50" data-testid="contact-student-phone">
+                <Phone className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">Teléfono del alumno</p>
+                  <p className="text-sm text-slate-800 font-medium">{data.student_phone || "No registrado"}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold mb-2 flex items-center gap-1.5">
+                  <UsersIcon className="w-3.5 h-3.5" /> Padres / Apoderados
+                </p>
+                {(data.parents || []).length === 0 ? (
+                  <p className="text-sm text-slate-400 px-3">No hay apoderados vinculados a este alumno.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.parents.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100" data-testid={`contact-parent-${i}`}>
+                        <span className="text-sm font-medium text-slate-800">{p.name}</span>
+                        <span className="text-sm text-slate-600 flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          {p.phone || "Sin teléfono"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 py-6 text-center">Sin datos.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

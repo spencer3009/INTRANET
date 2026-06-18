@@ -286,6 +286,72 @@ async def get_student_topico_history(student_id: str, current_user=Depends(get_c
     return {"records": records, "total": len(records)}
 
 
+async def _can_view_patient_contact(user) -> bool:
+    """Owner/admin always; auxiliar_topico only if their per-user switch is on."""
+    role = user.get("role", "")
+    if user.get("is_owner") or role in ("owner", "admin", "director"):
+        return True
+    if role == "auxiliar_topico":
+        return bool(user.get("can_view_patient_contact"))
+    return False
+
+
+@router.get("/health/contact-access")
+async def get_contact_access(current_user=Depends(get_current_user)):
+    """Returns whether the current user may view student contact data, so the
+    Tópico portal can show/hide the feature."""
+    user = await _require_health_access(current_user)
+    return {"can_view": await _can_view_patient_contact(user)}
+
+
+@router.get("/health/topico/student/{student_id}/contact")
+async def get_student_contact(student_id: str, current_user=Depends(get_current_user)):
+    """Student contact data for the Tópico portal: student's phone + the linked
+    parents'/guardians' name and phone. BACKEND-ENFORCED: blocked (403) unless
+    the user is owner/admin or an auxiliar_topico with the "Información Paciente"
+    permission enabled."""
+    user = await _require_health_access(current_user)
+    if not await _can_view_patient_contact(user):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver los datos de contacto del alumno")
+
+    school_id = user["school_id"]
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "password": 0},
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    # Resolve linked parents/guardians (student.padre_id/parent_id and any parent
+    # whose `children` array includes this student).
+    parent_ids = set()
+    for k in ("padre_id", "parent_id", "madre_id"):
+        if student.get(k):
+            parent_ids.add(student[k])
+    async for p in db.users.find(
+        {"school_id": school_id, "role": "parent", "children": student_id},
+        {"_id": 0, "id": 1},
+    ):
+        parent_ids.add(p["id"])
+
+    parents = []
+    for pid in parent_ids:
+        p = await db.users.find_one({"id": pid, "school_id": school_id}, {"_id": 0, "name": 1, "last_name": 1, "phone": 1})
+        if p:
+            parents.append({
+                "name": f"{p.get('name', '') or ''} {p.get('last_name', '') or ''}".strip() or "(sin nombre)",
+                "phone": p.get("phone") or None,
+            })
+
+    return {
+        "student_id": student_id,
+        "student_name": f"{student.get('name', '') or ''} {student.get('last_name', '') or ''}".strip(),
+        "student_phone": student.get("phone") or None,
+        "parents": parents,
+    }
+
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PSICOLOGÍA ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════

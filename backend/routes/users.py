@@ -609,6 +609,39 @@ async def set_teacher_active(teacher_id: str, data: TeacherActiveRequest,
         "temp_password": temp_password,  # null on deactivate
     }
 
+
+class TopicoContactPermissionRequest(BaseModel):
+    can_view: bool
+
+
+@router.patch("/users/topico/{user_id}/contact-permission")
+async def set_topico_contact_permission(user_id: str, data: TopicoContactPermissionRequest,
+                                        current_user = Depends(get_current_user)):
+    """Owner/admin only: toggle the "Información Paciente" permission for an
+    auxiliar_topico (nurse) user. When True, that nurse can view a student's
+    contact data (phone + parents' name/phone) in the Tópico portal. Persisted
+    per-user as `can_view_patient_contact`."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden cambiar este permiso")
+
+    target = await db.users.find_one({"id": user_id, "school_id": user["school_id"]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if target.get("role") != "auxiliar_topico":
+        raise HTTPException(status_code=400, detail="Este permiso solo aplica a usuarios de Tópico")
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"can_view_patient_contact": bool(data.can_view),
+                  "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    logger.info(f"Topico {user_id} contact permission set to {data.can_view} by {user['id']}")
+    return {"message": "Permiso actualizado", "can_view_patient_contact": bool(data.can_view)}
+
+
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     """Delete a user and all their related data (cascade delete)"""

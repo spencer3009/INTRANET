@@ -1872,6 +1872,26 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  // ── Tópico: "Información Paciente" permission toggle (per-user) ──
+  const [togglingTopicoId, setTogglingTopicoId] = useState(null);
+  const handleToggleTopicoContact = async (topicoUser, nextValue) => {
+    setTogglingTopicoId(topicoUser.id);
+    try {
+      const res = await axios.patch(
+        `${API}/users/topico/${topicoUser.id}/contact-permission`,
+        { can_view: nextValue },
+        { headers }
+      );
+      const val = res.data.can_view_patient_contact;
+      setUsers(prev => prev.map(u => u.id === topicoUser.id ? { ...u, can_view_patient_contact: val } : u));
+      toast.success(val ? "Acceso a Información Paciente activado" : "Acceso a Información Paciente desactivado");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cambiar el permiso");
+    } finally {
+      setTogglingTopicoId(null);
+    }
+  };
+
   // ── Support-only: Orphan students panel ──
   const isSupportSession = user?.is_support_session || user?.original_role === 'system_admin_global';
   const [showOrphanPanel, setShowOrphanPanel] = useState(false);
@@ -4281,6 +4301,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 )}
                 <span className={`text-xs font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} data-testid={`teacher-status-label-${u.id}`}>
                   {isActive ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+            );
+          })()}
+          {selectedRole === 'auxiliar_topico' && !u.is_system_user && (() => {
+            const canView = !!u.can_view_patient_contact;
+            return (
+              <div className="mt-3 flex items-center justify-center gap-2.5" data-testid={`topico-contact-row-${u.id}`}>
+                {togglingTopicoId === u.id ? (
+                  <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                ) : (
+                  <Switch
+                    checked={canView}
+                    onCheckedChange={(val) => handleToggleTopicoContact(u, val)}
+                    className="data-[state=checked]:bg-rose-500"
+                    data-testid={`topico-contact-switch-${u.id}`}
+                    aria-label="Permiso Información Paciente"
+                  />
+                )}
+                <span className={`text-xs font-semibold ${canView ? 'text-rose-600' : 'text-slate-400'}`} data-testid={`topico-contact-label-${u.id}`}>
+                  Información Paciente
                 </span>
               </div>
             );
