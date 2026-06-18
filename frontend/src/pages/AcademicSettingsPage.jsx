@@ -1390,6 +1390,33 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  // "Reparar notas": re-asigna cada nota del curso a la sección REAL del alumno.
+  const [rehomingKey, setRehomingKey] = useState(null);
+  const handleRehomeGrades = async (r) => {
+    const key = `rh|${r.subject_id}`;
+    setRehomingKey(key);
+    try {
+      const prev = await axios.get(`${API}/admin/data-integrity/rehome-grades/${r.subject_id}/preview`, { headers });
+      const n = prev.data?.to_relocate || 0;
+      const lines = Object.entries(prev.data?.breakdown || {}).map(([k, v]) => `• ${v} nota(s): ${k}`).join("\n");
+      if (n === 0) {
+        window.alert(`«${r.subject_name}»: todas las notas ya están en la sección correcta del alumno. No hay nada que reparar.`);
+        setRehomingKey(null);
+        return;
+      }
+      const ok = window.confirm(
+        `Reparar notas de «${r.subject_name}»\n\nSe re-asignarán ${n} nota(s) a la sección real de cada alumno:\n${lines}\n\n¿Continuar?`
+      );
+      if (!ok) { setRehomingKey(null); return; }
+      const res = await axios.post(`${API}/admin/data-integrity/rehome-grades/${r.subject_id}`, {}, { headers });
+      window.alert(res.data?.message || "Notas reparadas.");
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo reparar las notas");
+    } finally {
+      setRehomingKey(null);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1744,6 +1771,9 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       {r.dup_in_section && (
                         <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 font-bold" data-testid={`ts-dup-badge-${i}`}>Duplicado en esta sección</span>
                       )}
+                      {r.multi_section && (
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 font-bold" data-testid={`ts-multi-badge-${i}`}>Multi-sección</span>
+                      )}
                     </div>
                     <span className="text-xs text-slate-500 ml-6">{r.teacher_name || "Sin docente"}</span>
                   </div>
@@ -1751,13 +1781,13 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     {r.assignment_section?.grade_name || "?"} – {r.assignment_section?.nombre || "?"}
                     <span className="text-slate-400 text-xs"> ({r.assignment_section?.student_count} alumnos)</span>
                   </div>
-                  {!r.matches && (
+                  {!r.matches && !r.multi_section && (
                     <div className="text-xs px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700">
                       Curso apunta a: {r.subject_section?.exists ? `${r.subject_section?.grade_name || "?"} – ${r.subject_section?.nombre || "?"}` : "sección inexistente"}
                     </div>
                   )}
                   <div className="flex items-center gap-2 ml-auto">
-                    {!r.matches && (
+                    {!r.matches && !r.multi_section && (
                       <button
                         onClick={() => handleFixRow(r)}
                         disabled={busy}
@@ -1770,6 +1800,16 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                         Corregir
                       </button>
                     )}
+                    <button
+                      onClick={() => handleRehomeGrades(r)}
+                      disabled={busy || rehomingKey === `rh|${r.subject_id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-semibold disabled:opacity-50"
+                      data-testid={`ts-rehome-btn-${i}`}
+                      title="Re-asigna las notas a la sección real de cada alumno (recupera notas movidas por error)"
+                    >
+                      {rehomingKey === `rh|${r.subject_id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      Reparar notas
+                    </button>
                     <button
                       onClick={() => { setMovingRowKey(movingRowKey === moveKey ? null : moveKey); setMoveTarget(""); }}
                       disabled={busy}

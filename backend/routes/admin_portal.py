@@ -1721,6 +1721,22 @@ async def fix_section_mismatch(data: FixSectionMismatchRequest, current_user=Dep
     if old_section == new_section:
         return {"message": "El curso ya apunta a la sección correcta", "changed": False}
 
+    # SAFETY: refuse if this subject serves MULTIPLE sections (same subject_id
+    # assigned to 2+ distinct sections). Re-pointing its single `section_id` and
+    # migrating grades between sections would CORRUPT data (this caused the
+    # Diana/INGLES grade loss: 3 años grades got migrated into 4 años). For a
+    # multi-section subject each section is resolved correctly at read time, so
+    # no "fix" is needed.
+    distinct_sections = await db.academic_assignments.distinct(
+        "section_id", {"school_id": school_id, "subject_id": data.subject_id}
+    )
+    distinct_sections = [s for s in distinct_sections if s]
+    if len(distinct_sections) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Este curso sirve varias secciones (multi-sección). No se puede re-vincular ni migrar notas: cada sección se resuelve correctamente por sí sola.",
+        )
+
     # Safety: target must match a real assignment section for this subject.
     valid_assignment = await db.academic_assignments.find_one({
         "school_id": school_id, "subject_id": data.subject_id, "section_id": new_section,
@@ -1976,6 +1992,92 @@ async def move_subject_section(data: MoveSubjectSectionRequest, current_user=Dep
         "target_section_id": data.target_section_id,
         "moved": moved,
     }
+
+
+@router.get("/admin/data-integrity/rehome-grades/{subject_id}/preview")
+async def preview_rehome_grades(subject_id: str, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY (read-only): preview how many grades of a subject sit under a
+    section_id that does NOT match the student's actual enrolled section. These
+    are the grades a rehome would relocate (recovers grades migrated to the
+    wrong section, e.g. Diana's 3 años notes pushed into 4 años by 'Corregir')."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder")
+    school_id = user["school_id"]
+
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(5000)}
+    grades_map = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(2000)}
+
+    def _lbl(sec_id):
+        s = sections.get(sec_id)
+        if not s:
+            return "(sección desconocida)"
+        return f"{grades_map.get(s.get('grado_id'), {}).get('nombre', '?')} – {s.get('nombre', '?')}"
+
+    moves = {}  # (from->to) -> count
+    total = 0
+    async for g in db.student_grades.find({"school_id": school_id, "subject_id": subject_id}, {"_id": 0, "student_id": 1, "section_id": 1}):
+        student = await db.users.find_one({"id": g.get("student_id")}, {"_id": 0, "seccion_id": 1, "section_id": 1})
+        if not student:
+            continue
+        real = student.get("seccion_id") or student.get("section_id")
+        cur = g.get("section_id")
+        if real and real != cur:
+            key = f"{_lbl(cur)} → {_lbl(real)}"
+            moves[key] = moves.get(key, 0) + 1
+            total += 1
+    return {"subject_id": subject_id, "to_relocate": total, "breakdown": moves}
+
+
+@router.post("/admin/data-integrity/rehome-grades/{subject_id}")
+async def rehome_grades(subject_id: str, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: relocate every grade of a subject to the section the student
+    is ACTUALLY enrolled in (seccion_id/section_id). This recovers grades that
+    were migrated to a wrong section (e.g. Diana's 3 años notes that 'Corregir'
+    pushed into 4 años). Idempotent; skips a grade if a colliding grade already
+    exists at the destination for the same (student, period)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta recuperación")
+    school_id = user["school_id"]
+
+    relocated = 0
+    skipped = 0
+    async for g in db.student_grades.find({"school_id": school_id, "subject_id": subject_id}):
+        student = await db.users.find_one({"id": g.get("student_id")}, {"_id": 0, "seccion_id": 1, "section_id": 1})
+        if not student:
+            continue
+        real = student.get("seccion_id") or student.get("section_id")
+        cur = g.get("section_id")
+        if not real or real == cur:
+            continue
+        collision = await db.student_grades.find_one({
+            "school_id": school_id, "subject_id": subject_id, "section_id": real,
+            "student_id": g.get("student_id"), "period_id": g.get("period_id"),
+        })
+        if collision:
+            skipped += 1
+            continue
+        await db.student_grades.update_one(
+            {"id": g["id"]} if g.get("id") else {"_id": g["_id"]},
+            {"$set": {"section_id": real}},
+        )
+        relocated += 1
+
+    logger.info(f"[DATA-FIX] rehome-grades subject {subject_id} by {user['id']} | relocated={relocated} skipped={skipped}")
+    return {
+        "message": f"Notas re-asignadas a la sección real del alumno: {relocated} movidas, {skipped} omitidas (ya existían)",
+        "subject_id": subject_id,
+        "relocated": relocated,
+        "skipped": skipped,
+    }
+
 
 
 async def _subject_delete_impact(school_id: str, subject_id: str) -> dict:
