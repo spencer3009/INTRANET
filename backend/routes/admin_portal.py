@@ -2059,6 +2059,55 @@ async def move_subject_section(data: MoveSubjectSectionRequest, current_user=Dep
     }
 
 
+@router.get("/admin/data-integrity/subject/{subject_id}/grades-students")
+async def list_grade_students(subject_id: str, section_id: str, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY (read-only): list the students that OWN the grades stored for
+    (subject, section), with each student's name and the section they are ACTUALLY
+    enrolled in. Lets support verify whether the notes really belong to that
+    section's students (e.g. confirm if Diana's 3 años notes are 3 años or 4 años
+    kids) before moving anything."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder")
+    school_id = user["school_id"]
+
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(5000)}
+    grades_map = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(2000)}
+
+    def _lbl(sec_id):
+        s = sections.get(sec_id)
+        if not s:
+            return "(sin sección)"
+        return f"{grades_map.get(s.get('grado_id'), {}).get('nombre', '?')} – {s.get('nombre', '?')}"
+
+    student_ids = await db.student_grades.distinct("student_id", {"school_id": school_id, "subject_id": subject_id, "section_id": section_id})
+    students = []
+    for sid in student_ids:
+        u = await db.users.find_one({"id": sid}, {"_id": 0, "name": 1, "last_name": 1, "seccion_id": 1, "section_id": 1})
+        if not u:
+            students.append({"student_id": sid, "name": "(alumno no encontrado / eliminado)", "enrolled_section": "(desconocida)"})
+            continue
+        enrolled = u.get("seccion_id") or u.get("section_id")
+        students.append({
+            "student_id": sid,
+            "name": f"{u.get('last_name', '') or ''} {u.get('name', '') or ''}".strip() or "(sin nombre)",
+            "enrolled_section": _lbl(enrolled),
+            "matches_grade_section": enrolled == section_id,
+        })
+    students.sort(key=lambda x: x["name"])
+    return {
+        "subject_id": subject_id,
+        "section_id": section_id,
+        "section_label": _lbl(section_id),
+        "count": len(students),
+        "students": students,
+    }
+
+
+
 @router.get("/admin/data-integrity/rehome-grades/{subject_id}/preview")
 async def preview_rehome_grades(subject_id: str, current_user=Depends(get_current_user)):
     """SUPPORT ONLY (read-only): preview how many grades of a subject sit under a

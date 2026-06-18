@@ -1,5 +1,12 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Badge "N con notas" clickeable → lista de alumnos dueños + su sección matriculada ✅
+- **Necesidad**: el usuario cree que las 31 notas de INGLES·3 años son de alumnos de 4 años, pero "Reparar notas" dice que ya están correctas. Hay que mostrar de QUIÉN son esas notas para decidir.
+- **Backend** (`admin_portal.py`): nuevo `GET /api/admin/data-integrity/subject/{subject_id}/grades-students?section_id=...` (solo soporte, read-only): lista los alumnos con notas en (subject, section), su nombre y la sección donde están MATRICULADOS hoy (+ flag `matches_grade_section`).
+- **Frontend** (`AcademicSettingsPage.jsx`): el badge **"N con notas"** ahora es **clickeable** (`ts-grades-badge`) y despliega un panel (`ts-students-panel`) con los nombres y su sección matriculada (resalta en ámbar a quienes están en otra sección).
+- **Diagnóstico clave**: "Reparar notas" mueve cada nota a la sección REAL del alumno; si dice "nada que reparar" es porque esos alumnos están matriculados donde están sus notas. Si las notas deben ir a otra sección, el problema es la MATRÍCULA del alumno, no la nota.
+- **Verificado E2E (pytest)**: `tests/test_grades_students_list.py`. Frontend compila. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Safety: "Quitar de esta sección" para cursos multi-sección (evita borrar notas de otras secciones) ✅
 - **Riesgo detectado**: "Eliminar duplicado" borra el SUBJECT completo y TODAS sus secciones. En un curso multi-sección (ej. INGLES sirviendo 3/4/5 años), borrarlo desde la fila de 4 años eliminaría también las notas de 3 años.
 - **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/remove-assignment` {subject_id, section_id, teacher_id?} (solo soporte): quita la asignación + notas/config de ESA sección únicamente; conserva el subject y sus demás secciones. Si `subject.section_id` apuntaba a la sección quitada, lo re-apunta a una sección restante.

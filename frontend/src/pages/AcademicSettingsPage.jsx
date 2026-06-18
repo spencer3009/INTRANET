@@ -1418,6 +1418,29 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  // Listar los alumnos dueños de las notas de una (subject, section) + su sección matriculada.
+  const [studentsPanelKey, setStudentsPanelKey] = useState(null);
+  const [studentsList, setStudentsList] = useState(null);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const toggleGradeStudents = async (r) => {
+    const key = `gs|${r.subject_id}|${r.assignment_section?.section_id}`;
+    if (studentsPanelKey === key) { setStudentsPanelKey(null); setStudentsList(null); return; }
+    setStudentsPanelKey(key);
+    setStudentsList(null);
+    setStudentsLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/data-integrity/subject/${r.subject_id}/grades-students`, {
+        headers, params: { section_id: r.assignment_section?.section_id },
+      });
+      setStudentsList(res.data);
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudieron cargar los alumnos");
+      setStudentsPanelKey(null);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
   const handleRehomeGrades = async (r) => {
     const key = `rh|${r.subject_id}`;
     setRehomingKey(key);
@@ -1808,9 +1831,14 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     <span className="text-slate-400 text-xs"> ({r.assignment_section?.student_count} alumnos)</span>
                   </div>
                   {r.grades_count > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 font-semibold" data-testid={`ts-grades-badge-${i}`} title="Registros con notas guardadas en esta sección">
+                    <button
+                      onClick={() => toggleGradeStudents(r)}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 font-semibold hover:bg-violet-200 transition-colors"
+                      data-testid={`ts-grades-badge-${i}`}
+                      title="Ver los alumnos dueños de estas notas y su sección matriculada"
+                    >
                       <BookOpen className="w-3.5 h-3.5" />{r.grades_count} con notas
-                    </span>
+                    </button>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400" data-testid={`ts-grades-badge-${i}`}>
                       Sin notas
@@ -1895,6 +1923,30 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                        Mover
                      </button>
                      <button onClick={() => { setMovingRowKey(null); setMoveTarget(""); }} className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-white font-medium" data-testid={`ts-move-cancel-${i}`}>Cancelar</button>
+                   </div>
+                 )}
+                 {studentsPanelKey === `gs|${r.subject_id}|${r.assignment_section?.section_id}` && (
+                   <div className="mt-3 ml-6 bg-violet-50 border border-violet-200 rounded-xl p-3" data-testid={`ts-students-panel-${i}`}>
+                     {studentsLoading ? (
+                       <div className="flex items-center gap-2 text-xs text-violet-700"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando alumnos…</div>
+                     ) : studentsList ? (
+                       <div>
+                         <div className="text-xs text-slate-600 mb-2">
+                           Alumnos con notas en <b>{studentsList.section_label}</b> ({studentsList.count}). La columna derecha indica en qué sección está <b>matriculado</b> cada alumno hoy:
+                         </div>
+                         <div className="max-h-60 overflow-auto rounded-lg border border-violet-100 bg-white">
+                           {studentsList.students.map((s, si) => (
+                             <div key={si} className={`flex items-center justify-between px-3 py-1.5 text-xs border-b border-slate-50 ${s.matches_grade_section ? "" : "bg-amber-50"}`}>
+                               <span className="font-medium text-slate-700">{s.name}</span>
+                               <span className={s.matches_grade_section ? "text-emerald-600" : "text-amber-700 font-semibold"}>{s.enrolled_section}</span>
+                             </div>
+                           ))}
+                         </div>
+                         <div className="text-[11px] text-slate-500 mt-2">
+                           Si los alumnos están matriculados en una sección distinta a esta, sus matrículas necesitan corregirse (no las notas).
+                         </div>
+                       </div>
+                     ) : null}
                    </div>
                  )}
                 </div>
