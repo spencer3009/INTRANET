@@ -1,5 +1,11 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: "Renombrar" curso (consolidar INGLES→INGLÉS sin perder notas) ✅
+- **Caso**: el usuario quiere eliminar "INGLES" (sin tilde) y quedarse con "INGLÉS". Pero INGLES sigue con 14 notas en 3 años y NO existe INGLÉS en 3 años → borrarlo perdería esas notas.
+- **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/rename-subject` {subject_id, new_name} (solo soporte): renombra el curso sin tocar asignaciones ni notas. Para corregir el nombre/tilde y eliminar el duplicado conservando datos.
+- **Frontend** (`AcademicSettingsPage.jsx`): botón **"Renombrar"** (gris, lápiz, `ts-rename-btn`) en cada fila → prompt para el nombre correcto.
+- **Verificado**: endpoint probado (INGLES→INGLÉS). Frontend compila. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Fix selector vacío + Feature "Pasar notas a otro curso" (consolidar INGLES→INGLÉS) ✅
 - **Bug**: los selectores de "Mover a otra sección" y "Re-matricular" salían vacíos en la sesión de SOPORTE porque `/academic/sections` no resuelve el colegio para el token support_switch.
   - **Fix**: el endpoint `teacher-sections` ahora devuelve `all_sections` (todas las secciones del colegio, resueltas vía la sesión de soporte). Los dos selectores se poblan desde ahí.

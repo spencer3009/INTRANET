@@ -1928,6 +1928,36 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
     }
 
 
+class RenameSubjectRequest(BaseModel):
+    subject_id: str
+    new_name: str
+
+
+@router.post("/admin/data-integrity/rename-subject")
+async def rename_subject(data: RenameSubjectRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: rename a course (fix typos / accents like INGLES -> INGLÉS)
+    without touching its assignments or grades. Used to consolidate a duplicate
+    course name when the course still holds grades that must be kept."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta acción")
+    school_id = user["school_id"]
+
+    new_name = (data.new_name or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
+    subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    await db.subjects.update_one({"id": data.subject_id}, {"$set": {"name": new_name, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    logger.info(f"[DATA-FIX] rename subject {data.subject_id} '{subject.get('name')}' -> '{new_name}' by {user['id']}")
+    return {"message": f"Curso renombrado a «{new_name}»", "subject_id": data.subject_id, "new_name": new_name}
+
+
 class MergeGradesRequest(BaseModel):
     from_subject_id: str
     to_subject_id: str

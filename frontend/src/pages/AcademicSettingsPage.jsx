@@ -1447,6 +1447,27 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  // "Renombrar": corrige el nombre del curso (ej. INGLES -> INGLÉS) sin tocar notas.
+  const [renamingKey, setRenamingKey] = useState(null);
+  const handleRenameSubject = async (r) => {
+    const newName = window.prompt(`Renombrar curso «${r.subject_name}». Escribe el nombre correcto:`, r.subject_name || "");
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === r.subject_name) return;
+    const key = `rn|${r.subject_id}`;
+    setRenamingKey(key);
+    try {
+      await axios.post(`${API}/admin/data-integrity/rename-subject`, {
+        subject_id: r.subject_id, new_name: trimmed,
+      }, { headers });
+      await loadTeacherSections();
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo renombrar el curso");
+    } finally {
+      setRenamingKey(null);
+    }
+  };
+
   // "Pasar notas a otro curso": mueve las notas de ESTA sección al curso duplicado hermano.
   const [mergingKey, setMergingKey] = useState(null);
   const handleMergeGrades = async (r, sibling) => {
@@ -1927,7 +1948,31 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       {rehomingKey === `rh|${r.subject_id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                       Reparar notas
                     </button>
+                    <button
+                      onClick={() => handleRenameSubject(r)}
+                      disabled={busy || renamingKey === `rn|${r.subject_id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 font-semibold disabled:opacity-50"
+                      data-testid={`ts-rename-btn-${i}`}
+                      title="Corregir el nombre del curso (ej. INGLES → INGLÉS) sin tocar las notas"
+                    >
+                      {renamingKey === `rn|${r.subject_id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
+                      Renombrar
+                    </button>
                     {r.dup_in_section && r.grades_count > 0 && (r.dup_siblings || []).map((sib) => (
+                      <button
+                        key={sib.subject_id}
+                        onClick={() => handleMergeGrades(r, sib)}
+                        disabled={busy || mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 hover:bg-fuchsia-100 font-semibold disabled:opacity-50"
+                        data-testid={`ts-merge-btn-${i}`}
+                        title={`Mueve las notas de este curso al curso duplicado «${sib.subject_name}» en esta misma sección`}
+                      >
+                        {mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <BookOpen className="w-3.5 h-3.5" />}
+                        Pasar notas a «{sib.subject_name}»
+                      </button>
+                    ))}
                       <button
                         key={sib.subject_id}
                         onClick={() => handleMergeGrades(r, sib)}
