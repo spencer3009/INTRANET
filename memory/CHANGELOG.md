@@ -1,5 +1,10 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Hotfix: crash "sib is not defined" en panel de diagnóstico ✅
+- **Bug**: al abrir "Todos los docentes y secciones" la app crasheaba con `sib is not defined`. Causa: al reordenar los botones quedó un bloque JSX **duplicado** del botón "Pasar notas a «...»" FUERA del `.map((sib) => ...)`, referenciando `sib` sin estar definido.
+- **Fix**: eliminado el bloque duplicado; queda un único botón dentro del map. Frontend compila sin errores.
+- Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Feature: "Renombrar" curso (consolidar INGLES→INGLÉS sin perder notas) ✅
 - **Caso**: el usuario quiere eliminar "INGLES" (sin tilde) y quedarse con "INGLÉS". Pero INGLES sigue con 14 notas en 3 años y NO existe INGLÉS en 3 años → borrarlo perdería esas notas.
 - **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/rename-subject` {subject_id, new_name} (solo soporte): renombra el curso sin tocar asignaciones ni notas. Para corregir el nombre/tilde y eliminar el duplicado conservando datos.

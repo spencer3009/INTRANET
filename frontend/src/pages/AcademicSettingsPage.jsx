@@ -1973,20 +1973,6 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                         Pasar notas a «{sib.subject_name}»
                       </button>
                     ))}
-                      <button
-                        key={sib.subject_id}
-                        onClick={() => handleMergeGrades(r, sib)}
-                        disabled={busy || mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 hover:bg-fuchsia-100 font-semibold disabled:opacity-50"
-                        data-testid={`ts-merge-btn-${i}`}
-                        title={`Mueve las notas de este curso al curso duplicado «${sib.subject_name}» en esta misma sección`}
-                      >
-                        {mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : <BookOpen className="w-3.5 h-3.5" />}
-                        Pasar notas a «{sib.subject_name}»
-                      </button>
-                    ))}
                     <button
                       onClick={() => { setMovingRowKey(movingRowKey === moveKey ? null : moveKey); setMoveTarget(""); }}
                       disabled={busy}
