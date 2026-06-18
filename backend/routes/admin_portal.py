@@ -1878,20 +1878,25 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
         n = "".join(c for c in unicodedata.normalize("NFD", n) if unicodedata.category(c) != "Mn")
         return " ".join(n.split())
 
-    dup_groups = defaultdict(set)   # (section_id, norm_name) -> {subject_id,...}
+    dup_groups = defaultdict(dict)   # (section_id, norm_name) -> {subject_id: subject_name}
     for r in rows:
         sec_id = (r.get("assignment_section") or {}).get("section_id")
-        dup_groups[(sec_id, _norm_name(r.get("subject_name")))].add(r.get("subject_id"))
+        dup_groups[(sec_id, _norm_name(r.get("subject_name")))][r.get("subject_id")] = r.get("subject_name")
 
     dup_subject_count = 0
     for r in rows:
         sec_id = (r.get("assignment_section") or {}).get("section_id")
         key = (sec_id, _norm_name(r.get("subject_name")))
-        if len(dup_groups.get(key, set())) > 1:
+        group = dup_groups.get(key, {})
+        if len(group) > 1:
             r["dup_in_section"] = True
+            # Sibling duplicate courses in this same section (to move grades into).
+            r["dup_siblings"] = [{"subject_id": sid, "subject_name": nm}
+                                 for sid, nm in group.items() if sid != r.get("subject_id")]
             dup_subject_count += 1
         else:
             r["dup_in_section"] = False
+            r["dup_siblings"] = []
 
     # Misma asignatura (subject_id) ligada a varias secciones (señal secundaria).
     sid_groups = defaultdict(set)
@@ -1900,13 +1905,91 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
     for r in rows:
         r["multi_section"] = len(sid_groups[(r["teacher_id"], r["subject_id"])]) > 1
 
+    # All sections of the school (resolved via the support session) so the UI
+    # dropdowns are populated even when /academic/sections is unavailable here.
+    all_sections = []
+    for sec_id, s in sections.items():
+        all_sections.append({
+            "section_id": sec_id,
+            "nombre": s.get("nombre"),
+            "grade_name": grades.get(s.get("grado_id"), {}).get("nombre"),
+            "label": f"{grades.get(s.get('grado_id'), {}).get('nombre', '?')} – {s.get('nombre', '?')}",
+        })
+    all_sections.sort(key=lambda x: x["label"])
+
     return {
         "school_id": school_id,
         "count": len(rows),
         "ok_count": sum(1 for r in rows if r["matches"]),
         "mismatch_count": sum(1 for r in rows if not r["matches"]),
         "dup_subject_count": dup_subject_count,
+        "all_sections": all_sections,
         "rows": rows,
+    }
+
+
+class MergeGradesRequest(BaseModel):
+    from_subject_id: str
+    to_subject_id: str
+    section_id: str
+
+
+@router.post("/admin/data-integrity/merge-grades")
+async def merge_grades_between_subjects(data: MergeGradesRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: move the grades (and eval config / register status) of ONE
+    section from one course to a DUPLICATE course in the same section. Used to
+    consolidate "INGLES" → "INGLÉS" in 4 años before deleting the empty one.
+    Relocates, never deletes grades; skips collisions."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta acción")
+    school_id = user["school_id"]
+
+    if data.from_subject_id == data.to_subject_id:
+        raise HTTPException(status_code=400, detail="El curso origen y destino son el mismo")
+    for sid in (data.from_subject_id, data.to_subject_id):
+        if not await db.subjects.find_one({"id": sid, "school_id": school_id}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    moved = 0
+    skipped = 0
+    base = {"school_id": school_id, "section_id": data.section_id}
+    async for g in db.student_grades.find({**base, "subject_id": data.from_subject_id}):
+        collision = await db.student_grades.find_one({
+            **base, "subject_id": data.to_subject_id,
+            "student_id": g.get("student_id"), "period_id": g.get("period_id"),
+        })
+        if collision:
+            skipped += 1
+            continue
+        await db.student_grades.update_one(
+            {"id": g["id"]} if g.get("id") else {"_id": g["_id"]},
+            {"$set": {"subject_id": data.to_subject_id}},
+        )
+        moved += 1
+
+    cfg_moved = 0
+    for coll_name in ("evaluation_config", "grade_register_status"):
+        coll = db[coll_name]
+        async for doc in coll.find({**base, "subject_id": data.from_subject_id}):
+            exists = await coll.find_one({
+                **base, "subject_id": data.to_subject_id,
+                **({"period_id": doc.get("period_id")} if doc.get("period_id") else {}),
+            })
+            if exists:
+                continue
+            await coll.update_one({"_id": doc["_id"]}, {"$set": {"subject_id": data.to_subject_id}})
+            cfg_moved += 1
+
+    logger.info(f"[DATA-FIX] merge-grades {data.from_subject_id}->{data.to_subject_id} sec={data.section_id} by {user['id']} | moved={moved} skipped={skipped} cfg={cfg_moved}")
+    return {
+        "message": f"{moved} nota(s) pasada(s) al otro curso" + (f"; {skipped} omitida(s) (ya existían)" if skipped else ""),
+        "moved": moved,
+        "skipped": skipped,
+        "config_moved": cfg_moved,
     }
 
 

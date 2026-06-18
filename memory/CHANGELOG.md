@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Fix selector vacío + Feature "Pasar notas a otro curso" (consolidar INGLES→INGLÉS) ✅
+- **Bug**: los selectores de "Mover a otra sección" y "Re-matricular" salían vacíos en la sesión de SOPORTE porque `/academic/sections` no resuelve el colegio para el token support_switch.
+  - **Fix**: el endpoint `teacher-sections` ahora devuelve `all_sections` (todas las secciones del colegio, resueltas vía la sesión de soporte). Los dos selectores se poblan desde ahí.
+- **Feature**: nuevo `POST /api/admin/data-integrity/merge-grades` {from_subject_id, to_subject_id, section_id} (solo soporte): mueve las notas (+ config) de un curso a su **duplicado hermano** en la misma sección. Relocaliza, no borra; salta colisiones.
+  - `teacher-sections` ahora adjunta `dup_siblings` a cada fila duplicada.
+  - **Frontend**: botón **"Pasar notas a «INGLÉS»"** (fucsia, `ts-merge-btn`) en filas duplicadas con notas → consolida y luego se puede quitar/eliminar el curso vacío.
+- **Verificado E2E (pytest)**: `tests/test_merge_grades.py` (+ all_sections y dup_siblings). Todos los tests de diagnóstico siguen PASS. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Feature: Re-matrícula en lote desde soporte (corrige alumnos mal matriculados) ✅
 - **Diagnóstico**: el curso INGLES·3 años tiene 15 alumnos pero el Registro muestra 17 con notas → esos alumnos están matriculados (en la BD) en la sección de 3 años pero pertenecen a 4 años. "Reparar notas" no los movía porque su matrícula coincidía con la sección de sus notas → la causa real es la MATRÍCULA, no la nota.
 - **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/reenroll-students` {student_ids, target_section_id, move_subject_id?} (solo soporte): actualiza `seccion_id`/`section_id` de los alumnos a la sección correcta y, opcionalmente, reubica sus notas de ese curso a la nueva sección (salta colisiones). Relocaliza, nunca borra.

@@ -1447,11 +1447,34 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     }
   };
 
+  // "Pasar notas a otro curso": mueve las notas de ESTA sección al curso duplicado hermano.
+  const [mergingKey, setMergingKey] = useState(null);
+  const handleMergeGrades = async (r, sibling) => {
+    const key = `mg|${r.subject_id}|${r.assignment_section?.section_id}`;
+    if (!window.confirm(
+      `¿Pasar las ${r.grades_count || 0} nota(s) de «${r.subject_name}» a «${sibling.subject_name}» en ${r.assignment_section?.grade_name} – ${r.assignment_section?.nombre}?\n\nLas notas se mueven al otro curso (no se borran). Luego puedes quitar/eliminar el curso vacío.`
+    )) return;
+    setMergingKey(key);
+    try {
+      const res = await axios.post(`${API}/admin/data-integrity/merge-grades`, {
+        from_subject_id: r.subject_id,
+        to_subject_id: sibling.subject_id,
+        section_id: r.assignment_section?.section_id,
+      }, { headers });
+      window.alert(res.data?.message || "Notas pasadas al otro curso.");
+      await loadTeacherSections();
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudieron pasar las notas");
+    } finally {
+      setMergingKey(null);
+    }
+  };
+
   const handleReenroll = async (r) => {
     const ids = Object.keys(selectedStudents).filter(k => selectedStudents[k]);
     if (ids.length === 0 || !reenrollTarget) return;
-    const targetLabel = sections.find(s => s.id === reenrollTarget);
-    const lbl = targetLabel ? sectionOptionLabel(targetLabel) : reenrollTarget;
+    const targetLabel = (teacherRows?.all_sections || []).find(s => s.section_id === reenrollTarget);
+    const lbl = targetLabel ? targetLabel.label : reenrollTarget;
     if (!window.confirm(`¿Re-matricular ${ids.length} alumno(s) a «${lbl}»?${reenrollMoveGrades ? "\nTambién se moverán sus notas de este curso a esa sección." : ""}\n\nEsto cambia su sección en todo el sistema.`)) return;
     setReenrollSaving(true);
     try {
@@ -1904,6 +1927,21 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       {rehomingKey === `rh|${r.subject_id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                       Reparar notas
                     </button>
+                    {r.dup_in_section && r.grades_count > 0 && (r.dup_siblings || []).map((sib) => (
+                      <button
+                        key={sib.subject_id}
+                        onClick={() => handleMergeGrades(r, sib)}
+                        disabled={busy || mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 hover:bg-fuchsia-100 font-semibold disabled:opacity-50"
+                        data-testid={`ts-merge-btn-${i}`}
+                        title={`Mueve las notas de este curso al curso duplicado «${sib.subject_name}» en esta misma sección`}
+                      >
+                        {mergingKey === `mg|${r.subject_id}|${r.assignment_section?.section_id}`
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <BookOpen className="w-3.5 h-3.5" />}
+                        Pasar notas a «{sib.subject_name}»
+                      </button>
+                    ))}
                     <button
                       onClick={() => { setMovingRowKey(movingRowKey === moveKey ? null : moveKey); setMoveTarget(""); }}
                       disabled={busy}
@@ -1936,11 +1974,10 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                        data-testid={`ts-move-select-${i}`}
                      >
                        <option value="">Selecciona una sección…</option>
-                       {[...sections]
-                         .sort((a, b) => sectionOptionLabel(a).localeCompare(sectionOptionLabel(b)))
+                       {(teacherRows?.all_sections || [])
                          .map(s => (
-                           <option key={s.id} value={s.id} disabled={s.id === r.assignment_section?.section_id}>
-                             {sectionOptionLabel(s)}{s.id === r.assignment_section?.section_id ? " (actual)" : ""}
+                           <option key={s.section_id} value={s.section_id} disabled={s.section_id === r.assignment_section?.section_id}>
+                             {s.label}{s.section_id === r.assignment_section?.section_id ? " (actual)" : ""}
                            </option>
                          ))}
                      </select>
@@ -1998,8 +2035,8 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                              data-testid={`ts-reenroll-select-${i}`}
                            >
                              <option value="">Sección destino…</option>
-                             {[...sections].sort((a, b) => sectionOptionLabel(a).localeCompare(sectionOptionLabel(b))).map(s => (
-                               <option key={s.id} value={s.id}>{sectionOptionLabel(s)}</option>
+                             {(teacherRows?.all_sections || []).map(s => (
+                               <option key={s.section_id} value={s.section_id}>{s.label}</option>
                              ))}
                            </select>
                            <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer">
