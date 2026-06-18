@@ -1781,6 +1781,15 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     {r.assignment_section?.grade_name || "?"} – {r.assignment_section?.nombre || "?"}
                     <span className="text-slate-400 text-xs"> ({r.assignment_section?.student_count} alumnos)</span>
                   </div>
+                  {r.grades_count > 0 ? (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 font-semibold" data-testid={`ts-grades-badge-${i}`} title="Registros con notas guardadas en esta sección">
+                      <BookOpen className="w-3.5 h-3.5" />{r.grades_count} con notas
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400" data-testid={`ts-grades-badge-${i}`}>
+                      Sin notas
+                    </span>
+                  )}
                   {!r.matches && !r.multi_section && (
                     <div className="text-xs px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700">
                       Curso apunta a: {r.subject_section?.exists ? `${r.subject_section?.grade_name || "?"} – ${r.subject_section?.nombre || "?"}` : "sección inexistente"}

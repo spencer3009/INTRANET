@@ -1832,6 +1832,16 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
     teacher_ids = list({a["teacher_id"] for a in assignments if a.get("teacher_id")})
     teachers = {t["id"]: t for t in await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "email": 1}).to_list(20000)}
 
+    # Where do the grades actually live? Count student_grades per (subject, section)
+    # in ONE aggregation so each row can show how many notes sit in that section
+    # (so support can SEE where notes ended up after a wrong migration).
+    grade_counts = {}
+    async for gc in db.student_grades.aggregate([
+        {"$match": {"school_id": school_id}},
+        {"$group": {"_id": {"s": "$subject_id", "sec": "$section_id"}, "n": {"$sum": 1}}},
+    ]):
+        grade_counts[(gc["_id"].get("s"), gc["_id"].get("sec"))] = gc["n"]
+
     rows = []
     for a in assignments:
         subj = subjects.get(a["subject_id"])
@@ -1848,6 +1858,7 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
             "assignment_section": {**_label(assign_section), "student_count": await _student_count(assign_section)},
             "subject_section": {**_label(subj_section), "student_count": await _student_count(subj_section)},
             "matches": bool(subj_section) and subj_section == assign_section,
+            "grades_count": grade_counts.get((a["subject_id"], assign_section), 0),
         })
 
     rows.sort(key=lambda r: (r.get("teacher_name") or "", r.get("subject_name") or ""))

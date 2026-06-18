@@ -1,5 +1,11 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Feature: Indicador "dónde hay notas" en el panel de Registro Auxiliar ✅
+- **Pedido**: poder saber en qué sección están realmente las notas de cada curso (para ubicar notas migradas por error).
+- **Backend** (`admin_portal.py` `teacher-sections`): una sola agregación cuenta `student_grades` por (subject, section); cada fila ahora trae `grades_count` = registros con notas en esa sección.
+- **Frontend** (`AcademicSettingsPage.jsx`): cada fila muestra un badge **"N con notas"** (violeta) o **"Sin notas"** (gris), `ts-grades-badge-{i}`. Así, en el caso de Diana, se ve que 3 años tiene "Sin notas" y 4 años "N con notas" → se sabe dónde quedaron antes de pulsar "Reparar notas".
+- **Verificado**: tests de move/rehome siguen PASS; frontend compila. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - P0 Fix + Recuperación: "Corregir" migraba notas en cursos multi-sección (caso INGLES/Diana) ✅
 - **Reportado (producción)**: tras pulsar **"Corregir"** en el panel, el Registro de 3 años quedó SIN notas. Causa: "INGLES" es UN solo curso (`subject_id`) asignado a 3 secciones (3/4/5 años). "Corregir" (fix-section-mismatch) re-apunta `subject.section_id` y **MIGRA las notas** de la sección vieja a la de la fila → las notas de 3 años se movieron a 4 años (NO se borraron).
 - **Blindaje** (`admin_portal.py` `fix-section-mismatch`): ahora **rechaza (400)** cualquier curso que sirva varias secciones (mismo `subject_id` en 2+ secciones). Ya no puede migrar/corromper notas.
