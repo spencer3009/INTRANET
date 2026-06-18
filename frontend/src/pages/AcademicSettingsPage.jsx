@@ -1392,6 +1392,32 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
 
   // "Reparar notas": re-asigna cada nota del curso a la sección REAL del alumno.
   const [rehomingKey, setRehomingKey] = useState(null);
+  // "Quitar de esta sección": quita solo la asignación + notas de ESA sección
+  // (para cursos multi-sección, sin borrar el curso ni sus otras secciones).
+  const handleRemoveFromSection = async (r) => {
+    const key = `del|${r.subject_id}|${r.assignment_section?.section_id}`;
+    setDeletingKey(key);
+    try {
+      const lines = [
+        `¿Quitar «${r.subject_name}» de ${r.assignment_section?.grade_name || "?"} – ${r.assignment_section?.nombre || "?"}?`,
+        ``,
+        `Se quita SOLO esa sección (asignación + ${r.grades_count || 0} nota(s) de esa sección).`,
+        `El curso y sus OTRAS secciones (con sus notas) se conservan.`,
+      ].join("\n");
+      if (!window.confirm(lines)) { setDeletingKey(null); return; }
+      await axios.post(`${API}/admin/data-integrity/remove-assignment`, {
+        subject_id: r.subject_id,
+        section_id: r.assignment_section?.section_id,
+        teacher_id: r.teacher_id,
+      }, { headers });
+      await loadTeacherSections();
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo quitar la sección");
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
   const handleRehomeGrades = async (r) => {
     const key = `rh|${r.subject_id}`;
     setRehomingKey(key);
@@ -1829,15 +1855,15 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       Mover a otra sección
                     </button>
                     <button
-                      onClick={() => handleDeleteSubject(r)}
+                      onClick={() => r.multi_section ? handleRemoveFromSection(r) : handleDeleteSubject(r)}
                       disabled={busy}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-semibold disabled:opacity-50"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border font-semibold disabled:opacity-50 ${r.multi_section ? "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100" : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"}`}
                       data-testid={`ts-delete-btn-${i}`}
                     >
                       {deletingKey === `del|${r.subject_id}|${r.assignment_section?.section_id}`
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         : <Trash2 className="w-3.5 h-3.5" />}
-                      Eliminar duplicado
+                      {r.multi_section ? "Quitar de esta sección" : "Eliminar duplicado"}
                     </button>
                   </div>
                  </div>

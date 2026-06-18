@@ -1910,6 +1910,60 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
     }
 
 
+class RemoveAssignmentRequest(BaseModel):
+    subject_id: str
+    section_id: str
+    teacher_id: Optional[str] = None
+
+
+@router.post("/admin/data-integrity/remove-assignment")
+async def remove_assignment_from_section(data: RemoveAssignmentRequest, current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: remove a course from ONE section only (for multi-section
+    subjects). Deletes the teacher assignment(s) for (subject, section) and the
+    grades/config stored under that section — but KEEPS the subject document and
+    every OTHER section it serves intact. Used to unlink Diana's INGLES from
+    4/5 años without touching the 3 años notes."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede ejecutar esta acción")
+    school_id = user["school_id"]
+
+    subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "section_id": 1})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+
+    flt = {"school_id": school_id, "subject_id": data.subject_id, "section_id": data.section_id}
+    assign_flt = dict(flt)
+    if data.teacher_id:
+        assign_flt["teacher_id"] = data.teacher_id
+
+    deleted = {
+        "assignments": (await db.academic_assignments.delete_many(assign_flt)).deleted_count,
+        "grades": (await db.student_grades.delete_many(flt)).deleted_count,
+        "evaluation_config": (await db.evaluation_config.delete_many(flt)).deleted_count,
+        "grade_register_status": (await db.grade_register_status.delete_many(flt)).deleted_count,
+    }
+
+    # If the subject's stored section pointed at the one we just removed, move it
+    # to any remaining assignment section so the subject stays consistent.
+    if subject.get("section_id") == data.section_id:
+        remaining = await db.academic_assignments.find_one({"school_id": school_id, "subject_id": data.subject_id})
+        if remaining and remaining.get("section_id"):
+            await db.subjects.update_one({"id": data.subject_id}, {"$set": {"section_id": remaining["section_id"]}})
+
+    logger.info(f"[DATA-FIX] removed assignment subject={data.subject_id} section={data.section_id} by {user['id']} | deleted={deleted}")
+    return {
+        "message": f"«{subject.get('name')}» quitado de esa sección (el curso y sus demás secciones se conservan)",
+        "subject_id": data.subject_id,
+        "section_id": data.section_id,
+        "deleted": deleted,
+    }
+
+
+
 class MoveSubjectSectionRequest(BaseModel):
     subject_id: str
     from_section_id: str

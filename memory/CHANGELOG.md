@@ -1,5 +1,11 @@
 # EduNet - Changelog
 
+## Jun 17, 2026 - Safety: "Quitar de esta sección" para cursos multi-sección (evita borrar notas de otras secciones) ✅
+- **Riesgo detectado**: "Eliminar duplicado" borra el SUBJECT completo y TODAS sus secciones. En un curso multi-sección (ej. INGLES sirviendo 3/4/5 años), borrarlo desde la fila de 4 años eliminaría también las notas de 3 años.
+- **Backend** (`admin_portal.py`): nuevo `POST /api/admin/data-integrity/remove-assignment` {subject_id, section_id, teacher_id?} (solo soporte): quita la asignación + notas/config de ESA sección únicamente; conserva el subject y sus demás secciones. Si `subject.section_id` apuntaba a la sección quitada, lo re-apunta a una sección restante.
+- **Frontend** (`AcademicSettingsPage.jsx`): en filas **multi-sección** el botón rojo cambia a **"Quitar de esta sección"** (naranja, `ts-delete-btn`) y llama al nuevo endpoint (confirma mostrando cuántas notas de esa sección se quitan). En filas normales sigue siendo "Eliminar duplicado".
+- **Verificado E2E (pytest)**: `tests/test_remove_assignment_section.py` — quita solo la sección indicada; subject + notas de otras secciones intactas; re-apunta section_id. Requiere **redespliegue**.
+
 ## Jun 17, 2026 - Feature: Indicador "dónde hay notas" en el panel de Registro Auxiliar ✅
 - **Pedido**: poder saber en qué sección están realmente las notas de cada curso (para ubicar notas migradas por error).
 - **Backend** (`admin_portal.py` `teacher-sections`): una sola agregación cuenta `student_grades` por (subject, section); cada fila ahora trae `grades_count` = registros con notas en esa sección.
