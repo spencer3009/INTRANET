@@ -121,6 +121,103 @@ function ReminderDetailModal({ reminder, isOpen, onClose, onMarkViewed }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ATTENDANCE DETAIL MODAL (parent) — detalle de la asistencia marcada
+// ══════════════════════════════════════════════════════════════════════════════
+const ATT_TYPE_CONFIG = {
+  ingreso:      { label: "Ingreso",      icon: UserCheck,   grad: "from-emerald-500 to-teal-500", chip: "bg-emerald-100 text-emerald-700", iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
+  salida:       { label: "Salida",       icon: Clock,       grad: "from-sky-500 to-blue-500",     chip: "bg-sky-100 text-sky-700",         iconBg: "bg-sky-100",     iconColor: "text-sky-600" },
+  tardanza:     { label: "Tardanza",     icon: Clock,       grad: "from-amber-500 to-orange-500", chip: "bg-amber-100 text-amber-700",     iconBg: "bg-amber-100",   iconColor: "text-amber-600" },
+  inasistencia: { label: "Inasistencia", icon: AlertCircle, grad: "from-rose-500 to-red-500",     chip: "bg-rose-100 text-rose-700",       iconBg: "bg-rose-100",    iconColor: "text-rose-600" },
+};
+
+function AttendanceDetailModal({ notif, isOpen, onClose, onViewHistory }) {
+  if (!isOpen || !notif) return null;
+  const cfg = ATT_TYPE_CONFIG[notif.type] || ATT_TYPE_CONFIG.ingreso;
+  const Icon = cfg.icon;
+  const created = notif.created_at ? new Date(notif.created_at) : null;
+  const fechaLarga = created
+    ? created.toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    : "—";
+  const horaMarca = created
+    ? created.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  return createPortal(
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 10000 }} data-testid="attendance-detail-modal">
+      <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" style={{ zIndex: 10001 }}>
+        <div className={`bg-gradient-to-r ${cfg.grad} px-6 py-5`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/25 rounded-xl flex items-center justify-center">
+                <Icon className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <span className="inline-block px-2 py-0.5 bg-white/25 text-white text-[10px] font-bold rounded uppercase tracking-wide">{cfg.label}</span>
+                <h2 className="text-lg font-semibold text-white mt-1">Detalle de asistencia</h2>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors" data-testid="attendance-detail-close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Alumno */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 ${cfg.iconBg} rounded-full flex items-center justify-center`}>
+              <UserCheck className={`w-5 h-5 ${cfg.iconColor}`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Alumno</p>
+              <p className="text-sm font-semibold text-gray-800 truncate">{notif.student_name || "—"}</p>
+            </div>
+          </div>
+
+          {/* Mensaje principal */}
+          <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <p className="text-gray-700 text-sm leading-relaxed">{notif.body}</p>
+          </div>
+
+          {/* Detalles */}
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm text-gray-600 capitalize">{fechaLarga}</span>
+            </div>
+            {horaMarca && (
+              <div className="flex items-center gap-3">
+                <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-600">Registrado a las {horaMarca}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.chip}`}>{cfg.label}</span>
+            </div>
+            {notif.school_name && (
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-600">{notif.school_name}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors" data-testid="attendance-detail-cerrar">Cerrar</button>
+            <button onClick={onViewHistory} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25" data-testid="attendance-detail-history">
+              <Calendar className="w-4 h-4" /> Ver historial
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATION ITEM - General (Navigable)
 // ══════════════════════════════════════════════════════════════════════════════
 function GeneralNotificationItem({ notif, onClick }) {
@@ -221,6 +318,7 @@ export default function NotificationBell({ token, userRole }) {
   const [attendanceUnread, setAttendanceUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
+  const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const dropdownRef = useRef(null);
   const fcmRegistered = useRef(false);
@@ -530,13 +628,19 @@ export default function NotificationBell({ token, userRole }) {
       } catch {}
     }
     if (notif.student_id) {
-      const prefix = getSchoolPrefix();
-      setIsOpen(false);
-      // Preselect the child so the dashboard opens on the right student
+      // Preselect the child so the dashboard/history opens on the right student
       try { localStorage.setItem("selected_child_id", notif.student_id); } catch {}
-      // Parent dashboard route is `/:subdomain/parent`, NOT `/parent/dashboard`
-      navigate(`${prefix}/parent`);
+      // Open a detail modal with the marked-attendance info (no full navigation)
+      setSelectedAttendance(notif);
     }
+  };
+
+  // From the attendance detail modal: go to the full attendance history
+  const handleViewAttendanceHistory = () => {
+    const prefix = getSchoolPrefix();
+    setSelectedAttendance(null);
+    setIsOpen(false);
+    navigate(`${prefix}/parent/attendance`);
   };
 
   const handleReminderClick = (reminder) => setSelectedReminder(reminder);
@@ -821,6 +925,14 @@ export default function NotificationBell({ token, userRole }) {
         isOpen={!!selectedReminder}
         onClose={() => setSelectedReminder(null)}
         onMarkViewed={markAsViewed}
+      />
+
+      {/* Attendance Detail Modal */}
+      <AttendanceDetailModal
+        notif={selectedAttendance}
+        isOpen={!!selectedAttendance}
+        onClose={() => setSelectedAttendance(null)}
+        onViewHistory={handleViewAttendanceHistory}
       />
     </div>
   );
