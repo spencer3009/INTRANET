@@ -1850,6 +1850,25 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
         subj_section = subj.get("section_id")
         assign_section = a.get("section_id")
         t = teachers.get(a.get("teacher_id"), {})
+        # ── Revelar DÓNDE están realmente las notas de este curso ──
+        # (todas las secciones con notas para este subject_id, no solo la
+        #  sección de la asignación). Así el diagnóstico muestra, por ejemplo:
+        #  "0 notas en 4°-A, pero 22 notas en 4°-B".
+        grades_breakdown = []
+        total_subject_grades = 0
+        for (gc_subj, gc_sec), gc_n in grade_counts.items():
+            if gc_subj == a["subject_id"] and gc_n > 0:
+                total_subject_grades += gc_n
+                lbl = _label(gc_sec)
+                grades_breakdown.append({
+                    "section_id": gc_sec,
+                    "nombre": lbl.get("nombre"),
+                    "grade_name": lbl.get("grade_name"),
+                    "count": gc_n,
+                    "is_assignment_section": gc_sec == assign_section,
+                })
+        grades_breakdown.sort(key=lambda x: x["count"], reverse=True)
+        grades_in_assignment = grade_counts.get((a["subject_id"], assign_section), 0)
         rows.append({
             "teacher_id": a.get("teacher_id"),
             "teacher_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip() or t.get("email", ""),
@@ -1858,7 +1877,11 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
             "assignment_section": {**_label(assign_section), "student_count": await _student_count(assign_section)},
             "subject_section": {**_label(subj_section), "student_count": await _student_count(subj_section)},
             "matches": bool(subj_section) and subj_section == assign_section,
-            "grades_count": grade_counts.get((a["subject_id"], assign_section), 0),
+            "grades_count": grades_in_assignment,
+            # NUEVO: dónde viven realmente las notas
+            "grades_total_for_subject": total_subject_grades,
+            "grades_breakdown": grades_breakdown,
+            "grades_misplaced": grades_in_assignment == 0 and total_subject_grades > 0,
         })
 
     rows.sort(key=lambda r: (r.get("teacher_name") or "", r.get("subject_name") or ""))

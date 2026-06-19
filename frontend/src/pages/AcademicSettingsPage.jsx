@@ -1914,6 +1914,15 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     >
                       <BookOpen className="w-3.5 h-3.5" />{r.grades_count} con notas
                     </button>
+                  ) : r.grades_misplaced ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-semibold"
+                      data-testid={`ts-grades-badge-${i}`}
+                      title="El profesor SÍ puso notas, pero quedaron guardadas en otra sección. Usa 'Corregir' y luego 'Reparar notas'."
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      Sin notas aquí · {r.grades_total_for_subject} nota(s) en {(r.grades_breakdown || []).map(g => `${g.grade_name || "?"}–${g.nombre || "?"}`).join(", ")}
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400" data-testid={`ts-grades-badge-${i}`}>
                       Sin notas
