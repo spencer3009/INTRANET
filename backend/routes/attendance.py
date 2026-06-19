@@ -975,6 +975,182 @@ async def get_daily_teacher_attendance(
 
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DAILY ATTENDANCE — alumnos y administrativo (vista premium fusionada)
+# Estado basado en el `status` guardado (estos segmentos no tienen horario de
+# salida configurado como los docentes).
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _status_based_estado(rec) -> str:
+    """Estado para alumnos/administrativo a partir del registro guardado."""
+    if not rec:
+        return "Ausente"
+    status = rec.get("status")
+    if status in ("anulado", "entrada_anulada"):
+        return "Ausente"
+    if status == "justified":
+        return "Justificado"
+    if status == "absent":
+        return "Ausente"
+    entrada = bool(rec.get("entry_time") or rec.get("check_in_time"))
+    salida = bool(rec.get("exit_time") or rec.get("check_out_time"))
+    if status == "late":
+        return "Tardanza"
+    if status == "present":
+        return "Completo" if salida else "Presente"
+    if not entrada:
+        return "Ausente"
+    return "Completo" if salida else "Presente"
+
+
+def _extract_times(rec):
+    """Return (entrada_hhmm, salida_hhmm, minutos_trabajados) from a record."""
+    if not rec:
+        return None, None, None
+    entrada = to_peru_hhmm(rec.get("entry_time")) or rec.get("entry_time_hhmm") or rec.get("check_in_time")
+    salida = to_peru_hhmm(rec.get("exit_time")) or rec.get("exit_time_hhmm") or rec.get("check_out_time")
+    minutos = rec.get("total_minutes")
+    if minutos is None and rec.get("entry_time") and rec.get("exit_time"):
+        try:
+            e_dt = datetime.fromisoformat(str(rec["entry_time"]).replace("Z", "+00:00"))
+            s_dt = datetime.fromisoformat(str(rec["exit_time"]).replace("Z", "+00:00"))
+            minutos = int((s_dt - e_dt).total_seconds() / 60)
+        except Exception:
+            minutos = None
+    return (entrada or None), (salida or None), minutos
+
+
+def _empty_resumen():
+    return {"total": 0, "completos": 0, "tardanzas": 0, "ausentes": 0, "justificados": 0}
+
+
+def _tally(resumen, estado):
+    resumen["total"] += 1
+    if estado in ("Completo", "Presente"):
+        resumen["completos"] += 1
+    elif estado == "Tardanza":
+        resumen["tardanzas"] += 1
+    elif estado == "Ausente":
+        resumen["ausentes"] += 1
+    elif estado == "Justificado":
+        resumen["justificados"] += 1
+
+
+@router.get("/asistencia/administrativo")
+async def get_daily_admin_attendance(
+    fecha: str,
+    current_user = Depends(get_current_user),
+):
+    """Reporte diario de asistencia del personal administrativo (type=maintenance)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    staff = await db.users.find(
+        {"school_id": school_id, "role": {"$in": ADMIN_STAFF_ROLES}},
+        {"_id": 0, "password": 0, "verification_code": 0},
+    ).to_list(500)
+
+    records = await db.attendances.find(
+        {"school_id": school_id, "type": "maintenance", "date": fecha},
+        {"_id": 0},
+    ).to_list(2000)
+    rec_map = {r["user_id"]: r for r in records}
+
+    resumen = _empty_resumen()
+    registros = []
+    for u in staff:
+        nombre = f"{(u.get('last_name') or '').strip()} {(u.get('name') or '').strip()}".strip() or (u.get("email") or "Personal")
+        rec = rec_map.get(u["id"])
+        entrada, salida, minutos = _extract_times(rec)
+        estado = _status_based_estado(rec)
+        _tally(resumen, estado)
+        registros.append({
+            "id": u["id"],
+            "nombre": nombre,
+            "iniciales": _initials(nombre),
+            "tipo": _maintenance_role_display(u) or "Administrativo",
+            "horario_inicio": None,
+            "horario_fin": None,
+            "entrada": entrada,
+            "salida": salida,
+            "minutos_trabajados": minutos,
+            "estado": estado,
+            "photo_url": u.get("photo_url"),
+        })
+
+    registros.sort(key=lambda r: r["nombre"].lower())
+    return {"fecha": fecha, "resumen": resumen, "registros": registros}
+
+
+@router.get("/asistencia/alumnos")
+async def get_daily_student_attendance(
+    fecha: str,
+    grade_id: str,
+    section_id: str,
+    current_user = Depends(get_current_user),
+):
+    """Reporte diario de asistencia de alumnos de una sección."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    school_id = user["school_id"]
+
+    # Schedule (entrada) por nivel o global
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+    attendance_config = (school or {}).get("attendance_config", {}) or {}
+    levels = attendance_config.get("levels", []) or []
+
+    student_query = {"role": "student", **ACADEMIC_STUDENT_FILTER}
+    student_query.update(flexible_id_filter("school_id", school_id))
+    student_query.update(flexible_id_filter("grado_id", grade_id))
+    student_query.update(flexible_id_filter("seccion_id", section_id))
+    students = await db.users.find(
+        student_query, {"_id": 0, "password": 0, "verification_code": 0}
+    ).to_list(1000)
+
+    records = await db.attendances.find(
+        {"school_id": school_id, "type": "student", "date": fecha},
+        {"_id": 0},
+    ).to_list(5000)
+    rec_map = {r["user_id"]: r for r in records}
+
+    def _student_schedule(stu):
+        lvl = stu.get("nivel_id") or stu.get("level_id")
+        for lc in levels:
+            if lc.get("level_id") == lvl:
+                return lc.get("entry_time"), lc.get("exit_time")
+        return attendance_config.get("student_entry_time"), attendance_config.get("student_exit_time")
+
+    resumen = _empty_resumen()
+    registros = []
+    for stu in students:
+        nombre = f"{(stu.get('last_name') or '').strip()} {(stu.get('name') or '').strip()}".strip() or (stu.get("email") or "Alumno")
+        rec = rec_map.get(stu["id"])
+        entrada, salida, minutos = _extract_times(rec)
+        estado = _status_based_estado(rec)
+        h_inicio, h_fin = _student_schedule(stu)
+        _tally(resumen, estado)
+        registros.append({
+            "id": stu["id"],
+            "nombre": nombre,
+            "iniciales": _initials(nombre),
+            "tipo": "Alumno",
+            "horario_inicio": h_inicio,
+            "horario_fin": h_fin,
+            "entrada": entrada,
+            "salida": salida,
+            "minutos_trabajados": minutos,
+            "estado": estado,
+            "photo_url": stu.get("photo_url"),
+        })
+
+    registros.sort(key=lambda r: r["nombre"].lower())
+    return {"fecha": fecha, "resumen": resumen, "registros": registros}
+
+
+
 
 @router.post("/attendance/teachers/save")
 async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = Depends(get_current_user)):

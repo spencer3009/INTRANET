@@ -71,3 +71,55 @@ def test_endpoint_structure_and_states():
     late_rows = [p for p in body2["profesores"] if p["estado"] == "Tardanza"]
     assert len(late_rows) >= 1
     assert any(p["entrada"] for p in late_rows)
+
+
+def test_admin_daily_endpoint_structure():
+    token = _login()
+    headers = {"Authorization": f"Bearer {token}"}
+    r = httpx.get(f"{API}/api/asistencia/administrativo", params={"fecha": "2026-06-18"}, headers=headers, timeout=30)
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body.keys()) == {"fecha", "resumen", "registros"}
+    assert set(body["resumen"].keys()) == {"total", "completos", "tardanzas", "ausentes", "justificados"}
+    assert body["resumen"]["total"] == len(body["registros"])
+    for p in body["registros"]:
+        assert {"id", "nombre", "iniciales", "tipo", "horario_inicio",
+                "horario_fin", "entrada", "salida", "minutos_trabajados", "estado"} <= set(p.keys())
+
+
+def test_student_daily_endpoint_structure():
+    token = _login()
+    headers = {"Authorization": f"Bearer {token}"}
+    grade_id = "6ef8ab18-41b2-45e7-b482-06a84d95c34d"
+    section_id = "11f50cbc-f5f6-422a-a989-87b2af6027f1"
+    r = httpx.get(
+        f"{API}/api/asistencia/alumnos",
+        params={"fecha": "2026-06-18", "grade_id": grade_id, "section_id": section_id},
+        headers=headers, timeout=30,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body.keys()) == {"fecha", "resumen", "registros"}
+    assert body["resumen"]["total"] == len(body["registros"])
+    # students of this section carry the configured entry time
+    for p in body["registros"]:
+        assert p["tipo"] == "Alumno"
+
+
+def test_student_daily_requires_section():
+    token = _login()
+    headers = {"Authorization": f"Bearer {token}"}
+    # missing grade_id/section_id -> 422 validation error
+    r = httpx.get(f"{API}/api/asistencia/alumnos", params={"fecha": "2026-06-18"}, headers=headers, timeout=30)
+    assert r.status_code == 422
+
+
+def test_status_based_estado_helper():
+    from routes.attendance import _status_based_estado
+    assert _status_based_estado(None) == "Ausente"
+    assert _status_based_estado({"status": "justified"}) == "Justificado"
+    assert _status_based_estado({"status": "absent"}) == "Ausente"
+    assert _status_based_estado({"status": "anulado"}) == "Ausente"
+    assert _status_based_estado({"status": "late", "entry_time": "x"}) == "Tardanza"
+    assert _status_based_estado({"status": "present", "entry_time": "x"}) == "Presente"
+    assert _status_based_estado({"status": "present", "entry_time": "x", "exit_time": "y"}) == "Completo"

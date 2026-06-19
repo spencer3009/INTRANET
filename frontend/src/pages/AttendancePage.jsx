@@ -954,6 +954,7 @@ const STATUS_DOT = {
 // ── Estados unificados para el reporte diario de profesores (fusión premium) ──
 const ESTADO_STYLES = {
   "Completo": { bg: "#E1F5EE", text: "#0F6E56" },
+  "Presente": { bg: "#E1F5EE", text: "#0F6E56" },
   "Tardanza": { bg: "#FAEEDA", text: "#854F0B" },
   "Salida anticipada": { bg: "#FAEEDA", text: "#854F0B" },
   "Ausente": { bg: "#FCEBEB", text: "#A32D2D" },
@@ -967,6 +968,128 @@ const formatMinutes = (min) => {
   const m = min % 60;
   return `${h}h ${String(m).padStart(2, "0")}m`;
 };
+
+// ── Vista diaria premium reutilizable (profesores / alumnos / administrativo) ──
+function PremiumDailyAttendance({ data, nameHeader = "Nombre", okLabel = "Completos", title = "Asistencia", pdfColor = [124, 58, 237] }) {
+  if (!data) return null;
+  const rows = data.registros || data.profesores || [];
+  const resumen = data.resumen || { total: 0, completos: 0, tardanzas: 0, ausentes: 0, justificados: 0 };
+  const fechaLarga = new Date(data.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" });
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFontSize(18);
+    doc.setTextColor(pdfColor[0], pdfColor[1], pdfColor[2]);
+    doc.text(title, pageWidth / 2, 20, { align: "center" });
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Fecha: ${new Date(data.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`, pageWidth / 2, 28, { align: "center" });
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Total: ${resumen.total}   |   ${okLabel}: ${resumen.completos}   |   Tardanzas: ${resumen.tardanzas}   |   Ausentes: ${resumen.ausentes}   |   Justificados: ${resumen.justificados}`, pageWidth / 2, 36, { align: "center" });
+    const tableData = rows.map((p) => [
+      p.nombre, p.tipo || "—",
+      `${p.horario_inicio || "—"} - ${p.horario_fin || "—"}`,
+      p.entrada || "—", p.salida || "—", formatMinutes(p.minutos_trabajados), p.estado,
+    ]);
+    autoTable(doc, {
+      startY: 44,
+      head: [[nameHeader, "Tipo", "Horario", "Entrada", "Salida", "Horas", "Estado"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: pdfColor, textColor: 255, fontSize: 9, fontStyle: "bold" },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: { 0: { cellWidth: 42 }, 2: { halign: "center" }, 3: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center" }, 6: { halign: "center" } },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+    doc.save(`${title.toLowerCase().replace(/\s+/g, "_")}_${data.fecha}.pdf`);
+  };
+
+  const cards = [
+    { key: "total", label: "Total", value: resumen.total, color: "#475569", bg: "#F1F5F9" },
+    { key: "completos", label: okLabel, value: resumen.completos, color: ESTADO_STYLES["Completo"].text, bg: ESTADO_STYLES["Completo"].bg },
+    { key: "tardanzas", label: "Tardanzas", value: resumen.tardanzas, color: ESTADO_STYLES["Tardanza"].text, bg: ESTADO_STYLES["Tardanza"].bg },
+    { key: "ausentes", label: "Ausentes", value: resumen.ausentes, color: ESTADO_STYLES["Ausente"].text, bg: ESTADO_STYLES["Ausente"].bg },
+    { key: "justificados", label: "Justificados", value: resumen.justificados, color: ESTADO_STYLES["Justificado"].text, bg: ESTADO_STYLES["Justificado"].bg },
+  ];
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="daily-summary">
+        {cards.map((c) => (
+          <div key={c.key} className="rounded-2xl p-4 text-center border" style={{ backgroundColor: c.bg, borderColor: "rgba(0,0,0,0.06)" }} data-testid={`daily-card-${c.key}`}>
+            <p className="text-2xl font-medium" style={{ color: c.color }}>{c.value}</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: c.color, opacity: 0.85 }}>{c.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-violet-600" />
+            Asistencia del {fechaLarga}
+            <span className="text-slate-400 font-medium">({rows.length})</span>
+          </h3>
+          <button onClick={exportPDF} className="px-4 py-2 bg-violet-100 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-200 transition-colors flex items-center gap-2" data-testid="daily-export-pdf">
+            <Download className="w-4 h-4" /> Exportar PDF
+          </button>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">
+            <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-40" />
+            <p className="font-medium">No hay registros para esta fecha.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{nameHeader}</th>
+                  <th className="text-left px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Tipo</th>
+                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horario</th>
+                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Entrada</th>
+                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Salida</th>
+                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horas</th>
+                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {rows.map((p) => {
+                  const st = ESTADO_STYLES[p.estado] || { bg: "#F1F5F9", text: "#475569" };
+                  const isLate = p.estado === "Tardanza";
+                  const isEarlyExit = p.estado === "Salida anticipada";
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/70 transition-colors" data-testid={`daily-row-${p.id}`}>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-3">
+                          {p.photo_url ? (
+                            <img src={p.photo_url} alt="" className="w-[30px] h-[30px] rounded-full object-cover" />
+                          ) : (
+                            <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-bold" style={{ backgroundColor: st.bg, color: st.text }}>{p.iniciales}</div>
+                          )}
+                          <span className="font-medium text-slate-800 text-sm">{p.nombre}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-slate-500">{p.tipo}</td>
+                      <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">{p.horario_inicio || "—"} <span className="text-slate-300">–</span> {p.horario_fin || "—"}</td>
+                      <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.entrada ? (isLate ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>{p.entrada || "—"}</td>
+                      <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.salida ? (isEarlyExit ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>{p.salida || "—"}</td>
+                      <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">{formatMinutes(p.minutos_trabajados)}</td>
+                      <td className="text-center px-3 py-3"><span className="inline-block text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: st.bg, color: st.text }}>{p.estado}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 function TeacherMonthlyReport({ token }) {
   const now = new Date();
@@ -1345,6 +1468,10 @@ function ReportsTab({ token, schoolId }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingGrades, setLoadingGrades] = useState(true);
+  // Vista diaria premium
+  const [studentMode, setStudentMode] = useState("day"); // "day" | "range"
+  const [dayDate, setDayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dayReport, setDayReport] = useState(null);
   const [detailModal, setDetailModal] = useState(null); // { studentId, studentName, studentPhoto }
   const [detailRecords, setDetailRecords] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -1414,6 +1541,23 @@ function ReportsTab({ token, schoolId }) {
       setReport(res.data);
     } catch (err) {
       console.error("Error loading report:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDayReport = async () => {
+    if (!selectedGrade || !selectedSection) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/asistencia/alumnos`, {
+        headers,
+        params: { fecha: dayDate, grade_id: selectedGrade, section_id: selectedSection },
+      });
+      setDayReport(res.data);
+    } catch (err) {
+      console.error("Error loading student daily report:", err);
+      setDayReport(null);
     } finally {
       setLoading(false);
     }
@@ -1930,6 +2074,48 @@ function ReportsTab({ token, schoolId }) {
 
       {/* Subtab: Reporte (existente) */}
       {reportsSubtab === "reporte" && (<>
+      {/* Toggle Por día / Por rango */}
+      <div className="flex items-center gap-2 bg-white rounded-2xl shadow-sm p-2 w-fit mb-2">
+        <button onClick={() => setStudentMode("day")} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${studentMode === "day" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-100"}`} data-testid="student-mode-day">Por día</button>
+        <button onClick={() => setStudentMode("range")} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${studentMode === "range" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-100"}`} data-testid="student-mode-range">Por rango</button>
+      </div>
+
+      {studentMode === "day" && (
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Filter className="w-5 h-5 text-violet-600" />Asistencia diaria de estudiantes</h3>
+          <div className="grid md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
+              <select value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)} disabled={loadingGrades} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="student-day-grade">
+                <option value="">Seleccionar grado...</option>
+                {grades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
+              <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} disabled={!selectedGrade} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="student-day-section">
+                <option value="">Seleccionar sección...</option>
+                {sections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
+              <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" data-testid="student-day-date" />
+            </div>
+            <div className="flex items-end">
+              <button onClick={loadDayReport} disabled={loading || !selectedGrade || !selectedSection} className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" data-testid="student-day-generate">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />} Ver día
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {studentMode === "day" && dayReport && (
+        <PremiumDailyAttendance data={dayReport} nameHeader="Alumno" okLabel="Presentes" title="Asistencia de Alumnos" />
+      )}
+
+      {studentMode === "range" && (<>
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -2165,6 +2351,7 @@ function ReportsTab({ token, schoolId }) {
           <p className="text-sm text-slate-400">El reporte mostrará las asistencias, tardanzas e inasistencias de cada alumno.</p>
         </div>
       )}
+      </>)}
       </>)}
 
       {/* Student Detail Drawer (Side Panel) */}
@@ -2420,67 +2607,6 @@ function TeacherReportsTab({ token }) {
     doc.save(`reporte_asistencia_profesores_${startDate}_${endDate}.pdf`);
   };
 
-  const exportDayToPDF = () => {
-    if (!dayReport) return;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFontSize(18);
-    doc.setTextColor(88, 28, 135);
-    doc.text("Asistencia de Profesores", pageWidth / 2, 20, { align: "center" });
-
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Fecha: ${new Date(dayReport.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`, pageWidth / 2, 28, { align: "center" });
-
-    const r = dayReport.resumen || {};
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    doc.text(
-      `Total: ${r.total || 0}   |   Completos: ${r.completos || 0}   |   Tardanzas: ${r.tardanzas || 0}   |   Ausentes: ${r.ausentes || 0}   |   Justificados: ${r.justificados || 0}`,
-      pageWidth / 2, 36, { align: "center" }
-    );
-
-    const tableData = (dayReport.profesores || []).map((p) => [
-      p.nombre,
-      p.tipo || "Profesor",
-      `${p.horario_inicio || "—"} - ${p.horario_fin || "—"}`,
-      p.entrada || "—",
-      p.salida || "—",
-      formatMinutes(p.minutos_trabajados),
-      p.estado,
-    ]);
-
-    autoTable(doc, {
-      startY: 44,
-      head: [["Profesor", "Tipo", "Horario", "Entrada", "Salida", "Horas", "Estado"]],
-      body: tableData,
-      theme: "striped",
-      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontSize: 9, fontStyle: "bold" },
-      bodyStyles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: 42 },
-        1: { cellWidth: 20 },
-        2: { cellWidth: 28, halign: "center" },
-        3: { cellWidth: 18, halign: "center" },
-        4: { cellWidth: 18, halign: "center" },
-        5: { cellWidth: 20, halign: "center" },
-        6: { cellWidth: 28, halign: "center" },
-      },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-    });
-
-    const pageCount = doc.internal.getNumberOfPages();
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.text(`Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
-    }
-
-    doc.save(`asistencia_profesores_${dayReport.fecha}.pdf`);
-  };
-
   const getStatusBadge = (status) => {
     const styles = {
       present: "bg-emerald-100 text-emerald-700",
@@ -2595,103 +2721,9 @@ function TeacherReportsTab({ token }) {
         )}
       </div>
 
-      {/* ── Vista DÍA (fusión premium): Horario / Entrada / Salida / Horas / Estado ── */}
+      {/* Vista DÍA premium (fusión): Horario / Entrada / Salida / Horas / Estado */}
       {mode === "day" && dayReport && (
-        <>
-          {/* Tarjetas de resumen (5) */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="teacher-day-summary">
-            {[
-              { key: "total", label: "Total", value: dayReport.resumen.total, color: "#475569", bg: "#F1F5F9" },
-              { key: "completos", label: "Completos", value: dayReport.resumen.completos, color: ESTADO_STYLES["Completo"].text, bg: ESTADO_STYLES["Completo"].bg },
-              { key: "tardanzas", label: "Tardanzas", value: dayReport.resumen.tardanzas, color: ESTADO_STYLES["Tardanza"].text, bg: ESTADO_STYLES["Tardanza"].bg },
-              { key: "ausentes", label: "Ausentes", value: dayReport.resumen.ausentes, color: ESTADO_STYLES["Ausente"].text, bg: ESTADO_STYLES["Ausente"].bg },
-              { key: "justificados", label: "Justificados", value: dayReport.resumen.justificados, color: ESTADO_STYLES["Justificado"].text, bg: ESTADO_STYLES["Justificado"].bg },
-            ].map((c) => (
-              <div key={c.key} className="rounded-2xl p-4 text-center border" style={{ backgroundColor: c.bg, borderColor: "rgba(0,0,0,0.06)" }} data-testid={`teacher-day-card-${c.key}`}>
-                <p className="text-2xl font-medium" style={{ color: c.color }}>{c.value}</p>
-                <p className="text-xs font-medium mt-0.5" style={{ color: c.color, opacity: 0.85 }}>{c.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Tabla detallada (7 columnas) */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-violet-600" />
-                Asistencia del {new Date(dayReport.fecha + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
-                <span className="text-slate-400 font-medium">({dayReport.profesores.length})</span>
-              </h3>
-              <button onClick={exportDayToPDF}
-                className="px-4 py-2 bg-violet-100 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-200 transition-colors flex items-center gap-2"
-                data-testid="teacher-day-export-pdf">
-                <Download className="w-4 h-4" /> Exportar PDF
-              </button>
-            </div>
-
-            {dayReport.profesores.length === 0 ? (
-              <div className="p-12 text-center text-slate-400">
-                <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="font-medium">No hay profesores registrados.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Profesor</th>
-                      <th className="text-left px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Tipo</th>
-                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horario</th>
-                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Entrada</th>
-                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Salida</th>
-                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Horas</th>
-                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dayReport.profesores.map((p) => {
-                      const st = ESTADO_STYLES[p.estado] || { bg: "#F1F5F9", text: "#475569" };
-                      const isLate = p.estado === "Tardanza";
-                      const isEarlyExit = p.estado === "Salida anticipada";
-                      return (
-                        <tr key={p.id} className="hover:bg-slate-50/70 transition-colors" data-testid={`teacher-day-row-${p.id}`}>
-                          <td className="px-6 py-3">
-                            <div className="flex items-center gap-3">
-                              {p.photo_url ? (
-                                <img src={p.photo_url} alt="" className="w-[30px] h-[30px] rounded-full object-cover" />
-                              ) : (
-                                <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-bold" style={{ backgroundColor: st.bg, color: st.text }}>
-                                  {p.iniciales}
-                                </div>
-                              )}
-                              <span className="font-medium text-slate-800 text-sm">{p.nombre}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-sm text-slate-500">{p.tipo}</td>
-                          <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">
-                            {p.horario_inicio || "—"} <span className="text-slate-300">–</span> {p.horario_fin || "—"}
-                          </td>
-                          <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.entrada ? (isLate ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>
-                            {p.entrada || "—"}
-                          </td>
-                          <td className="text-center px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: p.salida ? (isEarlyExit ? WARNING_COLOR : "#0f172a") : "#cbd5e1" }}>
-                            {p.salida || "—"}
-                          </td>
-                          <td className="text-center px-3 py-3 text-sm text-slate-600 whitespace-nowrap">{formatMinutes(p.minutos_trabajados)}</td>
-                          <td className="text-center px-3 py-3">
-                            <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: st.bg, color: st.text }}>
-                              {p.estado}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
+        <PremiumDailyAttendance data={dayReport} nameHeader="Profesor" okLabel="Completos" title="Asistencia de Profesores" />
       )}
 
       {/* Report results */}
@@ -2823,6 +2855,9 @@ function TeacherReportsTab({ token }) {
 // MAINTENANCE REPORTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
 function MaintenanceReportsTab({ token }) {
+  const [mode, setMode] = useState("day"); // "day" | "range"
+  const [dayDate, setDayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dayReport, setDayReport] = useState(null);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
@@ -2833,6 +2868,24 @@ function MaintenanceReportsTab({ token }) {
   const [loading, setLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    loadDayReport(dayDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDayReport = async (d) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/asistencia/administrativo`, { headers, params: { fecha: d } });
+      setDayReport(res.data);
+    } catch (err) {
+      console.error("Error loading admin daily report:", err);
+      setDayReport(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadReport = async () => {
     setLoading(true);
@@ -2923,6 +2976,43 @@ function MaintenanceReportsTab({ token }) {
 
   return (
     <div className="space-y-6" data-testid="maintenance-reports-tab">
+      {/* Toggle Por día / Por rango */}
+      <div className="flex items-center gap-2 bg-white rounded-2xl shadow-sm p-2 w-fit">
+        <button onClick={() => setMode("day")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${mode === "day" ? "bg-amber-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+          data-testid="admin-mode-day">Por día</button>
+        <button onClick={() => setMode("range")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${mode === "range" ? "bg-amber-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+          data-testid="admin-mode-range">Por rango</button>
+      </div>
+
+      {mode === "day" && (
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
+              <input type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                data-testid="admin-day-date" />
+            </div>
+            <button onClick={() => loadDayReport(dayDate)} disabled={loading}
+              className="px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+              data-testid="admin-day-generate">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />} Ver día
+            </button>
+            <button onClick={() => { const t = new Date().toISOString().split("T")[0]; setDayDate(t); loadDayReport(t); }}
+              className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors"
+              data-testid="admin-day-today">Hoy</button>
+          </div>
+        </div>
+      )}
+
+      {mode === "day" && dayReport && (
+        <PremiumDailyAttendance data={dayReport} nameHeader="Personal" okLabel="Presentes" title="Asistencia Personal Administrativo" pdfColor={[245, 158, 11]} />
+      )}
+
+      {mode === "range" && (
+      <>
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Filter className="w-5 h-5 text-amber-600" />
@@ -3069,6 +3159,8 @@ function MaintenanceReportsTab({ token }) {
             </div>
           )}
         </>
+      )}
+      </>
       )}
     </div>
   );
