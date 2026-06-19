@@ -718,3 +718,14 @@
 - Frontend (AttendancePage.jsx → TeacherReportsTab, modo "Por día"): fusión de tarjetas de resumen (5) + tabla 7 columnas (Profesor avatar-iniciales, Tipo, Horario, Entrada, Salida, Horas, Estado) + Exportar PDF. Helpers formatMinutes + ESTADO_STYLES. Entrada resaltada en tardanza y salida en salida anticipada (#854F0B). Carga automática del día actual al entrar.
 - Modos "Por mes"/"Personalizado" intactos (no se tocó reporte de alumnos).
 - Tests: backend/tests/test_daily_teacher_attendance.py (4 passed). Validado en preview con datos reales (caso Tardanza 19:01).
+
+### 2026-06-19 — Vista diaria premium en TODOS los reportes (alumnos + administrativo) - COMPLETED
+- Backend: 2 endpoints nuevos en routes/attendance.py:
+  - GET /api/asistencia/administrativo?fecha= (type=maintenance, ADMIN_STAFF_ROLES; tipo=rol).
+  - GET /api/asistencia/alumnos?fecha=&grade_id=&section_id= (alumnos por sección; horario=entrada nivel/global).
+  - Estado basado en status guardado (_status_based_estado): Justificado/Ausente/Tardanza/Presente/Completo. resumen.completos = Presente+Completo. Helpers _extract_times, _tally, _empty_resumen.
+- Frontend (AttendancePage.jsx): extraído componente reutilizable PremiumDailyAttendance (5 tarjetas + tabla 7 col + Export PDF). Usado en:
+  - TeacherReportsTab (refactor, sin regresión).
+  - ReportsTab (alumnos): toggle "Por día/Por rango" (studentMode); día requiere grado+sección+fecha; rango = reporte antiguo intacto + planilla intacta.
+  - MaintenanceReportsTab (administrativo): toggle Por día/Por rango; día auto-carga hoy + botón Hoy; rango = reporte antiguo intacto.
+- Tests: test_daily_teacher_attendance.py ampliado a 8 tests (profesores+administrativo+alumnos+helpers) — 8/8 passing. Testing agent iteration_216: backend 100%, frontend 100%, sin issues.
