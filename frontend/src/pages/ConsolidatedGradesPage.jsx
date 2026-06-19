@@ -127,6 +127,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         ${styleText}
         .cns-sheet { border:none!important; max-height:none!important; overflow:visible!important; box-shadow:none!important; }
         .cns-fn { position:static!important; }
+        .cns-libreta-col { display:none!important; }
         .cns-tbl { width:100%; table-layout:auto; }
         .cns-tbl th, .cns-tbl td { font-size:8px; padding:1px 2px; }
         .cns-hdr-vert { height:120px; }
@@ -369,6 +370,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
             border:none!important; box-shadow:none!important; border-radius:0!important;
           }
           .cns-filters, .cns-export { display:none!important; }
+          .cns-libreta-col { display:none!important; }
           .cns-tbl { table-layout:auto; width:100%; }
           .cns-tbl th, .cns-tbl td { font-size:8px; padding:1px 2px; }
           .cns-fn { position:static!important; }
@@ -526,7 +528,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     <span className="cns-vtext">{sh.label.replace("\n", " ")}</span>
                   </th>
                 ))}
-                <th rowSpan={2} className="cns-hdr-vert cns-hdr-summ" title="Abrir libreta del alumno">
+                <th rowSpan={2} className="cns-hdr-vert cns-hdr-summ cns-libreta-col" title="Abrir libreta del alumno">
                   <span className="cns-vtext">Libreta</span>
                 </th>
               </tr>
@@ -571,7 +573,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
                       <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
                       <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
-                      <td className="cns-summ-cell" style={{padding:"2px 4px"}}>
+                      <td className="cns-summ-cell cns-libreta-col" style={{padding:"2px 4px"}}>
                         <Link
                           to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
                           target="_blank"
@@ -604,7 +606,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                         return <td key={col.id}>{val != null ? val : ""}</td>;
                       })}
                       {summaryHeaders.map((sh) => <td key={sh.key}></td>)}
-                      <td></td>
+                      <td className="cns-libreta-col"></td>
                     </tr>
                   ))}
                 </>
@@ -620,7 +622,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                     {summaryHeaders.map((sh) => (
                       <td key={sh.key}>&mdash;</td>
                     ))}
-                    <td>&mdash;</td>
+                    <td className="cns-libreta-col">&mdash;</td>
                   </tr>
                 ))
               )}
