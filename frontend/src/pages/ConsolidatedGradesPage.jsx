@@ -110,7 +110,33 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const sheet = tableRef.current;
+    if (!sheet) { window.print(); return; }
+    // Reunir los estilos del componente (bloques que contienen reglas .cns-)
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent || "")
+      .filter((t) => t.includes(".cns-"))
+      .join("\n");
+    const win = window.open("", "_blank", "width=1280,height=800");
+    if (!win) { window.print(); return; } // popup bloqueado → fallback
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Consolidado de Notas</title>
+      <style>
+        @page { size: A4 landscape; margin: 6mm; }
+        html, body { margin:0; padding:0; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+        ${styleText}
+        .cns-sheet { border:none!important; max-height:none!important; overflow:visible!important; box-shadow:none!important; }
+        .cns-fn { position:static!important; }
+        .cns-tbl { width:100%; table-layout:auto; }
+        .cns-tbl th, .cns-tbl td { font-size:8px; padding:1px 2px; }
+        .cns-hdr-vert { height:120px; }
+        .cns-hdr-vert .cns-vtext { font-size:8px; }
+        tr, td, th { page-break-inside:avoid; }
+      </style></head><body>${sheet.outerHTML}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { try { win.print(); } catch (e) { /* noop */ } }, 400);
+  };
 
   // Build flat column list for the table
   // In the Excel, all subjects (áreas + sub-subjects) are at the same header level
@@ -330,14 +356,26 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         .cns-warning-text { font-size:13px; color:#92400E; line-height:1.5; }
         .cns-warning-text strong { font-weight:700; display:block; font-size:13px; color:#78350F; }
 
-        /* === PRINT === */
+        /* === PRINT (landscape, robusto contra contenedores con overflow) === */
         @media print {
+          @page { size: A4 landscape; margin: 6mm; }
+          html, body { margin:0!important; padding:0!important; background:#fff!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+          /* Ocultar todo y mostrar solo el consolidado */
+          body * { visibility:hidden!important; }
+          #cns-printable, #cns-printable * { visibility:visible!important; }
+          #cns-printable {
+            position:absolute!important; left:0!important; top:0!important;
+            width:100%!important; max-height:none!important; overflow:visible!important;
+            border:none!important; box-shadow:none!important; border-radius:0!important;
+          }
           .cns-filters, .cns-export { display:none!important; }
-          .cns-page { padding:0; background:#fff; }
-          .cns-sheet { border:none; max-height:none; overflow:visible; }
-          .cns-tbl { table-layout:auto; }
-          .cns-tbl th, .cns-tbl td { font-size:9px; padding:2px 2px; }
+          .cns-tbl { table-layout:auto; width:100%; }
+          .cns-tbl th, .cns-tbl td { font-size:8px; padding:1px 2px; }
           .cns-fn { position:static!important; }
+          .cns-fn-name { white-space:normal; overflow:visible; text-overflow:clip; }
+          .cns-hdr-vert { height:120px; }
+          .cns-hdr-vert .cns-vtext { font-size:8px; }
+          tr, td, th { page-break-inside:avoid; }
         }
       `}</style>
 
@@ -402,7 +440,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
             </div>
           )}
 
-        <div className="cns-sheet" ref={tableRef}>
+        <div className="cns-sheet" id="cns-printable" ref={tableRef}>
           <table className="cns-tbl" data-testid="consolidated-table">
             <thead>
               {/* ROW 1: School name + Fecha */}
