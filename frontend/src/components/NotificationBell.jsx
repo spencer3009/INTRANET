@@ -532,7 +532,10 @@ export default function NotificationBell({ token, userRole }) {
     if (notif.student_id) {
       const prefix = getSchoolPrefix();
       setIsOpen(false);
-      navigate(`${prefix}/parent/dashboard?student=${notif.student_id}`);
+      // Preselect the child so the dashboard opens on the right student
+      try { localStorage.setItem("selected_child_id", notif.student_id); } catch {}
+      // Parent dashboard route is `/:subdomain/parent`, NOT `/parent/dashboard`
+      navigate(`${prefix}/parent`);
     }
   };
 
