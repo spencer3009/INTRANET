@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Sparkles, Save, X, Loader2,
   BookMarked, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
-  Archive, AlertTriangle,
+  Archive, AlertTriangle, ListOrdered, CheckCircle2,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
@@ -34,6 +34,59 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [resetModal, setResetModal] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
+
+  // ── Herramienta: Ordenar / Consolidar áreas por sección (para la libreta) ──
+  const [orderToolOpen, setOrderToolOpen] = useState(false);
+  const [otGrades, setOtGrades] = useState([]);
+  const [otSections, setOtSections] = useState([]);
+  const [otGrade, setOtGrade] = useState("");
+  const [otSection, setOtSection] = useState("");
+  const [otLayout, setOtLayout] = useState(null);
+  const [otLoading, setOtLoading] = useState(false);
+  const [otConsolidating, setOtConsolidating] = useState(false);
+
+  const openOrderTool = async () => {
+    setOrderToolOpen(true);
+    if (otGrades.length === 0) {
+      try {
+        const res = await axios.get(`${API}/academic/grades`, { headers });
+        setOtGrades(res.data || []);
+      } catch (_) { /* noop */ }
+    }
+  };
+
+  const otLoadSections = async (gradeId) => {
+    setOtGrade(gradeId); setOtSection(""); setOtLayout(null); setOtSections([]);
+    if (!gradeId) return;
+    try {
+      const res = await axios.get(`${API}/academic/sections`, { headers, params: { grado_id: gradeId } });
+      setOtSections(res.data || []);
+    } catch (_) { /* noop */ }
+  };
+
+  const otLoadLayout = async (sectionId) => {
+    setOtSection(sectionId); setOtLayout(null);
+    if (!sectionId) return;
+    setOtLoading(true);
+    try {
+      const res = await axios.get(`${API}/curricular-areas/section-layout`, { headers, params: { section_id: sectionId } });
+      setOtLayout(res.data);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "No se pudo cargar el orden de áreas");
+    } finally { setOtLoading(false); }
+  };
+
+  const otConsolidate = async () => {
+    if (!otSection) return;
+    setOtConsolidating(true);
+    try {
+      const res = await axios.post(`${API}/curricular-areas/consolidate-section`, { section_id: otSection }, { headers });
+      toast.success(`Listo: ${res.data.updated} curso(s) reordenado(s). Las áreas ya no salen repetidas.`);
+      await otLoadLayout(otSection);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "No se pudo consolidar");
+    } finally { setOtConsolidating(false); }
+  };
 
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
 
@@ -249,6 +302,81 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                 <Plus className="w-4 h-4" /> Nueva área
               </button>
             </div>
+          )}
+
+          {/* ── Herramienta: Ordenar / Consolidar áreas por sección ── */}
+          {isAdmin && (
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" data-testid="order-tool-section">
+              <button
+                onClick={() => (orderToolOpen ? setOrderToolOpen(false) : openOrderTool())}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition"
+                data-testid="order-tool-toggle"
+              >
+                <span className="flex items-center gap-2 font-semibold text-slate-800">
+                  <ListOrdered className="w-5 h-5 text-indigo-600" />
+                  Ordenar áreas en la libreta (por sección)
+                </span>
+                <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${orderToolOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {orderToolOpen && (
+                <div className="px-6 pb-6 border-t border-slate-100 pt-4 space-y-4">
+                  <p className="text-sm text-slate-500">
+                    Si en la libreta de una sección un área aparece <strong>repetida o en mal orden</strong>, elige la sección y pulsa <strong>"Consolidar y ordenar"</strong>. Las asignaturas se unirán bajo una sola área, en el orden correcto.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <select value={otGrade} onChange={(e) => otLoadSections(e.target.value)}
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm min-w-[160px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      data-testid="order-tool-grade">
+                      <option value="">Grado...</option>
+                      {otGrades.map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                    </select>
+                    <select value={otSection} onChange={(e) => otLoadLayout(e.target.value)} disabled={!otGrade}
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm min-w-[160px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      data-testid="order-tool-section">
+                      <option value="">Sección...</option>
+                      {otSections.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                    </select>
+                    {otLayout && otLayout.has_fragmentation && (
+                      <button onClick={otConsolidate} disabled={otConsolidating}
+                        className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition disabled:opacity-50 flex items-center gap-1.5"
+                        data-testid="order-tool-consolidate">
+                        {otConsolidating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ListOrdered className="w-4 h-4" />} Consolidar y ordenar
+                      </button>
+                    )}
+                  </div>
+
+                  {otLoading && <div className="py-6 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>}
+
+                  {otLayout && !otLoading && (
+                    <div data-testid="order-tool-layout">
+                      {otLayout.has_fragmentation ? (
+                        <div className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" /> Hay áreas repetidas en esta sección (marcadas en ámbar). Pulsa "Consolidar y ordenar".
+                        </div>
+                      ) : (
+                        <div className="mb-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" /> Las áreas de esta sección están bien ordenadas, sin repeticiones.
+                        </div>
+                      )}
+                      <ol className="space-y-1.5">
+                        {otLayout.areas.map((b, idx) => (
+                          <li key={b.area_id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${b.fragmented ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`} data-testid={`order-tool-area-${idx}`}>
+                            <span className="text-xs font-bold text-slate-400 w-5">{idx + 1}</span>
+                            <span className={`font-semibold text-sm ${b.fragmented ? "text-amber-800" : "text-slate-700"}`}>{b.area_name}</span>
+                            {b.fragmented && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">REPETIDA</span>}
+                            <span className="text-xs text-slate-400 ml-auto">{b.subjects.join(", ")}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      {otLayout.subjects_without_area?.length > 0 && (
+                        <p className="text-xs text-slate-400 mt-2">Sin área (no salen en libreta): {otLayout.subjects_without_area.join(", ")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
           )}
           {/* ── Tabla de áreas ── */}
           <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

@@ -736,3 +736,9 @@
 - Diagnóstico mejorado previamente: muestra dónde viven realmente las notas (grades_misplaced/grades_breakdown).
 - Frontend (AcademicSettingsPage.jsx): nueva sub-pestaña "Cursos sin área (no salen en libreta)" con select de área + botón Vincular por curso. Import de toast (sonner).
 - Validado: flujo link/unlink end-to-end (el curso desaparece de la lista al vincularse). Compila OK.
+
+### 2026-06-22 — Áreas Curriculares: consolidar/ordenar áreas por sección (libreta sin fragmentación) - COMPLETED
+- Causa: en una sección, asignaturas vinculadas a áreas distintas con el MISMO nombre (área duplicada) → la libreta dibuja bloques repetidos y desordenados (ej. 4°B: COMUNICACIÓN x3, PERSONAL SOCIAL x2). La libreta agrupa por area_id y ordena por area.order.
+- Backend (curricular_areas.py): GET /api/curricular-areas/section-layout?section_id= (vista previa + detección de fragmentación) y POST /api/curricular-areas/consolidate-section {section_id} (re-vincula asignaturas al área canónica = menor order por nombre → une bloques y hereda orden correcto). Helper _section_area_blocks.
+- Frontend (AdminCurricularAreasPage.jsx): tarjeta "Ordenar áreas en la libreta (por sección)" con selector Grado/Sección, vista previa (áreas REPETIDAS marcadas en ámbar) y botón "Consolidar y ordenar".
+- Validado backend: fragmentación 2 bloques (order 2 y 50) → consolidate → 1 bloque (order 2), updated=2, has_fragmentation=False. Frontend compila y la tarjeta se muestra. (El 403 en POST con suscripción vencida es el bloqueo de mutaciones por plan; en producción con plan activo funciona.)

@@ -314,6 +314,112 @@ async def _require_admin(current_user) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CONSOLIDAR + ORDENAR ÁREAS DE UNA SECCIÓN (para que la libreta no salga fragmentada)
+# ─────────────────────────────────────────────────────────────────────────────
+class ConsolidateSectionRequest(BaseModel):
+    section_id: str
+
+
+async def _section_area_blocks(school_id: str, section_id: str):
+    """Construye los bloques de área tal como saldrán en la libreta para una
+    sección, y detecta nombres de área fragmentados (mismo nombre, varios area_id)."""
+    areas = await db.curricular_areas.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "order": 1}
+    ).to_list(200)
+    areas_map = {a["id"]: a for a in areas}
+
+    subjects = await db.subjects.find(
+        {"school_id": school_id, "section_id": section_id, "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "area_id": 1, "code": 1},
+    ).to_list(500)
+
+    blocks = {}
+    without_area = []
+    for s in subjects:
+        aid = s.get("area_id")
+        if aid and aid in areas_map:
+            blk = blocks.setdefault(aid, {
+                "area_id": aid,
+                "area_name": areas_map[aid].get("name", ""),
+                "order": areas_map[aid].get("order", 999),
+                "subjects": [],
+            })
+            blk["subjects"].append(s.get("name"))
+        else:
+            without_area.append(s.get("name"))
+
+    block_list = sorted(blocks.values(), key=lambda b: (b["order"], b["area_name"]))
+    # nombres fragmentados (mismo nombre normalizado en >1 bloque)
+    name_count = {}
+    for b in block_list:
+        name_count[_slug(b["area_name"])] = name_count.get(_slug(b["area_name"]), 0) + 1
+    for b in block_list:
+        b["fragmented"] = name_count.get(_slug(b["area_name"]), 0) > 1
+    return block_list, without_area
+
+
+@router.get("/curricular-areas/section-layout")
+async def get_section_area_layout(section_id: str, current_user=Depends(get_current_user)):
+    """Vista previa del orden/fragmentación de las áreas de una sección."""
+    user = await _require_admin(current_user)
+    block_list, without_area = await _section_area_blocks(user["school_id"], section_id)
+    return {
+        "section_id": section_id,
+        "areas": block_list,
+        "subjects_without_area": without_area,
+        "has_fragmentation": any(b["fragmented"] for b in block_list),
+    }
+
+
+@router.post("/curricular-areas/consolidate-section")
+async def consolidate_section_areas(req: ConsolidateSectionRequest, current_user=Depends(get_current_user)):
+    """Consolida las asignaturas de la sección: por cada NOMBRE de área, re-vincula
+    todas las asignaturas a un área canónica (la de menor `order`). Así los bloques
+    repetidos se unen y heredan el orden correcto (como la sección de referencia)."""
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+
+    areas = await db.curricular_areas.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "order": 1}
+    ).to_list(200)
+    # Canónica por nombre normalizado = menor order (desempate: menor id)
+    canonical = {}
+    for a in areas:
+        key = _slug(a.get("name", ""))
+        cur = canonical.get(key)
+        if cur is None or (a.get("order", 999), a["id"]) < (cur.get("order", 999), cur["id"]):
+            canonical[key] = a
+
+    subjects = await db.subjects.find(
+        {"school_id": school_id, "section_id": req.section_id, "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "area_id": 1},
+    ).to_list(500)
+    areas_by_id = {a["id"]: a for a in areas}
+
+    updated = 0
+    for s in subjects:
+        aid = s.get("area_id")
+        if not aid or aid not in areas_by_id:
+            continue
+        key = _slug(areas_by_id[aid].get("name", ""))
+        canon = canonical.get(key)
+        if canon and canon["id"] != aid:
+            await db.subjects.update_one(
+                {"id": s["id"], "school_id": school_id},
+                {"$set": {"area_id": canon["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+            )
+            updated += 1
+
+    block_list, _ = await _section_area_blocks(school_id, req.section_id)
+    return {
+        "updated": updated,
+        "areas_after": [{"area_name": b["area_name"], "order": b["order"], "subjects": len(b["subjects"])} for b in block_list],
+        "has_fragmentation": any(b["fragmented"] for b in block_list),
+    }
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CRUD
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/curricular-areas")
