@@ -86,12 +86,15 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
   // Print format options (school-level customization in Ajustes → Libreta).
   const pf = data?.metadata?.print_format || {};
+  // Cuando "Ajustar a una sola hoja" está activo, forzamos SIEMPRE vertical.
+  const effectiveOrient = pf.fit_one_page ? "portrait" : (pf.orientation || "portrait");
   const fmtClass = [
     `lr-fs-${pf.font_scale || "normal"}`,
     `lr-dens-${pf.row_density || "comfortable"}`,
     `lr-ts-${pf.table_style || "thin"}`,
     `lr-paper-${pf.paper_size || "a4"}`,
-    `lr-orient-${pf.orientation || "portrait"}`,
+    `lr-orient-${effectiveOrient}`,
+    pf.fit_one_page ? "lr-fit-one-page" : "",
   ].join(" ");
 
   // Header template (editable in Ajustes → Libreta → "Plantilla del encabezado").
@@ -186,7 +189,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
   // emit a fresh stylesheet whenever the print_format changes.
   useEffect(() => {
     const paper = pf.paper_size || "a4";
-    const orient = pf.orientation || "portrait";
+    const orient = pf.fit_one_page ? "portrait" : (pf.orientation || "portrait");
     const sizeMap = {
       a4: "A4",
       letter: "letter",
@@ -203,7 +206,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
     return () => {
       // Don't remove on unmount — other libretas may still be visible.
     };
-  }, [pf.paper_size, pf.orientation]);
+  }, [pf.paper_size, pf.orientation, pf.fit_one_page]);
 
   const bim4Id = periods.find(p => p.orden === 4)?.id;
   const bim4Closed = bim4Id ? closedSet.has(bim4Id) : false;
@@ -828,7 +831,7 @@ export default function LibretaCard({ data, token, canEdit, userRole, onReload }
 
       {/* ── Página 2: firmas ── */}
       <section
-        className={`lr-page2 lr-paper-${pf.paper_size || "a4"} lr-orient-${pf.orientation || "portrait"}`}
+        className={`lr-page2 lr-paper-${pf.paper_size || "a4"} lr-orient-${effectiveOrient}`}
         style={{ "--lr-sig-mt": sigBlockMt }}
       >
         <div className="lr-page-header">

@@ -197,6 +197,7 @@ class PrintFormatBody(BaseModel):
     paper_size: Optional[str] = None  # "a4" | "letter" | "legal"
     row_density: Optional[str] = None  # "compact" | "comfortable" | "spacious"
     table_style: Optional[str] = None  # "thin" | "bold" | "zebra"
+    fit_one_page: Optional[bool] = None  # True = comprimir firmas + escalar para una sola hoja
 
 
 class HeaderTemplateBody(BaseModel):
@@ -367,6 +368,7 @@ _PRINT_FORMAT_DEFAULTS = {
     "paper_size": "a4",
     "row_density": "comfortable",
     "table_style": "thin",
+    "fit_one_page": False,
 }
 _PRINT_FORMAT_ALLOWED = {
     "font_scale": {"small", "normal", "large", "xlarge"},
@@ -382,6 +384,8 @@ def _merge_print_format(stored) -> dict:
     if isinstance(stored, dict):
         for k, v in stored.items():
             if k in _PRINT_FORMAT_ALLOWED and v in _PRINT_FORMAT_ALLOWED[k]:
+                out[k] = v
+            elif k == "fit_one_page" and isinstance(v, bool):
                 out[k] = v
     return out
 
@@ -466,6 +470,8 @@ async def update_report_card_settings(
         merged = _merge_print_format(stored)
         for k, v in body.print_format.dict(exclude_unset=True).items():
             if k in _PRINT_FORMAT_ALLOWED and v in _PRINT_FORMAT_ALLOWED[k]:
+                merged[k] = v
+            elif k == "fit_one_page" and isinstance(v, bool):
                 merged[k] = v
         update_fields["libreta_print_format"] = merged
     if body.header_template is not None:

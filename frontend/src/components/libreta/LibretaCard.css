@@ -183,6 +183,36 @@
   .lr-grades tr { page-break-inside: avoid; page-break-after: auto; }
 }
 
+/* ── "Ajustar a una sola hoja" ──
+   Cuando el colegio activa fit_one_page, las firmas dejan de forzar una 2da
+   hoja: se colocan compactas justo debajo de las notas y todo el reporte del
+   alumno se mantiene en una sola página. */
+.libreta-card.lr-fit-one-page .lr-page-header { display: none; }
+@media print {
+  .libreta-card.lr-fit-one-page { page-break-inside: avoid; break-inside: avoid; }
+  .libreta-card.lr-fit-one-page .lr-page-header { display: none !important; }
+  .libreta-card.lr-fit-one-page .lr-page2,
+  .libreta-card.lr-fit-one-page .lr-page2.lr-paper-a4,
+  .libreta-card.lr-fit-one-page .lr-page2.lr-paper-letter,
+  .libreta-card.lr-fit-one-page .lr-page2.lr-paper-legal,
+  .libreta-card.lr-fit-one-page .lr-page2.lr-orient-landscape {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 4px 0 0 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  /* Firmas más arriba: ignora el offset grande de la página 2. */
+  .libreta-card.lr-fit-one-page .lr-signatures { margin-top: 0.6cm !important; }
+  .libreta-card.lr-fit-one-page .lr-sign-canvas { height: 130px !important; }
+  .libreta-card.lr-fit-one-page .lr-sign-line { top: 95px !important; }
+  .libreta-card.lr-fit-one-page .lr-sign-name { top: 99px !important; }
+  .libreta-card.lr-fit-one-page .lr-sign-titletext { top: 113px !important; }
+}
+
+
 /* ── Responsive (preview en pantalla) ── */
 @media (max-width: 900px) {
   .libreta-card { width: 100%; padding: 12px; }

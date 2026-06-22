@@ -749,3 +749,10 @@
 - Backend (libreta.py): el render de la libreta para áreas formales ahora prioriza el area_order denormalizado del subject (per-sección) y cae al order global del área solo si no está definido. (grades.py / consolidado ya usaba area_order per-subject.)
 - Frontend (AdminCurricularAreasPage.jsx): flechas ↑/↓ por área (otMoveArea), botón "Guardar orden" (otSaveOrder) con estado "Tienes cambios sin guardar". Fix data-testid duplicado: el <section> contenedor pasó a order-tool-section-wrapper.
 - Validado E2E (curl): reorder reversed → updated=9, persiste; Sección B del mismo grado NO se afecta (orden global intacto) → confirma por-sección. UI verificada con screenshot: flechas renderizan, reorden local funciona, botón Guardar se habilita. Datos de prueba (fecha_vencimiento del colegio) restaurados tras el test.
+
+### 2026-06-22 — Libreta: "Ajustar a una sola hoja" (firmas compactas + forzar vertical) - COMPLETED
+- Problema: cada libreta imprimía 2 hojas (hoja 1 notas, hoja 2 casi vacía solo con firmas TUTOR/DIRECTOR) por el salto de página forzado + margen grande de firmas (--lr-sig-mt ~4.2cm).
+- Backend (report_cards_pdf.py): nuevo campo print_format.fit_one_page (bool, default False). Añadido a PrintFormatBody, _PRINT_FORMAT_DEFAULTS y a la lógica de merge/PUT (manejo booleano aparte de los enums string).
+- Frontend (LibretaCard.jsx): clase lr-fit-one-page cuando fit_one_page; oculta cabecera "Página 2", coloca firmas compactas (margin-top 0.6cm) justo debajo de notas, canvas de firma 130px, sin salto de página, y mantiene la libreta del alumno junta (break-inside: avoid). Cuando fit_one_page está ON se FUERZA orientación portrait (effectiveOrient) tanto en la clase como en la regla @page inyectada.
+- Frontend (LibretasSettingsTab.jsx): toggle "Ajustar a una sola hoja" en Ajustes → Libreta (sección formato de impresión). Default APAGADO (decisión del usuario).
+- Validado: PUT/GET settings persiste fit_one_page=true/false; render con emulate_media=print muestra firmas debajo de notas en flujo de una sola hoja y "Página 2" oculta. Datos de prueba del colegio (fit_one_page y fecha_vencimiento) restaurados tras el test.

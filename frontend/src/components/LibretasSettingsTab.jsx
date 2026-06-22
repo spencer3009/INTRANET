@@ -18,6 +18,7 @@ const PRINT_DEFAULTS = {
   paper_size: "a4",
   row_density: "comfortable",
   table_style: "thin",
+  fit_one_page: false,
 };
 
 const HEADER_DEFAULTS = {
@@ -1577,6 +1578,21 @@ export default function LibretasSettingsTab({ token }) {
           ]}
           saving={saving}
         />
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors" data-testid="libreta-fit-one-page-label">
+          <input
+            type="checkbox"
+            checked={!!printFormat.fit_one_page}
+            disabled={saving}
+            onChange={(e) => setPrintField("fit_one_page", e.target.checked)}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="libreta-fit-one-page-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Ajustar a una sola hoja</div>
+            <p className="text-xs text-slate-500 mt-0.5">Las firmas (Tutor / Director) se colocan compactas <b>justo debajo de las notas</b>, en lugar de generar una segunda hoja casi vacía. Recomendado para ahorrar papel. Si lo desactivas, vuelve al formato de 2 páginas.</p>
+          </div>
+        </label>
 
         <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-900">
           <b>💡 Tip:</b> el default (Vertical · A4 · Normal · Cómodo) está optimizado para impresión estándar. Si los padres reportan letras muy pequeñas, sube el <b>Tamaño de letra</b> a "Grande". Solo cambia a Horizontal si tu colegio imprime en hojas apaisadas.
