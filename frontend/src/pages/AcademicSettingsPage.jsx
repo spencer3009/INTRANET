@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -1221,6 +1222,47 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     if (!teacherRows) loadTeacherSections();
   };
 
+  // Cursos sin área vinculada (no aparecen en la libreta)
+  const [unlinkedData, setUnlinkedData] = useState(null);
+  const [unlinkedLoading, setUnlinkedLoading] = useState(false);
+  const [linkingKey, setLinkingKey] = useState(null);
+  const [areaPicks, setAreaPicks] = useState({}); // { subjectId: areaId }
+
+  const loadUnlinkedSubjects = async () => {
+    setUnlinkedLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/data-integrity/unlinked-subjects`, { headers });
+      setUnlinkedData(res.data);
+    } catch (err) {
+      setDiagError(err.response?.data?.detail || "No se pudo cargar la lista de cursos sin área");
+    } finally {
+      setUnlinkedLoading(false);
+    }
+  };
+
+  const goToLibretaTab = () => {
+    setDiagSubTab("libreta");
+    if (!unlinkedData) loadUnlinkedSubjects();
+  };
+
+  const linkSubjectToArea = async (subjectId) => {
+    const areaId = areaPicks[subjectId];
+    if (!areaId) {
+      toast.error("Selecciona un área primero");
+      return;
+    }
+    setLinkingKey(subjectId);
+    try {
+      await axios.put(`${API}/subjects/${subjectId}/area`, { area_id: areaId }, { headers });
+      toast.success("Curso vinculado al área. Ya aparecerá en la libreta.");
+      await loadUnlinkedSubjects();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo vincular el curso");
+    } finally {
+      setLinkingKey(null);
+    }
+  };
+
   // Token-based match: every word in the query must appear (any order),
   // so "diana osorio huaman" matches "DIANA GABRIELA OSORIO HUAMAN".
   const matchesQuery = (haystack, query) => {
@@ -1820,6 +1862,71 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     </div>
   );
 
+  // Vista: cursos por sección SIN área curricular vinculada → no salen en libreta
+  const renderUnlinkedSubjects = () => {
+    if (unlinkedLoading) {
+      return <div className="text-center py-12 text-slate-400" data-testid="unlinked-loading"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
+    }
+    const data = unlinkedData;
+    const areas = data?.areas || [];
+    const sections = data?.sections || [];
+    return (
+      <div data-testid="unlinked-subjects-view">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-sm text-amber-800">
+          <p className="font-semibold mb-1 flex items-center gap-2"><BookOpen className="w-4 h-4" /> Cursos sin área curricular</p>
+          <p>Estos cursos <strong>no aparecen en la libreta</strong> porque no están vinculados a un área. Asígnales el área correcta (ej. GEOGRAFÍA → PERSONAL SOCIAL) y aparecerán de inmediato.</p>
+        </div>
+
+        {sections.length === 0 ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center text-emerald-700 font-medium" data-testid="unlinked-empty">
+            <Check className="w-6 h-6 mx-auto mb-2" />
+            Todos los cursos están vinculados a un área. 🎉
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {sections.map((sec) => (
+              <div key={sec.section_id || "none"} className="bg-white border border-slate-200 rounded-xl overflow-hidden" data-testid={`unlinked-section-${sec.section_id || "none"}`}>
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-slate-500" />
+                  <span className="font-bold text-slate-700">{sec.label}</span>
+                  <span className="text-xs text-slate-400">({sec.subjects.length} curso{sec.subjects.length !== 1 ? "s" : ""} sin área)</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {sec.subjects.map((s) => (
+                    <div key={s.id} className="px-4 py-3 flex items-center gap-3 flex-wrap" data-testid={`unlinked-subject-${s.id}`}>
+                      <div className="flex-1 min-w-[160px]">
+                        <span className="font-medium text-slate-800 text-sm">{s.name}</span>
+                        {s.code && <span className="ml-2 text-xs text-slate-400">{s.code}</span>}
+                      </div>
+                      <select
+                        value={areaPicks[s.id] || ""}
+                        onChange={(e) => setAreaPicks((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[180px]"
+                        data-testid={`unlinked-area-select-${s.id}`}
+                      >
+                        <option value="">Seleccionar área...</option>
+                        {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                      <button
+                        onClick={() => linkSubjectToArea(s.id)}
+                        disabled={linkingKey === s.id || !areaPicks[s.id]}
+                        className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        data-testid={`unlinked-link-btn-${s.id}`}
+                      >
+                        {linkingKey === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Vincular
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
   // Diagnóstico render (solo lectura)
   // Vista: todos los docentes con sus secciones/grados (verificación post-corrección)
   const renderTeacherSections = () => {
@@ -2151,7 +2258,16 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           >
             Todos los docentes y secciones
           </button>
+          <button
+            onClick={goToLibretaTab}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${diagSubTab === "libreta" ? "border-amber-500 text-amber-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+            data-testid="diag-subtab-libreta"
+          >
+            Cursos sin área (no salen en libreta){unlinkedData ? ` (${unlinkedData.total_unlinked})` : ""}
+          </button>
         </div>
+
+        {diagSubTab === "libreta" && renderUnlinkedSubjects()}
 
         {diagSubTab === "todos" && renderTeacherSections()}
 

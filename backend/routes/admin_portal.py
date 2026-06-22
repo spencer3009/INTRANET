@@ -4,7 +4,7 @@ Extracted from server.py during modularization.
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, Form, UploadFile, File, BackgroundTasks, Request
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import uuid
@@ -1949,6 +1949,62 @@ async def get_teacher_sections(current_user=Depends(get_current_user)):
         "all_sections": all_sections,
         "rows": rows,
     }
+
+
+@router.get("/admin/data-integrity/unlinked-subjects")
+async def get_unlinked_subjects(current_user=Depends(get_current_user)):
+    """SUPPORT ONLY: cursos por sección que NO están vinculados a un área
+    curricular (area_id vacío). Estos cursos NO aparecen en la libreta.
+    Devuelve también el catálogo de áreas para poder vincularlos."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    is_support = user.get("role") == "system_admin_global" or user.get("is_support_session")
+    if not is_support:
+        raise HTTPException(status_code=403, detail="Solo soporte técnico puede acceder a este diagnóstico")
+    school_id = user["school_id"]
+
+    areas = await db.curricular_areas.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "order": 1}
+    ).sort("order", 1).to_list(100)
+    areas_out = [{"id": a["id"], "name": a.get("name")} for a in areas]
+
+    sections = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(5000)}
+    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(2000)}
+
+    subjects = await db.subjects.find(
+        {"school_id": school_id, "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "section_id": 1, "area_id": 1, "code": 1},
+    ).to_list(10000)
+
+    by_section: Dict[str, dict] = {}
+    for s in subjects:
+        if s.get("area_id"):
+            continue  # ya vinculado
+        sec_id = s.get("section_id")
+        sec = sections.get(sec_id)
+        grade_name = grades.get((sec or {}).get("grado_id"), {}).get("nombre")
+        sec_name = (sec or {}).get("nombre")
+        label = f"{grade_name or '?'} – {sec_name or '?'}" if sec_id else "Sin sección"
+        bucket = by_section.setdefault(sec_id or "__none__", {
+            "section_id": sec_id,
+            "label": label,
+            "grade_name": grade_name,
+            "section_name": sec_name,
+            "subjects": [],
+        })
+        bucket["subjects"].append({"id": s["id"], "name": s.get("name"), "code": s.get("code")})
+
+    result = sorted(by_section.values(), key=lambda x: (x.get("label") or ""))
+    for r in result:
+        r["subjects"].sort(key=lambda x: (x.get("name") or "").lower())
+
+    return {
+        "areas": areas_out,
+        "sections": result,
+        "total_unlinked": sum(len(r["subjects"]) for r in result),
+    }
+
 
 
 class RenameSubjectRequest(BaseModel):

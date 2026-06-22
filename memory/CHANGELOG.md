@@ -729,3 +729,10 @@
   - ReportsTab (alumnos): toggle "Por día/Por rango" (studentMode); día requiere grado+sección+fecha; rango = reporte antiguo intacto + planilla intacta.
   - MaintenanceReportsTab (administrativo): toggle Por día/Por rango; día auto-carga hoy + botón Hoy; rango = reporte antiguo intacto.
 - Tests: test_daily_teacher_attendance.py ampliado a 8 tests (profesores+administrativo+alumnos+helpers) — 8/8 passing. Testing agent iteration_216: backend 100%, frontend 100%, sin issues.
+
+### 2026-06-19 — Diagnóstico: vincular cursos sin área (para que salgan en libreta) - COMPLETED
+- Causa raíz: la libreta (LibretaCard.jsx) solo renderiza cursos vinculados a un área curricular; los "subjects_without_area" no se muestran. Cursos como GEOGRAFÍA./DESARROLLO en 4°B no tenían area_id → no aparecían.
+- Backend: nuevo GET /api/admin/data-integrity/unlinked-subjects (support-only) lista cursos sin area_id agrupados por sección + catálogo de áreas. Reutiliza PUT /api/subjects/{id}/area para vincular.
+- Diagnóstico mejorado previamente: muestra dónde viven realmente las notas (grades_misplaced/grades_breakdown).
+- Frontend (AcademicSettingsPage.jsx): nueva sub-pestaña "Cursos sin área (no salen en libreta)" con select de área + botón Vincular por curso. Import de toast (sonner).
+- Validado: flujo link/unlink end-to-end (el curso desaparece de la lista al vincularse). Compila OK.
