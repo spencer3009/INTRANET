@@ -625,7 +625,7 @@ async def get_libreta(
                 by_area[area_id] = {
                     "id": area_id,
                     "name": area.get("name", ""),
-                    "order": area.get("order", 999),
+                    "order": s.get("area_order") if s.get("area_order") is not None else area.get("order", 999),
                     "subjects": [],
                 }
             by_area[area_id]["subjects"].append(subj_block)

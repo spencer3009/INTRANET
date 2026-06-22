@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Sparkles, Save, X, Loader2,
   BookMarked, RefreshCcw, ChevronDown, ChevronRight as ChevRight,
-  Archive, AlertTriangle, ListOrdered, CheckCircle2,
+  Archive, AlertTriangle, ListOrdered, CheckCircle2, ArrowUp, ArrowDown,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AreaSubjectsManager from "../components/curricular/AreaSubjectsManager";
@@ -44,6 +44,8 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   const [otLayout, setOtLayout] = useState(null);
   const [otLoading, setOtLoading] = useState(false);
   const [otConsolidating, setOtConsolidating] = useState(false);
+  const [otOrderDirty, setOtOrderDirty] = useState(false);
+  const [otSavingOrder, setOtSavingOrder] = useState(false);
 
   const openOrderTool = async () => {
     setOrderToolOpen(true);
@@ -65,7 +67,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
   };
 
   const otLoadLayout = async (sectionId) => {
-    setOtSection(sectionId); setOtLayout(null);
+    setOtSection(sectionId); setOtLayout(null); setOtOrderDirty(false);
     if (!sectionId) return;
     setOtLoading(true);
     try {
@@ -74,6 +76,36 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
     } catch (e) {
       toast.error(e.response?.data?.detail || "No se pudo cargar el orden de áreas");
     } finally { setOtLoading(false); }
+  };
+
+  const otMoveArea = (idx, dir) => {
+    setOtLayout((prev) => {
+      if (!prev) return prev;
+      const arr = [...prev.areas];
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return prev;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      return { ...prev, areas: arr };
+    });
+    setOtOrderDirty(true);
+  };
+
+  const otSaveOrder = async () => {
+    if (!otSection || !otLayout) return;
+    setOtSavingOrder(true);
+    try {
+      const area_ids = otLayout.areas.map((b) => b.area_id);
+      const res = await axios.post(
+        `${API}/curricular-areas/reorder-section`,
+        { section_id: otSection, area_ids },
+        { headers }
+      );
+      setOtLayout(res.data);
+      setOtOrderDirty(false);
+      toast.success("Orden guardado. Así saldrán las áreas en la libreta de esta sección.");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "No se pudo guardar el orden");
+    } finally { setOtSavingOrder(false); }
   };
 
   const otConsolidate = async () => {
@@ -306,7 +338,7 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
 
           {/* ── Herramienta: Ordenar / Consolidar áreas por sección ── */}
           {isAdmin && (
-            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" data-testid="order-tool-section">
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" data-testid="order-tool-section-wrapper">
               <button
                 onClick={() => (orderToolOpen ? setOrderToolOpen(false) : openOrderTool())}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition"
@@ -359,9 +391,30 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                           <CheckCircle2 className="w-4 h-4" /> Las áreas de esta sección están bien ordenadas, sin repeticiones.
                         </div>
                       )}
+                      <p className="text-xs text-slate-500 mb-2">Usa las flechas para definir el orden en que aparecen las áreas en la libreta de <strong>esta sección</strong>, luego pulsa <strong>"Guardar orden"</strong>.</p>
                       <ol className="space-y-1.5">
                         {otLayout.areas.map((b, idx) => (
                           <li key={b.area_id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${b.fragmented ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`} data-testid={`order-tool-area-${idx}`}>
+                            <div className="flex flex-col -my-1">
+                              <button
+                                onClick={() => otMoveArea(idx, -1)}
+                                disabled={idx === 0 || otSavingOrder || otConsolidating}
+                                className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:hover:text-slate-400 transition p-0.5"
+                                title="Subir"
+                                data-testid={`order-tool-up-${idx}`}
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => otMoveArea(idx, 1)}
+                                disabled={idx === otLayout.areas.length - 1 || otSavingOrder || otConsolidating}
+                                className="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:hover:text-slate-400 transition p-0.5"
+                                title="Bajar"
+                                data-testid={`order-tool-down-${idx}`}
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                             <span className="text-xs font-bold text-slate-400 w-5">{idx + 1}</span>
                             <span className={`font-semibold text-sm ${b.fragmented ? "text-amber-800" : "text-slate-700"}`}>{b.area_name}</span>
                             {b.fragmented && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">REPETIDA</span>}
@@ -369,6 +422,19 @@ export default function AdminCurricularAreasPage({ user, token, subdomain, onLog
                           </li>
                         ))}
                       </ol>
+                      {otLayout.areas.length > 1 && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            onClick={otSaveOrder}
+                            disabled={!otOrderDirty || otSavingOrder || otConsolidating}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-1.5"
+                            data-testid="order-tool-save"
+                          >
+                            {otSavingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar orden
+                          </button>
+                          {otOrderDirty && <span className="text-xs text-amber-600 font-medium">Tienes cambios sin guardar</span>}
+                        </div>
+                      )}
                       {otLayout.subjects_without_area?.length > 0 && (
                         <p className="text-xs text-slate-400 mt-2">Sin área (no salen en libreta): {otLayout.subjects_without_area.join(", ")}</p>
                       )}

@@ -321,6 +321,7 @@ class ConsolidateSectionRequest(BaseModel):
 
 
 class ReorderAreasRequest(BaseModel):
+    section_id: str
     area_ids: List[str]
 
 
@@ -334,7 +335,7 @@ async def _section_area_blocks(school_id: str, section_id: str):
 
     subjects = await db.subjects.find(
         {"school_id": school_id, "section_id": section_id, "status": {"$ne": "inactive"}},
-        {"_id": 0, "id": 1, "name": 1, "area_id": 1, "code": 1},
+        {"_id": 0, "id": 1, "name": 1, "area_id": 1, "code": 1, "area_order": 1},
     ).to_list(500)
 
     blocks = {}
@@ -347,10 +348,20 @@ async def _section_area_blocks(school_id: str, section_id: str):
                 "area_name": areas_map[aid].get("name", ""),
                 "order": areas_map[aid].get("order", 999),
                 "subjects": [],
+                "_section_orders": [],
             })
             blk["subjects"].append(s.get("name"))
+            if s.get("area_order") is not None:
+                blk["_section_orders"].append(s.get("area_order"))
         else:
             without_area.append(s.get("name"))
+
+    # Orden específico de sección: si las asignaturas tienen `area_order` propio
+    # (definido manualmente para esta sección), prevalece sobre el orden global.
+    for b in blocks.values():
+        if b["_section_orders"]:
+            b["order"] = min(b["_section_orders"])
+        del b["_section_orders"]
 
     block_list = sorted(blocks.values(), key=lambda b: (b["order"], b["area_name"]))
     # nombres fragmentados (mismo nombre normalizado en >1 bloque)
@@ -418,6 +429,34 @@ async def consolidate_section_areas(req: ConsolidateSectionRequest, current_user
     return {
         "updated": updated,
         "areas_after": [{"area_name": b["area_name"], "order": b["order"], "subjects": len(b["subjects"])} for b in block_list],
+        "has_fragmentation": any(b["fragmented"] for b in block_list),
+    }
+
+
+@router.post("/curricular-areas/reorder-section")
+async def reorder_section_areas(req: ReorderAreasRequest, current_user=Depends(get_current_user)):
+    """Define el orden manual de las áreas en la libreta DE ESTA SECCIÓN.
+    Persiste `area_order` (1..N) en las asignaturas de la sección según el orden
+    enviado. Es específico por sección: no afecta el orden de otras secciones."""
+    user = await _require_admin(current_user)
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+
+    updated = 0
+    for idx, aid in enumerate(req.area_ids):
+        if not aid:
+            continue
+        r = await db.subjects.update_many(
+            {"school_id": school_id, "section_id": req.section_id, "area_id": aid, "status": {"$ne": "inactive"}},
+            {"$set": {"area_order": idx + 1, "updated_at": now}},
+        )
+        updated += r.modified_count
+
+    block_list, without_area = await _section_area_blocks(school_id, req.section_id)
+    return {
+        "updated": updated,
+        "areas": block_list,
+        "subjects_without_area": without_area,
         "has_fragmentation": any(b["fragmented"] for b in block_list),
     }
 
