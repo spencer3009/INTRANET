@@ -320,6 +320,10 @@ class ConsolidateSectionRequest(BaseModel):
     section_id: str
 
 
+class ReorderAreasRequest(BaseModel):
+    area_ids: List[str]
+
+
 async def _section_area_blocks(school_id: str, section_id: str):
     """Construye los bloques de área tal como saldrán en la libreta para una
     sección, y detecta nombres de área fragmentados (mismo nombre, varios area_id)."""
