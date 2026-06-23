@@ -1385,6 +1385,7 @@ async def switch_school(req: SwitchSchoolRequest, user=Depends(require_support_a
         "email_verified": True,
         "scope": "support_switch",
         "active_school_id": req.school_id,
+        "is_support_session": True,
         "exp": datetime.now(timezone.utc).timestamp() + 86400 * 7
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)

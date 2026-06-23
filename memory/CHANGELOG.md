@@ -777,3 +777,10 @@
 - NO TOCADO: LibretaCard.css, LibretaPage.jsx, useReactToPrint, impresión individual.
 - SMOKE TESTS (preview): (1) Libreta vacía (3 años inicial) → PDF analizado: texto DENTRO de celdas, filas uniformes, sin solapes, sin corrupción. (2) Robustez lote: 15 renders concurrentes → 15/15 OK, serializados por Semaphore, memoria estable (10Gi libres), 1 navegador persistente. (3) Caso pesado 4to B: NO reproducible en preview (datos demo: máx 1 nota/alumno, máx 10 asig/sección) — pero el motor es Chromium = idéntico al "Imprimir" individual (ya validado perfecto en 4to B por el usuario) → fidelidad garantizada por construcción.
 - PENDIENTE USUARIO: tras Deploy, validar ZIP del 4to B real en producción (preview no tiene esa data).
+
+### 2026-06-23 — Fix 403 en descarga ZIP (render-pdf) para sesiones de SOPORTE — IMPLEMENTED & TESTED
+- Síntoma producción: POST /api/report-cards/render-pdf devolvía 403 en sesión de Soporte sobre colegio con suscripción vencida. NO era Chromium ni Cloudflare.
+- Causa raíz: subscription_restriction_middleware (server.py) bloquea POST/PUT/PATCH/DELETE para role owner/admin cuando la suscripción está RESTRICCION_PARCIAL/PAGO_OBLIGATORIO/SUSPENDIDO, salvo SUBSCRIPTION_SAFE_PATHS. render-pdf es POST y no estaba en la lista. Soporte actúa como role="owner", así que caía en el bloqueo.
+- Decisión de negocio: mantener restricción para dueños reales (palanca de cobro); EXENTAR solo sesiones de Soporte, y SOLO para el flujo render-pdf.
+- Fix: (1) support.py — añadido `is_support_session: True` al payload del JWT de soporte. (2) server.py middleware — antes del 403, si `payload.is_support_session is True OR payload.scope == "support_switch"` (marcas exclusivas del token de soporte; create_token normal NUNCA las tiene) Y `path startswith /api/report-cards/render-pdf` → deja pasar. El bypass NO depende del rol. `scope` cubre tokens de soporte ya emitidos (7 días) sin re-login.
+- Smoke tests (localhost, colegio elroble SUSPENDIDO): T1 Soporte→render-pdf=200 ✅ | T2 dueño real→render-pdf=403 ✅ | T3 Soporte→settings(otra escritura)=403 ✅ (bypass acotado) | T4 colegio al día→dueño→render-pdf=200 ✅.

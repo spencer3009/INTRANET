@@ -171,6 +171,18 @@ async def subscription_restriction_middleware(request: Request, call_next):
                 token = auth_header[7:]
                 try:
                     payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                    # BYPASS (solo Soporte + solo flujo de render-pdf):
+                    # Una sesión de Soporte (is_support_session) puede generar el PDF
+                    # de libretas aunque la suscripción del colegio esté vencida. El
+                    # bypass NO depende del rol (Soporte actúa como "owner", igual que
+                    # el dueño real) sino de marcas exclusivas del token de soporte.
+                    # `scope == "support_switch"` cubre tokens de soporte ya emitidos.
+                    is_support_session = (
+                        payload.get("is_support_session") is True
+                        or payload.get("scope") == "support_switch"
+                    )
+                    if is_support_session and path.startswith("/api/report-cards/render-pdf"):
+                        return await call_next(request)
                     role = payload.get("role", "")
                     school_id = payload.get("school_id")
                     if role in ("owner", "admin", "auxiliar_alimentacion") and school_id:
