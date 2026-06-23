@@ -756,3 +756,14 @@
 - Frontend (LibretaCard.jsx): clase lr-fit-one-page cuando fit_one_page; oculta cabecera "Página 2", coloca firmas compactas (margin-top 0.6cm) justo debajo de notas, canvas de firma 130px, sin salto de página, y mantiene la libreta del alumno junta (break-inside: avoid). Cuando fit_one_page está ON se FUERZA orientación portrait (effectiveOrient) tanto en la clase como en la regla @page inyectada.
 - Frontend (LibretasSettingsTab.jsx): toggle "Ajustar a una sola hoja" en Ajustes → Libreta (sección formato de impresión). Default APAGADO (decisión del usuario).
 - Validado: PUT/GET settings persiste fit_one_page=true/false; render con emulate_media=print muestra firmas debajo de notas en flujo de una sola hoja y "Página 2" oculta. Datos de prueba del colegio (fit_one_page y fecha_vencimiento) restaurados tras el test.
+
+### 2026-06-22 — Consolidado de Notas: columna CONDUCTA salía vacía - FIXED
+- Causa raíz: en routes/grades.py `get_consolidated_report` el campo estaba fijado en `"conducta": None` y nunca se consultaba la colección `conduct_grades` (donde el tutor guarda la letra A/B/C/AD por {student_id, period_id}).
+- Fix: antes de armar las filas, se leen las conductas del bimestre por student_id (db.conduct_grades), se mapean y se asigna row["conducta"] = letra. Arregla tanto la tabla en pantalla como el export a Excel (ambos usan student.conducta). Frontend (ConsolidatedGradesPage.jsx) ya renderiza student.conducta — sin cambios.
+- Validado (curl GET consolidated-report, sección 11f50cbc / bimestre 067d5081): alumno con conducta registrada ahora muestra "AD"; resto vacío por no tener conducta cargada aún.
+
+### 2026-06-23 — Descarga masiva de libretas (ZIP) salía desconfigurada - FIXED
+- Síntoma: la impresión individual (navegador, @media print) se ve perfecta, pero el botón "Descargar libretas (ZIP)" generaba PDFs deformados (padding reducido, texto pegado a los bordes).
+- Causa raíz: utils/libretaPdf.js capturaba con html2canvas usando windowWidth = el.scrollWidth. El host off-screen mide 794px (.libreta-card = 21cm ≈ 793.7px), por lo que la ventana virtual de html2canvas (<900px) ACTIVABA el breakpoint responsive `@media (max-width:900px)` que cambia .libreta-card a width:100%/padding:12px → deformaba la tabla. La impresión individual usa @media print y no sufre el breakpoint.
+- Fix (libretaPdf.js captureElement): se lee el width/padding computado REAL (escritorio) de .libreta-card y se re-aplica inline en el clon vía onclone; además windowWidth = max(scrollWidth, 1100) para que las media queries evalúen como escritorio. Funciona para cualquier tamaño de papel (lee el valor computado).
+- Validado: comparación html2canvas ANTES (794px, padding reducido, texto pegado) vs DESPUES (padding escritorio restaurado) con lockW=793.688px. Frontend-only. Nota: no se pudo reproducir el caso pesado 4to B en preview por datos demo incompletos, pero la causa/fix están confirmados.

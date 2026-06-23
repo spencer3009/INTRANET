@@ -28,13 +28,29 @@ async function captureElement(el) {
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch (_) { /* ignore */ }
   }
+  // Bloqueamos el ancho/padding REAL (escritorio) de la libreta para que la
+  // captura no active el breakpoint responsive `@media (max-width:900px)`
+  // (que en la ventana virtual de html2canvas reduce el padding y deforma la
+  // tabla). Leemos los valores computados en el documento real (ventana ancha)
+  // y los re-aplicamos inline en el clon, para cualquier tamaño de papel.
+  const card = el.querySelector(".libreta-card") || el;
+  const cs = window.getComputedStyle(card);
+  const lockWidth = cs.width;
+  const lockPadding = cs.padding;
   const canvas = await html2canvas(el, {
     scale: 2,
     useCORS: true,
     backgroundColor: "#ffffff",
     logging: false,
-    windowWidth: el.scrollWidth,
+    windowWidth: Math.max(el.scrollWidth || 794, 1100),
     windowHeight: el.scrollHeight,
+    onclone: (doc) => {
+      doc.querySelectorAll(".libreta-card").forEach((c) => {
+        c.style.width = lockWidth;
+        c.style.maxWidth = "none";
+        c.style.padding = lockPadding;
+      });
+    },
   });
   return canvas;
 }

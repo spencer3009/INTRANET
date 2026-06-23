@@ -1154,6 +1154,16 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
     # compartido `services.ranking.compute_ranking` (Fase 2 — Turno A).
     ranking_map = await compute_ranking(db, school_id, section_id, period_id)
 
+    # Conducta del bimestre (la nota que coloca el tutor). Se guarda en
+    # `conduct_grades` por {student_id, period_id}. La leemos por alumno para
+    # que la columna CONDUCTA del consolidado deje de salir vacía.
+    student_ids = [s["id"] for s in students]
+    conduct_docs = await db.conduct_grades.find(
+        {"school_id": school_id, "period_id": period_id, "student_id": {"$in": student_ids}},
+        {"_id": 0, "student_id": 1, "letra": 1, "score_numeric": 1},
+    ).to_list(1000)
+    conduct_map = {c["student_id"]: c for c in conduct_docs}
+
     student_rows = []
     for i, student in enumerate(students):
         student_grades = grades_lookup.get(student["id"], {})
@@ -1166,7 +1176,7 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
             "student_id": student["id"],
             "student_name": f"{student.get('last_name', '')} {student.get('name', '')}".strip(),
             "grades": {},
-            "conducta": None,
+            "conducta": (conduct_map.get(student["id"]) or {}).get("letra"),
             "promedio": rinfo.get("promedio"),
             "puntaje": rinfo.get("puntaje"),
             "n_desaprobados": rinfo.get("cursos_desaprobados", 0),
