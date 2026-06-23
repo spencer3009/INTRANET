@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { Download, Loader2 } from "lucide-react";
 
 import LibretaCard from "@/components/libreta/LibretaCard";
-import { libretaElementToPdfBlob, safeFilename } from "@/utils/libretaPdf";
+import { safeFilename } from "@/utils/libretaPdf";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -88,12 +88,29 @@ export default function BulkLibretaZipButton({
             );
             setTimeout(resolve, 350);
           });
-          const blob = await libretaElementToPdfBlob(host);
+          // Reusa el MISMO HTML renderizado + el mismo CSS @media print: lo
+          // mandamos al backend, que lo imprime a PDF con Chromium (idéntico al
+          // botón "Imprimir" individual). Reemplaza a html2canvas (que deformaba).
+          const cardEl = host.querySelector(".libreta-card");
+          const cardHtml = cardEl ? cardEl.outerHTML : host.innerHTML;
+          const pf = data?.metadata?.print_format || {};
+          root.unmount();
+          host.remove();
+
+          const pdfRes = await axios.post(
+            `${API}/report-cards/render-pdf`,
+            {
+              html: cardHtml,
+              paper_size: pf.paper_size || "a4",
+              orientation: pf.orientation || "portrait",
+              fit_one_page: !!pf.fit_one_page,
+            },
+            { headers, responseType: "blob", timeout: 60000 }
+          );
+          const blob = pdfRes.data;
           const numStr = String(idx).padStart(2, "0");
           const fname = `${numStr}_${safeFilename(stu.last_name || "")}_${safeFilename(stu.name || "")}.pdf`;
           zip.file(fname, blob);
-          root.unmount();
-          host.remove();
         } catch (e) {
           errors.push(`${fullName}: ${e?.response?.data?.detail || e?.message || "error"}`);
         }

@@ -63,6 +63,7 @@ from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
 from routes.diag_registro import router as diag_registro_router
 from routes.report_cards_pdf import router as report_cards_pdf_router
+from routes.libreta_pdf_render import router as libreta_pdf_render_router
 from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
 from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
@@ -202,6 +203,7 @@ async def subscription_restriction_middleware(request: Request, call_next):
 app.include_router(monitoring_router)   # /api/health and /api/health/db FIRST — readiness probe for Emergent
 app.include_router(diag_registro_router)   # Temporary read-only diagnostic tool
 app.include_router(report_cards_pdf_router)  # Libretas PDF (Drive upload)
+app.include_router(libreta_pdf_render_router)  # Libretas → PDF fiel via Chromium (descarga ZIP)
 
 app.include_router(auth_router)
 app.include_router(dashboard_router)
