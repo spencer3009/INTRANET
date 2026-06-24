@@ -3053,35 +3053,35 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <button
                         onClick={handleExportTeacherCredentials}
                         disabled={exportingTeacherCredentials}
-                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                         data-testid="export-teacher-credentials-btn"
                       >
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                          {exportingTeacherCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                          {exportingTeacherCredentials ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Download className="w-4 h-4 text-white" />}
                         </div>
                         <span className="hidden sm:inline">{exportingTeacherCredentials ? "Exportando..." : "Credenciales"}</span>
                       </button>
                       <button
                         onClick={handleDownloadTeacherQR}
                         disabled={downloadingTeacherQR}
-                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden"
                         data-testid="download-teacher-qr-btn"
                       >
                         {downloadingTeacherQR && qrDownloadProgress > 0 && (
                           <div className="absolute bottom-0 left-0 h-1 bg-violet-500 transition-all duration-300 rounded-b-xl" style={{ width: `${qrDownloadProgress}%` }} />
                         )}
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center`}>
-                          {downloadingTeacherQR ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <QrCode className="w-5 h-5 text-white" />}
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center`}>
+                          {downloadingTeacherQR ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <QrCode className="w-4 h-4 text-white" />}
                         </div>
                         <span className="hidden sm:inline">{downloadingTeacherQR ? `Generando... ${qrDownloadProgress}%` : "Descargar QR"}</span>
                       </button>
                       <button
                         onClick={() => setShowTemplateDrawer(true)}
-                        className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                         data-testid="template-qr-btn-teacher"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
-                          <Palette className="w-5 h-5 text-white" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                          <Palette className="w-4 h-4 text-white" />
                         </div>
                         <span className="hidden sm:inline">QR con plantilla</span>
                       </button>
@@ -3091,11 +3091,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {['personal_mantenimiento','auxiliar','auxiliar_asistencia','auxiliar_alimentacion','auxiliar_movilidad','auxiliar_topico','psicologo'].includes(selectedRole) && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid={`template-qr-btn-${selectedRole}`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                        <Palette className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">QR con plantilla</span>
                     </button>
@@ -3113,11 +3113,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowBulkQR(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="bulk-qr-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
-                        <QrCode className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
+                        <QrCode className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">Descargar QR</span>
                     </button>
@@ -3167,11 +3167,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && pendingEnrollmentCount > 0 && (
                     <button
                       onClick={() => setShowPendingEnrollments(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 relative"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 relative"
                       data-testid="pending-enrollments-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
-                        <UserPlus className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                        <UserPlus className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">Pendientes</span>
                       <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">{pendingEnrollmentCount}</span>
@@ -3180,11 +3180,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="template-qr-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
+                        <Palette className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">QR con plantilla</span>
                     </button>
@@ -3192,11 +3192,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
                     <button
                       onClick={() => setShowEnrollmentConfig(true)}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="enrollment-config-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
-                        <Settings className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
+                        <Settings className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">Config</span>
                     </button>
