@@ -252,6 +252,7 @@ class ReportCardSettingsUpdate(BaseModel):
     show_grades_parent: Optional[bool] = None
     show_libreta_student: Optional[bool] = None
     show_libreta_parent: Optional[bool] = None
+    show_libreta_column_in_tutoria: Optional[bool] = None
     grade_scale_mode: Optional[str] = None
     grade_scale: Optional[List[Dict[str, object]]] = None
     director_name: Optional[str] = None
@@ -429,6 +430,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "signature_block_offset": _clamp_sig_offset(school.get("libreta_signature_block_offset")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
+        "show_libreta_column_in_tutoria": school.get("show_libreta_column_in_tutoria", True) is not False,
         "google_drive_connected": bool(school.get("google_drive_connected")),
     }
 
@@ -528,6 +530,8 @@ async def update_report_card_settings(
         update_fields["show_libreta_student"] = bool(body.show_libreta_student)
     if body.show_libreta_parent is not None:
         update_fields["show_libreta_parent"] = bool(body.show_libreta_parent)
+    if body.show_libreta_column_in_tutoria is not None:
+        update_fields["show_libreta_column_in_tutoria"] = bool(body.show_libreta_column_in_tutoria)
     if body.grade_scale_mode is not None:
         mode = str(body.grade_scale_mode).strip().lower()
         if mode not in ("default", "custom"):
@@ -590,6 +594,7 @@ async def update_report_card_settings(
         "signature_block_offset": _clamp_sig_offset(school.get("libreta_signature_block_offset")),
         "show_libreta_student": school.get("show_libreta_student", True) is not False,
         "show_libreta_parent": school.get("show_libreta_parent", True) is not False,
+        "show_libreta_column_in_tutoria": school.get("show_libreta_column_in_tutoria", True) is not False,
     }
 
 

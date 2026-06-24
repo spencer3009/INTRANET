@@ -349,9 +349,10 @@ async def bulk_tutor_comments(
 
     # School-level flag: show "Nota a Padres" column?
     school = await db.schools.find_one(
-        {"id": school_id}, {"_id": 0, "show_padres_grade": 1}
+        {"id": school_id}, {"_id": 0, "show_padres_grade": 1, "show_libreta_column_in_tutoria": 1}
     ) or {}
     show_padres_grade = bool(school.get("show_padres_grade", False))
+    show_libreta_column = school.get("show_libreta_column_in_tutoria", True) is not False
 
     # Bimestre cerrado por alumno (snapshots)
     closed_docs = await db.report_cards_snapshots.find(
@@ -380,4 +381,5 @@ async def bulk_tutor_comments(
         "total_students": len(rows),
         "closed_count": len(closed_set),
         "show_padres_grade": show_padres_grade,
+        "show_libreta_column": show_libreta_column,
     }

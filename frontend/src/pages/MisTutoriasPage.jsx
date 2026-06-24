@@ -320,6 +320,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
   const [periodInfo, setPeriodInfo] = useState(null);
   const [savingMap, setSavingMap] = useState({});
   const [showPadresGrade, setShowPadresGrade] = useState(false);
+  const [showLibretaColumn, setShowLibretaColumn] = useState(true);
   const timersRef = useRef({});
 
   const load = useCallback(async () => {
@@ -333,6 +334,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
       setRows(r.data?.students || []);
       setPeriodInfo(r.data?.period || null);
       setShowPadresGrade(!!r.data?.show_padres_grade);
+      setShowLibretaColumn(r.data?.show_libreta_column !== false);
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo cargar la información del bimestre.");
     } finally {
@@ -436,7 +438,7 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
                 <th className="px-3 py-2.5 text-left">COMENTARIO DEL TUTOR — {periodInfo?.nombre}</th>
                 <th className="px-3 py-2.5 text-center w-28">CONDUCTA</th>
                 {showPadresGrade && <th className="px-3 py-2.5 text-center w-28">PADRES</th>}
-                <th className="px-3 py-2.5 text-center w-32">LIBRETA</th>
+                {showLibretaColumn && <th className="px-3 py-2.5 text-center w-32">LIBRETA</th>}
               </tr>
             </thead>
             <tbody>
@@ -508,16 +510,18 @@ function BulkConductCommentsTab({ user, headers, sectionId, periodId }) {
                         </div>
                       </td>
                     )}
-                    <td className="px-3 py-2 text-center align-top">
-                      <a
-                        href={`/${user?.subdomain || "elroble"}/libreta/${r.student_id}?period_id=${periodId}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
-                        data-testid={`tutoria-libreta-link-${r.number}`}
-                      >
-                        <ExternalLink className="w-3 h-3" /> Ver
-                      </a>
-                    </td>
+                    {showLibretaColumn && (
+                      <td className="px-3 py-2 text-center align-top">
+                        <a
+                          href={`/${user?.subdomain || "elroble"}/libreta/${r.student_id}?period_id=${periodId}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                          data-testid={`tutoria-libreta-link-${r.number}`}
+                        >
+                          <ExternalLink className="w-3 h-3" /> Ver
+                        </a>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

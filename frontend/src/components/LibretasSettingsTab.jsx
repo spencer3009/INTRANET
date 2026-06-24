@@ -126,6 +126,7 @@ export default function LibretasSettingsTab({ token }) {
   const [showGradesParent, setShowGradesParent] = useState(true);
   const [showLibretaStudent, setShowLibretaStudent] = useState(true);
   const [showLibretaParent, setShowLibretaParent] = useState(true);
+  const [showLibretaColumnTutoria, setShowLibretaColumnTutoria] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -171,6 +172,7 @@ export default function LibretasSettingsTab({ token }) {
         setShowGradesParent(r.data?.show_grades_parent !== false);
         setShowLibretaStudent(r.data?.show_libreta_student !== false);
         setShowLibretaParent(r.data?.show_libreta_parent !== false);
+        setShowLibretaColumnTutoria(r.data?.show_libreta_column_in_tutoria !== false);
         setDriveConnected(Boolean(r.data?.google_drive_connected));
       } catch (e) {
         setError(e?.response?.data?.detail || "Error al cargar la configuración");
@@ -223,6 +225,23 @@ export default function LibretasSettingsTab({ token }) {
       await axios.put(`${API}/report-cards/settings`, { [field]: newValue }, { headers });
       setter(newValue);
       setSuccess(`${label} ${newValue ? "ocultado" : "visible"} en la libreta.`);
+      setTimeout(() => setSuccess(""), 3500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al actualizar la visibilidad");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Toggle "mostrar" (semántica directa, no es de ocultar) para la columna LIBRETA
+  // en el portal del profesor (Mis Tutorías → Conducta & Comentarios).
+  const handleShowLibretaColumnTutoria = async (newValue) => {
+    setSaving(true);
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { show_libreta_column_in_tutoria: newValue }, { headers });
+      setShowLibretaColumnTutoria(newValue);
+      setSuccess(`Columna "LIBRETA" en el portal del profesor ${newValue ? "activada" : "desactivada"}.`);
       setTimeout(() => setSuccess(""), 3500);
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al actualizar la visibilidad");
@@ -747,6 +766,21 @@ export default function LibretasSettingsTab({ token }) {
           </h3>
           <p className="text-xs text-slate-500 mt-1">Si tu colegio no usa alguna de estas secciones, ocúltala. Los datos quedan guardados — al volver a activar el toggle reaparecen.</p>
         </div>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
+          <input
+            type="checkbox"
+            checked={showLibretaColumnTutoria}
+            disabled={saving}
+            onChange={(e) => handleShowLibretaColumnTutoria(e.target.checked)}
+            className="w-4 h-4 mt-0.5 accent-violet-600"
+            data-testid="tutoria-show-libreta-column-toggle"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-800">Mostrar columna "LIBRETA" en el portal del profesor</div>
+            <p className="text-xs text-slate-500 mt-0.5">Controla si los tutores ven la columna <b>LIBRETA</b> (con el botón <b>Ver</b>) en <b>Mis Tutorías → Conducta &amp; Comentarios</b>. Actívalo para permitir el acceso rápido a la libreta del alumno; desactívalo si tu colegio no quiere mostrar esa opción. <b>Por defecto está activado.</b></p>
+          </div>
+        </label>
 
         <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-violet-300 hover:bg-violet-50/30 transition-colors">
           <input

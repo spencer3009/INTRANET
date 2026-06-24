@@ -1,0 +1,38 @@
+{
+  "summary": "Validated the 'Mostrar columna LIBRETA en portal del profesor' feature. Backend 6/6 pytest PASSED (GET settings default True, PUT blocked 403 by suspended subscription as designed, GET /mis-tutorias/bulk returns show_libreta_column reflecting school flag: True default, False when DB has flag=false, and back to True when $unset). Frontend OWNER UI verified visually: toggle with data-testid='tutoria-show-libreta-column-toggle' is present in Ajustes → Libretas → 'Secciones visibles en la libreta', labeled 'Mostrar columna \"LIBRETA\" en el portal del profesor', and is CHECKED by default (confirmed by screenshot showing a filled checkbox). TUTOR UI could not be exercised end-to-end because the user rafa@gmail.com currently has NO academic_assignments with role='tutor' on elroble (the section 'INICIAL 3 años A' assignment from prior iterations is missing from the DB), so /mis-tutorias renders the empty-state 'No tienes secciones asignadas como tutor' instead of the table. The conditional render logic (showLibretaColumn from r.data.show_libreta_column !== false) is correct and is implicitly validated by the bulk API tests returning the proper boolean. State note: rafa's password hash was out-of-sync with /app/memory/test_credentials.md (Tutor123!); reset to match.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_libreta_column_toggle.py",
+    "/app/test_reports/pytest/libreta_column_219.xml"
+  ],
+  "action_items": [
+    "(Optional, seed data) Re-seed rafa@gmail.com as tutor of INICIAL 3 años A via academic_assignments collection (role='tutor', status='activo') so future testers can exercise the tutor-side conditional render via UI. Current DB has 0 tutor-role assignments for the elroble school."
+  ],
+  "critical_code_review_comments": [
+    "Backend: routes/tutor_comments.py L350-355 reads only show_padres_grade + show_libreta_column_in_tutoria from school doc; pattern is clean and mirrors existing show_padres_grade. The 'is not False' idiom (default True for missing/null/True) is consistent across report_cards_pdf.py L433/L597 and tutor_comments.py L355.",
+    "Frontend: pages/MisTutoriasPage.jsx L337 uses r.data?.show_libreta_column !== false → correctly defaults to true when the API key is missing (defensive). The conditional <th> and <td> blocks (L440 / L512) correctly hide both header and cell.",
+    "Frontend: components/LibretasSettingsTab.jsx L777 toggle uses the same pattern as showPadresGrade so behavior is consistent (PUT on change, optimistic toast). Note: the underlying control here is an HTML <input type=checkbox>, not a Radix Switch, so .checked is the source of truth (not data-state/aria-checked) — testers should use input.evaluate(el => el.checked)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_libreta_column_toggle.py (new)",
+    "MongoDB: users.rafa@gmail.com password reset to Tutor123! (synced with /app/memory/test_credentials.md; previous hash was stale)"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 pytest)",
+    "frontend": "Owner UI PASS (toggle present + checked-by-default verified visually); Tutor UI NOT TESTED via browser due to missing tutor assignment in current DB (logic verified via /mis-tutorias/bulk API tests)"
+  },
+  "test_credentials": "admin@elroble.edu / 1234abc8 (owner); rafa@gmail.com / Tutor123! (tutor — password resynced this iteration)",
+  "seed_data_creation": "None. Test fixture temporarily flips expiration_date/plan_estado on the elroble school to ACTIVO so the tutor token fixture can authenticate, then restores SUSPENDIDO + 2026-06-15 expiration in the module teardown. Also $unset of show_libreta_column_in_tutoria after each test that sets it. Final DB state confirmed restored: plan_estado=SUSPENDIDO, expiration_date=2026-06-15, show_libreta_column_in_tutoria field absent (== default True).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Pytest at /app/backend/tests/test_libreta_column_toggle.py covers GET/PUT report-cards/settings and GET /mis-tutorias/bulk for the show_libreta_column flow. The tutor-token fixture pushes expiration_date to 2099 + plan_estado=ACTIVO during the module, then restores. For the tutor UI flow, rafa@gmail.com has NO tutor assignment in the current DB (sections list is empty) — to validate the column hide/show end-to-end in browser, an academic_assignments document with {school_id:'b9f27249-6568-49ae-94d3-e1f16750d7d9', teacher_id:'5d8c199d-c705-4198-b66f-40925ad178af', role:'tutor', status:'activo', section_id:<any elroble section id>} must exist. The owner-side toggle is a plain HTML <input type=checkbox> (not Radix Switch) — read its state via `input.evaluate(el => el.checked)`, not via aria-checked/data-state.",
+  "rca_of_the_issue": "Not a bug — the feature is implemented correctly. The only friction was test-environment specific: (1) tutor account password (Tutor123!) was out-of-sync with the bcrypt hash in DB — reset; (2) elroble subscription is intentionally SUSPENDIDO which blocks both owner PUT (expected, returns 403) and tutor login itself — worked around in pytest by temporarily setting expiration_date to 2099 inside the tutor_token fixture and restoring on teardown; (3) tutor rafa@gmail.com has no academic_assignments(role=tutor) document in the current DB, so /mis-tutorias/sections returns []; switched the bulk tests to owner_token (admin branch returns all sections of the school) which still exercises the show_libreta_column response correctly. Final DB state restored to defaults."
+}
