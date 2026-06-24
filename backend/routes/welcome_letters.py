@@ -5,10 +5,10 @@ Genera una carta de bienvenida por FAMILIA con las credenciales de acceso del
 padre y de cada hijo (usuario + contraseña), más la ruta de login del colegio.
 
 REGLA DE ORO (seguridad de credenciales):
-  - 100% SOLO-LECTURA sobre contraseñas. Usa EXCLUSIVAMENTE `plain_password`.
+  - 100% SOLO-LECTURA sobre contraseñas. Usa `plain_password`; si falta, cae al DNI
+    (convención del colegio: DNI = clave del alumno/padre). NO usa `password_display`.
   - NUNCA genera, resetea, regenera ni modifica contraseñas/hashes.
   - NO invoca ni replica el flujo de export-credentials (que hace backfill/reset).
-  - Ignora `password_display` como fuente (valores poco confiables: DNI/"123456").
 
 Rendimiento (1000+ alumnos):
   - ReportLab en backend (sin navegador/html2canvas).
@@ -46,6 +46,18 @@ def _sanitize_filename(s: str) -> str:
     return s or "FAMILIA"
 
 
+def _resolve_pwd(person) -> str:
+    """Contraseña a mostrar (SOLO-LECTURA). Usa el texto plano si existe; si no,
+    cae al DNI (convención del colegio: DNI = clave). No modifica nada en la BD."""
+    pwd = person.get("plain_password")
+    if pwd not in (None, ""):
+        return str(pwd)
+    dni = person.get("dni")
+    if dni not in (None, ""):
+        return str(dni)
+    return ""
+
+
 def _fecha_es(distrito: str) -> str:
     now = datetime.now(timezone.utc) - timedelta(hours=5)  # hora Lima
     fecha = f"{now.day} de {_MESES[now.month]} de {now.year}"
@@ -72,13 +84,13 @@ async def _gather_context(school_id: str):
     parents = await db.users.find(
         {"role": "parent", "school_id": school_id, "student_status": {"$ne": "deleted"}},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "username": 1,
-         "plain_password": 1, "student_ids": 1, "children_ids": 1},
+         "plain_password": 1, "dni": 1, "student_ids": 1, "children_ids": 1},
     ).sort([("last_name", 1), ("name", 1)]).to_list(None)
 
     students = await db.users.find(
         {"role": "student", "school_id": school_id, "is_active": {"$ne": False}},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "username": 1,
-         "plain_password": 1, "padre_id": 1, "parent_id": 1},
+         "plain_password": 1, "dni": 1, "padre_id": 1, "parent_id": 1},
     ).to_list(None)
 
     student_by_id = {s["id"]: s for s in students}
@@ -193,7 +205,7 @@ def _build_family_pdf(family, children, ctx, logo_bytes):
     fam_tbl = Table([
         [Paragraph("Familia", cell_b), Paragraph(fam_apellidos, cell)],
         [Paragraph("Usuario", cell_b), Paragraph(str(family.get("username", "")), cell)],
-        [Paragraph("Contraseña", cell_b), Paragraph(str(family.get("plain_password", "")), cell)],
+        [Paragraph("Contraseña", cell_b), Paragraph(_resolve_pwd(family), cell)],
     ], colWidths=[35 * mm, None])
     fam_tbl.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
@@ -216,9 +228,9 @@ def _build_family_pdf(family, children, ctx, logo_bytes):
     rows = [[Paragraph("Estudiante", cell_b), Paragraph("Usuario", cell_b), Paragraph("Contraseña", cell_b)]]
     for ch in children:
         nombre = f"{ch.get('name','')} {ch.get('last_name','')}".strip()
-        pwd = ch.get("plain_password")
+        pwd = _resolve_pwd(ch)
         if pwd:
-            pwd_txt = str(pwd)
+            pwd_txt = pwd
         else:
             pwd_txt = "(no registrada)"
             excluded_children.append(ch)
@@ -261,7 +273,7 @@ def _write_zip(zip_path, ctx, logo_bytes, progress_cb=None):
         for fam in parents:
             processed += 1
             apellidos = (fam.get("last_name") or fam.get("name") or "").strip()
-            if not fam.get("plain_password"):
+            if not _resolve_pwd(fam):
                 omitted_families.append((apellidos, fam.get("username") or fam.get("id")))
                 if progress_cb:
                     progress_cb(processed, total)
