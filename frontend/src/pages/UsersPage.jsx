@@ -3102,11 +3102,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   <button
                     onClick={() => handleAddUser(selectedRole)}
-                    className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                    className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                     data-testid="add-user-circle-btn"
                   >
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                      <Plus className="w-5 h-5 text-white" />
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                      <Plus className="w-4 h-4 text-white" />
                     </div>
                     <span className="hidden sm:inline">Agregar {roleConfig.labelSingular}</span>
                   </button>
@@ -3126,11 +3126,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={handleExportParentCredentials}
                       disabled={exportingParentCredentials}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="export-parent-credentials-btn"
                     >
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                        {exportingParentCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                        {exportingParentCredentials ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Download className="w-4 h-4 text-white" />}
                       </div>
                       <span className="hidden sm:inline">{exportingParentCredentials ? "Exportando..." : "Credenciales"}</span>
                     </button>
@@ -3139,11 +3139,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={handleWelcomeLetters}
                       disabled={generatingWelcome}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="welcome-letters-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
-                        {generatingWelcome ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Mail className="w-5 h-5 text-white" />}
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
+                        {generatingWelcome ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Mail className="w-4 h-4 text-white" />}
                       </div>
                       <span className="hidden sm:inline">
                         {generatingWelcome
@@ -3155,11 +3155,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'parent' && (
                     <button
                       onClick={() => { setDniClaveSobrescribir(false); setDniClaveResult(null); setShowDniClaveModal(true); }}
-                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="asignar-dni-clave-btn"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
-                        <Key className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                        <Key className="w-4 h-4 text-white" />
                       </div>
                       <span className="hidden sm:inline">Asignar DNI como clave</span>
                     </button>
