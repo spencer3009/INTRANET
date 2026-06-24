@@ -16,59 +16,77 @@ from google.auth.transport.requests import Request as GoogleAuthRequest
 
 logger = logging.getLogger(__name__)
 
-FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "")
-FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+# Service account file bundled in the repo (also used by utils/firebase_admin_sdk.py).
+# Used as fallback when the FIREBASE_* env vars are not set.
+_SA_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "secure", "firebase-key.json")
 
-FCM_ENDPOINT = f"https://fcm.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/messages:send"
+
+def _load_sa_info():
+    """Return the service account dict from env (base64/JSON) or the bundled file."""
+    sa_json = (os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON") or "").strip()
+    if sa_json:
+        # base64 first, then raw JSON
+        try:
+            return json.loads(base64.b64decode(sa_json))
+        except Exception:
+            pass
+        try:
+            return json.loads(sa_json)
+        except Exception:
+            pass
+        if os.path.isfile(sa_json):
+            try:
+                with open(sa_json, "r") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+    # Fallback: bundled service account file.
+    if os.path.isfile(_SA_FILE_PATH):
+        try:
+            with open(_SA_FILE_PATH, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"[FCM] Could not read service account file: {e}")
+    return None
+
+
+def _resolve_project_id() -> str:
+    pid = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+    if pid:
+        return pid
+    info = _load_sa_info()
+    return (info or {}).get("project_id", "")
+
+
+FIREBASE_PROJECT_ID = _resolve_project_id()
 SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"]
+
+
+def _fcm_endpoint() -> str:
+    return f"https://fcm.googleapis.com/v1/projects/{_resolve_project_id()}/messages:send"
+
 
 _credentials = None
 
 
 def _is_configured() -> bool:
-    return bool(FIREBASE_PROJECT_ID and FIREBASE_SERVICE_ACCOUNT_JSON)
+    return bool(_resolve_project_id() and _load_sa_info())
 
 
 def _get_credentials():
-    """Load and cache Google OAuth2 credentials from service account."""
+    """Load and cache Google OAuth2 credentials from the service account."""
     global _credentials
     if _credentials and _credentials.valid:
         return _credentials
 
-    if not _is_configured():
+    info = _load_sa_info()
+    if not info:
+        logger.error("[FCM] No service account available (env vars empty and no key file).")
         return None
 
     try:
-        # Try base64 first, then raw JSON, then file path
-        sa_json = FIREBASE_SERVICE_ACCOUNT_JSON.strip()
-        info = None
-
-        # Attempt base64 decode
-        try:
-            decoded = base64.b64decode(sa_json)
-            info = json.loads(decoded)
-        except Exception:
-            pass
-
-        # Attempt raw JSON string
-        if not info:
-            try:
-                info = json.loads(sa_json)
-            except Exception:
-                pass
-
-        # Attempt file path
-        if not info and os.path.isfile(sa_json):
-            with open(sa_json, "r") as f:
-                info = json.load(f)
-
-        if not info:
-            logger.error("[FCM] Could not parse FIREBASE_SERVICE_ACCOUNT_JSON")
-            return None
-
         _credentials = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
         return _credentials
-
     except Exception as e:
         logger.error(f"[FCM] Error loading service account: {e}")
         return None
@@ -131,7 +149,7 @@ async def send_fcm_to_devices(db, devices: list, title: str, body: str, data: di
 
             try:
                 resp = await client.post(
-                    FCM_ENDPOINT,
+                    _fcm_endpoint(),
                     json=payload,
                     headers={
                         "Authorization": f"Bearer {access_token}",
