@@ -2,6 +2,27 @@
 
 ## 2026-06-24
 
+### Portal Profesor — Toggle columna "LIBRETA" en Mis Tutorías
+- Nuevo switch en Propietario → Ajustes → Libreta ("Secciones visibles"):
+  "Mostrar columna LIBRETA en el portal del profesor". Default ACTIVADO.
+- Controla la visibilidad de la columna LIBRETA (botón "Ver") en Portal Profesor →
+  Mis Tutorías → Conducta & Comentarios.
+- Backend: flag `show_libreta_column_in_tutoria` (default True) en
+  GET/PUT /api/report-cards/settings; expuesto como `show_libreta_column` en
+  GET /api/mis-tutorias/bulk (tutor_comments.py).
+- Frontend: MisTutoriasPage.jsx (render condicional th/td) + LibretasSettingsTab.jsx
+  (toggle data-testid='tutoria-show-libreta-column-toggle'). Mirror del patrón
+  show_padres_grade existente.
+- Tests: tests/test_libreta_column_toggle.py 6/6 PASS.
+
+### Logo transparente con fondo negro en PDFs (fix)
+- Causa: convert("RGB") sobre PNG transparente rellena con negro al guardar JPEG.
+- Fix: componer sobre fondo BLANCO antes de RGB/JPEG en welcome_letters.py
+  (_fetch_logo_bytes), users.py (~L2192) y attendance.py (~L3334). Verificado:
+  área transparente → blanca; PDFs siguen generándose 200 OK.
+
+## 2026-06-24 (anterior en el día)
+
 ### Cartas de Bienvenida — Object Storage (resuelve 409 de disco efímero)
 - Migrado el almacenamiento del ZIP del job en background desde `/tmp` (disco
   efímero) al **Object Storage integrado de Emergent** (`integrations.emergentagent.com/objstore`,
