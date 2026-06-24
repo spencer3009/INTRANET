@@ -15,7 +15,7 @@ import {
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
   Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse,
-  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog, ClipboardList, Cake, Music, Volume2
+  UtensilsCrossed, Trash2, Plus, Pencil, ToggleLeft, ToggleRight, X, UserCog, ClipboardList, Cake, Music, Volume2, MapPin
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 import RegistroAuxiliarPlantillasTab from "@/components/RegistroAuxiliarPlantillasTab";
@@ -52,6 +52,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     currency: "PEN",
     whatsapp: "",
     website_url: "",
+    distrito: "",
     legal_name: "",
     libreta_mode: "acumulada"
   });
@@ -177,6 +178,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           currency: res.data.currency || "PEN",
           whatsapp: res.data.whatsapp || "",
           website_url: res.data.website_url || "",
+          distrito: res.data.distrito || "",
           legal_name: res.data.legal_name || "",
           libreta_mode: "acumulada"
         });
@@ -1233,6 +1235,23 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     </div>
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Distrito
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <input
+                        type="text"
+                        value={settings.distrito}
+                        onChange={(e) => handleChange('distrito', e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        placeholder="Ej. Huacho"
+                        data-testid="settings-distrito"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Moneda

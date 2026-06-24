@@ -40,6 +40,7 @@ class TenantSettings(BaseModel):
     currency: Optional[Literal["PEN", "USD", "EUR"]] = "PEN"
     whatsapp: Optional[str] = None
     website_url: Optional[str] = None
+    distrito: Optional[str] = None
 
 class TenantSettingsUpdate(BaseModel):
     logo_url: Optional[str] = None
@@ -51,6 +52,7 @@ class TenantSettingsUpdate(BaseModel):
     currency: Optional[Literal["PEN", "USD", "EUR"]] = None
     whatsapp: Optional[str] = None
     website_url: Optional[str] = None
+    distrito: Optional[str] = None
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
     accent_color: Optional[str] = None
@@ -118,6 +120,7 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
             "currency": "PEN",
             "whatsapp": None,
             "website_url": None,
+            "distrito": None,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }

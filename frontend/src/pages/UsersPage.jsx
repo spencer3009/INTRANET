@@ -2143,6 +2143,60 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     } finally { setExportingParentCredentials(false); }
   };
 
+  const [generatingWelcome, setGeneratingWelcome] = useState(false);
+  const [welcomeProgress, setWelcomeProgress] = useState(null); // {processed,total} | null
+  const _downloadBlob = (data, fallbackName, disposition) => {
+    const m = (disposition || "").match(/filename="?([^"]+)"?/);
+    const filename = m ? m[1] : fallbackName;
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const a = document.createElement("a"); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+  };
+  const handleWelcomeLetters = async () => {
+    setGeneratingWelcome(true);
+    setWelcomeProgress(null);
+    const h = { Authorization: `Bearer ${token}` };
+    try {
+      const info = await axios.get(`${API}/users/welcome-letters/info`, { headers: h });
+      const { total_families, mode } = info.data;
+      if (!total_families) { toast.error("No hay familias para generar"); return; }
+
+      if (mode === "sync") {
+        const res = await axios.get(`${API}/users/welcome-letters/download`, { headers: h, responseType: "blob", timeout: 120000 });
+        _downloadBlob(res.data, "cartas_bienvenida.zip", res.headers["content-disposition"]);
+        toast.success("Cartas de bienvenida generadas. Revisa _EXCLUIDOS.txt dentro del ZIP.");
+      } else {
+        const start = await axios.get(`${API}/users/welcome-letters/start`, { headers: h });
+        const jobId = start.data.job_id;
+        setWelcomeProgress({ processed: 0, total: total_families });
+        // polling cada 3s
+        let done = false;
+        while (!done) {
+          await new Promise(r => setTimeout(r, 3000));
+          const st = await axios.get(`${API}/users/welcome-letters/jobs/${jobId}`, { headers: h });
+          if (st.data.status === "error") throw new Error(st.data.error || "Error generando el ZIP");
+          setWelcomeProgress({ processed: st.data.processed || 0, total: st.data.total || total_families });
+          if (st.data.ready) {
+            done = true;
+            const summary = st.data.summary || {};
+            const res = await axios.get(`${API}/users/welcome-letters/jobs/${jobId}/download`, { headers: h, responseType: "blob", timeout: 120000 });
+            _downloadBlob(res.data, "cartas_bienvenida.zip", res.headers["content-disposition"]);
+            if (summary.omitted_families || summary.excluded_children) {
+              toast.warning(`${summary.omitted_families || 0} familia(s) y ${summary.excluded_children || 0} hijo(s) sin contraseña no se incluyeron (ver _EXCLUIDOS.txt).`);
+            } else {
+              toast.success("Cartas de bienvenida generadas correctamente.");
+            }
+          }
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || err.message || "Error al generar las cartas de bienvenida");
+    } finally {
+      setGeneratingWelcome(false);
+      setWelcomeProgress(null);
+    }
+  };
+
   const [downloadingTeacherQR, setDownloadingTeacherQR] = useState(false);
   const [qrDownloadProgress, setQrDownloadProgress] = useState(0);
   const handleDownloadTeacherQR = async () => {
@@ -3079,6 +3133,23 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         {exportingParentCredentials ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Download className="w-5 h-5 text-white" />}
                       </div>
                       <span className="hidden sm:inline">{exportingParentCredentials ? "Exportando..." : "Credenciales"}</span>
+                    </button>
+                  )}
+                  {selectedRole === 'parent' && (
+                    <button
+                      onClick={handleWelcomeLetters}
+                      disabled={generatingWelcome}
+                      className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      data-testid="welcome-letters-btn"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
+                        {generatingWelcome ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Mail className="w-5 h-5 text-white" />}
+                      </div>
+                      <span className="hidden sm:inline">
+                        {generatingWelcome
+                          ? (welcomeProgress ? `Generando ${welcomeProgress.processed}/${welcomeProgress.total}...` : "Generando...")
+                          : "Cartas de bienvenida"}
+                      </span>
                     </button>
                   )}
                   {selectedRole === 'parent' && (
