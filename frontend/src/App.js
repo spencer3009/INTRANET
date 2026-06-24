@@ -3,6 +3,7 @@ import axios from "axios";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
+import { onForegroundMessage } from "@/lib/firebase";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import BirthdayPopupCarousel from "@/components/BirthdayPopupCarousel";
 import LandingPage from "@/pages/LandingPage";
@@ -731,6 +732,47 @@ function App() {
     return () => window.removeEventListener("auth:expired", onExpired);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.subdomain]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Push notification SOUND (PWA). Registrado una sola vez.
+  //  - Background: el Service Worker hace postMessage {type:'PLAY_PUSH_SOUND'}
+  //    y aquí reproducimos /sounds/notify.mp3 (solo si hay ventana visible).
+  //  - Foreground: FCM dispara onMessage en la página; si data.playSound, sonamos.
+  // NOTA: el MP3 propio solo suena con la app en primer plano; en background el
+  // tono lo emite el sistema operativo (no el navegador).
+  // ────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const playPushSound = () => {
+      try {
+        const a = new Audio("/sounds/notify.mp3");
+        a.play().catch(() => {}); // silencioso si el navegador bloquea autoplay
+      } catch { /* ignore */ }
+    };
+
+    // (a) Mensaje del Service Worker (push recibido en background)
+    const onSWMessage = (e) => {
+      if (e.data?.type === "PLAY_PUSH_SOUND") playPushSound();
+    };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onSWMessage);
+    }
+
+    // (b) Mensaje en primer plano (la app está visible)
+    let unsubscribeFg = () => {};
+    try {
+      unsubscribeFg = onForegroundMessage((payload) => {
+        const data = payload?.data || {};
+        if (data.playSound === true || data.playSound === "true") playPushSound();
+      });
+    } catch { /* firebase no configurado: ignore */ }
+
+    return () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onSWMessage);
+      }
+      try { unsubscribeFg(); } catch { /* ignore */ }
+    };
+  }, []);
 
   // Refresh user data from backend on mount (picks up photo changes, etc.)
   useEffect(() => {

@@ -2064,8 +2064,8 @@ async def test_push_notification(school_id: str, user=Depends(require_support_ad
         "school_id": school_id,
         "subject_id": None,
         "notification_type": "announcement",
-        "title": "Prueba de notificacion",
-        "message": "Notificacion de prueba enviada desde el Support Panel de EduNet.",
+        "title": school_name or "EduNet",
+        "message": "Notificación de prueba 🔔",
         "link_destino": None,
         "read_by": [],
         "created_at": now,
@@ -2091,6 +2091,10 @@ async def test_push_notification(school_id: str, user=Depends(require_support_ad
                 "type": "test_push",
                 "notification_id": notification_doc["id"],
                 "school_id": school_id,
+                "title": notification_doc["title"],
+                "body": notification_doc["message"],
+                "silent": "false",
+                "playSound": "true",
             }
         )
 

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'edunet-v10';
-const SW_VERSION = '10.0.0';
+const CACHE_NAME = 'edunet-v11';
+const SW_VERSION = '11.0.0';
 
 // Minimal precache list: only static, non-hashed assets we know exist at
 // build time. Webpack-hashed bundles (main.[hash].js / main.[hash].css)
@@ -37,13 +37,18 @@ try {
   messaging.onBackgroundMessage((payload) => {
     const data = payload.data || {};
     const notification = payload.notification || {};
-    const title = notification.title || "EduNet";
-    const body = notification.body || "Tienes una nueva notificacion";
+    const title = data.title || notification.title || "EduNet";
+    const body = data.body || notification.body || "Tienes una nueva notificacion";
+    // silent: por defecto NO silencioso; solo silencioso si data.silent === "true".
+    const isSilent = data.silent === true || data.silent === "true";
 
     self.registration.showNotification(title, {
       body: body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
+      silent: isSilent,
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
       tag: data.student_id
         ? `attendance-${data.student_id}-${data.type}`
         : `notif-${data.notification_id || Date.now()}`,
@@ -56,6 +61,19 @@ try {
           : "/",
       },
     });
+
+    // Reproducir sonido propio (notify.mp3) en los clientes abiertos.
+    // NOTA: en background el navegador NO permite reproducir audio desde el SW;
+    // el sonido del MP3 solo suena si hay una ventana visible. En background suena
+    // el tono nativo del sistema operativo (controlado por `silent`).
+    if (data.playSound === true || data.playSound === "true") {
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clientsList) => {
+          clientsList.forEach((c) => c.postMessage({ type: "PLAY_PUSH_SOUND" }));
+        })
+        .catch(() => {});
+    }
 
     // Update PWA icon badge with real unread count
     const unreadCount = parseInt(data.unread_count || "0", 10);
