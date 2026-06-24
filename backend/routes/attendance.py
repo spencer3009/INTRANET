@@ -3333,6 +3333,11 @@ async def _do_student_qr_bulk(data, school_id, user):
                 if resp.status_code == 200:
                     pil_logo = PILImage.open(BytesIO(resp.content))
                     if pil_logo.mode in ('RGBA', 'P', 'LA'):
+                        pil_logo = pil_logo.convert('RGBA')
+                        _bg = PILImage.new('RGB', pil_logo.size, (255, 255, 255))
+                        _bg.paste(pil_logo, mask=pil_logo.split()[-1])
+                        pil_logo = _bg
+                    else:
                         pil_logo = pil_logo.convert('RGB')
                     pil_logo.thumbnail((200, 200))
                     logo_img = BytesIO()

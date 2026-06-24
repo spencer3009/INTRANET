@@ -183,6 +183,13 @@ async def _fetch_logo_bytes(logo_url: str):
             if resp.status_code == 200:
                 pil = PILImage.open(io.BytesIO(resp.content))
                 if pil.mode in ("RGBA", "P", "LA"):
+                    # Componer sobre fondo BLANCO (evita el fondo negro que
+                    # produce convert("RGB") directo sobre PNG transparente).
+                    pil = pil.convert("RGBA")
+                    bg = PILImage.new("RGB", pil.size, (255, 255, 255))
+                    bg.paste(pil, mask=pil.split()[-1])
+                    pil = bg
+                else:
                     pil = pil.convert("RGB")
                 pil.thumbnail((240, 240))
                 buf = io.BytesIO()

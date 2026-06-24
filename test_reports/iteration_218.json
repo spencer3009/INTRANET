@@ -1,0 +1,33 @@
+{
+  "summary": "Non-regression backend test for transparent-logo fix (RGBA→fondo blanco) in routes/welcome_letters.py::_fetch_logo_bytes (also mirrored in routes/users.py L2192-2196 and routes/attendance.py L3335-3338). Re-ran the existing pytest suite (6/6 PASSED in 3.55s) against the public REACT_APP_BACKEND_URL with elroble owner (admin@elroble.edu / 1234abc8, 6 familias → modo sync). Additionally carved/validated one PDF from the ZIP: starts with %PDF-1.4, ends with %%EOF, contains /Subtype /Image + /DCTDecode → logo JPEG was successfully embedded after RGBA composition. The endpoint did not break; the fix is non-regressive.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_welcome_letters.py",
+    "/app/test_reports/pytest/welcome_letters_219.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_fetch_logo_bytes only swallows generic Exception and silently returns None; if the logo URL is unreachable or PIL raises on a corrupted PNG, the PDF is generated without the logo and no log is emitted. Consider logging at WARN level so missing-logo issues are diagnosable in production.",
+    "The same RGBA→white composition pattern is duplicated 3x (welcome_letters.py L185-191, users.py L2193-2196, attendance.py L3335-3338, plus two additional sites at users.py L2290 and attendance.py L3429 that also handle RGBA/P/LA modes). Recommend extracting a helper utils/image.py::flatten_to_white_rgb(pil_image) to keep the behavior consistent and avoid future divergence.",
+    "_fetch_logo_bytes uses a 6.0s httpx timeout; if the logo CDN is slow the entire welcome-letter batch loses the logo silently. Already mitigated by graceful fallback, but consider exposing the timeout via env or retrying once."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (6/6 pytest)",
+    "frontend": "not tested (backend only requested)"
+  },
+  "test_credentials": "admin@elroble.edu / 1234abc8 (subdomain elroble) — from /app/memory/test_credentials.md",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Welcome-letters pytest suite at /app/backend/tests/test_welcome_letters.py covers /info, sync /download (ZIP with PDFs + _EXCLUIDOS.txt), full async job flow (/start → poll /jobs/{id} → /jobs/{id}/download), 404 for unknown job_id on status & download, and unauthenticated rejection. All green. The RGBA→white fix in _fetch_logo_bytes (welcome_letters.py L185-191) is mirrored in routes/users.py (~L2192) and routes/attendance.py (~L3335) for student QR sheets — those endpoints (mass QR / individual QR with logo) were NOT exercised by this iteration; if they need verification, add a similar fetch+inspect for the QR-PDF endpoints. JUnit XML at /app/test_reports/pytest/welcome_letters_219.xml.",
+  "rca_of_the_issue": "Original bug: PNG logos with transparent background appeared with BLACK background in generated PDFs because PIL's Image.convert('RGB') on an RGBA/P/LA image fills transparent pixels with (0,0,0) before JPEG-encoding. Fix verified: when mode is RGBA/P/LA, code now (1) converts to RGBA, (2) creates a new RGB image filled with white (255,255,255) of the same size, (3) pastes the original using its alpha channel as mask, then thumbnails+saves as JPEG. The non-transparent RGB path is unchanged. Confirmed end-to-end that the ZIP endpoint still returns 200 with valid PDFs containing the JPEG XObject (DCTDecode) — no functional regression."
+}
