@@ -28,8 +28,9 @@ import zipfile
 from datetime import datetime, timezone, timedelta
 
 import httpx
+import requests
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, Response
 
 from .core import db, get_current_user, resolve_user_from_token, is_admin_user
 
@@ -38,6 +39,60 @@ router = APIRouter(prefix="/api/users/welcome-letters", tags=["welcome_letters"]
 logger = logging.getLogger("welcome_letters")
 
 SYNC_THRESHOLD = 300
+
+# ── Object Storage (Emergent integrado) ──────────────────────────────────────
+# El ZIP del job en background se sube al bucket en vez de quedar en /tmp, para
+# que la descarga funcione aunque la petición caiga en otra réplica o el
+# contenedor se reinicie. Sin S3 externo ni claves propias (usa EMERGENT_LLM_KEY).
+_STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+_STORAGE_APP = "edunet"
+ZIP_TTL_HOURS = 48  # tras este tiempo el job se considera expirado (soft-expiry)
+_storage_key = None
+
+
+def _storage_init() -> str:
+    global _storage_key
+    if _storage_key:
+        return _storage_key
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    resp = requests.post(f"{_STORAGE_URL}/init", json={"emergent_key": key}, timeout=30)
+    resp.raise_for_status()
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+
+def _storage_put(path: str, data: bytes, content_type: str = "application/zip") -> dict:
+    """Sube bytes al bucket. Reintenta una vez si el storage_key expiró (403)."""
+    global _storage_key
+    for attempt in range(2):
+        key = _storage_init()
+        resp = requests.put(
+            f"{_STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key, "Content-Type": content_type},
+            data=data, timeout=180,
+        )
+        if resp.status_code == 403 and attempt == 0:
+            _storage_key = None  # forzar re-init
+            continue
+        resp.raise_for_status()
+        return resp.json()
+
+
+def _storage_get(path: str) -> bytes:
+    """Descarga bytes del bucket. Lanza requests.HTTPError(404) si no existe."""
+    global _storage_key
+    for attempt in range(2):
+        key = _storage_init()
+        resp = requests.get(
+            f"{_STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key}, timeout=120,
+        )
+        if resp.status_code == 403 and attempt == 0:
+            _storage_key = None
+            continue
+        resp.raise_for_status()
+        return resp.content
+
 
 _MESES = {1: "enero", 2: "febrero", 3: "marzo", 4: "abril", 5: "mayo", 6: "junio",
           7: "julio", 8: "agosto", 9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"}
@@ -393,12 +448,28 @@ async def _run_job(job_id: str, school_id: str, slug_hint: str):
             await db.welcome_letter_jobs.update_one({"job_id": job_id}, {"$set": {"processed": progress["n"]}})
             await asyncio.sleep(1.0)
         summary = await fut
+
+        # Subir el ZIP al object storage (en vez de dejarlo en /tmp efímero).
+        storage_path = f"{_STORAGE_APP}/welcome-letters/{job_id}.zip"
+        try:
+            with open(tmp_path, "rb") as f:
+                data = f.read()
+            await asyncio.to_thread(_storage_put, storage_path, data, "application/zip")
+            logger.info("[WELCOME-LETTERS][upload] job_id=%s storage_path=%s size=%d", job_id, storage_path, len(data))
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
         await db.welcome_letter_jobs.update_one(
             {"job_id": job_id},
-            {"$set": {"status": "done", "processed": summary["total"], "file_path": tmp_path,
+            {"$set": {"status": "done", "processed": summary["total"],
+                      "storage_path": storage_path, "file_path": None,
                       "summary": summary, "finished_at": datetime.now(timezone.utc).isoformat()}},
         )
     except Exception as e:
+        logger.error("[WELCOME-LETTERS][job-error] job_id=%s error=%s", job_id, str(e)[:300])
         await db.welcome_letter_jobs.update_one({"job_id": job_id}, {"$set": {"status": "error", "error": str(e)[:300]}})
 
 
@@ -436,12 +507,12 @@ async def welcome_job_download(job_id: str, current_user=Depends(get_current_use
     job = await db.welcome_letter_jobs.find_one({"job_id": job_id, "school_id": user["school_id"]}, {"_id": 0})
 
     status = (job or {}).get("status")
-    file_path = (job or {}).get("file_path")
-    exists = bool(file_path) and os.path.exists(file_path)
+    storage_path = (job or {}).get("storage_path")
+    finished_at = (job or {}).get("finished_at")
     logger.info(
-        "[WELCOME-LETTERS][download] job_id=%s status=%s file_path=%s exists=%s "
+        "[WELCOME-LETTERS][download] job_id=%s status=%s storage_path=%s finished_at=%s "
         "user_role=%s school_id=%s",
-        job_id, status, file_path, exists, user.get("role"), user.get("school_id"),
+        job_id, status, storage_path, finished_at, user.get("role"), user.get("school_id"),
     )
 
     if not job:
@@ -451,28 +522,38 @@ async def welcome_job_download(job_id: str, current_user=Depends(get_current_use
     if status != "done":
         logger.warning("[WELCOME-LETTERS][409] motivo: job aun no termino, job_id=%s status=%s", job_id, status)
         raise HTTPException(status_code=409, detail=f"El ZIP aún se está generando (estado: {status}). Espera a que termine el proceso.")
-    if not file_path:
-        logger.warning("[WELCOME-LETTERS][409] motivo: file_path vacio, job_id=%s", job_id)
-        raise HTTPException(status_code=409, detail="El ZIP no tiene una ruta de archivo registrada. Vuelve a generar las cartas.")
-    if not os.path.exists(file_path):
-        logger.warning(
-            "[WELCOME-LETTERS][409] motivo: archivo no existe en disco (posible reinicio o multi-replica), "
-            "job_id=%s file_path=%s", job_id, file_path,
-        )
-        raise HTTPException(status_code=409, detail="El archivo del ZIP ya no está disponible en el servidor (pudo expirar o reiniciarse). Vuelve a generar las cartas de bienvenida.")
+    if not storage_path:
+        logger.warning("[WELCOME-LETTERS][409] motivo: sin storage_path, job_id=%s", job_id)
+        raise HTTPException(status_code=409, detail="El ZIP no está registrado en el almacenamiento. Vuelve a generar las cartas de bienvenida.")
+
+    # Soft-expiry: tras ZIP_TTL_HOURS el job se considera caducado.
+    if finished_at:
+        try:
+            fin = datetime.fromisoformat(finished_at)
+            if fin.tzinfo is None:
+                fin = fin.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - fin > timedelta(hours=ZIP_TTL_HOURS):
+                logger.warning("[WELCOME-LETTERS][409] motivo: ZIP expirado (>%dh), job_id=%s", ZIP_TTL_HOURS, job_id)
+                raise HTTPException(status_code=409, detail=f"Este ZIP expiró (disponible por {ZIP_TTL_HOURS}h). Vuelve a generar las cartas de bienvenida.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
+    # Descargar el ZIP desde el object storage (funciona en cualquier réplica).
+    try:
+        data = await asyncio.to_thread(_storage_get, storage_path)
+    except requests.HTTPError as e:
+        code = e.response.status_code if e.response is not None else None
+        logger.warning("[WELCOME-LETTERS][409] motivo: objeto no disponible en storage (http=%s), job_id=%s storage_path=%s", code, job_id, storage_path)
+        raise HTTPException(status_code=409, detail="El archivo del ZIP ya no está disponible. Vuelve a generar las cartas de bienvenida.")
+    except Exception as e:
+        logger.error("[WELCOME-LETTERS][500] error leyendo storage, job_id=%s err=%s", job_id, str(e)[:200])
+        raise HTTPException(status_code=502, detail="No se pudo acceder al almacenamiento del ZIP. Intenta nuevamente en unos segundos.")
 
     ctx_slug = (await db.schools.find_one({"id": user["school_id"]}, {"_id": 0, "subdomain": 1}) or {}).get("subdomain") or user["school_id"]
     fecha = (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y%m%d")
     download_name = f"cartas_bienvenida_{ctx_slug}_{fecha}.zip"
-    path = job["file_path"]
 
-    def _iter():
-        with open(path, "rb") as f:
-            while True:
-                chunk = f.read(64 * 1024)
-                if not chunk:
-                    break
-                yield chunk
-
-    return StreamingResponse(_iter(), media_type="application/zip",
-                             headers={"Content-Disposition": f'attachment; filename="{download_name}"'})
+    return Response(content=data, media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{download_name}"'})
