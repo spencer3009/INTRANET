@@ -18,6 +18,7 @@ Rendimiento (1000+ alumnos):
 """
 import asyncio
 import io
+import logging
 import os
 import re
 import tempfile
@@ -33,6 +34,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from .core import db, get_current_user, resolve_user_from_token, is_admin_user
 
 router = APIRouter(prefix="/api/users/welcome-letters", tags=["welcome_letters"])
+
+logger = logging.getLogger("welcome_letters")
 
 SYNC_THRESHOLD = 300
 
@@ -431,10 +434,32 @@ async def welcome_job_status(job_id: str, current_user=Depends(get_current_user)
 async def welcome_job_download(job_id: str, current_user=Depends(get_current_user)):
     user = await _require_admin(current_user)
     job = await db.welcome_letter_jobs.find_one({"job_id": job_id, "school_id": user["school_id"]}, {"_id": 0})
+
+    status = (job or {}).get("status")
+    file_path = (job or {}).get("file_path")
+    exists = bool(file_path) and os.path.exists(file_path)
+    logger.info(
+        "[WELCOME-LETTERS][download] job_id=%s status=%s file_path=%s exists=%s "
+        "user_role=%s school_id=%s",
+        job_id, status, file_path, exists, user.get("role"), user.get("school_id"),
+    )
+
     if not job:
+        logger.warning("[WELCOME-LETTERS][404] motivo: job no encontrado, job_id=%s school_id=%s", job_id, user.get("school_id"))
         raise HTTPException(status_code=404, detail="Job no encontrado")
-    if job.get("status") != "done" or not job.get("file_path") or not os.path.exists(job["file_path"]):
-        raise HTTPException(status_code=409, detail="El archivo aún no está listo")
+
+    if status != "done":
+        logger.warning("[WELCOME-LETTERS][409] motivo: job aun no termino, job_id=%s status=%s", job_id, status)
+        raise HTTPException(status_code=409, detail=f"El ZIP aún se está generando (estado: {status}). Espera a que termine el proceso.")
+    if not file_path:
+        logger.warning("[WELCOME-LETTERS][409] motivo: file_path vacio, job_id=%s", job_id)
+        raise HTTPException(status_code=409, detail="El ZIP no tiene una ruta de archivo registrada. Vuelve a generar las cartas.")
+    if not os.path.exists(file_path):
+        logger.warning(
+            "[WELCOME-LETTERS][409] motivo: archivo no existe en disco (posible reinicio o multi-replica), "
+            "job_id=%s file_path=%s", job_id, file_path,
+        )
+        raise HTTPException(status_code=409, detail="El archivo del ZIP ya no está disponible en el servidor (pudo expirar o reiniciarse). Vuelve a generar las cartas de bienvenida.")
 
     ctx_slug = (await db.schools.find_one({"id": user["school_id"]}, {"_id": 0, "subdomain": 1}) or {}).get("subdomain") or user["school_id"]
     fecha = (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y%m%d")

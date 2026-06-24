@@ -2162,12 +2162,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       if (!total_families) { toast.error("No hay familias para generar"); return; }
 
       if (mode === "sync") {
+        console.log("[WELCOME-LETTERS] modo=sync → GET", `${API}/users/welcome-letters/download`);
         const res = await axios.get(`${API}/users/welcome-letters/download`, { headers: h, responseType: "blob", timeout: 120000 });
         _downloadBlob(res.data, "cartas_bienvenida.zip", res.headers["content-disposition"]);
         toast.success("Cartas de bienvenida generadas. Revisa _EXCLUIDOS.txt dentro del ZIP.");
       } else {
         const start = await axios.get(`${API}/users/welcome-letters/start`, { headers: h });
         const jobId = start.data.job_id;
+        console.log("[WELCOME-LETTERS] modo=background job_id=", jobId);
         setWelcomeProgress({ processed: 0, total: total_families });
         // polling cada 3s
         let done = false;
@@ -2179,7 +2181,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           if (st.data.ready) {
             done = true;
             const summary = st.data.summary || {};
-            const res = await axios.get(`${API}/users/welcome-letters/jobs/${jobId}/download`, { headers: h, responseType: "blob", timeout: 120000 });
+            const dlUrl = `${API}/users/welcome-letters/jobs/${jobId}/download`;
+            console.log("[WELCOME-LETTERS] job listo → GET", dlUrl, "| último estado:", st.data.status);
+            const res = await axios.get(dlUrl, { headers: h, responseType: "blob", timeout: 120000 });
             _downloadBlob(res.data, "cartas_bienvenida.zip", res.headers["content-disposition"]);
             if (summary.omitted_families || summary.excluded_children) {
               toast.warning(`${summary.omitted_families || 0} familia(s) y ${summary.excluded_children || 0} hijo(s) sin contraseña no se incluyeron (ver _EXCLUIDOS.txt).`);
@@ -2190,7 +2194,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         }
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || err.message || "Error al generar las cartas de bienvenida");
+      // Con responseType:"blob", el cuerpo de error llega como Blob (no JSON).
+      // Hay que leerlo como texto para no fallar con InvalidStateError.
+      let backendDetail = null;
+      const data = err.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          try { backendDetail = JSON.parse(text)?.detail || text; }
+          catch { backendDetail = text; }
+        } catch {}
+      } else if (data?.detail) {
+        backendDetail = data.detail;
+      }
+      console.error("[WELCOME-LETTERS] download falló:", err.response?.status, backendDetail || err.message);
+      toast.error(backendDetail || err.message || "Error al generar las cartas de bienvenida");
     } finally {
       setGeneratingWelcome(false);
       setWelcomeProgress(null);
