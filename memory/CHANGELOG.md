@@ -61,3 +61,9 @@
 - El badge de la campana vuelve a 0 al abrir el dropdown (estado `badgeSeen`), pero la lista de notificaciones se mantiene visible hasta hacer clic en cada item.
 - El badge reaparece automaticamente cuando llega contenido nuevo (totalCount sube).
 - Verificado en preview: badge 9 -> 0 al abrir, lista intacta.
+
+## 2026-06-25 — Badge del icono de la app (PWA) baja al leer notificaciones
+- Causa: el badge OS-level (navigator.setAppBadge) solo se actualizaba/reducia para el rol apoderado; para owner/admin/profesor/alumno el push lo ponia pero nada lo reducia al leer.
+- Fix: fuente unica de verdad. Un useEffect sincroniza el badge del icono con el `totalCount` real de no leidas para TODOS los roles; baja por cada notificacion leida/accedida y se limpia en 0.
+- Se eliminaron los setAppBadge/clearAppBadge dispersos (subconjunto de asistencia) que causaban inconsistencias.
+- Verificado en preview: 9 -> 8 al leer una notificacion.

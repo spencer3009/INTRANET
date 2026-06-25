@@ -386,11 +386,7 @@ export default function NotificationBell({ token, userRole }) {
         student_id: notif.student_id, student_name: notif.student_name,
         created_at: notif.created_at, read_at: null,
       }, ...prev]);
-      setAttendanceUnread(prev => {
-        const newCount = prev + 1;
-        if ("setAppBadge" in navigator) navigator.setAppBadge(newCount).catch(() => {});
-        return newCount;
-      });
+      setAttendanceUnread(prev => prev + 1);
       playNotificationSound();
       if (navigator.vibrate) { navigator.vibrate(200); }
       // Dispatch event for AttendanceToast component
@@ -450,12 +446,6 @@ export default function NotificationBell({ token, userRole }) {
       ]);
       setAttendanceNotifs(listRes.data);
       setAttendanceUnread(countRes.data.count || 0);
-      // Sync PWA badge with real count
-      const badgeCount = countRes.data.count || 0;
-      if ("setAppBadge" in navigator) {
-        if (badgeCount > 0) navigator.setAppBadge(badgeCount).catch(() => {});
-        else navigator.clearAppBadge?.().catch(() => {});
-      }
     } catch {}
   }, [token, isParent]);
 
@@ -492,11 +482,6 @@ export default function NotificationBell({ token, userRole }) {
         // attendance unread count (light) — /push/unread-count
         const countRes = await axios.get(`${API}/push/unread-count`, { headers }).catch(() => ({ data: { count: 0 } }));
         setAttendanceUnread(countRes.data.count || 0);
-        const badgeCount = countRes.data.count || 0;
-        if ("setAppBadge" in navigator) {
-          if (badgeCount > 0) navigator.setAppBadge(badgeCount).catch(() => {});
-          else navigator.clearAppBadge?.().catch(() => {});
-        }
       }
     } catch (err) {
       console.error("Error loading light poll stats:", err);
@@ -605,8 +590,6 @@ export default function NotificationBell({ token, userRole }) {
         setAttendanceUnread(0);
         setAttendanceNotifs(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
       }
-      // Clear PWA badge
-      if ("clearAppBadge" in navigator) navigator.clearAppBadge().catch(() => {});
     } catch (err) {
       console.error("Error:", err);
     }
@@ -618,14 +601,7 @@ export default function NotificationBell({ token, userRole }) {
       try {
         await axios.post(`${API}/push/mark-read`, { notification_id: notif.id }, { headers });
         setAttendanceNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n));
-        setAttendanceUnread(prev => {
-          const newCount = Math.max(0, prev - 1);
-          if ("setAppBadge" in navigator) {
-            if (newCount > 0) navigator.setAppBadge(newCount).catch(() => {});
-            else navigator.clearAppBadge?.().catch(() => {});
-          }
-          return newCount;
-        });
+        setAttendanceUnread(prev => Math.max(0, prev - 1));
       } catch {}
     }
     if (notif.student_id) {
@@ -658,6 +634,15 @@ export default function NotificationBell({ token, userRole }) {
     // Si llega contenido nuevo (sube el total), volver a mostrar el badge.
     if (totalCount > prevTotalRef.current) setBadgeSeen(false);
     prevTotalRef.current = totalCount;
+  }, [totalCount]);
+
+  // Fuente unica de verdad para el badge del icono de la PWA (todos los roles).
+  // Refleja el total real de no leidas y baja a medida que se leen/acceden las
+  // notificaciones dentro de la app.
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    if (totalCount > 0) navigator.setAppBadge(totalCount).catch(() => {});
+    else navigator.clearAppBadge?.().catch(() => {});
   }, [totalCount]);
 
   return (
