@@ -576,7 +576,8 @@ export default function NotificationBell({ token, userRole }) {
     }
   };
 
-  // Mark all as read
+  // Mark all as read. `keepList`=true conserva los items visibles en la lista
+  // (solo cambia su estado a leido), para que el usuario siga viendolos.
   const markAllAsRead = async () => {
     try {
       await axios.post(`${API}/notifications/read-all`, {}, { headers });
@@ -588,11 +589,19 @@ export default function NotificationBell({ token, userRole }) {
       if (isParent) {
         await axios.post(`${API}/push/mark-read`, {}, { headers });
         setAttendanceUnread(0);
-        setAttendanceNotifs(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+        setAttendanceNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
       }
     } catch (err) {
       console.error("Error:", err);
     }
+  };
+
+  // Al ABRIR la campana: marcar como leidas en el SERVIDOR (persistente) para que
+  // los contadores (campana, pestanas e icono de la PWA) bajen de verdad y se
+  // mantengan en 0 tras revisarlas. La lista permanece visible (en estilo leido).
+  const markSeenOnOpen = async () => {
+    await loadNotifications();
+    await markAllAsRead();
   };
 
   // Handle attendance notification click
@@ -658,7 +667,7 @@ export default function NotificationBell({ token, userRole }) {
       `}</style>
       {/* Bell button */}
       <button
-        onClick={() => { setIsOpen(!isOpen); if (!isOpen) { loadNotifications(); setBadgeSeen(true); } }}
+        onClick={() => { const opening = !isOpen; setIsOpen(opening); if (opening) { setBadgeSeen(true); markSeenOnOpen(); } }}
         className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors relative"
         data-testid="notification-bell-button"
       >

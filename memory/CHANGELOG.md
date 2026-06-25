@@ -67,3 +67,9 @@
 - Fix: fuente unica de verdad. Un useEffect sincroniza el badge del icono con el `totalCount` real de no leidas para TODOS los roles; baja por cada notificacion leida/accedida y se limpia en 0.
 - Se eliminaron los setAppBadge/clearAppBadge dispersos (subconjunto de asistencia) que causaban inconsistencias.
 - Verificado en preview: 9 -> 8 al leer una notificacion.
+
+## 2026-06-25 — Los contadores ahora bajan al revisar notificaciones (persistente)
+- Causa raiz: abrir la campana solo ocultaba el badge visualmente (badgeSeen) pero NO marcaba nada leido en el servidor; las notificaciones seguian is_read=false en Mongo, asi el numero real y el icono de la PWA se mantenian. Caso real: apoderada maria.peres con 19 notificaciones generales sin leer.
+- Fix: al ABRIR la campana se ejecuta markSeenOnOpen -> POST /notifications/read-all (+ /push/mark-read para padres). Persiste la lectura, baja unread_count/pestanas/icono PWA a 0 y los mantiene; la lista permanece visible en estilo leido.
+- Los Recordatorios (tareas/examenes proximos) son por fecha, no por lectura; el padre no tiene (0).
+- Verificado en preview (admin): campana 8 -> setAppBadge(2 = solo recordatorios); al reabrir Actividad sin numero (persistido).
