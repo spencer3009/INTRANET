@@ -55,3 +55,9 @@
 - Compactados TODOS los botones del toolbar (todos los roles: estudiantes,
   profesores, padres, staff): `px-4 py-2.5`, círculo icono `w-8 h-8`, icono
   `w-4 h-4`, `text-sm`, `gap-2`. Caben en una sola línea.
+
+## 2026-06-25 — NotificationBell responsive + reset de badge
+- Dropdown responsive: en movil ocupa ancho de pantalla (fixed, centrado, `w-[calc(100vw-1.5rem)]`), en desktop `sm:w-96` anclado a la derecha.
+- El badge de la campana vuelve a 0 al abrir el dropdown (estado `badgeSeen`), pero la lista de notificaciones se mantiene visible hasta hacer clic en cada item.
+- El badge reaparece automaticamente cuando llega contenido nuevo (totalCount sube).
+- Verificado en preview: badge 9 -> 0 al abrir, lista intacta.

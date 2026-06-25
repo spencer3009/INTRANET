@@ -647,9 +647,18 @@ export default function NotificationBell({ token, userRole }) {
   const handleReminderClick = (reminder) => setSelectedReminder(reminder);
 
   const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages + unreadBroadcasts + attendanceUnread;
-  const hasNotifications = totalCount > 0;
+  // El badge de la campana se "silencia" (vuelve a 0) al abrir el dropdown,
+  // pero la lista de notificaciones permanece visible hasta hacer clic en cada item.
+  const displayCount = badgeSeen ? 0 : totalCount;
+  const hasNotifications = displayCount > 0;
   const [animationKey, setAnimationKey] = useState(0);
-  useEffect(() => { if (totalCount > 0) setAnimationKey(prev => prev + 1); }, [totalCount]);
+  const prevTotalRef = useRef(totalCount);
+  useEffect(() => {
+    if (totalCount > 0) setAnimationKey(prev => prev + 1);
+    // Si llega contenido nuevo (sube el total), volver a mostrar el badge.
+    if (totalCount > prevTotalRef.current) setBadgeSeen(false);
+    prevTotalRef.current = totalCount;
+  }, [totalCount]);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -664,7 +673,7 @@ export default function NotificationBell({ token, userRole }) {
       `}</style>
       {/* Bell button */}
       <button
-        onClick={() => { setIsOpen(!isOpen); if (!isOpen) loadNotifications(); }}
+        onClick={() => { setIsOpen(!isOpen); if (!isOpen) { loadNotifications(); setBadgeSeen(true); } }}
         className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors relative"
         data-testid="notification-bell-button"
       >
@@ -676,7 +685,7 @@ export default function NotificationBell({ token, userRole }) {
             style={{ animation: "notification-bounce 0.6s ease-in-out" }}
             data-testid="notification-badge"
           >
-            {totalCount > 99 ? "99+" : totalCount}
+            {displayCount > 99 ? "99+" : displayCount}
           </span>
         )}
       </button>
@@ -684,7 +693,7 @@ export default function NotificationBell({ token, userRole }) {
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+          className="fixed left-1/2 -translate-x-1/2 top-16 w-[calc(100vw-1.5rem)] max-w-sm sm:absolute sm:left-auto sm:translate-x-0 sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-w-none bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
           style={{ zIndex: 9999 }}
           data-testid="notification-dropdown"
         >
