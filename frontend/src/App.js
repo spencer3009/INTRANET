@@ -4,6 +4,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { closeNotificationSocket, sendPageView } from "@/hooks/useNotificationSocket";
 import { onForegroundMessage } from "@/lib/firebase";
+import { playPushSound, primePushAudio } from "@/lib/pushSound";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import BirthdayPopupCarousel from "@/components/BirthdayPopupCarousel";
 import LandingPage from "@/pages/LandingPage";
@@ -742,16 +743,18 @@ function App() {
   // tono lo emite el sistema operativo (no el navegador).
   // ────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const playPushSound = () => {
-      try {
-        const a = new Audio("/sounds/notify.mp3");
-        a.play().catch(() => {}); // silencioso si el navegador bloquea autoplay
-      } catch { /* ignore */ }
-    };
+    const playSound = () => playPushSound();
+
+    // Cebar el audio en el PRIMER gesto del usuario (tap/click) en cualquier
+    // parte de la app. Esto desbloquea el autoplay en móvil para que, cuando
+    // llegue una push en foreground, el sonido propio (notify.mp3) pueda sonar.
+    const primeOnce = () => { primePushAudio(); };
+    window.addEventListener("pointerdown", primeOnce, { once: true });
+    window.addEventListener("keydown", primeOnce, { once: true });
 
     // (a) Mensaje del Service Worker (push recibido en background)
     const onSWMessage = (e) => {
-      if (e.data?.type === "PLAY_PUSH_SOUND") playPushSound();
+      if (e.data?.type === "PLAY_PUSH_SOUND") playSound();
     };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", onSWMessage);
@@ -762,11 +765,13 @@ function App() {
     try {
       unsubscribeFg = onForegroundMessage((payload) => {
         const data = payload?.data || {};
-        if (data.playSound === true || data.playSound === "true") playPushSound();
+        if (data.playSound === true || data.playSound === "true") playSound();
       });
     } catch { /* firebase no configurado: ignore */ }
 
     return () => {
+      window.removeEventListener("pointerdown", primeOnce);
+      window.removeEventListener("keydown", primeOnce);
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.removeEventListener("message", onSWMessage);
       }
