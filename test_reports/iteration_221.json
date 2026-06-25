@@ -1,0 +1,45 @@
+{
+  "summary": "End-to-end verification of the 'Probar Push' bug fix in the support panel. Backend POST /api/support/schools/{id}/test-push works correctly (HTTP 200, fcm_configured=true, returns owner_email/devices_found/sent). Frontend fix is validated: clicking 'Probar Push' on a school card in /support/schools triggers the API call AND shows a result toast, with NO 'BLOQUEADAS' blocking toast, even though the support device's browser notification permission is 'denied' in headless. No-regression check passed: the owner dashboard still renders the 'Activar notificaciones' button with its status badge.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_fcm_auth_config.py",
+    "/app/test_reports/screenshots/after_test_push.png",
+    "/app/test_reports/screenshots/owner_dashboard.png"
+  ],
+  "action_items": [
+    "OPTIONAL/MINOR: The password in the testing request (Support1234!) does NOT match the actual password (Socios3009). /app/memory/test_credentials.md does not list the support global account. Consider updating /app/memory/test_credentials.md to add 'spencer3009@gmail.com / Socios3009 (system_admin_global)' so future iterations have a single source of truth.",
+    "OBSERVATION (not in scope of this fix, but worth noting): backend curl from soporte to elroble test-push returned devices_found=11 with sent=0/failed=11 (FCM tokens fail), while a subsequent click from the UI returned devices_found=0. This suggests send_fcm_to_devices may be deactivating tokens after failure (probably correct behavior on UNREGISTERED responses). Not a bug for this fix — just heads-up for the main agent."
+  ],
+  "critical_code_review_comments": [
+    "frontend/src/pages/SupportSchoolsPage.jsx ~L1108-L1141: the onClick now correctly (a) calls primePushAudio() best-effort and (b) ALWAYS POSTs /support/schools/{id}/test-push without checking Notification.permission. The 'denied'-bound return statement has been removed and ensureNotificationPermission is no longer used in this handler. Looks correct.",
+    "backend/routes/support.py L2037-L2116: endpoint returns the expected shape and uses _is_configured() for the fcm_configured flag; logging is good. No issues."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (test-push endpoint returns 200 with fcm_configured=true for both elroble and a school without tokens)",
+    "frontend": "100% (Probar Push click triggers POST, result toast shown, NO blocking 'BLOQUEADAS' toast; owner dashboard regression button still present)"
+  },
+  "test_credentials": "Support global (working): spencer3009@gmail.com / Socios3009  ← password in the request (Support1234!) is WRONG. Owner: admin@elroble.edu / 1234abc8 (works).",
+  "seed_data_creation": "None. Each test-push call inserts one row into db.notifications for the owner (by design of the endpoint); harmless side effect.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug is fully fixed and verified end-to-end. The frontend handler no longer hard-blocks on Notification.permission==='denied'; it only primes audio (best-effort) and always sends the push to the OWNER via POST /api/support/schools/{id}/test-push. Backend is healthy: 200 + fcm_configured=true. To re-verify in the future: login as spencer3009@gmail.com/Socios3009 -> Colegios sidebar -> click data-testid='test-push-elroble' -> expect a sonner toast (warning 'aún no tiene dispositivos registrados...' if devices_found==0, or success 'Push enviado al owner...' if >0) and a single POST 200 to /api/support/schools/{id}/test-push. The 'BLOQUEADAS' string must NOT appear.",
+  "rca of the issue": {
+    "root_cause": "Previously, the onClick of the 'Probar Push' button in SupportSchoolsPage.jsx called ensureNotificationPermission() and did `if (permission === 'denied') { toast.error('Las notificaciones están BLOQUEADAS...'); return; }`. This was incorrect because the push is delivered to the OWNER's device, not the support user's device, so the support user's local browser permission is irrelevant to the send.",
+    "fix_verified": "Lines 1108-1141 now call primePushAudio() for best-effort autoplay unlock and unconditionally POST /api/support/schools/{id}/test-push. The conditional return on permission==='denied' is gone.",
+    "verification_steps_executed": [
+      "Backend curl (Bearer system_admin_global JWT) -> POST /api/support/schools/{elroble_id}/test-push -> 200 {ok:true, owner_email:'admin@elroble.edu', devices_found:11, fcm_configured:true}",
+      "Backend curl -> POST .../{multitest_id}/test-push -> 200 {ok:true, owner_email:'admin_multi_...', devices_found:0, fcm_configured:true}",
+      "Playwright: login as spencer3009/Socios3009 -> /support/schools -> click [data-testid=test-push-elroble] -> observed POST 200 in network with body fcm_configured:true, AND sonner toast: 'El owner (admin@elroble.edu) aun no tiene dispositivos registrados...' AND no 'BLOQUEADAS' string anywhere on the page (browser notification permission was 'denied' in headless — the previous bug would have blocked the send, but now it goes through).",
+      "Playwright: login as admin@elroble.edu/1234abc8 -> /elroble/dashboard -> [data-testid=enable-notifications-btn] present, [data-testid=notification-permission-status] present (text='denied'), no error overlay."
+    ]
+  }
+}

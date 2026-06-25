@@ -38,3 +38,8 @@
 ## URLs
 - Login: `/login`
 - Portal Padre Pagos: `/parent/payments?student_id=<student_id>`
+
+## Soporte / Super Admin global (acceso al panel de soporte)
+- Email: `spencer3009@gmail.com`
+- Password: `Support1234!`
+- Role: `system_admin_global` (accede a `/support/schools`, botón "Probar Push")

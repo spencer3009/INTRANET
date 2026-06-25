@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { ensureNotificationPermission, primePushAudio } from "@/lib/pushSound";
+import { primePushAudio } from "@/lib/pushSound";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
@@ -1110,19 +1110,12 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       const btn = e.currentTarget;
                       if (btn.disabled) return;
 
-                      // 1) Asegurar permiso de notificación (gesto del usuario).
-                      const perm = await ensureNotificationPermission();
-                      // 2) Cebar el audio DENTRO del gesto para desbloquear autoplay en móvil.
+                      // Cebar el audio DENTRO del gesto (por si este mismo dispositivo
+                      // recibe la push). El envío va al dispositivo del OWNER, así que
+                      // el permiso de ESTE dispositivo (soporte) NO debe bloquear el envío.
                       const unlocked = await primePushAudio();
-                      // 3) Diagnóstico para el smoke test.
-                      toast.info(`Permiso notificaciones: ${perm} · Audio: ${unlocked ? "desbloqueado ✅" : "bloqueado ❌"}`, { duration: 6000 });
-
-                      if (perm === "denied") {
-                        toast.error("Las notificaciones están BLOQUEADAS en este dispositivo. Actívalas en Ajustes del navegador/SO → [la app] → Notificaciones. No se pueden reactivar por código una vez denegadas.", { duration: 10000 });
-                        return;
-                      }
-                      if (perm === "unsupported") {
-                        toast.warning("Este navegador no soporta notificaciones push.", { duration: 7000 });
+                      if (!unlocked) {
+                        toast.info("El audio de este dispositivo está bloqueado (autoplay). El push igual se enviará al owner.", { duration: 5000 });
                       }
 
                       btn.disabled = true;
