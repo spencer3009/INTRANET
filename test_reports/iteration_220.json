@@ -1,0 +1,41 @@
+{
+  "summary": "Backend-only verification of the FCM 'Probar Push' fix. Confirmed that after replacing secure/firebase-key.json with the new (non-revoked) key and updating services/fcm_service.py to fall back to that file, the FCM stack is now correctly configured AND authenticates successfully against Google OAuth. Created pytest module /app/backend/tests/test_fcm_auth_config.py with 10 tests covering: SA file presence, _load_sa_info structure, _resolve_project_id == 'edunet-b38ce', _is_configured() == True, _fcm_endpoint() URL, _get_credentials, _get_access_token (real OAuth2 exchange), firebase_admin app init, and a dry_run messaging.send() to a fake token. ALL 10 TESTS PASSED. The dry_run produced exactly the expected InvalidArgumentError: 'The registration token is not a valid FCM registration token' — i.e. auth passed, only the token was bogus. There is NO RefreshError / 'invalid_grant: Invalid JWT Signature' anymore. The /api/support/schools/{id}/test-push endpoint is reachable (returns 401 without a soporte session, route exists).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_fcm_auth_config.py",
+    "/app/test_reports/pytest/fcm_auth_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/fcm_service.py: _get_credentials() caches creds globally but only refreshes via _get_access_token(); if creds get rotated on disk while the process is up, the cache won't pick them up until restart. Acceptable for now (key rotations are manual + supervisor restart), but consider invalidating the cache when _load_sa_info() returns a different client_id.",
+    "fcm_service.py line 61: FIREBASE_PROJECT_ID = _resolve_project_id() runs at import time, so the module-level constant is stale if env changes later. send_fcm_to_devices already uses _fcm_endpoint() (good), but consider removing the module-level FIREBASE_PROJECT_ID to avoid confusion — anything that imports it will get the import-time value.",
+    "fcm_service.py line 165: error_body.get('error', {}).get('details', [{}])[0]... will IndexError if 'details' is an empty list. Wrap in a try/except or use `(... or [{}])[0]`.",
+    "utils/firebase_admin_sdk.py uses firebase_admin.messaging.send() (sync) — fine inside the support route, but if it's ever called from a hot async path it will block the event loop. Consider running it via asyncio.to_thread() in async handlers."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_fcm_auth_config.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 FCM auth tests)",
+    "frontend": "N/A (frontend skipped per request)"
+  },
+  "test_credentials": "Not used in this run. Owner elroble (admin@elroble.edu / 1234abc8) noted in request but the soporte test-push endpoint requires a different (support) session — verified the route is reachable and returns auth error, which is sufficient.",
+  "seed_data_creation": "None. Tests only read the bundled service-account file and perform a dry_run send to a fake token (no DB writes, no real push delivery).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "FCM is now fully configured & authenticated. project_id=edunet-b38ce, client_email=firebase-adminsdk-fbsvc@edunet-b38ce.iam.gserviceaccount.com. The pytest module /app/backend/tests/test_fcm_auth_config.py can be re-run any time to regression-check the FCM auth path (10 tests, ~1.3s). It performs a real OAuth2 token exchange with Google and a dry_run messaging.send(), so it also acts as a liveness check for the key. If those tests start failing with RefreshError / invalid_grant, the secure/firebase-key.json has been revoked or rotated. The /api/support/.../test-push endpoint should now return fcm_configured=true (could not be tested end-to-end here without a soporte JWT, but the underlying _is_configured() returns True which is what that flag is computed from).",
+  "rca of the issue": {
+    "root_cause": "Two-part bug: (1) services/fcm_service.py only consulted env vars FIREBASE_PROJECT_ID and FIREBASE_SERVICE_ACCOUNT_JSON, which were empty in this deployment, so _is_configured() returned False and the support panel showed 'FCM no configurado'. (2) Even if loaded, the bundled secure/firebase-key.json contained a REVOKED service-account key whose JWT was rejected by Google OAuth with 'invalid_grant: Invalid JWT Signature'.",
+    "reproduction_before_fix": "Call services.fcm_service._is_configured() -> False. After forcing a load of the old key, calling _get_access_token() would raise google.auth.exceptions.RefreshError('invalid_grant: Invalid JWT Signature').",
+    "mitigation_applied_by_main_agent": "(a) fcm_service.py: added _load_sa_info() with precedence env-base64 > env-JSON > env-path > bundled secure/firebase-key.json; added _resolve_project_id() that falls back to the key's project_id; _is_configured() now True iff both project_id and SA info resolve. (b) Replaced secure/firebase-key.json with a fresh, non-revoked key for project edunet-b38ce.",
+    "verification": "tests/test_fcm_auth_config.py — 10/10 passed. Highlights: _is_configured() == True; _resolve_project_id() == 'edunet-b38ce'; _get_access_token() returns a non-empty OAuth2 token (no RefreshError); firebase_admin.messaging.send(dry_run=True) with a fake token returns exactly 'The registration token is not a valid FCM registration token' (InvalidArgumentError) — definitive proof that auth succeeded and only the (fake) token was rejected."
+  }
+}
