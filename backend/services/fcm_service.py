@@ -104,11 +104,12 @@ def _get_access_token() -> str:
     return creds.token or ""
 
 
-async def send_fcm_to_devices(db, devices: list, title: str, body: str, data: dict = None) -> tuple:
+async def send_fcm_to_devices(db, devices: list, title: str, body: str, data: dict = None, data_only: bool = False) -> tuple:
     """
     Send push notification to a list of devices via FCM HTTP v1.
     Returns (sent_count, failed_count).
     Marks invalid tokens as active=False in device_tokens.
+    data_only=True -> mensaje SIN bloque notification (el SW muestra/sonido).
     """
     if not _is_configured():
         logger.warning("[FCM] Firebase not configured (FIREBASE_PROJECT_ID empty), skipping push send.")
@@ -130,22 +131,27 @@ async def send_fcm_to_devices(db, devices: list, title: str, body: str, data: di
                 failed += 1
                 continue
 
-            payload = {
-                "message": {
-                    "token": fcm_token,
-                    "notification": {"title": title, "body": body},
-                    "data": data_str,
-                    "android": {
-                        "notification": {"sound": "default", "channel_id": "edunet_default"}
-                    },
-                    "apns": {
-                        "payload": {"aps": {"sound": "default"}}
-                    },
-                    "webpush": {
-                        "notification": {"icon": "/logo192.png"}
+            if data_only:
+                # Mensaje data-only: el Service Worker (onBackgroundMessage)
+                # controla la notificación y dispara PLAY_PUSH_SOUND.
+                payload = {"message": {"token": fcm_token, "data": data_str}}
+            else:
+                payload = {
+                    "message": {
+                        "token": fcm_token,
+                        "notification": {"title": title, "body": body},
+                        "data": data_str,
+                        "android": {
+                            "notification": {"sound": "default", "channel_id": "edunet_default"}
+                        },
+                        "apns": {
+                            "payload": {"aps": {"sound": "default"}}
+                        },
+                        "webpush": {
+                            "notification": {"icon": "/logo192.png"}
+                        }
                     }
                 }
-            }
 
             try:
                 resp = await client.post(

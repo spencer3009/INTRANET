@@ -11,9 +11,78 @@ import logging
 
 from .core import db, get_current_user, ws_manager
 from utils.firebase_admin_sdk import send_push_notification
+from services.fcm_service import send_fcm_to_devices
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ATTENDANCE PUSH — destinatarios y envío (sistema FCM nuevo, device_tokens)
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def get_attendance_push_targets(user_id: str) -> list:
+    """
+    Devuelve la lista de device_tokens (docs con fcm_token) a notificar por una
+    marca de asistencia. SIEMPRE incluye al propio user_id. Si el usuario es
+    ALUMNO, añade además sus apoderados vinculados (children_ids / linked_students
+    + el padre_id del alumno). Dedupe por fcm_token, solo tokens activos.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "role": 1, "school_id": 1, "padre_id": 1})
+    if not user:
+        return []
+
+    recipient_ids = {user_id}
+
+    if user.get("role") == "student":
+        if user.get("padre_id"):
+            recipient_ids.add(user["padre_id"])
+        parents = await db.users.find(
+            {"role": "parent", "$or": [{"children_ids": user_id}, {"linked_students": user_id}]},
+            {"_id": 0, "id": 1},
+        ).to_list(None)
+        for p in parents:
+            recipient_ids.add(p["id"])
+
+    devices = await db.device_tokens.find(
+        {"user_id": {"$in": list(recipient_ids)}, "active": {"$ne": False}},
+        {"_id": 0, "fcm_token": 1, "user_id": 1},
+    ).to_list(None)
+
+    seen = set()
+    out = []
+    for d in devices:
+        tok = d.get("fcm_token")
+        if tok and tok not in seen:
+            seen.add(tok)
+            out.append(d)
+    return out
+
+
+async def send_attendance_push(user_id: str, nombre: str, rol: str = None) -> tuple:
+    """
+    Envía la push de asistencia (data-only, con playSound) al usuario marcado
+    (+ apoderados si es alumno). Reutiliza el sistema FCM nuevo (device_tokens).
+    Un token inválido no aborta el resto (manejado por send_fcm_to_devices).
+    """
+    targets = await get_attendance_push_targets(user_id)
+    if not targets:
+        logger.info(f"[ATTENDANCE-PUSH] Sin tokens para user_id={user_id}")
+        return (0, 0)
+
+    title = "Asistencia registrada"
+    body = f"Se registró la asistencia de {nombre}".strip()
+    data = {
+        "type": "attendance",
+        "user_id": user_id,
+        "title": title,
+        "body": body,
+        "silent": "false",
+        "playSound": "true",
+    }
+    sent, failed = await send_fcm_to_devices(db, targets, title, body, data, data_only=True)
+    logger.info(f"[ATTENDANCE-PUSH] user_id={user_id} rol={rol} -> sent={sent} failed={failed} targets={len(targets)}")
+    return (sent, failed)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -163,7 +232,11 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
             parents.append(p)
 
     if not parents:
-        logger.info(f"[NOTIF] No parents found for student {student_id}")
+        logger.info(f"[NOTIF] No parents found for student {student_id}; enviando push solo al alumno")
+        try:
+            await send_attendance_push(student_id, student_name, rol="student")
+        except Exception as fcm_err:
+            logger.error(f"[NOTIF] FCM attendance push error (sin padres): {fcm_err}")
         return
 
     # Build notification content
@@ -247,44 +320,23 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
         except Exception as ws_err:
             logger.error(f"[NOTIF] WebSocket push error: {ws_err}")
 
-        # Send push to all parent's devices
-        tokens_cursor = db.push_tokens.find(
-            {"user_id": parent_id},
-            {"_id": 0, "token": 1}
-        )
-        tokens = await tokens_cursor.to_list(10)
-
-        # Get real unread count for badge
-        unread_count = await db.parent_notifications.count_documents({"parent_id": parent_id, "read_at": None})
-
-        for t in tokens:
-            success = send_push_notification(
-                token=t["token"],
-                title=title,
-                body=body,
-                data={
-                    "student_id": student_id,
-                    "type": event_type,
-                    "notification_id": notif_id,
-                    "unread_count": str(unread_count),
-                }
-            )
-            if not success:
-                # Remove invalid token
-                await db.push_tokens.delete_one({"token": t["token"]})
-                logger.info(f"[NOTIF] Removed invalid token for parent {parent_id}")
-
-        # Audit log
+        # Audit log (FCM se envía vía el sistema nuevo, fuera de este loop)
         await db.notification_audit.insert_one({
             "id": str(uuid.uuid4()),
             "parent_id": parent_id,
             "student_id": student_id,
             "event_type": event_type,
             "notification_id": notif_id,
-            "push_tokens_sent": len(tokens),
             "school_id": school_id,
             "created_at": now,
         })
+
+    # Envío FCM (sistema nuevo: device_tokens) — al ALUMNO + sus apoderados.
+    # Reemplaza el antiguo loop sobre push_tokens. Un token inválido no aborta.
+    try:
+        await send_attendance_push(student_id, student_name, rol="student")
+    except Exception as fcm_err:
+        logger.error(f"[NOTIF] FCM attendance push error: {fcm_err}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

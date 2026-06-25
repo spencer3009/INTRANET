@@ -33,14 +33,32 @@ from calendar import monthrange
 from fastapi.responses import StreamingResponse
 
 try:
-    from .notifications import send_attendance_notification
+    from .notifications import send_attendance_notification, send_attendance_push
 except Exception:
     async def send_attendance_notification(*args, **kwargs):
         pass
+    async def send_attendance_push(*args, **kwargs):
+        return (0, 0)
+
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
+
+
+async def _push_attendance_batch(user_ids: list, rol: str):
+    """Envía push de asistencia a una lista de usuarios (en background)."""
+    ids = [u for u in dict.fromkeys(user_ids) if u]
+    if not ids:
+        return
+    users = await db.users.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(None)
+    name_map = {u["id"]: f"{u.get('name','')} {u.get('last_name','')}".strip() for u in users}
+    for uid in ids:
+        try:
+            await send_attendance_push(uid, name_map.get(uid, ""), rol=rol)
+        except Exception as e:
+            logger.error(f"[ATTENDANCE-PUSH] batch error uid={uid}: {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPER: Normalize ID for flexible MongoDB queries (String or ObjectId)
@@ -433,7 +451,10 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
             summary[r.status] += 1
     
     logger.info(f"Student attendance saved for {data.date} by {current_user['sub']}: {len(data.records)} records")
-    
+
+    # Push de asistencia (alumno + apoderados) en background, no bloquea la respuesta.
+    asyncio.create_task(_push_attendance_batch([r.user_id for r in data.records], "student"))
+
     return {
         "message": "Asistencia guardada correctamente",
         "date": data.date,
@@ -1197,7 +1218,10 @@ async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = De
             summary[r.status] += 1
     
     logger.info(f"Teacher attendance saved for {data.date} by {current_user['sub']}: {len(data.records)} records")
-    
+
+    # Push de asistencia SOLO al propio profesor (sin vinculados) en background.
+    asyncio.create_task(_push_attendance_batch([r.user_id for r in data.records], "teacher"))
+
     return {
         "message": "Asistencia de profesores guardada correctamente",
         "date": data.date,
@@ -1317,6 +1341,9 @@ async def save_maintenance_attendance(
         f"Maintenance attendance saved for {data.date} by {current_user['sub']}: "
         f"{len(data.records)} records"
     )
+
+    # Push de asistencia SOLO al propio personal (sin vinculados) en background.
+    asyncio.create_task(_push_attendance_batch([r.user_id for r in data.records], "maintenance"))
 
     return {
         "message": "Asistencia de mantenimiento guardada correctamente",
@@ -2556,6 +2583,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 )
             except Exception as notif_err:
                 logger.error(f"Push notification error: {notif_err}")
+        else:
+            # Profesor/personal: push SOLO a su propia cuenta (sin vinculados).
+            try:
+                await send_attendance_push(scanned_user_id, user_info['full_name'], rol=scanned_role)
+            except Exception as notif_err:
+                logger.error(f"Push notification error (teacher entry): {notif_err}")
         
         return {
             "status": "success",
@@ -2603,6 +2636,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 )
             except Exception as notif_err:
                 logger.error(f"Push notification error: {notif_err}")
+        else:
+            # Profesor/personal: push SOLO a su propia cuenta (sin vinculados).
+            try:
+                await send_attendance_push(scanned_user_id, user_info['full_name'], rol=scanned_role)
+            except Exception as notif_err:
+                logger.error(f"Push notification error (teacher exit): {notif_err}")
         
         return {
             "status": "success",
