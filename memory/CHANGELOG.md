@@ -73,3 +73,9 @@
 - Fix: al ABRIR la campana se ejecuta markSeenOnOpen -> POST /notifications/read-all (+ /push/mark-read para padres). Persiste la lectura, baja unread_count/pestanas/icono PWA a 0 y los mantiene; la lista permanece visible en estilo leido.
 - Los Recordatorios (tareas/examenes proximos) son por fecha, no por lectura; el padre no tiene (0).
 - Verificado en preview (admin): campana 8 -> setAppBadge(2 = solo recordatorios); al reabrir Actividad sin numero (persistido).
+
+## 2026-06-25 — Cartas de bienvenida en vista Alumnos (sujeto al filtro)
+- Nuevo boton "Cartas de bienvenida" en usuario/Estudiantes (data-testid welcome-letters-students-btn).
+- Pasa los filtros activos nivel_id/grado_id/seccion_id a /users/welcome-letters/{info,download,start}.
+- Backend: _gather_context acepta filtros y conserva solo FAMILIAS con >=1 hijo que cumple TODOS los filtros; la carta lista todos los hijos de la familia. Job en background guarda/propaga los filtros.
+- Verificado: sin filtro 6 familias; filtro nivel+grado+seccion -> 2 familias (ZIP con 2 PDFs).

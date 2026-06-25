@@ -122,8 +122,13 @@ def _fecha_es(distrito: str) -> str:
     return f"{distrito + ', ' if distrito else ''}{fecha}"
 
 
-async def _gather_context(school_id: str):
-    """Carga colegio, ajustes, padres e hijos (con proyección) y arma el join."""
+async def _gather_context(school_id: str, nivel_id: str = None, grado_id: str = None, seccion_id: str = None):
+    """Carga colegio, ajustes, padres e hijos (con proyección) y arma el join.
+
+    Filtros opcionales (nivel_id/grado_id/seccion_id): si se indican, solo se
+    incluyen las FAMILIAS que tienen al menos un hijo que cumple TODOS los
+    filtros dados. La carta de cada familia sigue listando a todos sus hijos.
+    """
     school = await db.schools.find_one(
         {"id": school_id},
         {"_id": 0, "school_name": 1, "name": 1, "nombre": 1, "subdomain": 1,
@@ -148,7 +153,8 @@ async def _gather_context(school_id: str):
     students = await db.users.find(
         {"role": "student", "school_id": school_id, "is_active": {"$ne": False}},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "username": 1,
-         "plain_password": 1, "dni": 1, "padre_id": 1, "parent_id": 1},
+         "plain_password": 1, "dni": 1, "padre_id": 1, "parent_id": 1,
+         "nivel_id": 1, "grado_id": 1, "seccion_id": 1},
     ).to_list(None)
 
     student_by_id = {s["id"]: s for s in students}
@@ -165,6 +171,14 @@ async def _gather_context(school_id: str):
             if sid in student_by_id and sid not in acc:
                 acc[sid] = student_by_id[sid]
         return list(acc.values())
+
+    # Filtro por nivel/grado/sección: conservar solo familias con >= 1 hijo que
+    # cumpla TODOS los filtros indicados.
+    active_filters = {k: v for k, v in (("nivel_id", nivel_id), ("grado_id", grado_id), ("seccion_id", seccion_id)) if v}
+    if active_filters:
+        def _child_matches(child):
+            return all(child.get(k) == v for k, v in active_filters.items())
+        parents = [p for p in parents if any(_child_matches(c) for c in children_for(p))]
 
     return {
         "school_name": school_name, "slug": slug, "distrito": distrito,
@@ -392,18 +406,22 @@ async def _require_admin(current_user):
 
 
 @router.get("/info")
-async def welcome_info(current_user=Depends(get_current_user)):
+async def welcome_info(nivel_id: str = "", grado_id: str = "", seccion_id: str = "", current_user=Depends(get_current_user)):
     user = await _require_admin(current_user)
-    total = await db.users.count_documents({"role": "parent", "school_id": user["school_id"], "student_status": {"$ne": "deleted"}})
+    if nivel_id or grado_id or seccion_id:
+        ctx = await _gather_context(user["school_id"], nivel_id or None, grado_id or None, seccion_id or None)
+        total = len(ctx["parents"])
+    else:
+        total = await db.users.count_documents({"role": "parent", "school_id": user["school_id"], "student_status": {"$ne": "deleted"}})
     return {"total_families": total, "mode": "sync" if total <= SYNC_THRESHOLD else "background", "threshold": SYNC_THRESHOLD}
 
 
 @router.get("/download")
-async def welcome_download_sync(current_user=Depends(get_current_user)):
+async def welcome_download_sync(nivel_id: str = "", grado_id: str = "", seccion_id: str = "", current_user=Depends(get_current_user)):
     """Generación SÍNCRONA (<= 300 familias). Devuelve el ZIP directamente."""
     user = await _require_admin(current_user)
     school_id = user["school_id"]
-    ctx = await _gather_context(school_id)
+    ctx = await _gather_context(school_id, nivel_id or None, grado_id or None, seccion_id or None)
     if not ctx["parents"]:
         raise HTTPException(status_code=404, detail="No hay familias para generar")
     logo_bytes = await _fetch_logo_bytes(ctx["logo_url"])
@@ -433,9 +451,9 @@ async def welcome_download_sync(current_user=Depends(get_current_user)):
                              headers={"Content-Disposition": f'attachment; filename="{download_name}"'})
 
 
-async def _run_job(job_id: str, school_id: str, slug_hint: str):
+async def _run_job(job_id: str, school_id: str, slug_hint: str, nivel_id: str = None, grado_id: str = None, seccion_id: str = None):
     try:
-        ctx = await _gather_context(school_id)
+        ctx = await _gather_context(school_id, nivel_id, grado_id, seccion_id)
         total = len(ctx["parents"])
         await db.welcome_letter_jobs.update_one({"job_id": job_id}, {"$set": {"total": total}})
         if total == 0:
@@ -481,7 +499,7 @@ async def _run_job(job_id: str, school_id: str, slug_hint: str):
 
 
 @router.get("/start")
-async def welcome_start_job(current_user=Depends(get_current_user)):
+async def welcome_start_job(nivel_id: str = "", grado_id: str = "", seccion_id: str = "", current_user=Depends(get_current_user)):
     """Inicia un job en background (> 300 familias). Devuelve job_id para polling."""
     user = await _require_admin(current_user)
     school_id = user["school_id"]
@@ -489,9 +507,10 @@ async def welcome_start_job(current_user=Depends(get_current_user)):
     await db.welcome_letter_jobs.insert_one({
         "job_id": job_id, "school_id": school_id, "status": "processing",
         "processed": 0, "total": 0, "file_path": None, "error": None,
+        "nivel_id": nivel_id or None, "grado_id": grado_id or None, "seccion_id": seccion_id or None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    asyncio.create_task(_run_job(job_id, school_id, ""))
+    asyncio.create_task(_run_job(job_id, school_id, "", nivel_id or None, grado_id or None, seccion_id or None))
     return {"job_id": job_id, "status": "processing"}
 
 

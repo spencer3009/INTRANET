@@ -2152,22 +2152,28 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     const a = document.createElement("a"); a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
   };
-  const handleWelcomeLetters = async () => {
+  const handleWelcomeLetters = async (filters = {}) => {
     setGeneratingWelcome(true);
     setWelcomeProgress(null);
     const h = { Authorization: `Bearer ${token}` };
+    // Filtros opcionales (vista alumnos): nivel/grado/sección.
+    const qp = new URLSearchParams();
+    if (filters.nivel_id) qp.append("nivel_id", filters.nivel_id);
+    if (filters.grado_id) qp.append("grado_id", filters.grado_id);
+    if (filters.seccion_id) qp.append("seccion_id", filters.seccion_id);
+    const qs = qp.toString() ? `?${qp.toString()}` : "";
     try {
-      const info = await axios.get(`${API}/users/welcome-letters/info`, { headers: h });
+      const info = await axios.get(`${API}/users/welcome-letters/info${qs}`, { headers: h });
       const { total_families, mode } = info.data;
-      if (!total_families) { toast.error("No hay familias para generar"); return; }
+      if (!total_families) { toast.error("No hay familias para generar con este filtro"); return; }
 
       if (mode === "sync") {
-        console.log("[WELCOME-LETTERS] modo=sync → GET", `${API}/users/welcome-letters/download`);
-        const res = await axios.get(`${API}/users/welcome-letters/download`, { headers: h, responseType: "blob", timeout: 120000 });
+        console.log("[WELCOME-LETTERS] modo=sync → GET", `${API}/users/welcome-letters/download${qs}`);
+        const res = await axios.get(`${API}/users/welcome-letters/download${qs}`, { headers: h, responseType: "blob", timeout: 120000 });
         _downloadBlob(res.data, "cartas_bienvenida.zip", res.headers["content-disposition"]);
         toast.success("Cartas de bienvenida generadas. Revisa _EXCLUIDOS.txt dentro del ZIP.");
       } else {
-        const start = await axios.get(`${API}/users/welcome-letters/start`, { headers: h });
+        const start = await axios.get(`${API}/users/welcome-letters/start${qs}`, { headers: h });
         const jobId = start.data.job_id;
         console.log("[WELCOME-LETTERS] modo=background job_id=", jobId);
         setWelcomeProgress({ processed: 0, total: total_families });
@@ -3140,6 +3146,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <span className="hidden sm:inline">Descargar QR</span>
                     </button>
                   )}
+                  {selectedRole === 'student' && (
+                    <button
+                      onClick={() => handleWelcomeLetters({ nivel_id: studentFilterLevel, grado_id: studentFilterGrade, seccion_id: studentFilterSection })}
+                      disabled={generatingWelcome}
+                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      data-testid="welcome-letters-students-btn"
+                      title="Genera cartas para los padres de los alumnos del filtro actual (nivel/grado/sección)"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
+                        {generatingWelcome ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Mail className="w-4 h-4 text-white" />}
+                      </div>
+                      <span className="hidden sm:inline">
+                        {generatingWelcome
+                          ? (welcomeProgress ? `Generando ${welcomeProgress.processed}/${welcomeProgress.total}...` : "Generando...")
+                          : "Cartas de bienvenida"}
+                      </span>
+                    </button>
+                  )}
                   {selectedRole === 'parent' && (
                     <button
                       onClick={handleExportParentCredentials}
@@ -3155,7 +3179,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   {selectedRole === 'parent' && (
                     <button
-                      onClick={handleWelcomeLetters}
+                      onClick={() => handleWelcomeLetters()}
                       disabled={generatingWelcome}
                       className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="welcome-letters-btn"
