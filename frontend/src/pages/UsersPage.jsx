@@ -2156,6 +2156,52 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setWlSeccion(studentFilterSection || "");
     setShowWelcomeModal(true);
   };
+
+  // ── Desactivación temporal de alumno (retiro) ──────────────────────────────
+  const [disableConfirmStudent, setDisableConfirmStudent] = useState(null); // alumno a desactivar (modal confirm)
+  const [disableLoading, setDisableLoading] = useState(false);
+  const [disabledCredentials, setDisabledCredentials] = useState(null); // {student_name, username, password}
+
+  const handleStudentDisableSwitch = (student, nextDisabled) => {
+    if (nextDisabled) {
+      setDisableConfirmStudent(student);
+    } else {
+      reactivateStudent(student);
+    }
+  };
+
+  const confirmDisableStudent = async () => {
+    const student = disableConfirmStudent;
+    if (!student) return;
+    setDisableLoading(true);
+    try {
+      const res = await axios.patch(`${API}/students/${student.id}/toggle-disable`, {}, { headers });
+      setDisableConfirmStudent(null);
+      if (res.data?.credentials) {
+        setDisabledCredentials({
+          student_name: `${student.name} ${student.last_name || ""}`.trim(),
+          username: res.data.credentials.username,
+          password: res.data.credentials.password,
+        });
+      }
+      toast.success("Alumno desactivado. Ya no aparece en el sistema.");
+      loadUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al desactivar alumno");
+    } finally {
+      setDisableLoading(false);
+    }
+  };
+
+  const reactivateStudent = async (student) => {
+    try {
+      await axios.patch(`${API}/students/${student.id}/toggle-disable`, {}, { headers });
+      toast.success("Alumno reactivado correctamente.");
+      loadUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al reactivar alumno");
+    }
+  };
   const _downloadBlob = (data, fallbackName, disposition) => {
     const m = (disposition || "").match(/filename="?([^"]+)"?/);
     const filename = m ? m[1] : fallbackName;
@@ -3222,6 +3268,65 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       </div>
                     </div>
                   )}
+                  {/* Modal confirmación de desactivación de alumno */}
+                  {disableConfirmStudent && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="disable-confirm-modal">
+                      <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => !disableLoading && setDisableConfirmStudent(null)} />
+                      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden text-slate-800">
+                        <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center gap-2">
+                          <UserX className="w-5 h-5 text-white" />
+                          <h3 className="text-white font-semibold">Desactivar alumno</h3>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <p className="text-sm text-slate-600">
+                            ¿Deseas desactivar a <b>{disableConfirmStudent.name} {disableConfirmStudent.last_name}</b>? Ya no aparecerá en ninguna parte del sistema y sus credenciales serán reseteadas con valores aleatorios.
+                          </p>
+                          <div className="flex gap-3 pt-1">
+                            <button onClick={() => setDisableConfirmStudent(null)} disabled={disableLoading} className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium disabled:opacity-60" data-testid="disable-cancel-btn">Cancelar</button>
+                            <button onClick={confirmDisableStudent} disabled={disableLoading} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2" data-testid="disable-confirm-btn">
+                              {disableLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />} Sí, desactivar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal credenciales reseteadas (se muestran una sola vez) */}
+                  {disabledCredentials && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="disabled-credentials-modal">
+                      <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" />
+                      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden text-slate-800">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-white" />
+                          <h3 className="text-white font-semibold">Alumno desactivado</h3>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <p className="text-sm text-slate-600">
+                            <b>{disabledCredentials.student_name}</b> fue retirado del sistema. Estas son sus nuevas credenciales (se muestran <b>solo una vez</b>):
+                          </p>
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                            {[["Usuario", disabledCredentials.username], ["Contraseña", disabledCredentials.password]].map(([label, val]) => (
+                              <div key={label} className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-[11px] uppercase font-semibold text-slate-400">{label}</p>
+                                  <p className="font-mono text-sm text-slate-800 truncate">{val}</p>
+                                </div>
+                                <button onClick={() => { navigator.clipboard.writeText(val); toast.success(`${label} copiado`); }} className="p-2 rounded-lg hover:bg-slate-200 text-slate-500" data-testid={`copy-${label.toLowerCase()}`}>
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button onClick={() => { navigator.clipboard.writeText(`Usuario: ${disabledCredentials.username}\nContraseña: ${disabledCredentials.password}`); toast.success("Credenciales copiadas"); }} className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium flex items-center justify-center gap-2">
+                            <Copy className="w-3.5 h-3.5" /> Copiar ambas
+                          </button>
+                          <button onClick={() => setDisabledCredentials(null)} className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-sm font-semibold" data-testid="disabled-credentials-close">Entendido</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedRole === 'parent' && (
                     <button
                       onClick={handleExportParentCredentials}
@@ -4058,11 +4163,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     const st = student.student_status || "active";
     const statusCfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
     const statusLbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
+    const isDisabled = student.is_disabled === true;
 
     return (
     <div 
       key={student.id}
-      className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
+      className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${isDisabled ? 'border-red-300 opacity-70' : (levelColor?.border || roleConfig.borderColor)}`}
       data-testid={`student-card-${student.id}`}
     >
       <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
@@ -4234,9 +4340,22 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           )}
 
           {/* Status badge */}
-          <span className={`mt-2.5 px-4 py-1.5 text-xs font-bold rounded-full ${statusCfg[st] || statusCfg.active}`}>
-            {statusLbl[st] || st}
+          <span className={`mt-2.5 px-4 py-1.5 text-xs font-bold rounded-full ${isDisabled ? 'bg-red-600 text-white' : (statusCfg[st] || statusCfg.active)}`}>
+            {isDisabled ? 'RETIRADO' : (statusLbl[st] || st)}
           </span>
+
+          {/* Switch: desactivar alumno (retiro temporal) */}
+          <div className="mt-3 flex items-center justify-center gap-2 w-full" data-testid={`disable-switch-row-${student.id}`}>
+            <Switch
+              checked={isDisabled}
+              onCheckedChange={(val) => handleStudentDisableSwitch(student, val)}
+              className="data-[state=checked]:bg-red-600"
+              data-testid={`disable-switch-${student.id}`}
+            />
+            <span className={`text-xs font-semibold ${isDisabled ? 'text-red-600' : 'text-slate-500'}`}>
+              {isDisabled ? 'Alumno desactivado' : 'Desactivar alumno'}
+            </span>
+          </div>
         </div>
 
         {/* Divider */}

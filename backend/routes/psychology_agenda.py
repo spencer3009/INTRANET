@@ -474,7 +474,7 @@ async def create_workshop(data: WorkshopCreate, user=Depends(require_role(["psic
 
     attendee_list = []
     if data.target_grades and data.target_sections:
-        query = {"school_id": school_id, "role": "student"}
+        query = {"school_id": school_id, "role": "student", "is_disabled": {"$ne": True}}
         if data.target_grades:
             query["grade"] = {"$in": data.target_grades}
         if data.target_sections:

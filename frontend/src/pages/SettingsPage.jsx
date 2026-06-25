@@ -20,6 +20,7 @@ import {
 import { TimePicker } from "@/components/ui/time-picker";
 import RegistroAuxiliarPlantillasTab from "@/components/RegistroAuxiliarPlantillasTab";
 import LibretasSettingsTab from "@/components/LibretasSettingsTab";
+import RetiredStudentsTab from "@/pages/RetiredStudentsTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -37,6 +38,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         { id: "general", label: "General", icon: Settings },
         { id: "registro_auxiliar", label: "Registro Auxiliar", icon: ClipboardList },
         { id: "libretas", label: "Libretas", icon: ClipboardList },
+        { id: "retirados", label: "Alumnos retirados", icon: Users },
         { id: "himno", label: "Himno del Colegio", icon: Music },
       ];
   const [activeSettingsTab, setActiveSettingsTab] = useState(availableTabs[0].id);
@@ -969,6 +971,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
           {activeSettingsTab === "libretas" && (
             <LibretasSettingsTab token={token} />
+          )}
+
+          {activeSettingsTab === "retirados" && (
+            <RetiredStudentsTab token={token} />
           )}
 
           {/* Tab Content: General Settings */}

@@ -544,6 +544,7 @@ async def get_libreta(
             "school_id": school_id,
             "role": "student",
             "student_status": {"$in": ["enrolled", "active"]},
+            "is_disabled": {"$ne": True},
             "seccion_id": section_id,
         },
         {"_id": 0, "id": 1, "name": 1, "last_name": 1},
@@ -555,6 +556,7 @@ async def get_libreta(
                 "school_id": school_id,
                 "role": "student",
                 "student_status": {"$in": ["enrolled", "active"]},
+                "is_disabled": {"$ne": True},
                 "section_id": section_id,
             },
             {"_id": 0, "id": 1, "name": 1, "last_name": 1},
@@ -1105,6 +1107,7 @@ async def close_period(
         "school_id": school_id,
         "role": "student",
         "student_status": {"$in": ["enrolled", "active"]},
+        "is_disabled": {"$ne": True},
     }
     if body.section_id:
         student_filter["seccion_id"] = body.section_id
@@ -1240,7 +1243,7 @@ async def reopen_period(
         # Filtrar alumnos de la sección
         sec_students = await db.users.find(
             {
-                "school_id": school_id, "role": "student",
+                "school_id": school_id, "role": "student", "is_disabled": {"$ne": True},
                 "$or": [{"seccion_id": body.section_id}, {"section_id": body.section_id}],
             }, {"_id": 0, "id": 1},
         ).to_list(5000)

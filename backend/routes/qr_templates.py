@@ -58,7 +58,7 @@ async def count_students_with_qr(
         raise HTTPException(status_code=403, detail="No autorizado")
     school_id = user.get("school_id")
     count = await db.users.count_documents({
-        "school_id": school_id, "role": "student",
+        "school_id": school_id, "role": "student", "is_disabled": {"$ne": True},
         "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id,
         "qr_token": {"$exists": True, "$ne": None},
     })
@@ -101,7 +101,7 @@ async def preview_template(
         raise HTTPException(status_code=403, detail="No autorizado")
 
     student = await db.users.find_one(
-        {"school_id": school_id, "role": "student", "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "qr_token": {"$exists": True, "$ne": None}},
+        {"school_id": school_id, "role": "student", "is_disabled": {"$ne": True}, "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "qr_token": {"$exists": True, "$ne": None}},
         {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "qr_token": 1, "codigo_alumno": 1}
     )
     if not student:

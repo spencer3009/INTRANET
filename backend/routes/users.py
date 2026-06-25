@@ -19,7 +19,7 @@ from .core import (
     has_role, is_student, is_parent, is_staff,
     can_access_section, get_user_permissions,
     hash_password, verify_password, create_token,
-    get_academic_filter,
+    get_academic_filter, invalidate_student_cache, STUDENT_VISIBLE_FILTER,
     JWT_SECRET, JWT_ALGORITHM, now_iso, generate_id,
     ADMIN_ROLES, STAFF_ROLES, ROLE_HIERARCHY,
     ACADEMIC_STUDENT_FILTER, ACADEMIC_STUDENT_FILTER_WITH_PENDING,
@@ -194,6 +194,100 @@ async def search_students(q: str = "", current_user = Depends(get_current_user))
         s["grade_name"] = grade.get("nombre", "") if grade else ""
         s["section_name"] = section.get("nombre", "") if section else ""
     
+    return students
+
+
+@router.patch("/students/{student_id}/toggle-disable")
+async def toggle_student_disable(student_id: str, current_user = Depends(get_current_user)):
+    """Alterna is_disabled de un alumno (desactivación temporal / retiro).
+
+    - Al DESACTIVAR: registra disabled_at y RESETEA credenciales con valores
+      aleatorios (username 8 alfanum., password 12). Solo se guarda el hash
+      bcrypt; se borra plain_password/password_display. Devuelve las nuevas
+      credenciales en texto plano UNA sola vez (no se almacenan en claro).
+    - Al REACTIVAR: solo limpia disabled_at. No toca credenciales.
+    Solo admin / owner / director.
+    """
+    import secrets, string
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden desactivar alumnos")
+
+    school_id = user["school_id"]
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"})
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    currently_disabled = student.get("is_disabled") is True
+
+    if not currently_disabled:
+        # DESACTIVAR + reset de credenciales
+        alnum = string.ascii_letters + string.digits
+        lower_num = string.ascii_lowercase + string.digits
+        new_username = "".join(secrets.choice(lower_num) for _ in range(8))
+        for _ in range(6):
+            if not await db.users.find_one({"school_id": school_id, "username": new_username}, {"_id": 1}):
+                break
+            new_username = "".join(secrets.choice(lower_num) for _ in range(8))
+        new_password = "".join(secrets.choice(alnum) for _ in range(12))
+        await db.users.update_one(
+            {"id": student_id},
+            {
+                "$set": {
+                    "is_disabled": True,
+                    "disabled_at": now_iso(),
+                    "username": new_username,
+                    "password": hash_password(new_password),
+                    "updated_at": now_iso(),
+                },
+                "$unset": {"plain_password": "", "password_display": ""},
+            },
+        )
+        invalidate_student_cache(student_id)
+        return {
+            "is_disabled": True,
+            "message": "Alumno desactivado. Ya no aparecerá en el sistema y sus credenciales fueron reseteadas.",
+            "credentials": {"username": new_username, "password": new_password},
+        }
+    else:
+        # REACTIVAR (no toca credenciales)
+        await db.users.update_one(
+            {"id": student_id},
+            {"$set": {"is_disabled": False, "updated_at": now_iso()}, "$unset": {"disabled_at": ""}},
+        )
+        invalidate_student_cache(student_id)
+        return {"is_disabled": False, "message": "Alumno reactivado correctamente."}
+
+
+@router.get("/students/disabled/search")
+async def search_disabled_students(q: str = "", current_user = Depends(get_current_user)):
+    """Autocompletador de Ajustes: busca SOLO entre alumnos desactivados (retirados)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+    query = {"school_id": user["school_id"], "role": "student", "is_disabled": True}
+    if q and len(q.strip()) >= 1:
+        regex = re.compile(re.escape(q.strip()), re.IGNORECASE)
+        query["$or"] = [
+            {"name": {"$regex": regex}},
+            {"last_name": {"$regex": regex}},
+            {"dni": {"$regex": regex}},
+        ]
+    students = await db.users.find(
+        query,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1, "grado_id": 1,
+         "seccion_id": 1, "nivel_id": 1, "disabled_at": 1, "username": 1, "photo_url": 1},
+    ).limit(20).to_list(20)
+    for s in students:
+        grade = await db.grades.find_one({"id": s.get("grado_id")}, {"_id": 0, "nombre": 1})
+        section = await db.sections.find_one({"id": s.get("seccion_id")}, {"_id": 0, "nombre": 1})
+        s["grade_name"] = grade.get("nombre", "") if grade else ""
+        s["section_name"] = section.get("nombre", "") if section else ""
     return students
 
 

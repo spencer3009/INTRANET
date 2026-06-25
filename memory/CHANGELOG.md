@@ -89,3 +89,19 @@
 - Modal heredaba texto blanco del header naranja: los <select> y opciones salian invisibles. Fix: text-slate-800 bg-white explicito en los 3 selects + contenedor.
 - Botones del toolbar de Estudiantes compactados (px-3 py-2 text-xs) para que los 5 entren en una sola linea.
 - Verificado: valor del select visible (color slate-800); 5 botones en una linea.
+
+## 2026-06-25 — Desactivación temporal de alumnos (retiro / oculto en todo el sistema)
+### Backend
+- Nuevos campos: is_disabled, disabled_at. Filtro central STUDENT_VISIBLE_FILTER + is_disabled agregado a ACADEMIC_STUDENT_FILTER(_WITH_PENDING) -> cubre ~25 modulos automaticamente.
+- Filtro is_disabled aplicado a listados de modulos sin filtro central: coordinacion, libreta, report_cards_pdf, pae, movilidad, teacher_observations, tutoring_admin, conducta_extendida, qr_templates, psychology_agenda, tutor_comments.
+- enforce_student_active bloquea is_disabled.
+- PATCH /api/students/{id}/toggle-disable (solo admin/owner/director): al desactivar resetea username(8)+password(12 bcrypt), borra plain_password/password_display, devuelve credenciales 1 sola vez; al reactivar solo limpia disabled_at.
+- GET /api/students/disabled/search (autocompletador Ajustes).
+- GET /users sigue mostrando todos (con is_disabled) para Usuarios>Estudiantes.
+### Frontend
+- Card de alumno: Switch "Desactivar alumno"/"Alumno desactivado" (default OFF), badge RETIRADO rojo + opacidad. Modal confirmacion + modal credenciales (copiar). 
+- Ajustes: nuevo tab "Alumnos retirados" (RetiredStudentsTab) con buscador y reactivacion.
+### Verificado
+- Backend (DB simulation): disabled excluido de coordinacion (38->37), presente en disabled/search y en /users. GETs OK.
+- Frontend: switch en 57 cards, modal confirmacion con texto correcto, tab Ajustes operativo.
+- NOTA: el PATCH (escritura) no se pudo ejecutar E2E en preview porque el tenant El Roble tiene suscripcion vencida (middleware bloquea writes). La logica quedo validada via DB.

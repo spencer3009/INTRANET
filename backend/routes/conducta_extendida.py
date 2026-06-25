@@ -258,7 +258,7 @@ async def list_scores(
 
     # Students of the section
     students = await db.users.find(
-        {"school_id": school_id, "role": "student", "seccion_id": section_id, "$or": [{"active": True}, {"active": {"$exists": False}}]},
+        {"school_id": school_id, "role": "student", "seccion_id": section_id, "is_disabled": {"$ne": True}, "$or": [{"active": True}, {"active": {"$exists": False}}]},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "student_code": 1, "number": 1},
     ).to_list(2000)
     students.sort(key=lambda s: (s.get("last_name") or "").upper() + (s.get("name") or "").upper())

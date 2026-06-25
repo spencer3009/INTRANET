@@ -205,7 +205,7 @@ async def list_my_students_with_tutor(current_user=Depends(get_current_user)):
 
         # Cargar alumnos de esas secciones
         students = await db.users.find(
-            {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_deleted": {"$ne": True}},
+            {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_deleted": {"$ne": True}, "is_disabled": {"$ne": True}},
             {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "seccion_id": 1, "grado_id": 1, "nivel_id": 1}
         ).to_list(2000)
         students = [s for s in (students or []) if s and s.get("id")]
@@ -285,7 +285,7 @@ async def list_my_tutors(current_user=Depends(get_current_user)):
 
     # Contar alumnos por sección
     students_count_pipeline = [
-        {"$match": {"school_id": school_id, "role": "student", "is_deleted": {"$ne": True}, "seccion_id": {"$in": section_ids}}},
+        {"$match": {"school_id": school_id, "role": "student", "is_deleted": {"$ne": True}, "seccion_id": {"$in": section_ids}, "is_disabled": {"$ne": True}}},
         {"$group": {"_id": "$seccion_id", "n": {"$sum": 1}}},
     ]
     students_count = {row["_id"]: row["n"] async for row in db.users.aggregate(students_count_pipeline)}

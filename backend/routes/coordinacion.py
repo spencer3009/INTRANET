@@ -291,7 +291,8 @@ async def get_coordinacion_students(
             "school_id": school_id,
             "seccion_id": section_id,
             "role": "student",
-            "student_status": {"$in": ["enrolled", "active"]}
+            "student_status": {"$in": ["enrolled", "active"]},
+            "is_disabled": {"$ne": True}
         },
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}
     ).sort([("last_name", 1), ("name", 1)]).to_list(100)
@@ -579,7 +580,7 @@ async def list_seguimientos_global(
     grade_student_ids = None
     if grade_id:
         grade_students = await db.users.find(
-            {"school_id": school_id, "grado_id": grade_id, "role": "student"},
+            {"school_id": school_id, "grado_id": grade_id, "role": "student", "is_disabled": {"$ne": True}},
             {"_id": 0, "id": 1}
         ).to_list(500)
         grade_student_ids = [s["id"] for s in grade_students]
@@ -1674,6 +1675,7 @@ async def get_charla_students(charla_id: str, user=Depends(require_role(COORD_VI
         "school_id": school_id,
         "role": "student",
         "student_status": {"$in": ["enrolled", "active"]},
+        "is_disabled": {"$ne": True},
     }
     if charla.get("target_sections"):
         student_query["seccion_id"] = {"$in": charla["target_sections"]}

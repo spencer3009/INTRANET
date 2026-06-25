@@ -663,7 +663,7 @@ async def list_report_cards_by_section(
         raise HTTPException(status_code=404, detail="Bimestre no encontrado")
 
     students = await db.users.find(
-        {"school_id": school_id, "role": "student", "seccion_id": section_id, "is_active": {"$ne": False}},
+        {"school_id": school_id, "role": "student", "seccion_id": section_id, "is_active": {"$ne": False}, "is_disabled": {"$ne": True}},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "second_last_name": 1, "photo_url": 1, "student_code": 1, "codigo": 1},
     ).to_list(1000)
     students.sort(key=lambda s: ((s.get("last_name") or "") + " " + (s.get("second_last_name") or "") + " " + (s.get("name") or "")).lower())

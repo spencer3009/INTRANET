@@ -89,7 +89,7 @@ async def tutoring_overview(
 
     # 5) Conteo de estudiantes por sección (real, no el campo cacheado)
     pipe = [
-        {"$match": {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}}},
+        {"$match": {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_disabled": {"$ne": True}}},
         {"$group": {"_id": "$seccion_id", "count": {"$sum": 1}}},
     ]
     student_counts = {row["_id"]: row["count"] async for row in db.users.aggregate(pipe)}
@@ -114,7 +114,7 @@ async def tutoring_overview(
         # Por sección: cuántos alumnos tienen comentario / conducta
         students_in_section: dict = {}
         async for st in db.users.find(
-            {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}},
+            {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_disabled": {"$ne": True}},
             {"_id": 0, "id": 1, "seccion_id": 1},
         ):
             sid = st.get("seccion_id")
@@ -221,7 +221,7 @@ async def teacher_tutorings(
 
     # student counts
     pipe = [
-        {"$match": {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}}},
+        {"$match": {"school_id": school_id, "role": "student", "seccion_id": {"$in": section_ids}, "is_disabled": {"$ne": True}}},
         {"$group": {"_id": "$seccion_id", "count": {"$sum": 1}}},
     ]
     counts = {row["_id"]: row["count"] async for row in db.users.aggregate(pipe)}

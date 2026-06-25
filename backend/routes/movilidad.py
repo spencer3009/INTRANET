@@ -498,7 +498,7 @@ async def get_registros_dia(
     # If academic filters, get matching student_ids first
     student_ids = None
     if nivel_id or grado_id or seccion_id:
-        student_query = {"school_id": school_id, "role": "student"}
+        student_query = {"school_id": school_id, "role": "student", "is_disabled": {"$ne": True}}
         if nivel_id:
             student_query["nivel_id"] = nivel_id
         if grado_id:

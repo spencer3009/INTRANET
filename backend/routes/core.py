@@ -164,8 +164,14 @@ def invalidate_course_caches(course_id: str, school_id: str):
 # ACADEMIC STUDENT FILTERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-ACADEMIC_STUDENT_FILTER = {"student_status": {"$in": ["enrolled", "active"]}}
-ACADEMIC_STUDENT_FILTER_WITH_PENDING = {"student_status": {"$in": ["enrolled", "active", "pending"]}}
+ACADEMIC_STUDENT_FILTER = {"student_status": {"$in": ["enrolled", "active"]}, "is_disabled": {"$ne": True}}
+ACADEMIC_STUDENT_FILTER_WITH_PENDING = {"student_status": {"$in": ["enrolled", "active", "pending"]}, "is_disabled": {"$ne": True}}
+
+# Filtro de visibilidad de alumnos: excluye a los desactivados (retirados).
+# Se aplica a TODOS los listados operativos (registros auxiliares, consolidados,
+# libretas, asistencia, PAE, movilidad, coordinación, etc.). NO se aplica en
+# Usuarios>Estudiantes ni en Ajustes (allí se ven/gestionan los desactivados).
+STUDENT_VISIBLE_FILTER = {"is_disabled": {"$ne": True}}
 
 async def get_academic_filter(school_id: str) -> dict:
     if school_id:

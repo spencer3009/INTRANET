@@ -281,6 +281,7 @@ async def list_my_tutor_sections(current_user=Depends(get_current_user)):
         count = await db.users.count_documents({
             "school_id": school_id,
             "role": "student",
+            "is_disabled": {"$ne": True},
             "$or": [{"seccion_id": s["id"]}, {"section_id": s["id"]}],
         })
         result.append({
@@ -325,6 +326,7 @@ async def bulk_tutor_comments(
         {
             "school_id": school_id,
             "role": "student",
+            "is_disabled": {"$ne": True},
             "$or": [{"seccion_id": section_id}, {"section_id": section_id}],
         },
         {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "student_code": 1, "codigo": 1},
