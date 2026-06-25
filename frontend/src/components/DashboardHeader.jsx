@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, User, ChevronDown, LogOut, GraduationCap, Headset, ArrowLeft, ArrowLeftRight } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import NotificationPermissionButton from "./NotificationPermissionButton";
 import { useOwnerNotifications } from "../hooks/useOwnerNotifications";
 
 function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
@@ -143,6 +144,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
 
         <div className="flex items-center gap-2 sm:gap-3">
           {extraActions}
+          <NotificationPermissionButton />
           <NotificationBell token={token} userRole={user?.role} />
           <div className="relative" ref={profileMenuRef}>
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" data-testid="header-profile-button">

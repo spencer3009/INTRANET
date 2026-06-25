@@ -14,9 +14,14 @@ export function useOwnerNotifications(token, userRole) {
   const registeredRef = useRef(false);
   const isOwnerLike = OWNER_LIKE_ROLES.includes(userRole);
 
-  // Register FCM token on mount (once)
+  // Register FCM token on mount (once) — SOLO si el permiso YA fue concedido.
+  // NO disparamos el prompt aquí: en Android se ignora sin un gesto del usuario.
+  // El botón "Activar notificaciones" (NotificationPermissionButton) gestiona el
+  // prompt dentro de un gesto y registra el token tras conceder.
   useEffect(() => {
     if (!token || !isOwnerLike || registeredRef.current) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return; // sin gesto no se pide
     registeredRef.current = true;
 
     (async () => {
