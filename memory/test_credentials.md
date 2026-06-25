@@ -41,5 +41,5 @@
 
 ## Soporte / Super Admin global (acceso al panel de soporte)
 - Email: `spencer3009@gmail.com`
-- Password: `Support1234!`
+- Password: `Socios3009`
 - Role: `system_admin_global` (accede a `/support/schools`, botón "Probar Push")
