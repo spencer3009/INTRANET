@@ -162,7 +162,7 @@ async def send_fcm_to_devices(db, devices: list, title: str, body: str, data: di
                 else:
                     failed += 1
                     error_body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-                    error_code = error_body.get("error", {}).get("details", [{}])[0].get("errorCode", "")
+                    error_code = (error_body.get("error", {}).get("details") or [{}])[0].get("errorCode", "")
                     error_status = error_body.get("error", {}).get("status", "")
 
                     # Deactivate invalid tokens
