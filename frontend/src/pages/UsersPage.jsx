@@ -2145,6 +2145,17 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const [generatingWelcome, setGeneratingWelcome] = useState(false);
   const [welcomeProgress, setWelcomeProgress] = useState(null); // {processed,total} | null
+  // Modal de filtro obligatorio para "Cartas de bienvenida" (vista Alumnos)
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [wlNivel, setWlNivel] = useState("");
+  const [wlGrado, setWlGrado] = useState("");
+  const [wlSeccion, setWlSeccion] = useState("");
+  const openWelcomeModal = () => {
+    setWlNivel(studentFilterLevel || "");
+    setWlGrado(studentFilterGrade || "");
+    setWlSeccion(studentFilterSection || "");
+    setShowWelcomeModal(true);
+  };
   const _downloadBlob = (data, fallbackName, disposition) => {
     const m = (disposition || "").match(/filename="?([^"]+)"?/);
     const filename = m ? m[1] : fallbackName;
@@ -3148,11 +3159,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   {selectedRole === 'student' && (
                     <button
-                      onClick={() => handleWelcomeLetters({ nivel_id: studentFilterLevel, grado_id: studentFilterGrade, seccion_id: studentFilterSection })}
+                      onClick={openWelcomeModal}
                       disabled={generatingWelcome}
                       className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="welcome-letters-students-btn"
-                      title="Genera cartas para los padres de los alumnos del filtro actual (nivel/grado/sección)"
+                      title="Genera cartas para los padres de los alumnos del nivel/grado/sección que elijas"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
                         {generatingWelcome ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Mail className="w-4 h-4 text-white" />}
@@ -3163,6 +3174,53 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           : "Cartas de bienvenida"}
                       </span>
                     </button>
+                  )}
+                  {/* Modal: filtro obligatorio nivel/grado/sección para Cartas de bienvenida */}
+                  {showWelcomeModal && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="welcome-letters-modal">
+                      <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => !generatingWelcome && setShowWelcomeModal(false)} />
+                      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-sky-500 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                          <h3 className="text-white font-semibold flex items-center gap-2"><Mail className="w-5 h-5" /> Cartas de bienvenida</h3>
+                          <button onClick={() => !generatingWelcome && setShowWelcomeModal(false)} className="text-white/80 hover:text-white transition-colors" data-testid="welcome-modal-close"><X className="w-5 h-5" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <p className="text-sm text-slate-500">Selecciona <b>nivel</b>, <b>grado</b> y <b>sección</b>. Se generarán cartas solo para los padres con hijos en esa sección.</p>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Nivel <span className="text-rose-500">*</span></label>
+                            <select value={wlNivel} onChange={(e) => { setWlNivel(e.target.value); setWlGrado(""); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none" data-testid="welcome-modal-nivel">
+                              <option value="">Seleccionar nivel...</option>
+                              {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Grado <span className="text-rose-500">*</span></label>
+                            <select value={wlGrado} disabled={!wlNivel} onChange={(e) => { setWlGrado(e.target.value); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-grado">
+                              <option value="">{wlNivel ? "Seleccionar grado..." : "Primero selecciona nivel"}</option>
+                              {grades.filter(g => g.nivel_id === wlNivel).map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Sección <span className="text-rose-500">*</span></label>
+                            <select value={wlSeccion} disabled={!wlGrado} onChange={(e) => setWlSeccion(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-seccion">
+                              <option value="">{wlGrado ? "Seleccionar sección..." : "Primero selecciona grado"}</option>
+                              {sections.filter(s => s.grado_id === wlGrado).map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                            </select>
+                          </div>
+                          <div className="flex gap-3 pt-2">
+                            <button onClick={() => setShowWelcomeModal(false)} disabled={generatingWelcome} className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors disabled:opacity-60" data-testid="welcome-modal-cancel">Cancelar</button>
+                            <button
+                              onClick={() => { setShowWelcomeModal(false); handleWelcomeLetters({ nivel_id: wlNivel, grado_id: wlGrado, seccion_id: wlSeccion }); }}
+                              disabled={!wlNivel || !wlGrado || !wlSeccion || generatingWelcome}
+                              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              data-testid="welcome-modal-download"
+                            >
+                              <Download className="w-4 h-4" /> Descargar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {selectedRole === 'parent' && (
                     <button

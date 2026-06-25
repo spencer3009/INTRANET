@@ -79,3 +79,8 @@
 - Pasa los filtros activos nivel_id/grado_id/seccion_id a /users/welcome-letters/{info,download,start}.
 - Backend: _gather_context acepta filtros y conserva solo FAMILIAS con >=1 hijo que cumple TODOS los filtros; la carta lista todos los hijos de la familia. Job en background guarda/propaga los filtros.
 - Verificado: sin filtro 6 familias; filtro nivel+grado+seccion -> 2 familias (ZIP con 2 PDFs).
+
+## 2026-06-25 — Modal de filtro obligatorio para Cartas de bienvenida (Alumnos)
+- El boton en vista Alumnos ahora abre un modal (welcome-letters-modal) con Nivel/Grado/Seccion OBLIGATORIOS y en cascada.
+- "Descargar" deshabilitado hasta seleccionar los 3 campos. Evita descargas accidentales de todo el colegio.
+- Verificado: download disabled True hasta seleccionar nivel+grado+seccion -> habilitado. Backend filtra solo esas familias.
