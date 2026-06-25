@@ -3088,7 +3088,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <button
                         onClick={handleExportTeacherCredentials}
                         disabled={exportingTeacherCredentials}
-                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                         data-testid="export-teacher-credentials-btn"
                       >
                         <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
@@ -3099,7 +3099,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       <button
                         onClick={handleDownloadTeacherQR}
                         disabled={downloadingTeacherQR}
-                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden"
                         data-testid="download-teacher-qr-btn"
                       >
                         {downloadingTeacherQR && qrDownloadProgress > 0 && (
@@ -3112,7 +3112,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       </button>
                       <button
                         onClick={() => setShowTemplateDrawer(true)}
-                        className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                        className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                         data-testid="template-qr-btn-teacher"
                       >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
@@ -3126,7 +3126,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {['personal_mantenimiento','auxiliar','auxiliar_asistencia','auxiliar_alimentacion','auxiliar_movilidad','auxiliar_topico','psicologo'].includes(selectedRole) && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid={`template-qr-btn-${selectedRole}`}
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
@@ -3137,7 +3137,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   <button
                     onClick={() => handleAddUser(selectedRole)}
-                    className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                    className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                     data-testid="add-user-circle-btn"
                   >
                     <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
@@ -3148,7 +3148,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowBulkQR(true)}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="bulk-qr-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
@@ -3161,7 +3161,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={openWelcomeModal}
                       disabled={generatingWelcome}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="welcome-letters-students-btn"
                       title="Genera cartas para los padres de los alumnos del nivel/grado/sección que elijas"
                     >
@@ -3184,25 +3184,25 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           <h3 className="text-white font-semibold flex items-center gap-2"><Mail className="w-5 h-5" /> Cartas de bienvenida</h3>
                           <button onClick={() => !generatingWelcome && setShowWelcomeModal(false)} className="text-white/80 hover:text-white transition-colors" data-testid="welcome-modal-close"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 text-slate-800">
                           <p className="text-sm text-slate-500">Selecciona <b>nivel</b>, <b>grado</b> y <b>sección</b>. Se generarán cartas solo para los padres con hijos en esa sección.</p>
                           <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Nivel <span className="text-rose-500">*</span></label>
-                            <select value={wlNivel} onChange={(e) => { setWlNivel(e.target.value); setWlGrado(""); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none" data-testid="welcome-modal-nivel">
+                            <select value={wlNivel} onChange={(e) => { setWlNivel(e.target.value); setWlGrado(""); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 bg-white focus:ring-2 focus:ring-sky-400 outline-none" data-testid="welcome-modal-nivel">
                               <option value="">Seleccionar nivel...</option>
                               {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                             </select>
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Grado <span className="text-rose-500">*</span></label>
-                            <select value={wlGrado} disabled={!wlNivel} onChange={(e) => { setWlGrado(e.target.value); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-grado">
+                            <select value={wlGrado} disabled={!wlNivel} onChange={(e) => { setWlGrado(e.target.value); setWlSeccion(""); }} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 bg-white focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-grado">
                               <option value="">{wlNivel ? "Seleccionar grado..." : "Primero selecciona nivel"}</option>
                               {grades.filter(g => g.nivel_id === wlNivel).map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
                             </select>
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Sección <span className="text-rose-500">*</span></label>
-                            <select value={wlSeccion} disabled={!wlGrado} onChange={(e) => setWlSeccion(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-seccion">
+                            <select value={wlSeccion} disabled={!wlGrado} onChange={(e) => setWlSeccion(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 bg-white focus:ring-2 focus:ring-sky-400 outline-none disabled:bg-slate-100 disabled:text-slate-400" data-testid="welcome-modal-seccion">
                               <option value="">{wlGrado ? "Seleccionar sección..." : "Primero selecciona grado"}</option>
                               {sections.filter(s => s.grado_id === wlGrado).map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                             </select>
@@ -3226,7 +3226,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={handleExportParentCredentials}
                       disabled={exportingParentCredentials}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="export-parent-credentials-btn"
                     >
                       <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
@@ -3239,7 +3239,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <button
                       onClick={() => handleWelcomeLetters()}
                       disabled={generatingWelcome}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       data-testid="welcome-letters-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center justify-center">
@@ -3255,7 +3255,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'parent' && (
                     <button
                       onClick={() => { setDniClaveSobrescribir(false); setDniClaveResult(null); setShowDniClaveModal(true); }}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="asignar-dni-clave-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
@@ -3267,7 +3267,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && pendingEnrollmentCount > 0 && (
                     <button
                       onClick={() => setShowPendingEnrollments(true)}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 relative"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5 relative"
                       data-testid="pending-enrollments-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
@@ -3280,7 +3280,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (
                     <button
                       onClick={() => setShowTemplateDrawer(true)}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="template-qr-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 flex items-center justify-center">
@@ -3292,7 +3292,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {selectedRole === 'student' && (user?.role === 'owner' || user?.role === 'admin') && (
                     <button
                       onClick={() => setShowEnrollmentConfig(true)}
-                      className="flex items-center gap-2 bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                      className="flex items-center gap-2 bg-white text-slate-800 px-3 py-2 rounded-xl text-xs font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
                       data-testid="enrollment-config-btn"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">

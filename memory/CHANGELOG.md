@@ -84,3 +84,8 @@
 - El boton en vista Alumnos ahora abre un modal (welcome-letters-modal) con Nivel/Grado/Seccion OBLIGATORIOS y en cascada.
 - "Descargar" deshabilitado hasta seleccionar los 3 campos. Evita descargas accidentales de todo el colegio.
 - Verificado: download disabled True hasta seleccionar nivel+grado+seccion -> habilitado. Backend filtra solo esas familias.
+
+## 2026-06-25 — Fixes modal Cartas de bienvenida + compactacion toolbar
+- Modal heredaba texto blanco del header naranja: los <select> y opciones salian invisibles. Fix: text-slate-800 bg-white explicito en los 3 selects + contenedor.
+- Botones del toolbar de Estudiantes compactados (px-3 py-2 text-xs) para que los 5 entren en una sola linea.
+- Verificado: valor del select visible (color slate-800); 5 botones en una linea.
