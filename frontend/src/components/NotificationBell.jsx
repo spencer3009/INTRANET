@@ -320,6 +320,7 @@ export default function NotificationBell({ token, userRole }) {
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [badgeSeen, setBadgeSeen] = useState(false);
   const dropdownRef = useRef(null);
   const fcmRegistered = useRef(false);
   const navigate = useNavigate();
