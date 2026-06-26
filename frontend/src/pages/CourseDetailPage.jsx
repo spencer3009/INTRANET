@@ -42,7 +42,7 @@ import {
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy, XCircle,
   Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw,
-  Grid3X3, Monitor, Key, Save
+  Grid3X3, Monitor, Key, Save, Shuffle
 } from "lucide-react";
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import CloneActivityModal from "../components/course/CloneActivityModal";
@@ -7598,6 +7598,20 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
       alert(err.response?.data?.detail || "Error al eliminar");
     }
   };
+
+  const [savingShuffle, setSavingShuffle] = useState(false);
+  const handleToggleShuffle = async (val) => {
+    setSavingShuffle(true);
+    setExam(prev => ({ ...prev, shuffle_questions: val }));
+    try {
+      await axios.put(`${API}/exams/${examId}`, { shuffle_questions: val }, { headers });
+    } catch (err) {
+      setExam(prev => ({ ...prev, shuffle_questions: !val }));
+      alert(err.response?.data?.detail || "No se pudo guardar el cambio");
+    } finally {
+      setSavingShuffle(false);
+    }
+  };
   
   const formatDateTime = (dateStr) => {
     if (!dateStr) return { date: "", time: "" };
@@ -7722,7 +7736,35 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
           )}
         </div>
       </div>
-      
+
+      {/* Aleatorizar orden de preguntas — switch grande y explícito */}
+      {!isOmr && canEdit && (
+        <div className="bg-white rounded-2xl border-2 border-indigo-100 shadow-sm p-5 flex items-center justify-between gap-4" data-testid="shuffle-questions-card">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <Shuffle className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-gray-800">Aleatorizar orden de preguntas</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Cada estudiante verá las preguntas en un <strong>orden distinto</strong>. El orden es fijo por alumno aunque recargue y no afecta la calificación.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!exam.shuffle_questions}
+            disabled={savingShuffle}
+            onClick={() => handleToggleShuffle(!exam.shuffle_questions)}
+            className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-300 disabled:opacity-60 ${exam.shuffle_questions ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            data-testid="shuffle-questions-switch"
+          >
+            <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-300 ${exam.shuffle_questions ? 'translate-x-7' : 'translate-x-1'}`} />
+          </button>
+        </div>
+      )}
+
       {/* OMR Tabs */}
       {isOmr && (
         <OmrDetailTabs

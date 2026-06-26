@@ -118,3 +118,8 @@
 - Frontend CourseDetailPage: toggle "Aleatorizar orden de preguntas" en el form de examen digital (data-testid exam-shuffle-questions-toggle). Solo orden de preguntas (no alternativas).
 - Verificado: algoritmo deterministico (mismo alumno=mismo orden; alumnos distintos=ordenes distintos); backend recarga limpia; frontend compila; GET /exams/{id} devuelve el campo (default false si ausente).
 - NO verificado E2E en preview: modal de creacion (admin sin cursos) y vista del alumno (writes bloqueados por suscripcion vencida del tenant El Roble).
+
+## 2026-06-26 — Switch "Aleatorizar orden de preguntas" en pantalla de gestion de preguntas
+- Movido/duplicado: ademas del modal de config, ahora hay un SWITCH grande y explicito en ExamDetailView (vista de gestion de preguntas), justo debajo de "Detalles del Examen" (data-testid shuffle-questions-card / shuffle-questions-switch). Solo digital + canEdit.
+- Guarda al instante: PUT /exams/{id} {shuffle_questions} con update optimista.
+- Compila OK. No verificado en UI (admin sin cursos / tenant suscripcion vencida).
