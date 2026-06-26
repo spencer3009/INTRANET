@@ -297,7 +297,9 @@ async def list_my_tutor_sections(current_user=Depends(get_current_user)):
         nv = NIVEL_ORDER.get((x.get("nivel_nombre") or "").upper(), 99)
         return (nv, x.get("grado_nombre") or "", x.get("nombre") or "")
     result.sort(key=_key)
-    return {"sections": result}
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "show_libreta_column_in_tutoria": 1})
+    show_libreta_column = (school or {}).get("show_libreta_column_in_tutoria", True) is not False
+    return {"sections": result, "show_libreta_column": show_libreta_column}
 
 
 @router.get("/mis-tutorias/bulk")

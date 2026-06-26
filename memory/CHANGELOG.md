@@ -105,3 +105,9 @@
 - Backend (DB simulation): disabled excluido de coordinacion (38->37), presente en disabled/search y en /users. GETs OK.
 - Frontend: switch en 57 cards, modal confirmacion con texto correcto, tab Ajustes operativo.
 - NOTA: el PATCH (escritura) no se pudo ejecutar E2E en preview porque el tenant El Roble tiene suscripcion vencida (middleware bloquea writes). La logica quedo validada via DB.
+
+## 2026-06-26 — Toggle LIBRETA tambien oculta la pestaña "Libretas individuales"
+- El toggle show_libreta_column_in_tutoria ahora controla tambien la pestaña "Libretas individuales" en Mis Tutorias (no solo la columna LIBRETA).
+- Backend: /mis-tutorias/sections devuelve show_libreta_column.
+- Frontend MisTutoriasPage: oculta el TabButton y su contenido cuando OFF; si el tutor estaba en esa pestaña, lo regresa a Conducta & Comentarios.
+- Verificado UI: ON -> tab+columna visibles; OFF -> ambos ocultos.

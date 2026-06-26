@@ -36,6 +36,9 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
   const [periods, setPeriods] = useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("");
   const [schoolSettings, setSchoolSettings] = useState(null);
+  // Toggle "Mostrar columna LIBRETA en el portal del profesor": cuando está OFF
+  // se oculta también la pestaña "Libretas individuales" para el tutor.
+  const [showLibretaColumn, setShowLibretaColumn] = useState(true);
 
   // Cargar settings del colegio (logo, nombre) para el header
   useEffect(() => {
@@ -68,6 +71,7 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
         ]);
         const secs = s.data?.sections || [];
         setSections(secs);
+        setShowLibretaColumn(s.data?.show_libreta_column !== false);
         const periodList = Array.isArray(p.data) ? p.data : (p.data?.periods || []);
         periodList.sort((a, b) => (a.orden || 0) - (b.orden || 0));
         setPeriods(periodList);
@@ -147,6 +151,7 @@ export default function MisTutoriasPage({ user, token, onLogout }) {
         onChangePeriod={setSelectedPeriodId}
         activeTab={activeTab}
         onSwitchTab={switchTab}
+        showLibretaColumn={showLibretaColumn}
         onBack={sections.length > 1 ? backToCards : null}
       />
     );
@@ -232,7 +237,11 @@ function SectionCardsGrid({ sections, onPick, fullLabel }) {
 // ════════════════════════════════════════════════════════════════════════════
 // 2) DASHBOARD DE SECCIÓN — Header + Tabs
 // ════════════════════════════════════════════════════════════════════════════
-function SectionDashboard({ user, headers, token, section, periods, selectedPeriodId, onChangePeriod, activeTab, onSwitchTab, onBack }) {
+function SectionDashboard({ user, headers, token, section, periods, selectedPeriodId, onChangePeriod, activeTab, onSwitchTab, showLibretaColumn = true, onBack }) {
+  // Si el toggle está OFF y el tutor quedó parado en "libretas", lo regresamos.
+  useEffect(() => {
+    if (!showLibretaColumn && activeTab === "libretas") onSwitchTab("comentarios");
+  }, [showLibretaColumn, activeTab, onSwitchTab]);
   return (
     <div className="space-y-4">
       {/* Encabezado del salón */}
@@ -272,7 +281,9 @@ function SectionDashboard({ user, headers, token, section, periods, selectedPeri
         <TabButton id="conducta-ext" label="Eval. Conductual Extendida" icon={ClipboardList} active={activeTab === "conducta-ext"} onClick={() => onSwitchTab("conducta-ext")} />
         <TabButton id="observaciones" label="Mensajes del profesor" icon={Bell} active={activeTab === "observaciones"} onClick={() => onSwitchTab("observaciones")} />
         <TabButton id="consolidado" label="Consolidado del salón" icon={BarChart3} active={activeTab === "consolidado"} onClick={() => onSwitchTab("consolidado")} />
-        <TabButton id="libretas" label="Libretas individuales" icon={BookOpen} active={activeTab === "libretas"} onClick={() => onSwitchTab("libretas")} />
+        {showLibretaColumn && (
+          <TabButton id="libretas" label="Libretas individuales" icon={BookOpen} active={activeTab === "libretas"} onClick={() => onSwitchTab("libretas")} />
+        )}
       </div>
 
       {/* Tab content */}
@@ -289,7 +300,7 @@ function SectionDashboard({ user, headers, token, section, periods, selectedPeri
         {activeTab === "consolidado" && (
           <ConsolidatedTab headers={headers} sectionId={section.section_id} periodId={selectedPeriodId} />
         )}
-        {activeTab === "libretas" && (
+        {activeTab === "libretas" && showLibretaColumn && (
           <LibretasTab user={user} headers={headers} token={token} sectionId={section.section_id} periodId={selectedPeriodId} />
         )}
       </div>
