@@ -190,6 +190,7 @@ class ExamUpdate(BaseModel):
     # Evidence upload toggle
     allow_evidence_upload: Optional[bool] = None
     evidence_mode: Optional[str] = None
+    shuffle_questions: Optional[bool] = None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -808,6 +809,7 @@ async def create_exam(
             "min_score_percentage": data.min_score_percentage or 60.0,
             "allow_evidence_upload": bool(data.allow_evidence_upload),
             "evidence_mode": (data.evidence_mode if data.evidence_mode in ("end", "per_question") else "end"),
+            "shuffle_questions": bool(data.shuffle_questions),
         })
     elif exam_type == "omr":
         num_q = data.num_questions or 20
@@ -1073,6 +1075,9 @@ async def update_exam(
 
         if data.evidence_mode is not None:
             update_data["evidence_mode"] = data.evidence_mode if data.evidence_mode in ("end", "per_question") else "end"
+
+        if data.shuffle_questions is not None:
+            update_data["shuffle_questions"] = bool(data.shuffle_questions)
     
     # Handle register linkage updates
     old_column = exam.get("register_column")
@@ -4201,7 +4206,16 @@ async def get_exam_questions_for_student(
             q["rows"] = [{"id": r.get("id"), "text": r.get("text")} for r in q["rows"]]
     
     # Get exam for subject info
-    exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0, "title": 1, "subject_id": 1, "duration_minutes": 1, "allow_evidence_upload": 1})
+    exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0, "title": 1, "subject_id": 1, "duration_minutes": 1, "allow_evidence_upload": 1, "evidence_mode": 1, "shuffle_questions": 1})
+
+    # Orden aleatorio ESTABLE por estudiante: si shuffle_questions está activo,
+    # cada alumno ve un orden distinto pero consistente entre recargas (semilla
+    # determinística basada en exam_id + student_id). No afecta la calificación
+    # porque las respuestas se guardan por question_id, no por posición.
+    if exam and exam.get("shuffle_questions"):
+        import random as _random, hashlib as _hashlib
+        seed = int(_hashlib.sha256(f"{exam_id}:{user['id']}".encode()).hexdigest(), 16) % (2**32)
+        _random.Random(seed).shuffle(questions)
     subject = await db.subjects.find_one({"id": exam.get("subject_id")}, {"_id": 0, "name": 1, "color": 1}) if exam else None
     
     # Get previously saved answers

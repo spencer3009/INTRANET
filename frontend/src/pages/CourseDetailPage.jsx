@@ -5481,6 +5481,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
   const [pointsPerQuestion, setPointsPerQuestion] = useState(1.0);
   const [allowEvidence, setAllowEvidence] = useState(false);
   const [evidenceMode, setEvidenceMode] = useState("end");
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -5634,6 +5635,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setRegisterColumn(exam.register_column || null);
       setAllowEvidence(!!exam.allow_evidence_upload);
       setEvidenceMode(exam.evidence_mode === "per_question" ? "per_question" : "end");
+      setShuffleQuestions(!!exam.shuffle_questions);
     } else {
       setExamType("digital");
       setTitle("");
@@ -5649,6 +5651,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
       setRegisterColumn(null);
       setAllowEvidence(false);
       setEvidenceMode("end");
+      setShuffleQuestions(false);
     }
     setError("");
   }, [exam, isOpen]);
@@ -5685,6 +5688,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
           register_column: registerColumn,
           allow_evidence_upload: allowEvidence,
           evidence_mode: allowEvidence ? evidenceMode : "end",
+          shuffle_questions: shuffleQuestions,
         }, exam?.id);
         onClose();
       } catch (err) {
@@ -6204,6 +6208,25 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token,
                 </label>
               </div>
             )}
+          </div>
+
+          {/* Aleatorizar orden de preguntas por estudiante */}
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/60">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={shuffleQuestions}
+                onChange={(e) => setShuffleQuestions(e.target.checked)}
+                className="mt-1 w-5 h-5 accent-purple-600 cursor-pointer"
+                data-testid="exam-shuffle-questions-toggle"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">Aleatorizar orden de preguntas</span>
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  Cada estudiante verá las preguntas en un <strong>orden distinto</strong> (mezclado al azar). El orden es <strong>fijo por alumno</strong> aunque recargue, y no afecta la calificación.
+                </span>
+              </span>
+            </label>
           </div>
           </>
           )}

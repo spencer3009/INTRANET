@@ -111,3 +111,10 @@
 - Backend: /mis-tutorias/sections devuelve show_libreta_column.
 - Frontend MisTutoriasPage: oculta el TabButton y su contenido cuando OFF; si el tutor estaba en esa pestaña, lo regresa a Conducta & Comentarios.
 - Verificado UI: ON -> tab+columna visibles; OFF -> ambos ocultos.
+
+## 2026-06-26 — Aleatorizar orden de preguntas por estudiante (examenes digitales)
+- Campo shuffle_questions en online_exams (ExamCreate/ExamUpdate). Default false.
+- /exams/{id}/questions-for-student: si shuffle_questions=true, mezcla el orden con semilla deterministica sha256(exam_id:student_id) -> orden distinto por alumno, ESTABLE entre recargas. No afecta calificacion (respuestas por question_id).
+- Frontend CourseDetailPage: toggle "Aleatorizar orden de preguntas" en el form de examen digital (data-testid exam-shuffle-questions-toggle). Solo orden de preguntas (no alternativas).
+- Verificado: algoritmo deterministico (mismo alumno=mismo orden; alumnos distintos=ordenes distintos); backend recarga limpia; frontend compila; GET /exams/{id} devuelve el campo (default false si ausente).
+- NO verificado E2E en preview: modal de creacion (admin sin cursos) y vista del alumno (writes bloqueados por suscripcion vencida del tenant El Roble).
