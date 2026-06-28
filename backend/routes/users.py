@@ -291,6 +291,44 @@ async def search_disabled_students(q: str = "", current_user = Depends(get_curre
     return students
 
 
+@router.get("/parents/filter-by-children")
+async def parents_filter_by_children(nivel_id: str = "", grado_id: str = "", seccion_id: str = "", current_user = Depends(get_current_user)):
+    """Devuelve los IDs de padres/apoderados que tienen AL MENOS un hijo que
+    cumple los filtros (nivel/grado/sección). Liviano: solo ids + conteo."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+    school_id = user["school_id"]
+    sfilter = {"role": "student", "school_id": school_id, "is_active": {"$ne": False}}
+    if nivel_id:
+        sfilter["nivel_id"] = nivel_id
+    if grado_id:
+        sfilter["grado_id"] = grado_id
+    if seccion_id:
+        sfilter["seccion_id"] = seccion_id
+
+    students = await db.users.find(sfilter, {"_id": 0, "id": 1, "padre_id": 1, "parent_id": 1}).to_list(None)
+    matching_ids = [s["id"] for s in students]
+    parent_ids = set()
+    for s in students:
+        for pid in (s.get("padre_id"), s.get("parent_id")):
+            if pid:
+                parent_ids.add(pid)
+    if matching_ids:
+        linked = await db.users.find(
+            {"role": "parent", "school_id": school_id,
+             "$or": [{"student_ids": {"$in": matching_ids}}, {"children_ids": {"$in": matching_ids}}]},
+            {"_id": 0, "id": 1},
+        ).to_list(None)
+        for p in linked:
+            parent_ids.add(p["id"])
+
+    return {"parent_ids": list(parent_ids), "count": len(parent_ids)}
+
+
 @router.post("/users")
 async def create_user(data: CreateUserRequest, current_user = Depends(get_current_user)):
     """

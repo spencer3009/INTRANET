@@ -1817,6 +1817,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [parentImporting, setParentImporting] = useState(false);
   const [parentImportResult, setParentImportResult] = useState(null);
   const [parentsTabSearch, setParentsTabSearch] = useState("");
+  // Filtros por hijos (nivel/grado/sección) en la vista de Padres.
+  const [parentFilterLevel, setParentFilterLevel] = useState("");
+  const [parentFilterGrade, setParentFilterGrade] = useState("");
+  const [parentFilterSection, setParentFilterSection] = useState("");
+  const [matchingParentIds, setMatchingParentIds] = useState(null); // Set<id> | null (sin filtro)
+  const [parentFilterLoading, setParentFilterLoading] = useState(false);
+  const applyParentChildFilter = async (lvl, grd, sec) => {
+    if (!lvl && !grd && !sec) { setMatchingParentIds(null); return; }
+    setParentFilterLoading(true);
+    try {
+      const res = await axios.get(`${API}/parents/filter-by-children`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { nivel_id: lvl || "", grado_id: grd || "", seccion_id: sec || "" },
+      });
+      setMatchingParentIds(new Set(res.data.parent_ids || []));
+    } catch (e) {
+      setMatchingParentIds(new Set());
+    } finally {
+      setParentFilterLoading(false);
+    }
+  };
+  const clearParentFilters = () => {
+    setParentFilterLevel(""); setParentFilterGrade(""); setParentFilterSection("");
+    setMatchingParentIds(null);
+  };
   const [staffSearch, setStaffSearch] = useState("");
   const [staffSearchFocused, setStaffSearchFocused] = useState(false);
   const [parentDragOver, setParentDragOver] = useState(false);
@@ -3010,10 +3035,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     // For students, use the filtered list; for parents, apply search; for others, use normal filter
     const usersToDisplay = selectedRole === 'student'
       ? filteredStudents
-      : selectedRole === 'parent' && parentsTabSearch.trim()
+      : selectedRole === 'parent'
         ? users.filter(u => {
             if (u.role !== 'parent') return false;
+            if (matchingParentIds && !matchingParentIds.has(u.id)) return false;
             const q = parentsTabSearch.trim().toLowerCase();
+            if (!q) return true;
             const fullName = `${u.name || ''} ${u.last_name || ''}`.toLowerCase();
             const dni = (u.dni || '').toLowerCase();
             const email = (u.email || '').toLowerCase();
@@ -3818,9 +3845,52 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </button>
               )}
             </div>
-            {parentsTabSearch.trim() && (
-              <p className="text-xs text-slate-500 mt-2 ml-1">
-                {usersToDisplay.length} {usersToDisplay.length === 1 ? 'resultado' : 'resultados'} encontrados
+
+            {/* Filtros por hijos: Nivel / Grado / Sección */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+              <select
+                value={parentFilterLevel}
+                onChange={(e) => { const v = e.target.value; setParentFilterLevel(v); setParentFilterGrade(""); setParentFilterSection(""); applyParentChildFilter(v, "", ""); }}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="parent-filter-nivel"
+              >
+                <option value="">Todos los niveles</option>
+                {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+              <select
+                value={parentFilterGrade}
+                disabled={!parentFilterLevel}
+                onChange={(e) => { const v = e.target.value; setParentFilterGrade(v); setParentFilterSection(""); applyParentChildFilter(parentFilterLevel, v, ""); }}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="parent-filter-grado"
+              >
+                <option value="">{parentFilterLevel ? "Todos los grados" : "Selecciona nivel"}</option>
+                {grades.filter(g => g.nivel_id === parentFilterLevel).map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              </select>
+              <select
+                value={parentFilterSection}
+                disabled={!parentFilterGrade}
+                onChange={(e) => { const v = e.target.value; setParentFilterSection(v); applyParentChildFilter(parentFilterLevel, parentFilterGrade, v); }}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="parent-filter-seccion"
+              >
+                <option value="">{parentFilterGrade ? "Todas las secciones" : "Selecciona grado"}</option>
+                {sections.filter(s => s.grado_id === parentFilterGrade).map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+              {(parentFilterLevel || parentFilterGrade || parentFilterSection) && (
+                <button
+                  onClick={clearParentFilters}
+                  className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5"
+                  data-testid="parent-filter-clear"
+                >
+                  <X className="w-4 h-4" /> Limpiar filtros
+                </button>
+              )}
+            </div>
+
+            {(parentsTabSearch.trim() || matchingParentIds) && (
+              <p className="text-xs text-slate-500 mt-2 ml-1" data-testid="parent-results-count">
+                {parentFilterLoading ? "Filtrando..." : `${usersToDisplay.length} ${usersToDisplay.length === 1 ? 'apoderado' : 'apoderados'} ${matchingParentIds ? 'con hijos en el filtro' : 'encontrados'}`}
               </p>
             )}
           </div>

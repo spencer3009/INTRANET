@@ -165,6 +165,8 @@ class ExamCreate(BaseModel):
     # Evidence mode: "end" → up to 5 files attached at the end of the exam;
     # "per_question" → 1 mandatory file per question (uploaded while answering).
     evidence_mode: Optional[str] = "end"
+    # Shuffle questions per-student (deterministic by student_id + exam_id)
+    shuffle_questions: Optional[bool] = False
 
 
 class ExamUpdate(BaseModel):
