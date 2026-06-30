@@ -1576,8 +1576,57 @@ function RichTextEditor({ content, onChange, placeholder }) {
   );
 }
 
+// Authenticated "Ver" button for a submitted file. Direct public URLs
+// (Cloudinary) open straight away; files served through the backend
+// (Google Drive / object storage) are fetched WITH the Authorization
+// header and opened as a blob — otherwise the backend returns 401.
+function SubmissionViewButton({ url, isApi, token, fileName, testId }) {
+  const [loading, setLoading] = useState(false);
+  const handleClick = async () => {
+    if (!isApi) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const blobUrl = window.URL.createObjectURL(response.data);
+      const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      // Fallback to forced download if popup was blocked.
+      if (!win) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.setAttribute('download', fileName || 'archivo');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      console.error('Error al abrir el archivo entregado:', err);
+      alert('No se pudo abrir el archivo. Por favor intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+      data-testid={testId}
+    >
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+      {loading ? 'Abriendo...' : 'Ver'}
+    </button>
+  );
+}
+
 // Task Submission Form Component
-function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingSubmission }) {
+function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingSubmission, token }) {
   const [textContent, setTextContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -1747,10 +1796,10 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
             }]
           : []);
     const buildAttachmentDownloadUrl = (att, idx) => {
-      if (att.file_url) return att.file_url;
-      if (!existingSubmission.id) return null;
+      if (att.file_url) return { url: att.file_url, isApi: false };
+      if (!existingSubmission.id) return { url: null, isApi: false };
       const params = att.id ? `?attachment_id=${encodeURIComponent(att.id)}` : `?attachment_index=${idx}`;
-      return `${apiBase}/api/course/tasks/${task.id}/submissions/${existingSubmission.id}/download${params}`;
+      return { url: `${apiBase}/api/course/tasks/${task.id}/submissions/${existingSubmission.id}/download${params}`, isApi: true };
     };
     return (
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-testid="existing-submission-card">
@@ -1799,7 +1848,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
               <div className="space-y-2" data-testid="existing-submission-files">
                 {existingAttachments.map((att, idx) => {
                   const icon = getFileTypeIcon(att.file_name || '');
-                  const url = buildAttachmentDownloadUrl(att, idx);
+                  const { url, isApi } = buildAttachmentDownloadUrl(att, idx);
                   return (
                     <div
                       key={att.id || `${att.file_name}-${idx}`}
@@ -1814,16 +1863,13 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit, onRetract, existingS
                         <p className="text-sm text-slate-500">{icon.label}</p>
                       </div>
                       {url && (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                          data-testid={`existing-submission-download-btn-${idx}`}
-                        >
-                          <Download className="w-4 h-4" />
-                          Ver
-                        </a>
+                        <SubmissionViewButton
+                          url={url}
+                          isApi={isApi}
+                          token={token}
+                          fileName={att.file_name}
+                          testId={`existing-submission-download-btn-${idx}`}
+                        />
                       )}
                     </div>
                   );
@@ -2369,6 +2415,7 @@ function TasksContent({ tasks, studentId, onSubmitTask, onRetractSubmission, stu
                 onSubmit={onSubmitTask}
                 onRetract={onRetractSubmission}
                 existingSubmission={selectedTask.submissions?.find(s => s.student_id === studentId) || selectedTask.my_submission}
+                token={token}
               />
             )}
             
