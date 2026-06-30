@@ -1588,22 +1588,33 @@ function SubmissionViewButton({ url, isApi, token, fileName, testId }) {
       return;
     }
     setLoading(true);
+    // Open the tab up-front within the user gesture to dodge popup blockers.
+    // Do NOT pass 'noopener' here — it makes window.open() return null.
+    const newTab = window.open('', '_blank');
+    if (newTab) {
+      try {
+        newTab.document.write(
+          '<!doctype html><html><head><meta charset="utf-8"><title>Cargando archivo…</title>' +
+          '<style>body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;color:#475569}' +
+          '.spin{width:46px;height:46px;border:4px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:r .8s linear infinite}' +
+          '@keyframes r{to{transform:rotate(360deg)}}p{margin-top:18px;font-size:15px;font-weight:500}</style></head>' +
+          '<body><div class="spin"></div><p>Cargando archivo…</p></body></html>'
+        );
+        newTab.document.close();
+      } catch (_) { /* ignore */ }
+    }
     try {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
+        timeout: 120000,
       });
-      const blobUrl = window.URL.createObjectURL(response.data);
-      const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-      // Fallback to forced download if popup was blocked.
-      if (!win) {
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.setAttribute('download', fileName || 'archivo');
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-      }
+      const type = response.data?.type || response.headers?.['content-type'] || 'application/octet-stream';
+      const blob = new Blob([response.data], { type });
+      const blobUrl = window.URL.createObjectURL(blob);
+      if (newTab) newTab.location.href = blobUrl;
+      else window.open(blobUrl, '_blank');
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
       console.error('Error al abrir el archivo entregado:', err);
@@ -1620,6 +1631,7 @@ function SubmissionViewButton({ url, isApi, token, fileName, testId }) {
           detail = data.detail;
         }
       } catch (_) { /* keep default */ }
+      if (newTab) { try { newTab.close(); } catch (_) {} }
       alert(detail);
     } finally {
       setLoading(false);
