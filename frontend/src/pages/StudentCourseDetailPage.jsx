@@ -1607,7 +1607,20 @@ function SubmissionViewButton({ url, isApi, token, fileName, testId }) {
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
       console.error('Error al abrir el archivo entregado:', err);
-      alert('No se pudo abrir el archivo. Por favor intenta de nuevo.');
+      // When responseType is 'blob', backend error JSON arrives as a Blob.
+      // Parse it so the student sees the real cause (e.g. Drive disconnected).
+      let detail = 'No se pudo abrir el archivo. Por favor intenta de nuevo.';
+      try {
+        const data = err?.response?.data;
+        if (data instanceof Blob) {
+          const text = await data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.detail) detail = parsed.detail;
+        } else if (data?.detail) {
+          detail = data.detail;
+        }
+      } catch (_) { /* keep default */ }
+      alert(detail);
     } finally {
       setLoading(false);
     }
