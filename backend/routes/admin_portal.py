@@ -965,11 +965,31 @@ async def download_submission_file(
                 },
             )
         except Exception as e:
+            from googleapiclient.errors import HttpError
+            status = getattr(getattr(e, "resp", None), "status", None)
             logger.error(
                 f"[DRIVE-DOWNLOAD] Failed for task={task_id} submission={submission_id} "
-                f"drive_file_id={drive_file_id} school={school_id}: {type(e).__name__}: {e}",
+                f"drive_file_id={drive_file_id} school={school_id}: {type(e).__name__}: {e} (status={status})",
                 exc_info=True,
             )
+            # Surface the REAL Drive reason so the user can act on it.
+            if isinstance(e, HttpError) and status == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "El archivo ya no está disponible en Google Drive (fue movido, "
+                        "eliminado o pertenece a una conexión anterior). Pide al alumno "
+                        "que vuelva a subir su entrega."
+                    ),
+                )
+            if isinstance(e, HttpError) and status in (401, 403):
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        "Google Drive no autorizó el acceso al archivo. Reconecta Google "
+                        "Drive en Ajustes → Integraciones e intenta de nuevo."
+                    ),
+                )
             raise HTTPException(
                 status_code=502,
                 detail=f"Error al descargar desde Google Drive ({type(e).__name__}). "
