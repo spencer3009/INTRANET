@@ -8317,8 +8317,8 @@ function ExamRetakePanel({ exam, token, onBack }) {
       in_progress: { t: 'En progreso', c: 'bg-blue-100 text-blue-700' },
       expired: { t: 'Expirado', c: 'bg-red-100 text-red-700' },
     };
-    const m = s ? map[s] : { t: 'No rindió', c: 'bg-gray-100 text-gray-500' };
-    return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${m?.c || 'bg-gray-100 text-gray-500'}`}>{m?.t || s}</span>;
+    const m = s ? map[s] : { t: 'No rindió', c: 'bg-red-100 text-red-700' };
+    return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${m?.c || 'bg-red-100 text-red-700'}`}>{m?.t || s}</span>;
   };
 
   const filtered = students.filter(s => s.full_name.toLowerCase().includes(search.toLowerCase()));
