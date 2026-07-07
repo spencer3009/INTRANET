@@ -2116,11 +2116,22 @@ async def get_exam_eligible_students(exam_id: str, current_user=Depends(get_curr
     if not user or not _can_manage_exam(user):
         raise HTTPException(status_code=403, detail="No autorizado")
     exam = await db.online_exams.find_one(
-        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0, "section_id": 1, "school_id": 1})
+        {"id": exam_id, "school_id": user["school_id"]},
+        {"_id": 0, "section_id": 1, "school_id": 1, "subject_id": 1})
     if not exam:
         raise HTTPException(status_code=404, detail="Examen no encontrado")
 
-    students = await _section_students(exam["school_id"], exam.get("section_id"))
+    # Resolve the section: prefer the exam's own section_id, but fall back to
+    # the subject's section_id when the exam was saved without one (older/legacy
+    # exams stored section_id as null). Without this the roster came back empty.
+    section_id = exam.get("section_id")
+    if not section_id and exam.get("subject_id"):
+        subject = await db.subjects.find_one(
+            {"id": exam["subject_id"], "school_id": exam["school_id"]},
+            {"_id": 0, "section_id": 1})
+        section_id = subject.get("section_id") if subject else None
+
+    students = await _section_students(exam["school_id"], section_id)
     attempts = await db.exam_attempts.find(
         {"exam_id": exam_id}, {"_id": 0, "student_id": 1, "status": 1}).to_list(500)
     att_map = {a["student_id"]: a.get("status") for a in attempts}
