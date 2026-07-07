@@ -10,6 +10,51 @@ import {
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// Robust image for exam questions/options. Some students hit
+// net::ERR_CACHE_READ_FAILURE on cross-origin (Cloudinary) images — a corrupted
+// browser cache entry. On error we retry ONCE bypassing the cache (cache-bust
+// query param), and if it still fails we show a tappable fallback link so the
+// student can always open the image (critical for math questions with figures).
+function SafeExamImage({ src, alt, className }) {
+  const [triedBust, setTriedBust] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [current, setCurrent] = useState(src);
+
+  useEffect(() => { setTriedBust(false); setFailed(false); setCurrent(src); }, [src]);
+
+  if (!src) return null;
+  if (failed) {
+    return (
+      <a
+        href={src}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-sm font-medium hover:bg-indigo-100"
+        data-testid="exam-image-fallback-link"
+      >
+        <Eye className="w-4 h-4" /> Ver imagen
+      </a>
+    );
+  }
+  return (
+    <img
+      src={current}
+      alt={alt}
+      className={className}
+      referrerPolicy="no-referrer"
+      onError={() => {
+        if (!triedBust) {
+          setTriedBust(true);
+          const sep = src.includes('?') ? '&' : '?';
+          setCurrent(`${src}${sep}cb=${Date.now()}`);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
+
 // ─── PRE-EXAM RULES SCREEN ───
 function ExamRulesScreen({ examTitle, subjectName, onStart, loading }) {
   const [accepted, setAccepted] = useState(false);
@@ -497,7 +542,7 @@ export default function ExamAttemptPage() {
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-slate-800 mb-6 leading-relaxed">{currentQuestion.question_text}</h2>
                   {currentQuestion.image_url && (
-                    <div className="mb-6 flex justify-center"><img src={currentQuestion.image_url} alt="Pregunta" className="max-h-64 rounded-xl shadow-md border border-slate-200" /></div>
+                    <div className="mb-6 flex justify-center"><SafeExamImage src={currentQuestion.image_url} alt="Pregunta" className="max-h-64 rounded-xl shadow-md border border-slate-200" /></div>
                   )}
                   {/* Multiple choice */}
                   {currentQuestion.question_type === 'multiple_choice' && (
@@ -515,7 +560,7 @@ export default function ExamAttemptPage() {
                             }`}>{isSelected ? <CheckCircle className="w-4 h-4" /> : String.fromCharCode(65 + idx)}</div>
                             <div className="flex-1 pt-1">
                               <span className={`font-medium ${isSelected ? 'text-indigo-800' : 'text-slate-700'}`}>{option.text}</span>
-                              {option.image_url && <img src={option.image_url} alt={`Opción ${idx + 1}`} className="mt-3 max-h-36 rounded-lg" />}
+                              {option.image_url && <SafeExamImage src={option.image_url} alt={`Opción ${idx + 1}`} className="mt-3 max-h-36 rounded-lg" />}
                             </div>
                           </button>
                         );
