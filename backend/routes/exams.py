@@ -2092,12 +2092,27 @@ def _can_manage_exam(user) -> bool:
 
 
 async def _section_students(school_id: str, section_id: str):
-    base = {"school_id": school_id, "role": "student", "student_status": {"$in": ["enrolled", "active"]}}
-    students = await db.users.find({**base, "seccion_id": section_id},
-                                   {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(300)
+    # Roster of students that actually belong to this exam's section.
+    # Must match EXACTLY how the course/tablero computes its roster:
+    #   - filter by seccion_id (the section)
+    #   - constrain by the section's grado_id (avoids leaking students from
+    #     other grades that may share/point to the same seccion_id)
+    #   - apply ACADEMIC_STUDENT_FILTER (excludes retired/soft-disabled and
+    #     non-enrolled students) — the same filter the teacher dashboard uses.
+    if not section_id:
+        return []
+    section = await db.sections.find_one(
+        {"id": section_id, "school_id": school_id}, {"_id": 0, "grado_id": 1})
+    grado_id = section.get("grado_id") if section else None
+
+    base = {"school_id": school_id, "role": "student", **ACADEMIC_STUDENT_FILTER}
+    if grado_id:
+        base["grado_id"] = grado_id
+    proj = {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+
+    students = await db.users.find({**base, "seccion_id": section_id}, proj).to_list(300)
     if not students:
-        students = await db.users.find({**base, "section_id": section_id},
-                                       {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(300)
+        students = await db.users.find({**base, "section_id": section_id}, proj).to_list(300)
     return students
 
 
