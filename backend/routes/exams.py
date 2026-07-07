@@ -862,6 +862,44 @@ async def create_exam(
     return exam
 
 
+def _reupload_cloudinary_url(url: str) -> str:
+    # Create an INDEPENDENT Cloudinary copy of an existing image URL so cloned
+    # questions don't share the same asset as the original (deleting one used to
+    # destroy the shared asset and 404 every copy). Best-effort: on any failure
+    # we keep the original URL so the clone still references something.
+    if not url or "cloudinary.com" not in url:
+        return url
+    try:
+        res = cloudinary.uploader.upload(
+            url, folder="edunet/exam-questions", resource_type="image")
+        return res.get("secure_url") or url
+    except Exception as e:
+        logger.warning(f"[EXAM-CLONE] Could not re-upload image {url[:80]}: {e}")
+        return url
+
+
+async def _clone_questions_with_own_images(questions: list, new_exam_id: str) -> list:
+    # Deep-copy questions for a cloned exam, giving each its OWN Cloudinary images
+    # (question image + option images) so they are independent from the original.
+    import asyncio as _asyncio
+    new_questions = []
+    for q in questions:
+        new_q = {**q, "id": str(uuid.uuid4()), "exam_id": new_exam_id}
+        if new_q.get("image_url"):
+            new_q["image_url"] = await _asyncio.to_thread(_reupload_cloudinary_url, new_q["image_url"])
+        if isinstance(new_q.get("options"), list):
+            new_opts = []
+            for opt in new_q["options"]:
+                o = {**opt} if isinstance(opt, dict) else opt
+                if isinstance(o, dict) and o.get("image_url"):
+                    o["image_url"] = await _asyncio.to_thread(_reupload_cloudinary_url, o["image_url"])
+                new_opts.append(o)
+            new_q["options"] = new_opts
+        new_questions.append(new_q)
+    return new_questions
+
+
+
 @router.post("/exams/{exam_id}/duplicate")
 async def duplicate_exam(exam_id: str, current_user = Depends(get_current_user)):
     """Duplicate an exam with all its questions"""
@@ -899,13 +937,10 @@ async def duplicate_exam(exam_id: str, current_user = Depends(get_current_user))
     await db.online_exams.insert_one(new_exam)
     new_exam.pop("_id", None)
     
-    # Duplicate questions
+    # Duplicate questions (each gets its OWN independent Cloudinary images)
     questions = await db.exam_questions.find({"exam_id": exam_id}, {"_id": 0}).to_list(200)
     if questions:
-        new_questions = []
-        for q in questions:
-            new_q = {**q, "id": str(uuid.uuid4()), "exam_id": new_exam_id}
-            new_questions.append(new_q)
+        new_questions = await _clone_questions_with_own_images(questions, new_exam_id)
         await db.exam_questions.insert_many(new_questions)
         for nq in new_questions:
             nq.pop("_id", None)
@@ -5548,7 +5583,7 @@ async def clone_exam(exam_id: str, data: CloneExamRequest, current_user=Depends(
         await db.online_exams.insert_one(clone)
         clone.pop("_id", None)
         if questions:
-            new_qs = [{**q, "id": str(uuid.uuid4()), "exam_id": new_id} for q in questions]
+            new_qs = await _clone_questions_with_own_images(questions, new_id)
             await db.exam_questions.insert_many(new_qs)
             for nq in new_qs:
                 nq.pop("_id", None)
