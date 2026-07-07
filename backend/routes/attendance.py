@@ -1139,8 +1139,15 @@ async def get_daily_student_attendance(
 
     def _student_schedule(stu):
         lvl = stu.get("nivel_id") or stu.get("level_id")
+        turno = stu.get("turno_id")
         for lc in levels:
             if lc.get("level_id") == lvl:
+                # Per-turno schedule wins when the student's turno matches.
+                if turno and lc.get("turnos"):
+                    for t in lc["turnos"]:
+                        if t.get("turno_id") == turno and (t.get("entry_time") or t.get("exit_time")):
+                            return (t.get("entry_time") or lc.get("entry_time"),
+                                    t.get("exit_time") or lc.get("exit_time"))
                 return lc.get("entry_time"), lc.get("exit_time")
         return attendance_config.get("student_entry_time"), attendance_config.get("student_exit_time")
 
@@ -2475,10 +2482,17 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             else:
                 # Find student's level and match in levels config
                 student_level_id = scanned_user.get("nivel_id") or scanned_user.get("level_id")
+                student_turno_id = scanned_user.get("turno_id")
                 levels_config = attendance_config.get("levels", [])
                 for lc in levels_config:
                     if lc.get("level_id") == student_level_id:
                         config_time_str = lc.get("entry_time")
+                        # Per-turno entry time wins when the student's turno matches.
+                        if student_turno_id and lc.get("turnos"):
+                            for t in lc["turnos"]:
+                                if t.get("turno_id") == student_turno_id and t.get("entry_time"):
+                                    config_time_str = t.get("entry_time")
+                                    break
                         break
                 # Fallback: old flat format
                 if not config_time_str:

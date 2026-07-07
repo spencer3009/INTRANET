@@ -108,6 +108,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     auto_late_enabled: false,
   });
   const [academicLevels, setAcademicLevels] = useState([]);
+  const [activeShifts, setActiveShifts] = useState([]);
   const [openLevel, setOpenLevel] = useState(null);
   const [savingAttendance, setSavingAttendance] = useState(false);
   
@@ -211,7 +212,13 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAcademicLevels(res.data || []);
       } catch {}
     };
-    if (token) fetchLevels();
+    const fetchShifts = async () => {
+      try {
+        const res = await axios.get(`${API}/academic/shifts`, { headers });
+        setActiveShifts((res.data || []).filter(s => s.activo !== false && s.estado !== "inactivo"));
+      } catch {}
+    };
+    if (token) { fetchLevels(); fetchShifts(); }
   }, [token]);
 
   
@@ -2026,6 +2033,19 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                             return { ...p, levels: [...existing, { ...current, [field]: value }] };
                           });
                         };
+                        const getTurno = (turnoId) => (levelConfig.turnos || []).find(t => t.turno_id === turnoId) || {};
+                        const updateTurno = (turnoId, field, value) => {
+                          setAttendanceConfig(p => {
+                            const existing = p.levels.filter(l => l.level_id !== level.id);
+                            const current = p.levels.find(l => l.level_id === level.id) || { level_id: level.id, entry_time: "07:30", exit_time: "13:00" };
+                            const turnos = [...(current.turnos || [])];
+                            const idx = turnos.findIndex(t => t.turno_id === turnoId);
+                            const base = idx >= 0 ? turnos[idx] : { turno_id: turnoId, entry_time: "", exit_time: "" };
+                            const updated = { ...base, [field]: value };
+                            if (idx >= 0) turnos[idx] = updated; else turnos.push(updated);
+                            return { ...p, levels: [...existing, { ...current, turnos }] };
+                          });
+                        };
                         return (
                           <div key={level.id} className="border border-slate-200 rounded-xl overflow-hidden">
                             <div
@@ -2040,19 +2060,55 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                               </div>
                             </div>
                             {isOpen && (
-                              <div className="px-4 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50">
-                                <div className="grid grid-cols-2 gap-3">
-                                  <TimePicker
-                                    label="Hora ingreso"
-                                    value={levelConfig.entry_time}
-                                    onChange={(v) => updateLevel("entry_time", v)}
-                                  />
-                                  <TimePicker
-                                    label="Hora salida"
-                                    value={levelConfig.exit_time}
-                                    onChange={(v) => updateLevel("exit_time", v)}
-                                  />
+                              <div className="px-4 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50 space-y-4">
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500 mb-2">Horario general del nivel <span className="font-normal text-slate-400">(se usa si el alumno no tiene turno)</span></p>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <TimePicker
+                                      label="Hora ingreso"
+                                      value={levelConfig.entry_time}
+                                      onChange={(v) => updateLevel("entry_time", v)}
+                                    />
+                                    <TimePicker
+                                      label="Hora salida"
+                                      value={levelConfig.exit_time}
+                                      onChange={(v) => updateLevel("exit_time", v)}
+                                    />
+                                  </div>
                                 </div>
+                                {activeShifts.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5">
+                                      <Clock className="w-3.5 h-3.5 text-indigo-500" /> Horario por turno
+                                    </p>
+                                    <div className="space-y-3">
+                                      {activeShifts.map(shift => {
+                                        const tc = getTurno(shift.id);
+                                        return (
+                                          <div key={shift.id} className="rounded-lg border border-slate-200 bg-white p-3" data-testid={`level-${level.id}-turno-${shift.id}`}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: shift.color || "#6366F1" }}></span>
+                                              <span className="text-sm font-semibold text-slate-700">{shift.nombre}</span>
+                                              <span className="text-[11px] text-slate-400">({shift.hora_inicio} - {shift.hora_fin})</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                              <TimePicker
+                                                label="Hora ingreso"
+                                                value={tc.entry_time || ""}
+                                                onChange={(v) => updateTurno(shift.id, "entry_time", v)}
+                                              />
+                                              <TimePicker
+                                                label="Hora salida"
+                                                value={tc.exit_time || ""}
+                                                onChange={(v) => updateTurno(shift.id, "exit_time", v)}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

@@ -262,10 +262,18 @@ async def update_role_settings(
     }
 
 
+class AttendanceTurnoSchedule(BaseModel):
+    turno_id: str
+    entry_time: str
+    exit_time: str
+
 class AttendanceLevelConfig(BaseModel):
     level_id: str
     entry_time: str
     exit_time: str
+    # Per-turno schedules (Mañana/Tarde/Noche). When a student's turno_id matches
+    # one of these, its schedule wins over the level default entry/exit above.
+    turnos: Optional[List[AttendanceTurnoSchedule]] = None
 
 class TeacherLevelSchedule(BaseModel):
     """Schedule override for a specific academic level, applied to teachers.

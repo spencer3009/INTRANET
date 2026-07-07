@@ -1,5 +1,41 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-07
+
+### Bugfix — Crear examen digital daba error 500
+- `ExamCreate` no tenía el campo `shuffle_questions` (solo estaba en `ExamUpdate`),
+  y la creación de exámenes digitales accedía a `data.shuffle_questions` → AttributeError → 500.
+- Fix: agregado `shuffle_questions: Optional[bool] = False` a `ExamCreate` (exams.py).
+
+### Bugfix — Alumno no podía "Ver" archivos de entregas (401)
+- El botón "Ver" abría la URL del backend con `<a target=_blank>` sin token → 401.
+- Fix: nuevo `SafeExamImage`/`SubmissionViewButton` con fetch autenticado (axios blob + Authorization),
+  apertura en pestaña, fallback a link, y parseo del error real del backend (StudentCourseDetailPage.jsx).
+
+### Bugfix — Lista "Habilitar/Bloquear" de examen mostraba alumnos de más
+- `_section_students` no aplicaba `ACADEMIC_STUDENT_FILTER` (incluía retirados) y el examen a veces
+  no tenía `section_id` guardado.
+- Fix: `_section_students` ahora usa `seccion_id + ACADEMIC_STUDENT_FILTER` (igual que el roster del curso);
+  el endpoint `eligible-students` resuelve `section_id` desde la asignatura si el examen no lo tiene (exams.py).
+- Badge "No rindió" ahora en ROJO (CourseDetailPage.jsx).
+
+### Bugfix — Imágenes de preguntas rotas (404 Cloudinary) al duplicar/clonar
+- Duplicar/clonar exámenes copiaba `{**q}` → todas las copias compartían la MISMA imagen de Cloudinary;
+  borrar/editar una destruía el asset compartido → 404 en todas.
+- Fix: helper `_clone_questions_with_own_images` re-sube cada imagen (pregunta + opciones) a Cloudinary
+  al duplicar/clonar → copias independientes (exams.py). Frontend muestra "Ver imagen" de respaldo.
+- Nota: imágenes ya borradas no se recuperan; hay que re-subirlas.
+
+### Feature — Horario de asistencia por Nivel × Turno
+- "Horario Estudiantes por Nivel" (Ajustes → General → Asistencia) ahora soporta horario por turno
+  (Mañana/Tarde/Noche) además del horario general del nivel.
+- Usa los turnos existentes de la estructura académica (`GET /academic/shifts`) y el `turno_id` del alumno.
+- Modelo: `attendance_config.levels[].turnos = [{turno_id, entry_time, exit_time}]` (settings.py).
+- Tardanza automática (`_student_schedule` y escaneo QR en attendance.py) resuelve por nivel + turno,
+  con fallback al horario general del nivel si el alumno no tiene turno o no hay config del turno.
+- Tolerancia y "marcar falta" siguen siendo globales. Verificado backend end-to-end; UI reutiliza TimePicker+acordeón.
+
+
 ## 2026-06-24
 
 ### Portal Profesor — Toggle columna "LIBRETA" en Mis Tutorías
