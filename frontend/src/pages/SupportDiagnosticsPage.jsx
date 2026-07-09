@@ -22,7 +22,7 @@ export default function SupportDiagnosticsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const r = await axios.get(`${API}/api/support/schools`, { headers });
+        const r = await axios.get(`${API}/api/support/all-schools`, { headers });
         const list = Array.isArray(r.data) ? r.data : (r.data?.schools || r.data?.items || []);
         setSchools(list);
       } catch (e) {
@@ -86,7 +86,7 @@ export default function SupportDiagnosticsPage() {
           >
             <option value="">— Selecciona un colegio —</option>
             {schools.map((s) => (
-              <option key={s.id} value={s.id}>{s.name || s.nombre || s.id}</option>
+              <option key={s.id} value={s.id}>{s.school_name || s.name || s.nombre || s.id}</option>
             ))}
           </select>
           <button
