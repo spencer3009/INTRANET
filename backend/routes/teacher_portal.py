@@ -241,10 +241,16 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
     }, {"_id": 0}).to_list(100)
     
     courses = []
+    seen_subjects = set()
     for assignment in assignments:
         subject = await db.subjects.find_one({"id": assignment.get("subject_id"), "school_id": school_id}, {"_id": 0})
         if not subject:
             continue
+        # A subject must appear only ONCE per teacher, even when the data has
+        # duplicate assignment rows pointing to the same subject.
+        if subject["id"] in seen_subjects:
+            continue
+        seen_subjects.add(subject["id"])
 
         # Source of truth is the SUBJECT itself: each subject belongs to exactly
         # one section/grade. An assignment may carry a wrong/stale section_id
@@ -302,6 +308,49 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
             })
     
     return {"courses": courses}
+
+@router.get("/teacher/courses/diagnose")
+async def diagnose_teacher_courses(subject_name: str = "", current_user = Depends(get_current_user)):
+    """Read-only diagnostic: inspect subjects (by name) and their assignments to
+    understand why a course shows under a given section. Admin/owner only."""
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("admin", "owner", "director"):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user.get("school_id")
+
+    query = {"school_id": school_id}
+    if subject_name:
+        query["name"] = {"$regex": subject_name, "$options": "i"}
+    subjects = await db.subjects.find(query, {"_id": 0}).to_list(200)
+
+    async def sec_name(sid):
+        if not sid:
+            return None
+        s = await db.sections.find_one({"id": sid, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        return s.get("nombre") if s else f"(sección {sid[:8]} no existe)"
+
+    out = []
+    for subj in subjects:
+        asgs = await db.academic_assignments.find(
+            {"school_id": school_id, "subject_id": subj["id"]}, {"_id": 0}).to_list(50)
+        asg_info = []
+        for a in asgs:
+            t = await db.users.find_one({"id": a.get("teacher_id")}, {"_id": 0, "name": 1})
+            asg_info.append({
+                "teacher": (t or {}).get("name"),
+                "assignment_section": await sec_name(a.get("section_id")),
+                "assignment_section_id": a.get("section_id"),
+            })
+        out.append({
+            "subject_id": subj["id"],
+            "name": subj.get("name"),
+            "code": subj.get("code"),
+            "subject_section": await sec_name(subj.get("section_id")),
+            "subject_section_id": subj.get("section_id"),
+            "assignments": asg_info,
+        })
+    return {"count": len(out), "subjects": out}
+
 
 @router.get("/teacher/students")
 async def get_teacher_students(
