@@ -243,21 +243,33 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
     courses = []
     for assignment in assignments:
         subject = await db.subjects.find_one({"id": assignment.get("subject_id"), "school_id": school_id}, {"_id": 0})
-        section = await db.sections.find_one({"id": assignment.get("section_id"), "school_id": school_id}, {"_id": 0})
-        grade = await db.grades.find_one({"id": assignment.get("grade_id"), "school_id": school_id}, {"_id": 0})
-        
-        # Get level name from grade
+        if not subject:
+            continue
+
+        # Source of truth is the SUBJECT itself: each subject belongs to exactly
+        # one section/grade. An assignment may carry a wrong/stale section_id
+        # (which used to make a subject appear under the wrong section), so we
+        # derive section/grade from the subject and only fall back to the
+        # assignment when the subject has no reference.
+        section_id = subject.get("section_id") or assignment.get("section_id")
+        grade_id = subject.get("grade_id") or assignment.get("grade_id")
+
+        section = await db.sections.find_one({"id": section_id, "school_id": school_id}, {"_id": 0})
+        grade = await db.grades.find_one({"id": grade_id, "school_id": school_id}, {"_id": 0})
+
+        # Get level name from grade (fallback to the subject's own level)
         level_name = None
-        if grade and grade.get("nivel_id"):
-            level = await db.academic_levels.find_one({"id": grade["nivel_id"], "school_id": school_id}, {"_id": 0})
+        level_id = (grade.get("nivel_id") if grade else None) or subject.get("level_id")
+        if level_id:
+            level = await db.academic_levels.find_one({"id": level_id, "school_id": school_id}, {"_id": 0})
             level_name = level.get("nombre") if level else None
-        
+
         if subject:
-            # Count students (exclude pending)
+            # Count students (exclude pending) — for the subject's real section
             students_count = await db.users.count_documents({
                 "school_id": school_id,
                 "role": "student",
-                "seccion_id": assignment.get("section_id"),
+                "seccion_id": section_id,
                 **ACADEMIC_STUDENT_FILTER
             })
             
@@ -279,9 +291,9 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
                 "description": subject.get("description"),
                 "color": subject.get("color"),
                 "image_url": subject.get("image_url"),
-                "section_id": assignment.get("section_id"),
+                "section_id": section_id,
                 "section_name": section.get("nombre") if section else None,
-                "grade_id": assignment.get("grade_id"),
+                "grade_id": grade_id,
                 "grade_name": grade.get("nombre") if grade else None,
                 "level_name": level_name,
                 "students_count": students_count,
