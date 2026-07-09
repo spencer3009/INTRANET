@@ -1,5 +1,24 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-09
+
+### Bugfix — Portal profesor mostraba curso de otra sección + duplicados
+- `GET /api/teacher/courses` tomaba sección/grado de la ASIGNACIÓN (`academic_assignments`),
+  que a veces tenía la sección equivocada → un curso de la sección B aparecía bajo A.
+- Fix: la sección/grado/nivel ahora se derivan de la ASIGNATURA (fuente de verdad); fallback a la asignación.
+- Fix: deduplicado por `subject_id` (filas de asignación duplicadas ya no repiten tarjetas).
+- Añadido `GET /api/teacher/courses/diagnose` (admin) para inspeccionar asignatura→sección→asignaciones.
+
+### Feature — Diagnóstico de asignaturas duplicadas (SOLO SOPORTE)
+- Nueva página `/support/diagnostico` (SupportDiagnosticsPage), visible solo para rol `system_admin_global`.
+- Backend en `diag_registro.py`:
+  - `GET /api/diag/duplicate-subjects?school_id=` → agrupa asignaturas duplicadas por (sección + nombre),
+    marca ORIGINAL (mayor actividad; empate → más antigua) vs DUPLICADO, con impacto por asignatura.
+  - `DELETE /api/diag/duplicate-subjects/{id}?school_id=` → elimina el duplicado y limpia referencias
+    (asignaciones, notas, evaluación, posts, exámenes). Guard support-only.
+- Verificado por API: detección con etiquetas original/duplicado + borrado con limpieza (test con duplicado temporal).
+
+
 ## 2026-07-07
 
 ### Bugfix — Crear examen digital daba error 500

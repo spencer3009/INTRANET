@@ -123,6 +123,7 @@ import SupportAcademiaPage from "@/pages/SupportAcademiaPage";
 import AcademiaPortalPage from "@/pages/AcademiaPortalPage";
 import SupportFinancesPage from "@/pages/SupportFinancesPage";
 import SupportDemosPage from "@/pages/SupportDemosPage";
+import SupportDiagnosticsPage from "@/pages/SupportDiagnosticsPage";
 import PsicologiaDashboardPage from "@/pages/psicologia/PsicologiaDashboardPage";
 import PsicologiaEstudiantesPage from "@/pages/psicologia/PsicologiaEstudiantesPage";
 import PsicologiaFichaPage from "@/pages/psicologia/PsicologiaFichaPage";
@@ -3201,6 +3202,7 @@ function App() {
             <Route path="pricing" element={<SupportPricingPage token={token} />} />
             <Route path="academia" element={<SupportAcademiaPage token={token} />} />
             <Route path="demos" element={<SupportDemosPage token={token} />} />
+            <Route path="diagnostico" element={<SupportDiagnosticsPage />} />
             <Route path="profile" element={<SupportProfilePage token={token} user={user} onUserUpdate={handleUserUpdate} />} />
             <Route path="*" element={<Navigate to="/support" replace />} />
           </Route>

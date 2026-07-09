@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { type: "divider" },
   { to: "/support/academia", icon: Video, label: "Academia" },
   { to: "/support/demos", icon: Users, label: "Demos" },
+  { to: "/support/diagnostico", icon: Shield, label: "Diagnóstico" },
   { type: "divider" },
   { to: "/support/profile", icon: User, label: "Mi Perfil" },
 ];
