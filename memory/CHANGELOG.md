@@ -1,5 +1,29 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-13
+
+### Feature — Doble turno por nivel (asistencia mañana + tarde)
+- Nuevo switch **"Doble turno (mañana y tarde)"** por nivel en Ajustes → General →
+  Asistencia (acordeón del nivel, sobre "Horario por turno"). Sirve para cualquier
+  nivel (PRIMARIA, SECUNDARIA, etc.), no hay que editar alumno por alumno.
+- Cuando el nivel tiene `doble_turno: true`, cada escaneo QR se rutea a una SESIÓN
+  (turno) según la hora: el límite entre turnos es el punto medio entre la salida de
+  un turno y la entrada del siguiente (ej. Mañana 07:45–13:30 / Tarde 15:00–16:30 →
+  boundary 14:15). Soporta 4 marcas/día (entrada+salida por turno).
+- El registro del día guarda `sessions[turno_id] = {entry_time, entry_status, exit_time,
+  total_minutes, ...}` con **tardanza/falta independiente por turno**. Los campos
+  top-level (`status`/`entry_time`/`exit_time`) se reflejan desde las sesiones para no
+  romper reportes/PDF/portal padre (retrocompatible; niveles de un solo turno intactos).
+- Backend: `settings.py` (campo `doble_turno` en `AttendanceLevelConfig`), `attendance.py`
+  (`_double_turno_sessions`, `_pick_double_turno_session`, `_double_turno_top_level`,
+  `_handle_double_turno_scan`; rama en `scan_qr_attendance`).
+- Frontend: toggle en `SettingsPage.jsx` (`data-testid level-{id}-doble-turno-toggle`);
+  el escáner muestra la sesión ("Entrada Mañana", "Salida Tarde") en `QRScannerTab.jsx`.
+- Verificado: routing de sesión por hora (unit) + flujo E2E de 4 marcas contra BD real
+  (`tests/test_doble_turno_scan.py`): mañana=late, tarde=present, 5ta marca=already_both,
+  top-level status=late. NOTA: no se probó vía HTTP POST porque el tenant El Roble tiene
+  la suscripción vencida (middleware bloquea writes); se validó llamando al handler.
+
 ## 2026-07-09
 
 ### Bugfix — Portal profesor mostraba curso de otra sección + duplicados

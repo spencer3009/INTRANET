@@ -274,6 +274,10 @@ class AttendanceLevelConfig(BaseModel):
     # Per-turno schedules (Mañana/Tarde/Noche). When a student's turno_id matches
     # one of these, its schedule wins over the level default entry/exit above.
     turnos: Optional[List[AttendanceTurnoSchedule]] = None
+    # When true, the whole level runs two sessions the same day (mañana + tarde):
+    # each QR scan is routed to a session by time and records an independent
+    # entry/exit/tardanza per turno.
+    doble_turno: Optional[bool] = False
 
 class TeacherLevelSchedule(BaseModel):
     """Schedule override for a specific academic level, applied to teachers.

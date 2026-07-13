@@ -2077,6 +2077,23 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                                   </div>
                                 </div>
                                 {activeShifts.length > 0 && (
+                                  <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50 border border-indigo-200">
+                                    <div className="pr-3">
+                                      <p className="text-sm font-semibold text-slate-800">Doble turno (mañana y tarde)</p>
+                                      <p className="text-[11px] text-slate-500 leading-snug">Los alumnos de este nivel asisten en dos turnos el mismo día. Al escanear, el sistema registra entrada/salida y tardanza por separado en cada turno según la hora.</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateLevel("doble_turno", !levelConfig.doble_turno)}
+                                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${levelConfig.doble_turno ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                                      aria-pressed={!!levelConfig.doble_turno}
+                                      data-testid={`level-${level.id}-doble-turno-toggle`}
+                                    >
+                                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${levelConfig.doble_turno ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                  </div>
+                                )}
+                                {activeShifts.length > 0 && (
                                   <div>
                                     <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5">
                                       <Clock className="w-3.5 h-3.5 text-indigo-500" /> Horario por turno

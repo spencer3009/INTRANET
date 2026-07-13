@@ -737,6 +737,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                                     ? (t.data?.action === "exit" ? "Salida registrada" : "Entrada registrada")
                                     : t.type === "warning" ? "Ya registrado"
                                     : "Error"}
+                                  {t.data?.session_label && ` (${t.data.session_label})`}
                                   {t.data?.attendance?.entry_time && ` · ${t.data.attendance.entry_time}`}
                                 </p>
                               </div>

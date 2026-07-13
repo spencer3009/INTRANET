@@ -110,6 +110,221 @@ async def resolve_turno_schedule(school_id: str, level_config: dict, student_tur
     return (None, None)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DOBLE TURNO — students attending two shifts (mañana + tarde) the same day.
+# When a level has `doble_turno: true`, each scan is routed to a session
+# (turno) by the current time, and the day's attendance doc stores a `sessions`
+# map with an independent entry/exit/tardanza per turno.
+# ══════════════════════════════════════════════════════════════════════════════
+def _hhmm_to_minutes(hhmm):
+    try:
+        h, m = map(int, str(hhmm).split(":"))
+        return h * 60 + m
+    except Exception:
+        return None
+
+
+def _double_turno_sessions(level_config: dict):
+    """Return the level's per-turno schedules that have both entry+exit set,
+    sorted by entry_time. These are the day's sessions (mañana, tarde, ...)."""
+    turnos = [t for t in ((level_config or {}).get("turnos") or [])
+              if t.get("entry_time") and t.get("exit_time")
+              and _hhmm_to_minutes(t.get("entry_time")) is not None]
+    turnos.sort(key=lambda t: _hhmm_to_minutes(t.get("entry_time")))
+    return turnos
+
+
+def _pick_double_turno_session(sessions: list, now_hhmm: str):
+    """Pick the session a scan belongs to, based on the current time.
+    The boundary between two consecutive sessions is the midpoint between the
+    first session's exit and the next session's entry."""
+    if not sessions:
+        return None
+    now_m = _hhmm_to_minutes(now_hhmm)
+    if now_m is None:
+        return sessions[0]
+    for i in range(len(sessions) - 1):
+        exit_m = _hhmm_to_minutes(sessions[i].get("exit_time"))
+        next_entry_m = _hhmm_to_minutes(sessions[i + 1].get("entry_time"))
+        if exit_m is None or next_entry_m is None:
+            continue
+        boundary = (exit_m + next_entry_m) // 2
+        if now_m < boundary:
+            return sessions[i]
+    return sessions[-1]
+
+
+def _double_turno_top_level(sessions_map: dict):
+    """Derive legacy top-level fields (status/entry_time/exit_time) from the
+    per-session data so existing reports keep working."""
+    entries = [s for s in sessions_map.values() if s.get("entry_time")]
+    exits = [s for s in sessions_map.values() if s.get("exit_time")]
+    statuses = [s.get("entry_status") for s in sessions_map.values() if s.get("entry_status")]
+    if "late" in statuses:
+        top_status = "late"
+    elif "present" in statuses:
+        top_status = "present"
+    elif "absent" in statuses and statuses:
+        top_status = "absent"
+    else:
+        top_status = "present"
+    first_entry = min(entries, key=lambda s: s.get("entry_time")) if entries else None
+    last_exit = max(exits, key=lambda s: s.get("exit_time")) if exits else None
+    return {
+        "status": top_status,
+        "entry_time": first_entry.get("entry_time") if first_entry else None,
+        "check_in_time": first_entry.get("check_in_time") if first_entry else None,
+        "exit_time": last_exit.get("exit_time") if last_exit else None,
+    }
+
+
+async def _handle_double_turno_scan(scanned_user, scanned_user_id, school_id,
+                                    current_user, mode, user_info, level_config,
+                                    attendance_config, today, now, now_time, now_iso):
+    """Handle a student QR scan for a level configured as `doble_turno`.
+    Routes the scan to a session (turno) by time and records an independent
+    entry/exit/tardanza per session inside a single day document."""
+    sessions = _double_turno_sessions(level_config)
+    session = _pick_double_turno_session(sessions, now_time)
+    if not session:
+        # No usable turno schedules → fall back is handled by caller returning None
+        return None
+
+    turno_id = session.get("turno_id")
+    shift_doc = await db.shifts.find_one({"id": turno_id}, {"_id": 0, "nombre": 1})
+    turno_name = (shift_doc or {}).get("nombre") or "Turno"
+
+    # Load/prepare the day document (one per student per day, holds `sessions`)
+    day_filter = {"school_id": school_id, "type": "student", "user_id": scanned_user_id, "date": today}
+    doc = await db.attendances.find_one(day_filter)
+    sessions_map = dict((doc or {}).get("sessions", {}) or {})
+    sess = dict(sessions_map.get(turno_id, {}))
+
+    has_entry = bool(sess.get("entry_time")) and sess.get("entry_status") != "anulado"
+    has_exit = bool(sess.get("exit_time")) and sess.get("exit_status") != "anulado"
+
+    # Decide action within the session, respecting the scanner mode
+    if mode == "entry":
+        action = "already_entry" if has_entry else "entry"
+    elif mode == "exit":
+        if not has_entry:
+            action = "no_entry"
+        else:
+            action = "already_exit" if has_exit else "exit"
+    else:  # auto
+        if not has_entry:
+            action = "entry"
+        elif not has_exit:
+            action = "exit"
+        else:
+            action = "already_both"
+
+    def _resp(status, action_out, message, notif=None):
+        top = _double_turno_top_level(sessions_map)
+        return {
+            "status": status,
+            "action": action_out,
+            "message": message,
+            "session_label": turno_name,
+            "student": user_info,
+            "attendance": {
+                "status": sess.get("entry_status") or top.get("status"),
+                "entry_time": to_peru_hhmm(sess.get("entry_time")) or sess.get("check_in_time"),
+                "exit_time": to_peru_hhmm(sess.get("exit_time")),
+                "date": today,
+                "turno_name": turno_name,
+            },
+        }
+
+    if action == "entry":
+        entry_status = "present"
+        if attendance_config.get("auto_late_enabled", False):
+            limit_m = _hhmm_to_minutes(session.get("entry_time"))
+            now_m = _hhmm_to_minutes(now_time)
+            tolerance = attendance_config.get("tolerance_minutes", 0) or 0
+            absent_limit = attendance_config.get("mark_absent_after_minutes", 0) or 0
+            if limit_m is not None and now_m is not None:
+                if absent_limit > 0 and now_m > limit_m + absent_limit:
+                    entry_status = "absent"
+                elif now_m > limit_m + tolerance:
+                    entry_status = "late"
+        sess = {
+            "turno_id": turno_id, "turno_name": turno_name,
+            "entry_time": now_iso, "check_in_time": now_time,
+            "entry_status": entry_status, "entry_method": "qr",
+            "exit_time": None, "exit_status": "active", "total_minutes": None,
+        }
+        sessions_map[turno_id] = sess
+        top = _double_turno_top_level(sessions_map)
+        await db.attendances.update_one(
+            day_filter,
+            {"$set": {
+                "sessions": sessions_map,
+                "status": top["status"], "entry_time": top["entry_time"],
+                "check_in_time": top["check_in_time"], "exit_time": top["exit_time"],
+                "entry_status": "active", "method": "qr_scan", "entry_method": "qr",
+                "recorded_by": current_user["sub"],
+                "grade_id": scanned_user.get("grado_id"), "section_id": scanned_user.get("seccion_id"),
+                "updated_at": now_iso,
+            },
+             "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now_iso, "exit_status": "active"}},
+            upsert=True,
+        )
+        try:
+            await send_attendance_notification(
+                student_id=scanned_user_id, school_id=school_id, entry_time=now_time,
+                event_type="tardanza" if entry_status == "late" else "ingreso")
+        except Exception as e:
+            logger.error(f"Push notification error (doble turno entry): {e}")
+        logger.info(f"QR Entry (doble turno/{turno_name}): {user_info['full_name']} at {now_time} [{entry_status}]")
+        return _resp("success", "entry", f"Entrada {turno_name} registrada para {user_info['full_name']}")
+
+    if action == "exit":
+        total_minutes = None
+        try:
+            entry_dt = datetime.fromisoformat(sess["entry_time"])
+            if entry_dt.tzinfo is None:
+                entry_dt = entry_dt.replace(tzinfo=timezone.utc)
+            total_minutes = int((now - entry_dt).total_seconds() / 60)
+        except Exception:
+            pass
+        sess = {**sess, "exit_time": now_iso, "exit_method": "qr",
+                "exit_status": "active", "total_minutes": total_minutes}
+        sessions_map[turno_id] = sess
+        top = _double_turno_top_level(sessions_map)
+        await db.attendances.update_one(
+            day_filter,
+            {"$set": {
+                "sessions": sessions_map,
+                "status": top["status"], "entry_time": top["entry_time"],
+                "check_in_time": top["check_in_time"], "exit_time": top["exit_time"],
+                "updated_at": now_iso,
+            }},
+        )
+        try:
+            await send_attendance_notification(
+                student_id=scanned_user_id, school_id=school_id, entry_time=now_time,
+                event_type="salida")
+        except Exception as e:
+            logger.error(f"Push notification error (doble turno exit): {e}")
+        logger.info(f"QR Exit (doble turno/{turno_name}): {user_info['full_name']} at {now_time} ({total_minutes}min)")
+        return _resp("success", "exit", f"Salida {turno_name} registrada para {user_info['full_name']}")
+
+    if action == "already_both":
+        return _resp("already_marked", "already_both",
+                     f"Ya se registró entrada y salida de {turno_name} para {user_info['full_name']}")
+    if action == "already_entry":
+        return _resp("already_marked", "already_entry",
+                     f"Entrada {turno_name} ya registrada para {user_info['full_name']}")
+    if action == "already_exit":
+        return _resp("already_marked", "already_exit",
+                     f"Salida {turno_name} ya registrada para {user_info['full_name']}")
+    # no_entry
+    return _resp("error", "no_entry",
+                 f"No hay entrada de {turno_name} para {user_info['full_name']}. Debe registrar entrada primero.")
+
+
+
 
 
 async def get_horario_efectivo_docente(teacher_id: str, school_id: str) -> dict:
@@ -2459,8 +2674,26 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     else:
         user_info["grade_name"] = None
         user_info["section_name"] = None
-    
+
     mode = data.mode  # entry, exit, auto
+
+    # --- DOBLE TURNO: level configured with two sessions (mañana + tarde) ---
+    if not is_teacher_qr:
+        try:
+            school_doc_dt = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+            attendance_config_dt = (school_doc_dt or {}).get("attendance_config", {}) or {}
+            student_level_id = scanned_user.get("nivel_id") or scanned_user.get("level_id")
+            level_cfg_dt = next((lc for lc in attendance_config_dt.get("levels", [])
+                                 if lc.get("level_id") == student_level_id), None)
+            if level_cfg_dt and level_cfg_dt.get("doble_turno") and len(_double_turno_sessions(level_cfg_dt)) >= 2:
+                dt_resp = await _handle_double_turno_scan(
+                    scanned_user, scanned_user_id, school_id, current_user, mode,
+                    user_info, level_cfg_dt, attendance_config_dt,
+                    today, now, now_time, now_iso)
+                if dt_resp is not None:
+                    return dt_resp
+        except Exception as dt_err:
+            logger.error(f"Doble turno scan error, falling back to single-turno: {dt_err}")
     
     has_entry = existing and existing.get("entry_time") and existing.get("entry_status", "active") != "anulado"
     has_exit = existing and existing.get("exit_time") and existing.get("exit_status", "active") != "anulado"
