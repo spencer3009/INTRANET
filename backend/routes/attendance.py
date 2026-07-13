@@ -80,6 +80,37 @@ def flexible_id_filter(field: str, value: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPER: Effective teacher schedule (per-level override or global)
 # ══════════════════════════════════════════════════════════════════════════════
+async def resolve_turno_schedule(school_id: str, level_config: dict, student_turno_id):
+    """Return (entry_time, exit_time) for the student's turno within a level config.
+
+    Matching is resilient to duplicate shifts: first tries a direct turno_id match,
+    then falls back to matching by the shift NAME (a school can have several shifts
+    named e.g. "Tarde" with different ids, and the student's turno_id may point to a
+    different one than the id saved in the attendance config).
+    Returns (None, None) when no turno schedule applies.
+    """
+    turnos = (level_config or {}).get("turnos") or []
+    if not student_turno_id or not turnos:
+        return (None, None)
+    # 1) direct id match
+    for t in turnos:
+        if t.get("turno_id") == student_turno_id and (t.get("entry_time") or t.get("exit_time")):
+            return (t.get("entry_time"), t.get("exit_time"))
+    # 2) name match (handles duplicate shifts with same name, different id)
+    stu_shift = await db.shifts.find_one({"id": student_turno_id}, {"_id": 0, "nombre": 1})
+    stu_name = (stu_shift.get("nombre") if stu_shift else "").strip().lower()
+    if not stu_name:
+        return (None, None)
+    turno_ids = [t.get("turno_id") for t in turnos if t.get("turno_id")]
+    shifts = {s["id"]: (s.get("nombre") or "").strip().lower()
+              for s in await db.shifts.find({"id": {"$in": turno_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)}
+    for t in turnos:
+        if shifts.get(t.get("turno_id")) == stu_name and (t.get("entry_time") or t.get("exit_time")):
+            return (t.get("entry_time"), t.get("exit_time"))
+    return (None, None)
+
+
+
 
 async def get_horario_efectivo_docente(teacher_id: str, school_id: str) -> dict:
     """Return the effective entry_time/exit_time for a teacher.
@@ -1137,17 +1168,15 @@ async def get_daily_student_attendance(
     ).to_list(5000)
     rec_map = {r["user_id"]: r for r in records}
 
-    def _student_schedule(stu):
+    async def _student_schedule(stu):
         lvl = stu.get("nivel_id") or stu.get("level_id")
         turno = stu.get("turno_id")
         for lc in levels:
             if lc.get("level_id") == lvl:
-                # Per-turno schedule wins when the student's turno matches.
-                if turno and lc.get("turnos"):
-                    for t in lc["turnos"]:
-                        if t.get("turno_id") == turno and (t.get("entry_time") or t.get("exit_time")):
-                            return (t.get("entry_time") or lc.get("entry_time"),
-                                    t.get("exit_time") or lc.get("exit_time"))
+                # Per-turno schedule wins (robust match by id, then shift name).
+                t_entry, t_exit = await resolve_turno_schedule(school_id, lc, turno)
+                if t_entry or t_exit:
+                    return (t_entry or lc.get("entry_time"), t_exit or lc.get("exit_time"))
                 return lc.get("entry_time"), lc.get("exit_time")
         return attendance_config.get("student_entry_time"), attendance_config.get("student_exit_time")
 
@@ -1158,7 +1187,7 @@ async def get_daily_student_attendance(
         rec = rec_map.get(stu["id"])
         entrada, salida, minutos = _extract_times(rec)
         estado = _status_based_estado(rec)
-        h_inicio, h_fin = _student_schedule(stu)
+        h_inicio, h_fin = await _student_schedule(stu)
         _tally(resumen, estado)
         registros.append({
             "id": stu["id"],
@@ -2487,12 +2516,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 for lc in levels_config:
                     if lc.get("level_id") == student_level_id:
                         config_time_str = lc.get("entry_time")
-                        # Per-turno entry time wins when the student's turno matches.
-                        if student_turno_id and lc.get("turnos"):
-                            for t in lc["turnos"]:
-                                if t.get("turno_id") == student_turno_id and t.get("entry_time"):
-                                    config_time_str = t.get("entry_time")
-                                    break
+                        # Per-turno entry time wins when the student's turno matches
+                        # (robust: matches by id, then by shift name).
+                        turno_entry, _turno_exit = await resolve_turno_schedule(
+                            school_id, lc, student_turno_id)
+                        if turno_entry:
+                            config_time_str = turno_entry
                         break
                 # Fallback: old flat format
                 if not config_time_str:
