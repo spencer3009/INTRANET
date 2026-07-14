@@ -165,7 +165,10 @@ def calculate_igv(amount_base: float, igv_applicable: bool, igv_percentage: floa
 async def get_payments(
     status: Optional[str] = None,
     concept: Optional[str] = None,
+    nivel_id: Optional[str] = None,
     grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    turno_id: Optional[str] = None,
     student_id: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
@@ -185,8 +188,21 @@ async def get_payments(
         query["concept"] = concept
     if grade_id:
         query["grade_id"] = grade_id
+    elif nivel_id:
+        # Payments don't store nivel_id → resolve the level's grades and match those.
+        nivel_grade_ids = [g["id"] for g in await db.grades.find(
+            {"school_id": school_id, "nivel_id": nivel_id}, {"_id": 0, "id": 1}).to_list(500)]
+        query["grade_id"] = {"$in": nivel_grade_ids or ["__none__"]}
+    if section_id:
+        query["section_id"] = section_id
     if student_id:
         query["student_id"] = student_id
+    elif turno_id:
+        # Payments don't store turno_id → resolve students on that shift and match those.
+        turno_student_ids = [s["id"] for s in await db.users.find(
+            {"school_id": school_id, "role": "student", "turno_id": turno_id},
+            {"_id": 0, "id": 1}).to_list(20000)]
+        query["student_id"] = {"$in": turno_student_ids or ["__none__"]}
     if date_from:
         query["payment_date"] = {"$gte": date_from}
     if date_to:

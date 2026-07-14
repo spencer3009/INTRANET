@@ -1,5 +1,20 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-14
+
+### Feature — Filtros Nivel/Grado/Sección/Turno en Contabilidad → Ingresos
+- Nuevo bloque "Filtrar por" en la pestaña Ingresos con 4 selects en cascada:
+  Nivel → Grado (filtra por nivel) → Sección (filtra por grado) → Turno + botón "Limpiar".
+- Backend `GET /accounting/payments`: nuevos params `nivel_id`, `section_id`, `turno_id`
+  (además del `grade_id` existente). Como los pagos no guardan nivel/turno, `nivel_id`
+  resuelve los grados del nivel (`grade_id $in`) y `turno_id` resuelve los alumnos del
+  turno (`student_id $in`). `grade_id`/`student_id` explícitos tienen prioridad.
+- Frontend `AccountingPage.jsx`: estado de filtros + fetch de `/academic/levels` y
+  `/academic/shifts`; params en `loadPayments`; selects con `data-testid`
+  `ingresos-filter-{nivel,grado,seccion,turno}`.
+- Verificado por curl contra BD real (elroble): sin filtro 482, nivel 442, sección 200,
+  turno mañana 154 → acotan correctamente. UI verificada por screenshot.
+
 ## 2026-07-13
 
 ### Feature — Doble turno por nivel (asistencia mañana + tarde)

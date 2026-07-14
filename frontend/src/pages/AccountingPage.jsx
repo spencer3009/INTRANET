@@ -340,7 +340,7 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, onDelete, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId, financialSettings }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, onReactivate, onDelete, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading, token, searchStudentId, setSearchStudentId, financialSettings, levels = [], grades = [], sections = [], shifts = [], filterNivel = "", setFilterNivel, filterGrade = "", setFilterGrade, filterSection = "", setFilterSection, filterTurno = "", setFilterTurno }) {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -525,6 +525,66 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
             ))}
           </div>
         )}
+      </div>
+
+      {/* Academic filters: Nivel, Grado, Sección, Turno */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" data-testid="ingresos-academic-filters">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-500">Filtrar por</span>
+          {(filterNivel || filterGrade || filterSection || filterTurno) && (
+            <button
+              onClick={() => { setFilterNivel?.(""); setFilterTurno?.(""); }}
+              className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              data-testid="clear-academic-filters"
+            >
+              <X className="w-3.5 h-3.5" /> Limpiar
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <select
+            value={filterNivel}
+            onChange={(e) => setFilterNivel?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="ingresos-filter-nivel"
+          >
+            <option value="">Todos los niveles</option>
+            {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+          </select>
+          <select
+            value={filterGrade}
+            onChange={(e) => setFilterGrade?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="ingresos-filter-grado"
+          >
+            <option value="">Todos los grados</option>
+            {grades.filter(g => !filterNivel || g.nivel_id === filterNivel).map(g => (
+              <option key={g.id} value={g.id}>{g.nivel_nombre} - {g.nombre}</option>
+            ))}
+          </select>
+          <select
+            value={filterSection}
+            onChange={(e) => setFilterSection?.(e.target.value)}
+            disabled={!filterGrade}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="ingresos-filter-seccion"
+          >
+            <option value="">{filterGrade ? "Todas las secciones" : "Selecciona un grado"}</option>
+            {sections.filter(s => s.grado_id === filterGrade).map(s => (
+              <option key={s.id} value={s.id}>Sección {s.nombre}</option>
+            ))}
+          </select>
+          <select
+            value={filterTurno}
+            onChange={(e) => setFilterTurno?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="ingresos-filter-turno"
+          >
+            <option value="">Todos los turnos</option>
+            {shifts.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Header - Status filters */}
@@ -2488,6 +2548,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [expenses, setExpenses] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [shifts, setShifts] = useState([]);
   const [students, setStudents] = useState([]);
   
   const [paymentsTotal, setPaymentsTotal] = useState(0);
@@ -2499,6 +2561,11 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("");
   const [filterExpenseCategory, setFilterExpenseCategory] = useState("");
+  // Academic filters for Ingresos (payments) list
+  const [filterNivel, setFilterNivel] = useState("");
+  const [filterGrade, setFilterGrade] = useState("");
+  const [filterSection, setFilterSection] = useState("");
+  const [filterTurno, setFilterTurno] = useState("");
   
   // Date range filter state (shared across tabs)
   const [dateFrom, setDateFrom] = useState(getDefaultDates().from);
@@ -2541,7 +2608,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
   useEffect(() => {
     if (!loading) loadPayments();
-  }, [filterPaymentStatus, paymentsPage, dateFrom, dateTo, searchStudentId]);
+  }, [filterPaymentStatus, paymentsPage, dateFrom, dateTo, searchStudentId, filterNivel, filterGrade, filterSection, filterTurno]);
 
   useEffect(() => {
     if (!loading) loadExpenses();
@@ -2568,6 +2635,11 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       setSummary(summaryRes.data);
       setGrades(gradesRes.data.filter(g => g.activo));
       setSections(sectionsRes.data.filter(s => s.activo));
+      // Levels & shifts for the Ingresos academic filters (non-blocking)
+      axios.get(`${API}/academic/levels`, { headers })
+        .then(r => setLevels((r.data || []).filter(l => l.activo))).catch(() => {});
+      axios.get(`${API}/academic/shifts`, { headers })
+        .then(r => setShifts((r.data || []).filter(s => s.activo))).catch(() => {});
 
       // Permite al backend respirar antes de disparar la Fase 2
       await new Promise(r => setTimeout(r, 800));
@@ -2609,6 +2681,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       if (searchStudentId) params.student_id = searchStudentId;
+      if (filterNivel) params.nivel_id = filterNivel;
+      if (filterGrade) params.grade_id = filterGrade;
+      if (filterSection) params.section_id = filterSection;
+      if (filterTurno) params.turno_id = filterTurno;
       const res = await axios.get(`${API}/accounting/payments`, { headers, params });
       setPayments(res.data.payments || []);
       setPaymentsTotal(res.data.total || 0);
@@ -3120,6 +3196,18 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               searchStudentId={searchStudentId}
               setSearchStudentId={(id) => { setSearchStudentId(id); setPaymentsPage(1); }}
               financialSettings={financialSettings}
+              levels={levels}
+              grades={grades}
+              sections={sections}
+              shifts={shifts}
+              filterNivel={filterNivel}
+              setFilterNivel={(v) => { setFilterNivel(v); setFilterGrade(""); setFilterSection(""); setPaymentsPage(1); }}
+              filterGrade={filterGrade}
+              setFilterGrade={(v) => { setFilterGrade(v); setFilterSection(""); setPaymentsPage(1); }}
+              filterSection={filterSection}
+              setFilterSection={(v) => { setFilterSection(v); setPaymentsPage(1); }}
+              filterTurno={filterTurno}
+              setFilterTurno={(v) => { setFilterTurno(v); setPaymentsPage(1); }}
             />
           )}
           {activeTab === "expenses" && (
