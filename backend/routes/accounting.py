@@ -822,6 +822,10 @@ async def get_period_summary(
 async def get_debtors(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    nivel_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    turno_id: Optional[str] = None,
     current_user = Depends(require_section_access("accounting"))
 ):
     """Get list of students with pending payments (morosos). Shows debt per student."""
@@ -837,6 +841,20 @@ async def get_debtors(
         if date_to:
             date_filter["$lte"] = date_to
         match_query["payment_date"] = date_filter
+    # Academic filters (same resolution as /accounting/payments)
+    if grade_id:
+        match_query["grade_id"] = grade_id
+    elif nivel_id:
+        nivel_grade_ids = [g["id"] for g in await db.grades.find(
+            {"school_id": school_id, "nivel_id": nivel_id}, {"_id": 0, "id": 1}).to_list(500)]
+        match_query["grade_id"] = {"$in": nivel_grade_ids or ["__none__"]}
+    if section_id:
+        match_query["section_id"] = section_id
+    if turno_id:
+        turno_student_ids = [s["id"] for s in await db.users.find(
+            {"school_id": school_id, "role": "student", "turno_id": turno_id},
+            {"_id": 0, "id": 1}).to_list(20000)]
+        match_query["student_id"] = {"$in": turno_student_ids or ["__none__"]}
 
     pipeline = [
         {"$match": match_query},

@@ -2,18 +2,17 @@
 
 ## 2026-07-14
 
-### Feature — Filtros Nivel/Grado/Sección/Turno en Contabilidad → Ingresos
-- Nuevo bloque "Filtrar por" en la pestaña Ingresos con 4 selects en cascada:
-  Nivel → Grado (filtra por nivel) → Sección (filtra por grado) → Turno + botón "Limpiar".
-- Backend `GET /accounting/payments`: nuevos params `nivel_id`, `section_id`, `turno_id`
-  (además del `grade_id` existente). Como los pagos no guardan nivel/turno, `nivel_id`
-  resuelve los grados del nivel (`grade_id $in`) y `turno_id` resuelve los alumnos del
-  turno (`student_id $in`). `grade_id`/`student_id` explícitos tienen prioridad.
-- Frontend `AccountingPage.jsx`: estado de filtros + fetch de `/academic/levels` y
-  `/academic/shifts`; params en `loadPayments`; selects con `data-testid`
-  `ingresos-filter-{nivel,grado,seccion,turno}`.
-- Verificado por curl contra BD real (elroble): sin filtro 482, nivel 442, sección 200,
-  turno mañana 154 → acotan correctamente. UI verificada por screenshot.
+### Feature — Filtros Nivel/Grado/Sección/Turno en Contabilidad → Ingresos y Morosos
+- Nuevo bloque "Filtrar por" con 4 selects en cascada (Nivel → Grado → Sección → Turno
+  + botón "Limpiar") en las pestañas **Ingresos** y **Morosos**.
+- Backend: params `nivel_id`, `section_id`, `turno_id` (además de `grade_id`) en
+  `GET /accounting/payments` y `GET /accounting/debtors`. Como los pagos no guardan
+  nivel/turno, `nivel_id` resuelve los grados del nivel (`grade_id $in`) y `turno_id`
+  resuelve los alumnos del turno (`student_id $in`).
+- Frontend `AccountingPage.jsx`: estados separados por pestaña (Ingresos vs Morosos),
+  fetch de `/academic/levels` y `/academic/shifts`; selects con data-testid
+  `ingresos-filter-*` y `morosos-filter-*`.
+- Verificado por curl (payments: 482→442→200→154; debtors: 77→57→36→20) y screenshots.
 
 ## 2026-07-13
 

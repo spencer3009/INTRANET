@@ -2281,7 +2281,7 @@ function getInitials(name) {
   return (parts[0]?.[0] || "?").toUpperCase();
 }
 
-function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, token }) {
+function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, token, levels = [], grades = [], sections = [], shifts = [], filterNivel = "", setFilterNivel, filterGrade = "", setFilterGrade, filterSection = "", setFilterSection, filterTurno = "", setFilterTurno }) {
   const [filter, setFilter] = useState("all");
   const [restrictEnabled, setRestrictEnabled] = useState(false);
   const [togglingRestrict, setTogglingRestrict] = useState(false);
@@ -2390,6 +2390,66 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory, token }) 
               <p className="text-xs text-gray-500">Al Día</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Academic filters: Nivel, Grado, Sección, Turno */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" data-testid="morosos-academic-filters">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-500">Filtrar por</span>
+          {(filterNivel || filterGrade || filterSection || filterTurno) && (
+            <button
+              onClick={() => { setFilterNivel?.(""); setFilterTurno?.(""); }}
+              className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              data-testid="morosos-clear-academic-filters"
+            >
+              <X className="w-3.5 h-3.5" /> Limpiar
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <select
+            value={filterNivel}
+            onChange={(e) => setFilterNivel?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="morosos-filter-nivel"
+          >
+            <option value="">Todos los niveles</option>
+            {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+          </select>
+          <select
+            value={filterGrade}
+            onChange={(e) => setFilterGrade?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="morosos-filter-grado"
+          >
+            <option value="">Todos los grados</option>
+            {grades.filter(g => !filterNivel || g.nivel_id === filterNivel).map(g => (
+              <option key={g.id} value={g.id}>{g.nivel_nombre} - {g.nombre}</option>
+            ))}
+          </select>
+          <select
+            value={filterSection}
+            onChange={(e) => setFilterSection?.(e.target.value)}
+            disabled={!filterGrade}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="morosos-filter-seccion"
+          >
+            <option value="">{filterGrade ? "Todas las secciones" : "Selecciona un grado"}</option>
+            {sections.filter(s => s.grado_id === filterGrade).map(s => (
+              <option key={s.id} value={s.id}>Sección {s.nombre}</option>
+            ))}
+          </select>
+          <select
+            value={filterTurno}
+            onChange={(e) => setFilterTurno?.(e.target.value)}
+            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
+            data-testid="morosos-filter-turno"
+          >
+            <option value="">Todos los turnos</option>
+            {shifts.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
         </div>
       </div>
 
@@ -2566,6 +2626,11 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [filterGrade, setFilterGrade] = useState("");
   const [filterSection, setFilterSection] = useState("");
   const [filterTurno, setFilterTurno] = useState("");
+  // Academic filters for Morosos (debtors) list
+  const [mFilterNivel, setMFilterNivel] = useState("");
+  const [mFilterGrade, setMFilterGrade] = useState("");
+  const [mFilterSection, setMFilterSection] = useState("");
+  const [mFilterTurno, setMFilterTurno] = useState("");
   
   // Date range filter state (shared across tabs)
   const [dateFrom, setDateFrom] = useState(getDefaultDates().from);
@@ -2613,6 +2678,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   useEffect(() => {
     if (!loading) loadExpenses();
   }, [filterExpenseCategory, expensesPage, dateFrom, dateTo]);
+
+  useEffect(() => {
+    if (!loading) loadDebtors();
+  }, [mFilterNivel, mFilterGrade, mFilterSection, mFilterTurno]);
 
   useEffect(() => {
     if (!loading) loadPeriodSummary(dateFrom, dateTo);
@@ -2712,7 +2781,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const loadDebtors = async () => {
     setDebtorsLoading(true);
     try {
-      const res = await axios.get(`${API}/accounting/debtors`, { headers });
+      const params = {};
+      if (mFilterNivel) params.nivel_id = mFilterNivel;
+      if (mFilterGrade) params.grade_id = mFilterGrade;
+      if (mFilterSection) params.section_id = mFilterSection;
+      if (mFilterTurno) params.turno_id = mFilterTurno;
+      const res = await axios.get(`${API}/accounting/debtors`, { headers, params });
       setDebtors(res.data.debtors || []);
       setDebtorsSummary(res.data.summary || null);
     } catch (err) {
@@ -3239,6 +3313,18 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               debtorsSummary={debtorsSummary}
               onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
               token={token}
+              levels={levels}
+              grades={grades}
+              sections={sections}
+              shifts={shifts}
+              filterNivel={mFilterNivel}
+              setFilterNivel={(v) => { setMFilterNivel(v); setMFilterGrade(""); setMFilterSection(""); }}
+              filterGrade={mFilterGrade}
+              setFilterGrade={(v) => { setMFilterGrade(v); setMFilterSection(""); }}
+              filterSection={mFilterSection}
+              setFilterSection={setMFilterSection}
+              filterTurno={mFilterTurno}
+              setFilterTurno={setMFilterTurno}
             />
           )}
           {activeTab === "subscriptions" && (
