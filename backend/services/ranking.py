@@ -105,11 +105,13 @@ async def compute_ranking(
             grades_lookup.setdefault(sid, {})[g["subject_id"]] = manual
             continue
         final_val = g.get("final_grade")
-        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+        if is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
             try:
-                final_val = calculate_final_grade(g, {}, template=template)
+                recomputed = calculate_final_grade(g, {}, template=template)
+                if recomputed is not None:
+                    final_val = recomputed
             except Exception:
-                final_val = None
+                pass
         grades_lookup.setdefault(sid, {})[g["subject_id"]] = final_val
 
     # 4) Calcular puntaje, promedio, desaprobados por alumno

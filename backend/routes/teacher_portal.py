@@ -703,18 +703,36 @@ async def get_teacher_grades(
 
     docs = await db.student_grades.find(
         {"school_id": school_id, "subject_id": subject_id, "section_id": section_id, "period_id": period_id},
-        {"_id": 0, "student_id": 1, "final_grade": 1, "final_grade_manual": 1}
+        {"_id": 0}
     ).to_list(2000)
-    grades = [
-        {
+
+    from services.register_sync import get_active_template_for_school
+    from routes.grades import calculate_final_grade, GRADE_SUB_FIELDS
+    tp_template = await get_active_template_for_school(db, school_id)
+    tp_is_custom = bool(tp_template and not tp_template.get("es_sistema"))
+
+    def _computed(d):
+        final_val = d.get("final_grade")
+        if tp_is_custom and (d.get("grades_dynamic") or any(d.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                rec = calculate_final_grade(d, {}, template=tp_template)
+                if rec is not None:
+                    final_val = rec
+            except Exception:
+                pass
+        return final_val
+
+    grades = []
+    for d in docs:
+        computed = _computed(d)
+        manual = d.get("final_grade_manual")
+        grades.append({
             "student_id": d.get("student_id"),
-            "grade": d.get("final_grade_manual") if d.get("final_grade_manual") is not None else d.get("final_grade"),
-            "manual_grade": d.get("final_grade_manual"),
-            "computed_grade": d.get("final_grade"),
-            "source": "manual" if d.get("final_grade_manual") is not None else ("computed" if d.get("final_grade") is not None else None),
-        }
-        for d in docs
-    ]
+            "grade": manual if manual is not None else computed,
+            "manual_grade": manual,
+            "computed_grade": computed,
+            "source": "manual" if manual is not None else ("computed" if computed is not None else None),
+        })
     return {"grades": grades}
 
 

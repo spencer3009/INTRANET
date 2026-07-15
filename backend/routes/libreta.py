@@ -521,12 +521,13 @@ async def get_libreta(
             notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = manual
             continue
         final_val = g.get("final_grade")
-        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+        if is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
             try:
-                final_val = calculate_final_grade(g, {}, template=libreta_template)
+                recomputed = calculate_final_grade(g, {}, template=libreta_template)
+                if recomputed is not None:
+                    final_val = recomputed
             except Exception as e:
                 logger.warning(f"[LIBRETA] on-the-fly recompute failed for student={student_id} subj={g.get('subject_id')}: {e}")
-                final_val = None
         notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = final_val
 
     # 7) Tutor de la sección

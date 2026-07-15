@@ -265,7 +265,7 @@ def _criterio_avg(cri: dict, grade: dict, grades_dyn: dict):
             values.append(v)
     if not values:
         return None
-    return sum(values) / len(values)
+    return round(sum(values) / len(values), 1)
 
 
 def _calculate_final_grade_grupo_mode(grade: dict, template: dict):
@@ -531,14 +531,15 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
         if manual is not None:
             return manual
         final_val = g.get("final_grade")
-        if final_val is None and is_custom_template and (
+        if is_custom_template and (
             g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)
         ):
             try:
-                final_val = calculate_final_grade(g, config, template=reg_template)
+                recomputed = calculate_final_grade(g, config, template=reg_template)
+                if recomputed is not None:
+                    final_val = recomputed
             except Exception as e:
                 logger.warning(f"[REGISTER] on-the-fly recompute failed student={g.get('student_id')}: {e}")
-                final_val = None
         return final_val
 
     # Build response
@@ -926,14 +927,15 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
             grades_lookup[sid][g["subject_id"]] = manual
             continue
         final_val = g.get("final_grade")
-        # Fallback: if final_grade missing but the row has dynamic data
-        # (or static data) AND we have a custom template, recompute now.
-        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+        # Para plantillas CUSTOM: recalcular SIEMPRE en vivo. Si el recálculo da
+        # None (fila legacy), se conserva el valor almacenado.
+        if is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
             try:
-                final_val = calculate_final_grade(g, {}, template=template)
+                recomputed = calculate_final_grade(g, {}, template=template)
+                if recomputed is not None:
+                    final_val = recomputed
             except Exception as e:
                 logger.warning(f"[CONSOLIDADO] on-the-fly recompute failed for student={sid} subj={g.get('subject_id')}: {e}")
-                final_val = None
         grades_lookup[sid][g["subject_id"]] = final_val
 
     # Build consolidated data
@@ -1141,12 +1143,16 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
             grades_lookup[sid][g["subject_id"]] = manual
             continue
         final_val = g.get("final_grade")
-        if final_val is None and is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+        # Para plantillas CUSTOM: recalcular SIEMPRE en vivo (el valor almacenado
+        # puede ser antiguo/con otra regla de redondeo). Si el recálculo da None
+        # (fila legacy sin datos dinámicos), se conserva el valor almacenado.
+        if is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
             try:
-                final_val = calculate_final_grade(g, {}, template=template)
+                recomputed = calculate_final_grade(g, {}, template=template)
+                if recomputed is not None:
+                    final_val = recomputed
             except Exception as e:
                 logger.warning(f"[CONSOLIDADO-REPORT] on-the-fly recompute failed for student={sid} subj={g.get('subject_id')}: {e}")
-                final_val = None
         grades_lookup[sid][g["subject_id"]] = final_val
 
     # Build student rows with computed fields

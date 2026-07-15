@@ -1,20 +1,25 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
-## 2026-07-14
+## 2026-07-15
 
-### Bugfix — Registro Auxiliar mostraba nota final distinta al Consolidado (18 vs 17)
-- Causa raíz: la fórmula del promedio final NO era idéntica entre cliente y backend.
-  El cliente (`calcularPromedioInput` en `registroAuxiliarUtils.js`) redondeaba el
-  promedio de CADA criterio a 1 decimal ANTES de combinar; el backend (`_criterio_avg`
-  en `grades.py`) usa el promedio CRUDO. Cerca de un límite de redondeo (.5) esto
-  produce ±1 en la nota entera → el Registro Auxiliar mostraba 18 y el Consolidado
-  (que lee el `final_grade` almacenado por el backend) mostraba 17.
-- Fix: nueva `calcularPromedioCriterioRaw` (port exacto del backend: promedio crudo de
-  subcolumnas no-promedio) usada dentro de `calcularPromedioBimestral` (modo grupo y
-  criterio). Ahora el TOTAL en vivo del Registro Auxiliar coincide 100% con el
-  `final_grade` almacenado (Consolidado, Libreta, ranking).
-- Validado: 200,000 casos aleatorios → fórmula vieja divergía en 2266 (~1.1%); la nueva
-  coincide con el backend en el 100%. Nota autoritativa (libreta/consolidado) sin cambios.
+### Bugfix — Nota final inconsistente: Registro Auxiliar (18) vs Consolidado (17)
+- Causa: en plantillas CUSTOM, el cliente redondeaba el promedio de cada criterio a
+  1 decimal antes de combinar (método "redondeo-primero" → 18), pero el backend
+  (`_criterio_avg`) usaba el promedio CRUDO (→ 17). Cerca de un límite .5 daban notas
+  enteras distintas (~1.1% de casos).
+- Decisión del cliente: la nota oficial usa "redondear cada componente y luego
+  promediar" (= 18), consistente con la Plantilla del Sistema que ya lo hacía (`_avg`).
+- Backend: `_criterio_avg` ahora redondea a 1 decimal. Las lecturas de nota (consolidado
+  x2, registro auxiliar, ranking, libreta, portal del alumno, notas del profesor) ahora
+  RECALCULAN en vivo para plantillas custom y usan ese valor (fallback al almacenado
+  para filas legacy) → corrige las notas ya guardadas SIN migración y respeta el
+  override manual del profesor.
+- Frontend: `calcularPromedioCriterioBackend` (`registroAuxiliarUtils.js`) replica
+  EXACTAMENTE el backend (promedio de subcolumnas no-promedio, redondeado a 1 decimal).
+- Validado: 200,000 casos → cliente y backend 100% consistentes; `calculate_final_grade`
+  real devuelve 18 en el caso tipo-Samuel.
+
+## 2026-07-14
 
 ### Feature — Filtros Nivel/Grado/Sección/Turno + buscador en Contabilidad
 - Nuevo bloque "Filtrar por" con 4 selects en cascada (Nivel → Grado → Sección → Turno

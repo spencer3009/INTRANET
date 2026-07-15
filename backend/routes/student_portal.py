@@ -350,12 +350,35 @@ async def get_student_grades(
     ).to_list(200)
     grade_by_subject = {g["subject_id"]: g for g in grade_docs}
 
+    # Template para recalcular final_grade en vivo (plantillas custom), igual que
+    # Consolidado/Libreta/ranking, de modo que el alumno vea la MISMA nota.
+    from services.register_sync import get_active_template_for_school
+    from routes.grades import calculate_final_grade, GRADE_SUB_FIELDS
+    sp_template = await get_active_template_for_school(db, school_id)
+    sp_is_custom = bool(sp_template and not sp_template.get("es_sistema"))
+
+    def _resolve_final_sp(g):
+        if not g:
+            return None
+        manual = g.get("final_grade_manual")
+        if manual is not None:
+            return manual
+        final_val = g.get("final_grade")
+        if sp_is_custom and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+            try:
+                rec = calculate_final_grade(g, {}, template=sp_template)
+                if rec is not None:
+                    final_val = rec
+            except Exception:
+                pass
+        return final_val
+
     # Build per-subject summary
     subject_summaries = []
     grades_history = []
     for s in subjects:
         g = grade_by_subject.get(s["id"])
-        final = g.get("final_grade") if g else None
+        final = _resolve_final_sp(g)
         # Count non-null sub-grades (static + dynamic) to show "X notas"
         count = 0
         if g:

@@ -214,15 +214,14 @@ export function calcularPromedioCriterio(student, criterio, legacyMap) {
 }
 
 /**
- * Promedio CRUDO (sin redondeo intermedio) de un criterio, replicando
- * EXACTAMENTE el backend (`_criterio_avg` en grades.py): promedia todas las
- * subcolumnas que NO son de tipo promedio/auto, sin redondear.
- * Se usa SOLO para el cálculo de la nota final (calcularPromedioBimestral) para
- * que el TOTAL mostrado en el Registro Auxiliar coincida con el `final_grade`
- * almacenado (usado por Consolidado, Libreta y ranking).
+ * Promedio de un criterio replicando EXACTAMENTE el backend
+ * (`_criterio_avg` en grades.py): promedia todas las subcolumnas que NO son de
+ * tipo promedio/auto y REDONDEA a 1 decimal. Se usa para la nota final
+ * (`calcularPromedioBimestral`) para que el TOTAL del Registro Auxiliar coincida
+ * con el `final_grade` (Consolidado, Libreta, ranking).
  */
 const _PROMEDIO_TIPOS = new Set(["promedio_auto", "promedio", "promedio_manual", "auto"]);
-export function calcularPromedioCriterioRaw(student, criterio, legacyMap) {
+export function calcularPromedioCriterioBackend(student, criterio, legacyMap) {
   const subs = (criterio.subcolumnas || []).filter(
     s => !_PROMEDIO_TIPOS.has((s.tipo || "input").toLowerCase())
   );
@@ -231,7 +230,7 @@ export function calcularPromedioCriterioRaw(student, criterio, legacyMap) {
     .filter(v => v !== null && v !== undefined && v !== "")
     .map(Number);
   if (!vals.length) return null;
-  return vals.reduce((a, b) => a + b, 0) / vals.length; // crudo, sin redondear
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 }
 
 /**
@@ -257,7 +256,7 @@ export function calcularPromedioBimestral(student, plantilla, legacyMap) {
       for (const mid of (g.miembro_ids || [])) {
         let v = null;
         if (criteriosById[mid]) {
-          v = calcularPromedioCriterioRaw(student, criteriosById[mid], legacyMap);
+          v = calcularPromedioCriterioBackend(student, criteriosById[mid], legacyMap);
         } else if (finalesById[mid]) {
           const raw = getGradeValue(student, finalesById[mid], legacyMap);
           v = (raw !== null && raw !== undefined && raw !== "") ? Number(raw) : null;
@@ -278,7 +277,7 @@ export function calcularPromedioBimestral(student, plantilla, legacyMap) {
   let totalWeight = 0;
 
   for (const criterio of plantilla.criterios) {
-    const avg = calcularPromedioCriterioRaw(student, criterio, legacyMap);
+    const avg = calcularPromedioCriterioBackend(student, criterio, legacyMap);
     if (avg !== null) {
       const w = (criterio.porcentaje || 0) / 100;
       totalWeighted += avg * w;
