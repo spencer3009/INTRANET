@@ -1,5 +1,14 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — FIX RAÍZ: sincronización tareas/exámenes ahora refresca final_grade almacenado
+- Causa raíz del desfase Consolidado/Registro Auxiliar: `services/register_sync.py` escribía la nota de tarea/examen en `grades_dynamic` (o campo estático) pero NUNCA recalculaba `final_grade`, dejando el valor almacenado perpetuamente desactualizado (2438 filas en El Roble).
+- Fix: nuevo helper `_refresh_final_grade()` que recalcula con `calculate_final_grade` + plantilla activa y PERSISTE `final_grade` tras cada escritura, respetando `final_grade_manual`. Llamado en `_sync_exam_grades`, `_sync_task_grades`, `sync_single_student_exam`, `clear_single_student_exam`, `sync_single_student_task`.
+- Verificado (python -c): caso EMMY 2do bim → stored pasa de 16 (stale) a 16.8 (=17) automáticamente.
+- CONTEXTO: TODAS las vistas de usuario (Consolidado, Consolidado-report/Excel, Ranking, Libretas, Portal Profesor/Alumno) YA recalculaban en vivo → en pantalla ya coincidían. Este fix garantiza que el valor CRUDO en BD también quede consistente (exports/futuros consumidores), eliminando la necesidad del recálculo manual a futuro.
+- Diagnóstico: buscador por alumno/curso en herramienta de recálculo + columnas renombradas ("Guardado en BD (antes)" vs "Recalculado / Registro Auxiliar") para no dar a entender que la pantalla del Consolidado esté mal.
+- NO probado E2E (writes bloqueados por suscripción vencida del tenant en preview). Requiere Deploy para producción.
+
+
 ## 2026-07-15
 
 ### Bugfix (3) — Consolidado: columna de ÁREA promediaba asignaturas duplicadas/vacías

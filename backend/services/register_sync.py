@@ -575,6 +575,40 @@ async def sync_to_register(db, source_id: str, source_type: str, action: str):
     )
 
 
+async def _refresh_final_grade(db, school_id, grade_filter):
+    """Recompute and PERSIST `final_grade` for the row(s) matching `grade_filter`
+    after a task/exam grade cell was written, so the stored value stays in sync
+    with the Registro Auxiliar (single source of truth for every view/export).
+    Skips rows with a manual override (`final_grade_manual`). Only writes when
+    the value actually changes."""
+    if not school_id:
+        return
+    try:
+        from routes.grades import calculate_final_grade, GRADE_SUB_FIELDS
+    except Exception:
+        return
+    template = await get_active_template_for_school(db, school_id)
+    docs = await db.student_grades.find(grade_filter, {"_id": 0}).to_list(100)
+    for doc in docs:
+        if doc.get("final_grade_manual") is not None:
+            continue
+        try:
+            final = calculate_final_grade(doc, {}, template=template)
+        except Exception as e:
+            logger.warning(f"[SYNC] refresh final_grade failed student={doc.get('student_id')}: {e}")
+            continue
+        if final is None:
+            continue
+        old = doc.get("final_grade")
+        if old is None or abs(float(old) - float(final)) > 0.001:
+            await db.student_grades.update_one(
+                {"school_id": school_id, "student_id": doc.get("student_id"),
+                 "subject_id": doc.get("subject_id"), "section_id": doc.get("section_id"),
+                 "period_id": doc.get("period_id")},
+                {"$set": {"final_grade": final}},
+            )
+
+
 async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filter_base, action, source_section_id=None):
     """Sync exam grades to student_grades (static or dynamic storage)."""
     attempts = await db.exam_attempts.find(
@@ -599,6 +633,7 @@ async def _sync_exam_grades(db, exam, exam_id, field_type, field_key, grade_filt
             {"$set": update_fields},
             upsert=True,
         )
+        await _refresh_final_grade(db, grade_filter_base.get("school_id"), student_filter)
 
 
 async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filter_base, action, source_section_id=None):
@@ -641,6 +676,7 @@ async def _sync_task_grades(db, task, task_id, field_type, field_key, grade_filt
             {"$set": update_fields},
             upsert=True,
         )
+        await _refresh_final_grade(db, grade_filter_base.get("school_id"), student_filter)
 
 
 async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage: float):
@@ -699,6 +735,7 @@ async def sync_single_student_exam(db, exam_id: str, student_id: str, percentage
         {"$set": update_fields},
         upsert=True,
     )
+    await _refresh_final_grade(db, school_id, grade_filter)
     logger.info(f"[SYNC] Student {student_id} exam grade synced: type={field_type} key={field_key} value={grade_value}")
 
 
@@ -739,6 +776,7 @@ async def clear_single_student_exam(db, exam_id: str, student_id: str):
     update_fields = _build_grade_update(field_type, field_key, None)
     if update_fields:
         await db.student_grades.update_one(grade_filter, {"$set": update_fields})
+        await _refresh_final_grade(db, school_id, grade_filter)
         logger.info(f"[SYNC] Student {student_id} exam grade CLEARED (blocked): key={field_key}")
 
 
@@ -800,6 +838,7 @@ async def sync_single_student_task(db, task_id: str, student_id: str, grade: flo
         {"$set": update_fields},
         upsert=True,
     )
+    await _refresh_final_grade(db, school_id, grade_filter)
     logger.info(f"[SYNC] Student {student_id} task grade synced: type={field_type} key={field_key} value={grade_value}")
 
 

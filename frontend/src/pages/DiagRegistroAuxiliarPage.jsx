@@ -408,8 +408,8 @@ export default function DiagRegistroAuxiliarPage() {
                       <th className="text-left px-3 py-1.5">Alumno</th>
                       <th className="text-left px-3 py-1.5">Curso</th>
                       <th className="text-left px-3 py-1.5">Periodo</th>
-                      <th className="px-3 py-1.5 text-amber-700">Consolidado (actual)</th>
-                      <th className="px-3 py-1.5 text-emerald-700">Registro Auxiliar (correcto)</th>
+                      <th className="px-3 py-1.5 text-amber-700">Guardado en BD (antes)</th>
+                      <th className="px-3 py-1.5 text-emerald-700">Recalculado / Registro Auxiliar</th>
                     </tr></thead>
                     <tbody>
                       {rcResult.samples.map((s, i) => (
