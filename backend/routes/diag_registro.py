@@ -444,14 +444,28 @@ async def diag_final_grade(
     if not sid:
         raise HTTPException(status_code=400, detail="No se pudo determinar el colegio")
 
-    # Resolve students by name/last_name
-    name_rx = {"$regex": re.escape(student_name), "$options": "i"}
+    # Resolve students by name/last_name — token-based so "Samuel Perez" matches
+    # name~Samuel AND last_name~Perez (in any order).
+    tokens = [t for t in re.split(r"\s+", student_name.strip()) if t]
+    and_clauses = []
+    for tok in tokens:
+        rx = {"$regex": re.escape(tok), "$options": "i"}
+        and_clauses.append({"$or": [{"name": rx}, {"last_name": rx}, {"dni": rx}]})
+    stu_query = {"school_id": sid, "role": "student"}
+    if and_clauses:
+        stu_query["$and"] = and_clauses
     students = await db.users.find(
-        {"school_id": sid, "role": "student", "$or": [{"name": name_rx}, {"last_name": name_rx}]},
+        stu_query,
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1},
-    ).to_list(20)
+    ).to_list(30)
     if not students:
-        return {"school_id": sid, "warning": "Ningún alumno coincide", "students": []}
+        sample = await db.users.find(
+            {"school_id": sid, "role": "student"},
+            {"_id": 0, "name": 1, "last_name": 1},
+        ).limit(15).to_list(15)
+        sample_names = [f"{s.get('name','')} {s.get('last_name','')}".strip() for s in sample]
+        return {"school_id": sid, "warning": "Ningún alumno coincide con ese nombre",
+                "ejemplos_de_nombres_en_este_colegio": sample_names, "students": []}
 
     template = await get_active_template_for_school(db, sid)
     is_custom = bool(template and not template.get("es_sistema"))

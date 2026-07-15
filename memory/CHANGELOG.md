@@ -2,7 +2,19 @@
 
 ## 2026-07-15
 
-### Tooling — Diagnóstico de nota final (para resolver 17 vs 18 en Precursores)
+### Bugfix (3) — Consolidado: columna de ÁREA promediaba asignaturas duplicadas/vacías
+- Diagnóstico real (Precursores): la asignatura "Comunicaciones" recalcula 18, pero la
+  columna de ÁREA "COMUNICACIÓN" mostraba 17 porque promediaba la asignatura real (18)
+  con otra asignatura **duplicada/vacía** que solo tenía un `final_grade` viejo guardado
+  (~16) → (18+16)/2 ≈ 17. Esto explica "se arregló para 1 alumno, otros no".
+- Fix: en `consolidated-report`, el promedio de ÁREA (y la columna de asignatura) ahora
+  IGNORA asignaturas sin datos reales del alumno (custom sin `grades_dynamic` ni campos
+  legacy) — solo cuentan las que tienen notas de verdad. Se rastrea `real_lookup`.
+- Nuevo endpoint `POST /grades/_maintenance/recompute-finals` (owner/soporte, con dry_run)
+  para recalcular y PERSISTIR `final_grade` de todo el colegio → exportaciones/PDF que
+  leen el valor guardado también quedan correctas. Botón en `/diag/registro-auxiliar`.
+
+
 - Nuevo endpoint `GET /api/diag/final-grade` (owner/support, read-only): dado alumno
   (+curso/periodo/colegio) devuelve nota guardada, recalculada, manual y el desglose
   completo (criterios con sus subcolumnas y promedios, columnas finales, grupos, pesos)

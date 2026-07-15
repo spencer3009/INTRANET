@@ -104,6 +104,26 @@ export default function DiagRegistroAuxiliarPage() {
     }
   }, [API, authHeaders, fgStudent, fgSubject, fgPeriod, fgSchool]);
 
+  // ── Recompute & persist final grades ──
+  const [rcLoading, setRcLoading] = useState(false);
+  const [rcResult, setRcResult] = useState(null);
+  const [rcError, setRcError] = useState('');
+
+  const runRecompute = useCallback(async (dryRun) => {
+    if (!dryRun && !window.confirm('Esto RECALCULARÁ Y GUARDARÁ las notas finales de todo el colegio (no toca notas manuales). ¿Continuar?')) return;
+    setRcLoading(true);
+    setRcError('');
+    if (dryRun) setRcResult(null);
+    try {
+      const r = await axios.post(`${API}/api/grades/_maintenance/recompute-finals?dry_run=${dryRun}`, {}, { headers: authHeaders });
+      setRcResult(r.data);
+    } catch (err) {
+      setRcError(err?.response?.data?.detail || err.message);
+    } finally {
+      setRcLoading(false);
+    }
+  }, [API, authHeaders]);
+
   return (
     <div className="min-h-screen bg-slate-50 p-6" data-testid="diag-registro-page">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -312,6 +332,63 @@ export default function DiagRegistroAuxiliarPage() {
               <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 text-xs overflow-x-auto max-h-[60vh]" data-testid="diag-fg-json">
                 {JSON.stringify(fgResult, null, 2)}
               </pre>
+            </div>
+          )}
+        </section>
+
+        {/* ──── RECALCULAR Y GUARDAR ──── */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold mb-1">4. Recalcular y guardar notas finales</h2>
+          <p className="text-sm text-slate-500 mb-4">
+            Aplica la fórmula vigente a TODAS las notas guardadas del colegio (no toca notas
+            manuales) para que el Consolidado, exportaciones y libretas muestren el mismo valor
+            que el Registro Auxiliar. Primero usa <b>Previsualizar</b> para ver cuántas cambiarían.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={() => runRecompute(true)} disabled={rcLoading}
+              className="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              data-testid="diag-recompute-preview">
+              {rcLoading ? 'Procesando…' : 'Previsualizar (sin guardar)'}
+            </button>
+            <button onClick={() => runRecompute(false)} disabled={rcLoading || !rcResult}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              data-testid="diag-recompute-apply">
+              Aplicar y guardar
+            </button>
+          </div>
+          {rcError && (
+            <div className="mt-4 text-sm bg-red-50 text-red-700 border border-red-200 rounded-lg p-3" data-testid="diag-recompute-error">
+              {rcError}
+            </div>
+          )}
+          {rcResult && (
+            <div className="mt-4 text-sm">
+              <div className="flex flex-wrap gap-3 mb-3">
+                <span className="px-3 py-1 rounded bg-slate-100">Revisadas: <b>{rcResult.checked}</b></span>
+                <span className="px-3 py-1 rounded bg-amber-100 text-amber-800">Cambiarían/cambiaron: <b>{rcResult.changed}</b></span>
+                <span className="px-3 py-1 rounded bg-emerald-100 text-emerald-800">{rcResult.dry_run ? 'Modo previsualización' : `Guardadas: ${rcResult.applied}`}</span>
+              </div>
+              {rcResult.message && <p className="text-slate-500 mb-2">{rcResult.message}</p>}
+              {(rcResult.samples || []).length > 0 && (
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100"><tr>
+                      <th className="text-left px-3 py-1.5">Alumno (id)</th><th className="text-left px-3 py-1.5">Curso (id)</th>
+                      <th className="px-3 py-1.5">Antes</th><th className="px-3 py-1.5">Después</th>
+                    </tr></thead>
+                    <tbody>
+                      {rcResult.samples.map((s, i) => (
+                        <tr key={i} className="border-t border-slate-100">
+                          <td className="px-3 py-1.5">{(s.student_id || '').slice(0, 8)}</td>
+                          <td className="px-3 py-1.5">{(s.subject_id || '').slice(0, 8)}</td>
+                          <td className="px-3 py-1.5 text-center text-amber-700">{s.old_display ?? s.old}</td>
+                          <td className="px-3 py-1.5 text-center text-emerald-700 font-semibold">{s.new_display ?? s.new}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </section>

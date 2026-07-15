@@ -1152,13 +1152,17 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
 
     # Teacher manual override (final_grade_manual) takes precedence over auto-computed final_grade.
     grades_lookup = {}
+    real_lookup = {}  # subject_ids con datos REALES (no solo un final_grade viejo)
     for g in all_grades:
         sid = g["student_id"]
         if sid not in grades_lookup:
             grades_lookup[sid] = {}
+            real_lookup[sid] = set()
+        has_data = bool(g.get("grades_dynamic")) or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)
         manual = g.get("final_grade_manual")
         if manual is not None:
             grades_lookup[sid][g["subject_id"]] = manual
+            real_lookup[sid].add(g["subject_id"])
             continue
         final_val = g.get("final_grade")
         # Para plantillas CUSTOM: recalcular SIEMPRE en vivo (el valor almacenado
@@ -1172,6 +1176,10 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
             except Exception as e:
                 logger.warning(f"[CONSOLIDADO-REPORT] on-the-fly recompute failed for student={sid} subj={g.get('subject_id')}: {e}")
         grades_lookup[sid][g["subject_id"]] = final_val
+        # "Real" = sistema (siempre) o custom con datos. Una asignatura duplicada/vacía
+        # (custom sin datos, solo con final_grade viejo) NO cuenta para el promedio de área.
+        if (not is_custom_template) or has_data:
+            real_lookup[sid].add(g["subject_id"])
 
     # Build student rows with computed fields
     # Ranking, puntaje, promedio, tercio y desaprobados provienen del helper
@@ -1216,12 +1224,14 @@ async def get_consolidated_report(section_id: str, period_id: str, current_user=
         # — independiente del ranking, solo para la grilla del consolidado.
         for col in columns:
             if col["type"] == "area":
-                sub_grades = [student_grades.get(sid) for sid in col["subject_ids"]]
+                real_set = real_lookup.get(student["id"], set())
+                sub_grades = [student_grades.get(sid) for sid in col["subject_ids"] if sid in real_set]
                 valid = [g for g in sub_grades if g is not None]
                 area_avg = round(sum(valid) / len(valid), 0) if valid else None
                 row["grades"][col["id"]] = int(area_avg) if area_avg is not None else None
             elif col["type"] == "subject":
-                grade_val = student_grades.get(col["id"])
+                real_set = real_lookup.get(student["id"], set())
+                grade_val = student_grades.get(col["id"]) if col["id"] in real_set else None
                 if grade_val is not None:
                     grade_val = round(grade_val)
                 row["grades"][col["id"]] = int(grade_val) if grade_val is not None else None
@@ -1687,6 +1697,86 @@ async def scan_duplicate_grades(current_user=Depends(get_current_user)):
 class ConsolidateRequest(BaseModel):
     dry_run: bool = True
     confirm_token: Optional[str] = None  # required when dry_run=false
+
+
+@router.post("/grades/_maintenance/recompute-finals")
+async def recompute_final_grades(
+    dry_run: bool = True,
+    period_id: Optional[str] = None,
+    current_user=Depends(get_current_user),
+):
+    """Recalcula y PERSISTE `final_grade` de todas las filas (plantilla custom, sin
+    override manual) usando la fórmula vigente, para que TODAS las vistas (incluidas
+    exportaciones que leen el valor guardado) muestren la nota correcta.
+
+    dry_run=true (por defecto): solo reporta cuántas cambiarían, sin escribir.
+    dry_run=false: aplica los cambios.
+    """
+    user = await resolve_user_from_token(current_user)
+    is_owner = user and (user.get("role") in {"owner", "director"} or user.get("is_owner") is True)
+    is_support = user and (user.get("is_support_session") is True or user.get("is_super_admin") is True)
+    if not (is_owner or is_support):
+        raise HTTPException(403, "Sólo el owner/soporte puede ejecutar esta operación")
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(400, "Tu usuario no tiene colegio asignado")
+
+    from services.register_sync import get_active_template_for_school
+    template = await get_active_template_for_school(db, school_id)
+    if not template or template.get("es_sistema"):
+        return {"ok": True, "message": "El colegio usa la Plantilla del Sistema; no requiere recálculo.",
+                "checked": 0, "changed": 0, "dry_run": dry_run}
+
+    q = {"school_id": school_id}
+    if period_id:
+        q["period_id"] = period_id
+
+    checked = 0
+    changed = 0
+    samples = []
+    ops = []
+    cursor = db.student_grades.find(q, {"_id": 0})
+    async for g in cursor:
+        checked += 1
+        if g.get("final_grade_manual") is not None:
+            continue
+        has_data = g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)
+        if not has_data:
+            continue
+        try:
+            recomputed = calculate_final_grade(g, {}, template=template)
+        except Exception:
+            continue
+        if recomputed is None:
+            continue
+        old = g.get("final_grade")
+        if old is None or abs(float(old) - float(recomputed)) > 0.001:
+            changed += 1
+            if len(samples) < 20:
+                samples.append({
+                    "student_id": g.get("student_id"),
+                    "subject_id": g.get("subject_id"),
+                    "period_id": g.get("period_id"),
+                    "old": old, "new": recomputed,
+                    "old_display": (round(old) if isinstance(old, (int, float)) else None),
+                    "new_display": round(recomputed),
+                })
+            if not dry_run:
+                ops.append({"student_id": g.get("student_id"), "subject_id": g.get("subject_id"),
+                            "period_id": g.get("period_id"), "final_grade": recomputed})
+
+    if not dry_run and ops:
+        for op in ops:
+            await db.student_grades.update_one(
+                {"school_id": school_id, "student_id": op["student_id"],
+                 "subject_id": op["subject_id"], "period_id": op["period_id"]},
+                {"$set": {"final_grade": op["final_grade"]}},
+            )
+        logger.info(f"[RECOMPUTE-FINALS] school={school_id} changed={changed} applied")
+
+    return {"ok": True, "dry_run": dry_run, "checked": checked, "changed": changed,
+            "applied": (0 if dry_run else changed), "samples": samples}
+
 
 
 @router.post("/grades/_maintenance/duplicates/consolidate")
