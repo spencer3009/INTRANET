@@ -2,22 +2,23 @@
 
 ## 2026-07-15
 
-### Bugfix — Nota final inconsistente: Registro Auxiliar (18) vs Consolidado (17)
-- Causa: en plantillas CUSTOM, el cliente redondeaba el promedio de cada criterio a
-  1 decimal antes de combinar (método "redondeo-primero" → 18), pero el backend
-  (`_criterio_avg`) usaba el promedio CRUDO (→ 17). Cerca de un límite .5 daban notas
-  enteras distintas (~1.1% de casos).
-- Decisión del cliente: la nota oficial usa "redondear cada componente y luego
-  promediar" (= 18), consistente con la Plantilla del Sistema que ya lo hacía (`_avg`).
+### Bugfix (2) — Consolidado seguía en 17 tras deploy: backend ignoraba columnas finales
+- Causa REAL: en modo `criterio`, `calculate_final_grade_from_template` sumaba SOLO los
+  criterios e IGNORABA las `columnas_finales` (EXAMEN MENSUAL/BIMESTRAL, PARC, ORAL...),
+  mientras el frontend (`calcularPromedioBimestral`) SÍ las incluye. Por eso el Registro
+  Auxiliar daba 18 (con exámenes) y el Consolidado 17 (sin exámenes).
+- Fix: el backend ahora pondera también las columnas finales en modo criterio → coincide
+  100% con el frontend. Verificado con la función real: caso tipo-Samuel = 18.1 → 18.
+
+### Bugfix (1) — Redondeo de criterios + recálculo en vivo
+- Causa: el cliente redondeaba el promedio de cada criterio a 1 decimal antes de combinar
+  (→18); el backend (`_criterio_avg`) usaba el promedio CRUDO (→17).
 - Backend: `_criterio_avg` ahora redondea a 1 decimal. Las lecturas de nota (consolidado
   x2, registro auxiliar, ranking, libreta, portal del alumno, notas del profesor) ahora
   RECALCULAN en vivo para plantillas custom y usan ese valor (fallback al almacenado
-  para filas legacy) → corrige las notas ya guardadas SIN migración y respeta el
-  override manual del profesor.
-- Frontend: `calcularPromedioCriterioBackend` (`registroAuxiliarUtils.js`) replica
-  EXACTAMENTE el backend (promedio de subcolumnas no-promedio, redondeado a 1 decimal).
-- Validado: 200,000 casos → cliente y backend 100% consistentes; `calculate_final_grade`
-  real devuelve 18 en el caso tipo-Samuel.
+  para filas legacy) → corrige lo guardado SIN migración y respeta el override manual.
+- Frontend: `calcularPromedioCriterioBackend` replica exactamente el backend.
+- Validado: 200,000 casos → cliente y backend 100% consistentes.
 
 ## 2026-07-14
 

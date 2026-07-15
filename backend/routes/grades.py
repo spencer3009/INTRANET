@@ -353,6 +353,24 @@ def calculate_final_grade_from_template(grade: dict, template: dict) -> Optional
         total_weighted += crit_avg * weight
         total_weight += weight
 
+    # Columnas finales (ej. EXAMEN MENSUAL/BIMESTRAL, PARC, ORAL): cada una pondera
+    # su propio porcentaje con su valor directo. El frontend (calcularPromedioBimestral)
+    # las incluye, así que el backend DEBE hacerlo también para que la nota final
+    # coincida con el Registro Auxiliar.
+    for col in template.get("columnas_finales") or []:
+        pct = col.get("porcentaje")
+        try:
+            weight = float(pct) / 100.0 if pct is not None else 0.0
+        except (TypeError, ValueError):
+            weight = 0.0
+        if weight <= 0:
+            continue
+        val = _resolve_dynamic_value(col.get("id"), col.get("field_key"), grade, grades_dyn)
+        if val is None:
+            continue
+        total_weighted += val * weight
+        total_weight += weight
+
     if total_weight <= 0:
         return None
     # Normalize partial pesos so a register with only some criterios still
