@@ -73,6 +73,37 @@ export default function DiagRegistroAuxiliarPage() {
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
   };
 
+  // ── Final grade diagnostic ──
+  const [fgStudent, setFgStudent] = useState('');
+  const [fgSubject, setFgSubject] = useState('');
+  const [fgPeriod, setFgPeriod] = useState('');
+  const [fgSchool, setFgSchool] = useState('precursores tj');
+  const [fgLoading, setFgLoading] = useState(false);
+  const [fgResult, setFgResult] = useState(null);
+  const [fgError, setFgError] = useState('');
+
+  const fetchFinalGrade = useCallback(async () => {
+    setFgLoading(true);
+    setFgError('');
+    setFgResult(null);
+    try {
+      const r = await axios.get(`${API}/api/diag/final-grade`, {
+        headers: authHeaders,
+        params: {
+          student_name: fgStudent,
+          subject_name: fgSubject || undefined,
+          period_name: fgPeriod || undefined,
+          school_name: fgSchool || undefined,
+        },
+      });
+      setFgResult(r.data);
+    } catch (err) {
+      setFgError(err?.response?.data?.detail || err.message);
+    } finally {
+      setFgLoading(false);
+    }
+  }, [API, authHeaders, fgStudent, fgSubject, fgPeriod, fgSchool]);
+
   return (
     <div className="min-h-screen bg-slate-50 p-6" data-testid="diag-registro-page">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -207,6 +238,79 @@ export default function DiagRegistroAuxiliarPage() {
                 data-testid="diag-legacy-json"
               >
                 {JSON.stringify(lResult, null, 2)}
+              </pre>
+            </div>
+          )}
+        </section>
+
+        {/* ──── DIAGNÓSTICO NOTA FINAL ──── */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold mb-1">3. Diagnóstico de nota final (Consolidado vs Registro Auxiliar)</h2>
+          <p className="text-sm text-slate-500 mb-4">
+            Ingresa el alumno (y opcionalmente curso/periodo) para ver la nota guardada, la
+            recalculada y el desglose completo de la fórmula.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Alumno (nombre o apellido)</label>
+              <input value={fgStudent} onChange={(e) => setFgStudent(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Samuel" data-testid="diag-fg-student" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Curso (parcial, opcional)</label>
+              <input value={fgSubject} onChange={(e) => setFgSubject(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Comunicaciones" data-testid="diag-fg-subject" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Periodo (parcial, opcional)</label>
+              <input value={fgPeriod} onChange={(e) => setFgPeriod(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="2do" data-testid="diag-fg-period" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Colegio (parcial)</label>
+              <input value={fgSchool} onChange={(e) => setFgSchool(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="precursores tj" data-testid="diag-fg-school" />
+            </div>
+          </div>
+          <button onClick={fetchFinalGrade} disabled={fgLoading || !fgStudent.trim()}
+            className="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            data-testid="diag-fg-btn">
+            {fgLoading ? 'Calculando…' : 'Diagnosticar nota'}
+          </button>
+          {fgError && (
+            <div className="mt-4 text-sm bg-red-50 text-red-700 border border-red-200 rounded-lg p-3" data-testid="diag-fg-error">
+              {fgError}
+            </div>
+          )}
+          {fgResult && (
+            <div className="mt-4">
+              <div className="text-xs text-slate-500 mb-2">
+                Plantilla: <b>{fgResult.template?.nombre || '—'}</b> · modo <b>{fgResult.template?.modo_ponderacion || '—'}</b> ·
+                {fgResult.template?.is_custom ? ' CUSTOM' : ' Sistema'}
+                <button onClick={() => copy(fgResult)} className="ml-3 text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded" data-testid="diag-fg-copy">Copiar JSON</button>
+              </div>
+              {(fgResult.students || []).map((st, i) => (
+                <div key={i} className="mb-4 border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-slate-100 px-4 py-2 font-semibold text-slate-800">{st.student.name}</div>
+                  {(st.grades || []).map((g, j) => (
+                    <div key={j} className="px-4 py-3 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="font-semibold">{g.subject_name || g.subject_id}</span>
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800">Guardada: <b>{g.display_stored ?? g.final_grade_stored ?? '—'}</b></span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Recalculada: <b>{g.display_recomputed ?? g.final_grade_recomputed ?? '—'}</b></span>
+                        {g.final_grade_manual != null && <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800">Manual: <b>{g.final_grade_manual}</b></span>}
+                      </div>
+                    </div>
+                  ))}
+                  {(!st.grades || st.grades.length === 0) && <div className="px-4 py-3 text-sm text-slate-400">Sin notas para el filtro dado</div>}
+                </div>
+              ))}
+              <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 text-xs overflow-x-auto max-h-[60vh]" data-testid="diag-fg-json">
+                {JSON.stringify(fgResult, null, 2)}
               </pre>
             </div>
           )}

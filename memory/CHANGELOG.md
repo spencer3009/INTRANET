@@ -2,7 +2,16 @@
 
 ## 2026-07-15
 
-### Bugfix (2) — Consolidado seguía en 17 tras deploy: backend ignoraba columnas finales
+### Tooling — Diagnóstico de nota final (para resolver 17 vs 18 en Precursores)
+- Nuevo endpoint `GET /api/diag/final-grade` (owner/support, read-only): dado alumno
+  (+curso/periodo/colegio) devuelve nota guardada, recalculada, manual y el desglose
+  completo (criterios con sus subcolumnas y promedios, columnas finales, grupos, pesos)
+  y la plantilla activa. Sirve para ver POR QUÉ el Consolidado difiere del Registro Aux.
+- UI: sección "3. Diagnóstico de nota final" en `/diag/registro-auxiliar`.
+- Motivo: tras redeploy el Consolidado seguía en 17; Precursores solo existe en producción
+  (no accesible desde preview), así que se necesita inspeccionar los datos reales.
+
+### Bugfix (2) — backend ignoraba columnas finales en modo criterio
 - Causa REAL: en modo `criterio`, `calculate_final_grade_from_template` sumaba SOLO los
   criterios e IGNORABA las `columnas_finales` (EXAMEN MENSUAL/BIMESTRAL, PARC, ORAL...),
   mientras el frontend (`calcularPromedioBimestral`) SÍ las incluye. Por eso el Registro

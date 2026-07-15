@@ -406,3 +406,127 @@ async def diag_delete_duplicate_subject(
     }
     logger.info(f"[DIAG-DUP-DELETE] subject {subject_id} ('{subject.get('name')}') school={school_id} deleted={deleted}")
     return {"ok": True, "deleted_subject": {"id": subject_id, "name": subject.get("name")}, "cleaned": deleted}
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FINAL GRADE DIAGNOSTIC — why does a subject show grade X in the Consolidado?
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/final-grade")
+async def diag_final_grade(
+    student_name: str = Query(..., description="Nombre o apellido del alumno (parcial)"),
+    subject_name: Optional[str] = Query(None, description="Nombre del curso (parcial)"),
+    period_name: Optional[str] = Query(None, description="Nombre del periodo (parcial, ej. '2do')"),
+    school_name: Optional[str] = Query(None, description="Nombre del colegio (parcial)"),
+    school_id: Optional[str] = Query(None, description="ID exacto del colegio"),
+    current_user=Depends(get_current_user),
+):
+    """Muestra, para un alumno/curso/periodo, la nota guardada, la recalculada y el
+    desglose paso a paso (criterios, columnas finales, pesos), más la fórmula de la
+    plantilla activa. READ-ONLY. Para diagnosticar diferencias entre el Registro
+    Auxiliar y el Consolidado."""
+    await _require_owner_or_support(current_user)
+
+    from services.register_sync import get_active_template_for_school
+    from routes.grades import (
+        calculate_final_grade, _criterio_avg, _resolve_dynamic_value, GRADE_SUB_FIELDS,
+    )
+
+    # Resolve school
+    sid = school_id
+    if not sid and school_name:
+        s = await db.schools.find_one({"name": {"$regex": re.escape(school_name), "$options": "i"}}, {"_id": 0, "id": 1})
+        sid = s["id"] if s else None
+    if not sid:
+        u = await resolve_user_from_token(current_user)
+        sid = u.get("school_id")
+    if not sid:
+        raise HTTPException(status_code=400, detail="No se pudo determinar el colegio")
+
+    # Resolve students by name/last_name
+    name_rx = {"$regex": re.escape(student_name), "$options": "i"}
+    students = await db.users.find(
+        {"school_id": sid, "role": "student", "$or": [{"name": name_rx}, {"last_name": name_rx}]},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "grado_id": 1, "seccion_id": 1},
+    ).to_list(20)
+    if not students:
+        return {"school_id": sid, "warning": "Ningún alumno coincide", "students": []}
+
+    template = await get_active_template_for_school(db, sid)
+    is_custom = bool(template and not template.get("es_sistema"))
+
+    def _breakdown(g):
+        """Return the per-criterio / per-columna-final breakdown for a grade doc."""
+        grades_dyn = g.get("grades_dynamic") or {}
+        out = {"modo": (template or {}).get("modo_ponderacion") or "criterio", "es_sistema": (template or {}).get("es_sistema", True)}
+        if not is_custom:
+            out["nota"] = "Plantilla del Sistema (algoritmo estático)"
+            return out
+        crits = []
+        for c in template.get("criterios") or []:
+            subs = []
+            for s in c.get("subcolumnas") or []:
+                subs.append({"id": s.get("id"), "label": s.get("label"), "tipo": s.get("tipo"),
+                             "value": _resolve_dynamic_value(s.get("id"), s.get("field_key"), g, grades_dyn)})
+            crits.append({"id": c.get("id"), "nombre": c.get("nombre"), "porcentaje": c.get("porcentaje"),
+                          "promedio_criterio": _criterio_avg(c, g, grades_dyn), "subcolumnas": subs})
+        finales = []
+        for col in template.get("columnas_finales") or []:
+            finales.append({"id": col.get("id"), "label": col.get("label"), "porcentaje": col.get("porcentaje"),
+                            "value": _resolve_dynamic_value(col.get("id"), col.get("field_key"), g, grades_dyn)})
+        grupos = template.get("grupos") or []
+        out.update({"criterios": crits, "columnas_finales": finales, "grupos": grupos})
+        return out
+
+    results = []
+    for stu in students:
+        gq = {"school_id": sid, "student_id": stu["id"]}
+        if period_name:
+            periods = await db.academic_periods.find(
+                {"school_id": sid, "nombre": {"$regex": re.escape(period_name), "$options": "i"}},
+                {"_id": 0, "id": 1, "nombre": 1}).to_list(10)
+            if periods:
+                gq["period_id"] = {"$in": [p["id"] for p in periods]}
+        grade_docs = await db.student_grades.find(gq, {"_id": 0}).to_list(300)
+
+        subj_ids = list({d.get("subject_id") for d in grade_docs if d.get("subject_id")})
+        subj_docs = await db.subjects.find({"id": {"$in": subj_ids}}, {"_id": 0, "id": 1, "name": 1, "section_id": 1}).to_list(500)
+        subj_by_id = {s["id"]: s for s in subj_docs}
+
+        rows = []
+        for d in grade_docs:
+            subj = subj_by_id.get(d.get("subject_id"), {})
+            if subject_name and subject_name.lower() not in (subj.get("name") or "").lower():
+                continue
+            stored = d.get("final_grade")
+            manual = d.get("final_grade_manual")
+            recomputed = None
+            try:
+                recomputed = calculate_final_grade(d, {}, template=template) if is_custom else None
+            except Exception as e:
+                recomputed = f"ERROR: {e}"
+            rows.append({
+                "subject_id": d.get("subject_id"),
+                "subject_name": subj.get("name"),
+                "section_id": subj.get("section_id") or d.get("section_id"),
+                "period_id": d.get("period_id"),
+                "final_grade_stored": stored,
+                "final_grade_manual": manual,
+                "final_grade_recomputed": recomputed,
+                "display_stored": (round(stored) if isinstance(stored, (int, float)) else None),
+                "display_recomputed": (round(recomputed) if isinstance(recomputed, (int, float)) else None),
+                "breakdown": _breakdown(d),
+            })
+        results.append({
+            "student": {"id": stu["id"], "name": f"{stu.get('last_name','')} {stu.get('name','')}".strip()},
+            "grades": rows,
+        })
+
+    return {
+        "school_id": sid,
+        "template": {"id": (template or {}).get("id"), "nombre": (template or {}).get("nombre"),
+                     "es_sistema": (template or {}).get("es_sistema"), "is_custom": is_custom,
+                     "modo_ponderacion": (template or {}).get("modo_ponderacion")},
+        "students": results,
+    }
