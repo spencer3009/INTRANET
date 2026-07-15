@@ -373,14 +373,18 @@ export default function DiagRegistroAuxiliarPage() {
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-xs">
                     <thead className="bg-slate-100"><tr>
-                      <th className="text-left px-3 py-1.5">Alumno (id)</th><th className="text-left px-3 py-1.5">Curso (id)</th>
-                      <th className="px-3 py-1.5">Antes</th><th className="px-3 py-1.5">Después</th>
+                      <th className="text-left px-3 py-1.5">Alumno</th>
+                      <th className="text-left px-3 py-1.5">Curso</th>
+                      <th className="text-left px-3 py-1.5">Periodo</th>
+                      <th className="px-3 py-1.5 text-amber-700">Consolidado (actual)</th>
+                      <th className="px-3 py-1.5 text-emerald-700">Registro Auxiliar (correcto)</th>
                     </tr></thead>
                     <tbody>
                       {rcResult.samples.map((s, i) => (
-                        <tr key={i} className="border-t border-slate-100">
-                          <td className="px-3 py-1.5">{(s.student_id || '').slice(0, 8)}</td>
-                          <td className="px-3 py-1.5">{(s.subject_id || '').slice(0, 8)}</td>
+                        <tr key={i} className="border-t border-slate-100" data-testid={`diag-recompute-row-${i}`}>
+                          <td className="px-3 py-1.5">{s.student_name || (s.student_id || '').slice(0, 8)}</td>
+                          <td className="px-3 py-1.5">{s.subject_name || (s.subject_id || '').slice(0, 8)}</td>
+                          <td className="px-3 py-1.5 text-slate-500">{s.period_name || '—'}</td>
                           <td className="px-3 py-1.5 text-center text-amber-700">{s.old_display ?? s.old}</td>
                           <td className="px-3 py-1.5 text-center text-emerald-700 font-semibold">{s.new_display ?? s.new}</td>
                         </tr>

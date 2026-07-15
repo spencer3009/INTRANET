@@ -1774,6 +1774,19 @@ async def recompute_final_grades(
             )
         logger.info(f"[RECOMPUTE-FINALS] school={school_id} changed={changed} applied")
 
+    # Resolve names for the sample rows (only up to 20)
+    stu_ids = list({s["student_id"] for s in samples if s.get("student_id")})
+    subj_ids = list({s["subject_id"] for s in samples if s.get("subject_id")})
+    per_ids = list({s["period_id"] for s in samples if s.get("period_id")})
+    stu_map = {u["id"]: f"{u.get('last_name','')} {u.get('name','')}".strip()
+               for u in await db.users.find({"id": {"$in": stu_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(50)}
+    subj_map = {s["id"]: s.get("name") for s in await db.subjects.find({"id": {"$in": subj_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(200)}
+    per_map = {p["id"]: p.get("nombre") for p in await db.academic_periods.find({"id": {"$in": per_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)}
+    for s in samples:
+        s["student_name"] = stu_map.get(s.get("student_id"), s.get("student_id"))
+        s["subject_name"] = subj_map.get(s.get("subject_id"), s.get("subject_id"))
+        s["period_name"] = per_map.get(s.get("period_id"), "")
+
     return {"ok": True, "dry_run": dry_run, "checked": checked, "changed": changed,
             "applied": (0 if dry_run else changed), "samples": samples}
 
