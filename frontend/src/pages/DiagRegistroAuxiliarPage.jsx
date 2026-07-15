@@ -108,6 +108,8 @@ export default function DiagRegistroAuxiliarPage() {
   const [rcLoading, setRcLoading] = useState(false);
   const [rcResult, setRcResult] = useState(null);
   const [rcError, setRcError] = useState('');
+  const [rcStudentQ, setRcStudentQ] = useState('');
+  const [rcSubjectQ, setRcSubjectQ] = useState('');
 
   const runRecompute = useCallback(async (dryRun) => {
     if (!dryRun && !window.confirm('Esto RECALCULARÁ Y GUARDARÁ las notas finales de todo el colegio (no toca notas manuales). ¿Continuar?')) return;
@@ -115,14 +117,17 @@ export default function DiagRegistroAuxiliarPage() {
     setRcError('');
     if (dryRun) setRcResult(null);
     try {
-      const r = await axios.post(`${API}/api/grades/_maintenance/recompute-finals?dry_run=${dryRun}`, {}, { headers: authHeaders });
+      const params = new URLSearchParams({ dry_run: String(dryRun) });
+      if (rcStudentQ.trim()) params.set('student_q', rcStudentQ.trim());
+      if (rcSubjectQ.trim()) params.set('subject_q', rcSubjectQ.trim());
+      const r = await axios.post(`${API}/api/grades/_maintenance/recompute-finals?${params.toString()}`, {}, { headers: authHeaders });
       setRcResult(r.data);
     } catch (err) {
       setRcError(err?.response?.data?.detail || err.message);
     } finally {
       setRcLoading(false);
     }
-  }, [API, authHeaders]);
+  }, [API, authHeaders, rcStudentQ, rcSubjectQ]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6" data-testid="diag-registro-page">
@@ -344,6 +349,25 @@ export default function DiagRegistroAuxiliarPage() {
             manuales) para que el Consolidado, exportaciones y libretas muestren el mismo valor
             que el Registro Auxiliar. Primero usa <b>Previsualizar</b> para ver cuántas cambiarían.
           </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Filtrar por alumno (opcional)</label>
+              <input value={rcStudentQ} onChange={(e) => setRcStudentQ(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Ej: Herrera Ríos Emmy" data-testid="diag-recompute-student-q" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Filtrar por curso (opcional)</label>
+              <input value={rcSubjectQ} onChange={(e) => setRcSubjectQ(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Ej: Comunicaciones" data-testid="diag-recompute-subject-q" />
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mb-3">
+            La tabla es una <b>muestra</b>. Sin filtro muestra las primeras 20 filas que cambian;
+            con filtro muestra hasta 200 coincidencias. <b>Aplicar y guardar</b> corrige TODAS las
+            notas del colegio, aparezcan o no en la muestra.
+          </p>
           <div className="flex gap-3">
             <button onClick={() => runRecompute(true)} disabled={rcLoading}
               className="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
@@ -369,6 +393,14 @@ export default function DiagRegistroAuxiliarPage() {
                 <span className="px-3 py-1 rounded bg-emerald-100 text-emerald-800">{rcResult.dry_run ? 'Modo previsualización' : `Guardadas: ${rcResult.applied}`}</span>
               </div>
               {rcResult.message && <p className="text-slate-500 mb-2">{rcResult.message}</p>}
+              {rcResult.filtered && (rcResult.samples || []).length === 0 && (
+                <p className="text-slate-500 mb-2" data-testid="diag-recompute-nomatch">
+                  Ninguna fila que cambia coincide con el filtro (revisa el nombre escrito).
+                </p>
+              )}
+              {rcResult.filtered && (rcResult.samples || []).length > 0 && (
+                <p className="text-emerald-700 mb-2">Mostrando {rcResult.samples.length} coincidencia(s) del filtro.</p>
+              )}
               {(rcResult.samples || []).length > 0 && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-xs">

@@ -1703,6 +1703,8 @@ class ConsolidateRequest(BaseModel):
 async def recompute_final_grades(
     dry_run: bool = True,
     period_id: Optional[str] = None,
+    student_q: Optional[str] = None,
+    subject_q: Optional[str] = None,
     current_user=Depends(get_current_user),
 ):
     """Recalcula y PERSISTE `final_grade` de todas las filas (plantilla custom, sin
@@ -1731,6 +1733,23 @@ async def recompute_final_grades(
     if period_id:
         q["period_id"] = period_id
 
+    # Name maps for the whole school (so we can filter/label any row)
+    stu_map = {u["id"]: f"{u.get('last_name','')} {u.get('name','')}".strip()
+               for u in await db.users.find(
+                   {"school_id": school_id, "role": "student"},
+                   {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(20000)}
+    subj_map = {s["id"]: s.get("name")
+                for s in await db.subjects.find(
+                    {"school_id": school_id}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)}
+    per_map = {p["id"]: p.get("nombre")
+               for p in await db.academic_periods.find(
+                   {"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)}
+
+    sq = (student_q or "").strip().lower()
+    subq = (subject_q or "").strip().lower()
+    is_filtered = bool(sq or subq)
+    sample_cap = 200 if is_filtered else 20
+
     checked = 0
     changed = 0
     samples = []
@@ -1752,18 +1771,28 @@ async def recompute_final_grades(
         old = g.get("final_grade")
         if old is None or abs(float(old) - float(recomputed)) > 0.001:
             changed += 1
-            if len(samples) < 20:
+            if not dry_run:
+                ops.append({"student_id": g.get("student_id"), "subject_id": g.get("subject_id"),
+                            "period_id": g.get("period_id"), "final_grade": recomputed})
+            if len(samples) < sample_cap:
+                s_name = stu_map.get(g.get("student_id"), g.get("student_id"))
+                sub_name = subj_map.get(g.get("subject_id"), g.get("subject_id"))
+                if is_filtered:
+                    if sq and sq not in (s_name or "").lower():
+                        continue
+                    if subq and subq not in (sub_name or "").lower():
+                        continue
                 samples.append({
                     "student_id": g.get("student_id"),
                     "subject_id": g.get("subject_id"),
                     "period_id": g.get("period_id"),
+                    "student_name": s_name,
+                    "subject_name": sub_name,
+                    "period_name": per_map.get(g.get("period_id"), ""),
                     "old": old, "new": recomputed,
                     "old_display": (round(old) if isinstance(old, (int, float)) else None),
                     "new_display": round(recomputed),
                 })
-            if not dry_run:
-                ops.append({"student_id": g.get("student_id"), "subject_id": g.get("subject_id"),
-                            "period_id": g.get("period_id"), "final_grade": recomputed})
 
     if not dry_run and ops:
         for op in ops:
@@ -1774,21 +1803,9 @@ async def recompute_final_grades(
             )
         logger.info(f"[RECOMPUTE-FINALS] school={school_id} changed={changed} applied")
 
-    # Resolve names for the sample rows (only up to 20)
-    stu_ids = list({s["student_id"] for s in samples if s.get("student_id")})
-    subj_ids = list({s["subject_id"] for s in samples if s.get("subject_id")})
-    per_ids = list({s["period_id"] for s in samples if s.get("period_id")})
-    stu_map = {u["id"]: f"{u.get('last_name','')} {u.get('name','')}".strip()
-               for u in await db.users.find({"id": {"$in": stu_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(50)}
-    subj_map = {s["id"]: s.get("name") for s in await db.subjects.find({"id": {"$in": subj_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(200)}
-    per_map = {p["id"]: p.get("nombre") for p in await db.academic_periods.find({"id": {"$in": per_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)}
-    for s in samples:
-        s["student_name"] = stu_map.get(s.get("student_id"), s.get("student_id"))
-        s["subject_name"] = subj_map.get(s.get("subject_id"), s.get("subject_id"))
-        s["period_name"] = per_map.get(s.get("period_id"), "")
-
     return {"ok": True, "dry_run": dry_run, "checked": checked, "changed": changed,
-            "applied": (0 if dry_run else changed), "samples": samples}
+            "applied": (0 if dry_run else changed),
+            "filtered": is_filtered, "samples_shown": len(samples), "samples": samples}
 
 
 
