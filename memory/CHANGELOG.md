@@ -2,7 +2,21 @@
 
 ## 2026-07-14
 
-### Feature — Filtros Nivel/Grado/Sección/Turno en Contabilidad → Ingresos y Morosos
+### Bugfix — Registro Auxiliar mostraba nota final distinta al Consolidado (18 vs 17)
+- Causa raíz: la fórmula del promedio final NO era idéntica entre cliente y backend.
+  El cliente (`calcularPromedioInput` en `registroAuxiliarUtils.js`) redondeaba el
+  promedio de CADA criterio a 1 decimal ANTES de combinar; el backend (`_criterio_avg`
+  en `grades.py`) usa el promedio CRUDO. Cerca de un límite de redondeo (.5) esto
+  produce ±1 en la nota entera → el Registro Auxiliar mostraba 18 y el Consolidado
+  (que lee el `final_grade` almacenado por el backend) mostraba 17.
+- Fix: nueva `calcularPromedioCriterioRaw` (port exacto del backend: promedio crudo de
+  subcolumnas no-promedio) usada dentro de `calcularPromedioBimestral` (modo grupo y
+  criterio). Ahora el TOTAL en vivo del Registro Auxiliar coincide 100% con el
+  `final_grade` almacenado (Consolidado, Libreta, ranking).
+- Validado: 200,000 casos aleatorios → fórmula vieja divergía en 2266 (~1.1%); la nueva
+  coincide con el backend en el 100%. Nota autoritativa (libreta/consolidado) sin cambios.
+
+### Feature — Filtros Nivel/Grado/Sección/Turno + buscador en Contabilidad
 - Nuevo bloque "Filtrar por" con 4 selects en cascada (Nivel → Grado → Sección → Turno
   + botón "Limpiar") en las pestañas **Ingresos** y **Morosos**.
 - Backend: params `nivel_id`, `section_id`, `turno_id` (además de `grade_id`) en
