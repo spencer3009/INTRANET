@@ -2697,7 +2697,18 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                     student_level_id = gdoc.get("nivel_id") or gdoc.get("level_id")
             level_cfg_dt = next((lc for lc in attendance_config_dt.get("levels", [])
                                  if lc.get("level_id") == student_level_id), None)
-            if level_cfg_dt and level_cfg_dt.get("doble_turno") and len(_double_turno_sessions(level_cfg_dt)) >= 2:
+            _dt_sessions_n = len(_double_turno_sessions(level_cfg_dt)) if level_cfg_dt else 0
+            logger.info(
+                f"[DOBLE_TURNO_DIAG] student={scanned_user_id} "
+                f"resolved_level={student_level_id} "
+                f"cfg_levels={[lc.get('level_id') for lc in attendance_config_dt.get('levels', [])]} "
+                f"level_cfg_found={bool(level_cfg_dt)} "
+                f"doble_turno={(level_cfg_dt or {}).get('doble_turno')} "
+                f"sessions={_dt_sessions_n} "
+                f"turnos={(level_cfg_dt or {}).get('turnos')} "
+                f"now_time={now_time} mode={mode}"
+            )
+            if level_cfg_dt and level_cfg_dt.get("doble_turno") and _dt_sessions_n >= 2:
                 dt_resp = await _handle_double_turno_scan(
                     scanned_user, scanned_user_id, school_id, current_user, mode,
                     user_info, level_cfg_dt, attendance_config_dt,
