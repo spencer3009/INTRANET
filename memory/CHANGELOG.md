@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — FIX: Doble turno no registraba la entrada de la tarde (nivel del alumno sin resolver)
+- Síntoma (producción): alumno de doble turno (SECUNDARIA), al escanear a las 3pm marcaba salida de la mañana en vez de la ENTRADA de la tarde.
+- Causa raíz: la detección de doble turno en el escaneo (`routes/attendance.py`) usaba `scanned_user.nivel_id || level_id`. Muchos alumnos (34 de 91 en la BD local; el alumno afectado incluido) NO guardan `nivel_id` directo — su nivel se deriva del grado. Sin `nivel_id`, no había match con `attendance_config.levels` → nunca entraba al path de doble turno → caía al flujo normal (marcaba salida).
+- Fix: si el alumno no tiene `nivel_id`/`level_id`, se resuelve el nivel A TRAVÉS del grado (`grades`/`grados` → `nivel_id`).
+- Verificado (simulación local): escaneo 08:00 → "Entrada Mañana"; escaneo 15:00 → "Entrada Tarde registrada" (no salida); ambas sesiones (mañana+tarde) guardadas en el doc del día.
+- Requiere Deploy para producción.
+
+
 ## 2026-07-15 — FIX RAÍZ: sincronización tareas/exámenes ahora refresca final_grade almacenado
 - Causa raíz del desfase Consolidado/Registro Auxiliar: `services/register_sync.py` escribía la nota de tarea/examen en `grades_dynamic` (o campo estático) pero NUNCA recalculaba `final_grade`, dejando el valor almacenado perpetuamente desactualizado (2438 filas en El Roble).
 - Fix: nuevo helper `_refresh_final_grade()` que recalcula con `calculate_final_grade` + plantilla activa y PERSISTE `final_grade` tras cada escritura, respetando `final_grade_manual`. Llamado en `_sync_exam_grades`, `_sync_task_grades`, `sync_single_student_exam`, `clear_single_student_exam`, `sync_single_student_task`.

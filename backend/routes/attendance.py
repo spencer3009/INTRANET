@@ -2683,6 +2683,18 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             school_doc_dt = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
             attendance_config_dt = (school_doc_dt or {}).get("attendance_config", {}) or {}
             student_level_id = scanned_user.get("nivel_id") or scanned_user.get("level_id")
+            # Fallback: many students store only `grado_id`/`seccion_id` and NOT a
+            # direct `nivel_id`. Resolve the level THROUGH the grade so double-turno
+            # detection works for them (otherwise the scan silently falls back to
+            # single-turno and the afternoon session is never recorded).
+            if not student_level_id and scanned_user.get("grado_id"):
+                gdoc = await db.grades.find_one(
+                    {"id": scanned_user["grado_id"]}, {"_id": 0, "nivel_id": 1, "level_id": 1}
+                ) or await db.grados.find_one(
+                    {"id": scanned_user["grado_id"]}, {"_id": 0, "nivel_id": 1, "level_id": 1}
+                )
+                if gdoc:
+                    student_level_id = gdoc.get("nivel_id") or gdoc.get("level_id")
             level_cfg_dt = next((lc for lc in attendance_config_dt.get("levels", [])
                                  if lc.get("level_id") == student_level_id), None)
             if level_cfg_dt and level_cfg_dt.get("doble_turno") and len(_double_turno_sessions(level_cfg_dt)) >= 2:
