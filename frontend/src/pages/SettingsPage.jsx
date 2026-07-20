@@ -526,6 +526,25 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     }
   };
 
+  // Toggle "doble turno" for a level AND persist immediately, so the flag can
+  // never end up ON in the UI but OFF in the DB (root cause of afternoon-scan bug).
+  const persistDobleTurno = async (levelId, newVal) => {
+    let nextConfig = null;
+    setAttendanceConfig(p => {
+      const existing = p.levels.filter(l => l.level_id !== levelId);
+      const current = p.levels.find(l => l.level_id === levelId) || { level_id: levelId, entry_time: "07:30", exit_time: "13:00" };
+      nextConfig = { ...p, levels: [...existing, { ...current, doble_turno: newVal }] };
+      return nextConfig;
+    });
+    try {
+      await axios.put(`${API}/settings/attendance`, nextConfig, { headers });
+      setSuccess(newVal ? "Doble turno ACTIVADO y guardado" : "Doble turno desactivado y guardado");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar el doble turno");
+    }
+  };
+
 
   const handleToggleAdminBroadcast = async () => {
     setSavingRoles(true);
@@ -2084,7 +2103,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                                     </div>
                                     <button
                                       type="button"
-                                      onClick={() => updateLevel("doble_turno", !levelConfig.doble_turno)}
+                                      onClick={() => persistDobleTurno(level.id, !levelConfig.doble_turno)}
                                       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${levelConfig.doble_turno ? 'bg-indigo-500' : 'bg-slate-300'}`}
                                       aria-pressed={!!levelConfig.doble_turno}
                                       data-testid={`level-${level.id}-doble-turno-toggle`}

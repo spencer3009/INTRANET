@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — Doble turno (cont.): el flag `doble_turno` no estaba guardado en BD + herramienta de diagnóstico
+- Diagnóstico en producción (San Juan Bosco, alumno QUIROZ OBREGON FABRIZIO) reveló: nivel coincide (SECUNDARIA), turnos válidos (2 sesiones), pero `doble_turno_flag=false` en `attendance_config.levels` pese a verse ON en la UI → por eso el escaneo caía al flujo normal.
+- Backend verificado OK (AttendanceConfigUpdate persiste doble_turno=true). El problema era que el switch no quedaba persistido de forma fiable con el botón "Guardar".
+- Fix: el switch "Doble turno" ahora AUTO-GUARDA al instante (`persistDobleTurno` → PUT /settings/attendance) con confirmación "Doble turno ACTIVADO y guardado", preservando los turnos del nivel. Elimina el caso "se ve ON pero en BD está OFF".
+- Nueva herramienta de diagnóstico read-only: GET /api/attendance/diag/double-turno?q=&school_name= + sección "0. Diagnóstico Doble Turno" en /diag/registro-auxiliar (owner/soporte). Muestra nivel resuelto, ids/nombres de niveles del config, flag, turnos y si activaría doble turno.
+- Requiere Deploy. Tras desplegar: en Ajustes→Asistencia, alternar el switch OFF→ON (ver confirmación) y revalidar con el diagnóstico.
+
+
 ## 2026-07-15 — FIX: Doble turno no registraba la entrada de la tarde (nivel del alumno sin resolver)
 - Síntoma (producción): alumno de doble turno (SECUNDARIA), al escanear a las 3pm marcaba salida de la mañana en vez de la ENTRADA de la tarde.
 - Causa raíz: la detección de doble turno en el escaneo (`routes/attendance.py`) usaba `scanned_user.nivel_id || level_id`. Muchos alumnos (34 de 91 en la BD local; el alumno afectado incluido) NO guardan `nivel_id` directo — su nivel se deriva del grado. Sin `nivel_id`, no había match con `attendance_config.levels` → nunca entraba al path de doble turno → caía al flujo normal (marcaba salida).
