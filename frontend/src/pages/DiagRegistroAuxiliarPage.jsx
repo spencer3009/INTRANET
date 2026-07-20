@@ -131,6 +131,7 @@ export default function DiagRegistroAuxiliarPage() {
 
   // ── Diagnóstico Doble Turno ──
   const [dtQ, setDtQ] = useState('');
+  const [dtSchool, setDtSchool] = useState('');
   const [dtLoading, setDtLoading] = useState(false);
   const [dtResult, setDtResult] = useState(null);
   const [dtError, setDtError] = useState('');
@@ -141,7 +142,8 @@ export default function DiagRegistroAuxiliarPage() {
     setDtResult(null);
     try {
       const r = await axios.get(`${API}/api/attendance/diag/double-turno`, {
-        headers: authHeaders, params: { q: dtQ },
+        headers: authHeaders,
+        params: { q: dtQ, school_name: dtSchool || undefined },
       });
       setDtResult(r.data);
     } catch (err) {
@@ -149,7 +151,7 @@ export default function DiagRegistroAuxiliarPage() {
     } finally {
       setDtLoading(false);
     }
-  }, [API, authHeaders, dtQ]);
+  }, [API, authHeaders, dtQ, dtSchool]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6" data-testid="diag-registro-page">
@@ -174,6 +176,12 @@ export default function DiagRegistroAuxiliarPage() {
               <input value={dtQ} onChange={(e) => setDtQ(e.target.value)}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                 placeholder="Ej: Quimby Campomanes" data-testid="diag-dt-student" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Colegio (parcial)</label>
+              <input value={dtSchool} onChange={(e) => setDtSchool(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Ej: San Juan Bosco" data-testid="diag-dt-school" />
             </div>
             <button onClick={runDoubleTurnoDiag} disabled={dtLoading || !dtQ.trim()}
               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"

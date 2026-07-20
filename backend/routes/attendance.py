@@ -3016,24 +3016,41 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
 
 
 @router.get("/attendance/diag/double-turno")
-async def diag_double_turno(q: str, current_user=Depends(get_current_user)):
+async def diag_double_turno(q: str, school_name: Optional[str] = None,
+                            school_id: Optional[str] = None,
+                            current_user=Depends(get_current_user)):
     """Diagnostic (read-only): for a student matched by name, explain whether the
     double-turno scan path would trigger and, if not, exactly which condition
-    fails (level match / doble_turno flag / valid sessions)."""
+    fails (level match / doble_turno flag / valid sessions).
+
+    Support-global users can target a school via `school_name` (partial) or
+    `school_id`; otherwise the caller's own school is used."""
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
-    school_id = user.get("school_id")
-    rx = re.compile(re.escape(q.strip()), re.I)
-    student = await db.users.find_one(
-        {"school_id": school_id, "role": "student",
-         "$or": [{"name": rx}, {"last_name": rx}]},
-        {"_id": 0},
-    )
-    if not student:
-        return {"found": False, "q": q}
 
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+    sid = school_id
+    if not sid and school_name:
+        s = await db.schools.find_one(
+            {"name": {"$regex": re.escape(school_name), "$options": "i"}}, {"_id": 0, "id": 1})
+        sid = s["id"] if s else None
+    if not sid:
+        sid = user.get("school_id")
+    if not sid:
+        raise HTTPException(status_code=400, detail="No se pudo determinar el colegio (usa school_name)")
+
+    tokens = [t for t in re.split(r"\s+", q.strip()) if t]
+    and_clauses = [{"$or": [{"name": {"$regex": re.escape(t), "$options": "i"}},
+                            {"last_name": {"$regex": re.escape(t), "$options": "i"}},
+                            {"dni": {"$regex": re.escape(t), "$options": "i"}}]} for t in tokens]
+    stu_query = {"school_id": sid, "role": "student"}
+    if and_clauses:
+        stu_query["$and"] = and_clauses
+    student = await db.users.find_one(stu_query, {"_id": 0})
+    if not student:
+        return {"found": False, "q": q, "school_id": sid}
+
+    school = await db.schools.find_one({"id": sid}, {"_id": 0, "attendance_config": 1})
     ac = (school or {}).get("attendance_config", {}) or {}
     levels = ac.get("levels", []) or []
 
@@ -3055,8 +3072,19 @@ async def diag_double_turno(q: str, current_user=Depends(get_current_user)):
     sessions_valid = len(_double_turno_sessions(level_cfg)) if level_cfg else 0
     would_trigger = bool(level_cfg and level_cfg.get("doble_turno") and sessions_valid >= 2)
 
+    # Resolve the NAMES of all config levels to help spot a name-vs-id mismatch.
+    cfg_level_ids = [lc.get("level_id") for lc in levels]
+    lvl_docs = await db.academic_levels.find(
+        {"id": {"$in": cfg_level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
+    cfg_level_names = {d["id"]: d.get("nombre") for d in lvl_docs}
+    resolved_level_name = None
+    if level_id:
+        rl = await db.academic_levels.find_one({"id": level_id}, {"_id": 0, "nombre": 1})
+        resolved_level_name = (rl or {}).get("nombre")
+
     return {
         "found": True,
+        "school_id": sid,
         "student_name": f"{student.get('last_name','')} {student.get('name','')}".strip(),
         "student_grado_id": student.get("grado_id"),
         "student_seccion_id": student.get("seccion_id"),
@@ -3064,7 +3092,9 @@ async def diag_double_turno(q: str, current_user=Depends(get_current_user)):
         "student_level_id_field": student.get("level_id"),
         "grade_resolution": grade_resolution,
         "resolved_level_id": level_id,
-        "config_level_ids": [lc.get("level_id") for lc in levels],
+        "resolved_level_name": resolved_level_name,
+        "config_level_ids": cfg_level_ids,
+        "config_level_names": cfg_level_names,
         "level_cfg_found": bool(level_cfg),
         "doble_turno_flag": (level_cfg or {}).get("doble_turno"),
         "turnos": (level_cfg or {}).get("turnos"),
