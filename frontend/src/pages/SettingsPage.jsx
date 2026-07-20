@@ -24,6 +24,20 @@ import RetiredStudentsTab from "@/pages/RetiredStudentsTab";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Convert any axios error (including FastAPI 422 whose `detail` is an array of
+// objects) into a plain readable string. Never returns an object, so it can be
+// rendered as a React child without crashing (React error #31).
+function toErrorMessage(err, fallback = "Ocurrió un error") {
+  const d = err?.response?.data?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    const msgs = d.map(e => (typeof e === "string" ? e : (e?.msg || JSON.stringify(e)))).filter(Boolean);
+    if (msgs.length) return msgs.join(" · ");
+  }
+  if (d && typeof d === "object") return d.msg || JSON.stringify(d);
+  return err?.message || fallback;
+}
+
 export default function SettingsPage({ user, token, subdomain, onLogout, onSettingsUpdate }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -520,7 +534,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setSuccess("Configuración de asistencia guardada");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar configuración de asistencia");
+      setError(toErrorMessage(err, "Error al guardar configuración de asistencia"));
     } finally {
       setSavingAttendance(false);
     }
@@ -541,7 +555,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setSuccess(newVal ? "Doble turno ACTIVADO y guardado" : "Doble turno desactivado y guardado");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar el doble turno");
+      setError(toErrorMessage(err, "Error al guardar el doble turno"));
     }
   };
 
