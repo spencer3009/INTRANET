@@ -129,6 +129,28 @@ export default function DiagRegistroAuxiliarPage() {
     }
   }, [API, authHeaders, rcStudentQ, rcSubjectQ]);
 
+  // ── Diagnóstico Doble Turno ──
+  const [dtQ, setDtQ] = useState('');
+  const [dtLoading, setDtLoading] = useState(false);
+  const [dtResult, setDtResult] = useState(null);
+  const [dtError, setDtError] = useState('');
+
+  const runDoubleTurnoDiag = useCallback(async () => {
+    setDtLoading(true);
+    setDtError('');
+    setDtResult(null);
+    try {
+      const r = await axios.get(`${API}/api/attendance/diag/double-turno`, {
+        headers: authHeaders, params: { q: dtQ },
+      });
+      setDtResult(r.data);
+    } catch (err) {
+      setDtError(err?.response?.data?.detail || err.message);
+    } finally {
+      setDtLoading(false);
+    }
+  }, [API, authHeaders, dtQ]);
+
   return (
     <div className="min-h-screen bg-slate-50 p-6" data-testid="diag-registro-page">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -138,6 +160,49 @@ export default function DiagRegistroAuxiliarPage() {
             Solo lectura. Inspecciona plantillas y filas de <code>student_grades</code> sin tocar datos.
           </p>
         </header>
+
+        {/* ──── DOBLE TURNO ──── */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6" data-testid="diag-double-turno-section">
+          <h2 className="text-xl font-semibold mb-1">0. Diagnóstico Doble Turno (asistencia)</h2>
+          <p className="text-sm text-slate-500 mb-4">
+            Escribe el nombre o apellido del alumno y verás si el escaneo activaría el modo doble
+            turno, o exactamente qué condición falla (nivel, flag o turnos).
+          </p>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Alumno (nombre o apellido)</label>
+              <input value={dtQ} onChange={(e) => setDtQ(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="Ej: Quimby Campomanes" data-testid="diag-dt-student" />
+            </div>
+            <button onClick={runDoubleTurnoDiag} disabled={dtLoading || !dtQ.trim()}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              data-testid="diag-dt-run">
+              {dtLoading ? 'Consultando…' : 'Diagnosticar'}
+            </button>
+          </div>
+          {dtError && (
+            <div className="mt-4 text-sm bg-red-50 text-red-700 border border-red-200 rounded-lg p-3">{dtError}</div>
+          )}
+          {dtResult && (
+            <div className="mt-4 text-sm">
+              {dtResult.found === false ? (
+                <p className="text-amber-700">No se encontró alumno que coincida con "{dtResult.q}".</p>
+              ) : (
+                <>
+                  <div className={`mb-3 px-4 py-2 rounded-lg font-semibold ${dtResult.WOULD_TRIGGER_DOUBLE_TURNO ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                    {dtResult.WOULD_TRIGGER_DOUBLE_TURNO
+                      ? '✓ El escaneo SÍ activaría doble turno para este alumno.'
+                      : '✗ El escaneo NO activa doble turno. Revisa el detalle abajo.'}
+                  </div>
+                  <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-auto text-xs">
+{JSON.stringify(dtResult, null, 2)}
+                  </pre>
+                </>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* ──── PLANTILLA ──── */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">

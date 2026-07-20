@@ -3015,6 +3015,65 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         }
 
 
+@router.get("/attendance/diag/double-turno")
+async def diag_double_turno(q: str, current_user=Depends(get_current_user)):
+    """Diagnostic (read-only): for a student matched by name, explain whether the
+    double-turno scan path would trigger and, if not, exactly which condition
+    fails (level match / doble_turno flag / valid sessions)."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user.get("school_id")
+    rx = re.compile(re.escape(q.strip()), re.I)
+    student = await db.users.find_one(
+        {"school_id": school_id, "role": "student",
+         "$or": [{"name": rx}, {"last_name": rx}]},
+        {"_id": 0},
+    )
+    if not student:
+        return {"found": False, "q": q}
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+    ac = (school or {}).get("attendance_config", {}) or {}
+    levels = ac.get("levels", []) or []
+
+    level_id = student.get("nivel_id") or student.get("level_id")
+    grade_resolution = None
+    if not level_id and student.get("grado_id"):
+        gdoc = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "nivel_id": 1, "level_id": 1, "nombre": 1}) \
+            or await db.grados.find_one({"id": student["grado_id"]}, {"_id": 0, "nivel_id": 1, "level_id": 1, "nombre": 1})
+        grade_resolution = {
+            "grade_found": bool(gdoc),
+            "grade_name": (gdoc or {}).get("nombre"),
+            "grade_nivel_id": (gdoc or {}).get("nivel_id"),
+            "grade_level_id": (gdoc or {}).get("level_id"),
+        }
+        if gdoc:
+            level_id = gdoc.get("nivel_id") or gdoc.get("level_id")
+
+    level_cfg = next((lc for lc in levels if lc.get("level_id") == level_id), None)
+    sessions_valid = len(_double_turno_sessions(level_cfg)) if level_cfg else 0
+    would_trigger = bool(level_cfg and level_cfg.get("doble_turno") and sessions_valid >= 2)
+
+    return {
+        "found": True,
+        "student_name": f"{student.get('last_name','')} {student.get('name','')}".strip(),
+        "student_grado_id": student.get("grado_id"),
+        "student_seccion_id": student.get("seccion_id"),
+        "student_nivel_id_field": student.get("nivel_id"),
+        "student_level_id_field": student.get("level_id"),
+        "grade_resolution": grade_resolution,
+        "resolved_level_id": level_id,
+        "config_level_ids": [lc.get("level_id") for lc in levels],
+        "level_cfg_found": bool(level_cfg),
+        "doble_turno_flag": (level_cfg or {}).get("doble_turno"),
+        "turnos": (level_cfg or {}).get("turnos"),
+        "sessions_valid": sessions_valid,
+        "WOULD_TRIGGER_DOUBLE_TURNO": would_trigger,
+    }
+
+
+
 @router.post("/attendance/qr/generate")
 async def generate_qr_for_existing_users(current_user = Depends(get_current_user)):
     """Generate optimized short QR IDs for users that don't have one."""
