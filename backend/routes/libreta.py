@@ -269,16 +269,48 @@ async def get_libreta(
     """
     viewer = await _require_user(current_user)
 
-    # 0) Snapshot read-through si se pide un año específico O period_id puntual
-    # NOTA: en modelo bimestral, los snapshots se llavean por period_id.
-    # Se OMITE cuando all_periods=true (vista acumulada), para mostrar todos
-    # los bimestres calificados en vivo en vez de un solo bimestre congelado.
-    if period_id and not all_periods:
+    # 0) Snapshot read-through.
+    #   • period_id SIN all_periods -> libreta OFICIAL de un solo bimestre
+    #     (se blanquean los demás bimestres).
+    #   • all_periods=true -> vista ACUMULADA: se toma el snapshot MÁS COMPLETO
+    #     (el de mayor `orden`; cada snapshot es un payload de AÑO COMPLETO) y se
+    #     devuelve SIN blanquear, para mostrar TODOS los bimestres capturados
+    #     (BIM I + BIM II + ...). Si no hay snapshot, se cae al cálculo en vivo.
+    snap = None
+    if period_id:
         snap = await db.report_cards_snapshots.find_one(
             {"school_id": viewer["school_id"], "student_id": student_id, "period_id": period_id},
             {"_id": 0},
         )
-        if snap:
+    elif all_periods:
+        _snaps = await db.report_cards_snapshots.find(
+            {"school_id": viewer["school_id"], "student_id": student_id}, {"_id": 0},
+        ).to_list(20)
+        if _snaps:
+            _pmap = {p["id"]: (p.get("orden") or 0) for p in await db.academic_periods.find(
+                {"school_id": viewer["school_id"]}, {"_id": 0, "id": 1, "orden": 1}).to_list(50)}
+
+            def _snap_grade_count(s):
+                pl = s.get("payload_json") or {}
+                n = 0
+                for area in (pl.get("areas") or []):
+                    for subj in (area.get("subjects") or []):
+                        for cell in (subj.get("grades") or {}).values():
+                            if cell and (cell.get("numeric") is not None or cell.get("letter")):
+                                n += 1
+                for subj in (pl.get("subjects_without_area") or []):
+                    for cell in (subj.get("grades") or {}).values():
+                        if cell and (cell.get("numeric") is not None or cell.get("letter")):
+                            n += 1
+                return n
+
+            # Choose the MOST COMPLETE snapshot (most real grades); a later closed
+            # bimester may be empty, so highest-orden is NOT reliable. Tie-break by orden.
+            _snaps.sort(key=lambda s: (_snap_grade_count(s), _pmap.get(s.get("period_id"), 0)), reverse=True)
+            if _snap_grade_count(_snaps[0]) > 0:
+                snap = _snaps[0]
+
+    if snap:
             stu = await db.users.find_one(
                 {"id": student_id, "role": "student"},
                 {"_id": 0, "id": 1, "school_id": 1, "padre_id": 1,
@@ -290,6 +322,39 @@ async def get_libreta(
             if not await _can_view_libreta(viewer, stu, sec_id):
                 raise HTTPException(status_code=403, detail="No tienes permisos para ver esta libreta")
             payload = snap.get("payload_json") or {}
+
+            # VISTA ACUMULADA: fusionar las notas de TODOS los snapshots del alumno
+            # sobre el payload base, para que TODOS los bimestres calificados
+            # aparezcan aunque cada uno haya sido congelado en un snapshot distinto
+            # (BIM I en su snapshot, BIM II en el suyo, etc.).
+            if all_periods:
+                _all = await db.report_cards_snapshots.find(
+                    {"school_id": viewer["school_id"], "student_id": student_id},
+                    {"_id": 0, "payload_json": 1},
+                ).to_list(20)
+
+                def _subj_iter(pl):
+                    out = []
+                    for area in (pl.get("areas") or []):
+                        out.extend(area.get("subjects") or [])
+                    out.extend(pl.get("subjects_without_area") or [])
+                    return out
+
+                merged = {}
+                for s in _all:
+                    for subj in _subj_iter(s.get("payload_json") or {}):
+                        sid_ = subj.get("id")
+                        for pid_, cell in (subj.get("grades") or {}).items():
+                            if cell and (cell.get("numeric") is not None or cell.get("letter")):
+                                merged[(sid_, pid_)] = cell
+                for subj in _subj_iter(payload):
+                    sid_ = subj.get("id")
+                    grades = subj.setdefault("grades", {})
+                    for (msid, mpid), cell in merged.items():
+                        if msid == sid_:
+                            cur = grades.get(mpid)
+                            if not cur or (cur.get("numeric") is None and not cur.get("letter")):
+                                grades[mpid] = cell
             prev_meta = payload.get("metadata") or {}
             # Re-read the school doc so that "display" settings (grade format,
             # hide toggles, etc.) ALWAYS reflect the current school config —
@@ -338,6 +403,11 @@ async def get_libreta(
                 "signature_block_offset": (snap_school.get("libreta_signature_block_offset") if isinstance(snap_school.get("libreta_signature_block_offset"), (int, float)) else prev_meta.get("signature_block_offset", 30)),
                 "conducta_template_mode": prev_meta.get("conducta_template_mode") or "default",
             }
+
+            # Vista ACUMULADA: devolver el snapshot COMPLETO (todos los bimestres
+            # capturados) sin blanquear. Es lo que hace que se vean BIM I + BIM II.
+            if all_periods:
+                return payload
 
             # Filter snapshot payload to only show the requested bimester.
             # The snapshot was generated with the FULL year payload, so it may

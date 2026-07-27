@@ -1,5 +1,16 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — Libreta acumulada: FUSIÓN de snapshots (la "combinación perfecta")
+- Dato clave del usuario: con `?period_id=BIM_II` se veía BIM II (vía snapshot) y en vivo solo BIM I → el BIM II vive en el snapshot por período; la consulta en vivo no lo hallaba (mismatch sección/subject).
+- Fix (routes/libreta.py, all_periods=true):
+  1. Se elige el snapshot MÁS COMPLETO del alumno (más notas reales, no el de mayor orden — un bimestre cerrado posterior puede estar vacío).
+  2. Se FUSIONAN las notas de TODOS los snapshots del alumno sobre ese payload base → aparecen todos los bimestres aunque cada uno esté congelado en un snapshot distinto.
+  3. Se devuelve el payload SIN blanquear (early-return antes del blanking cuando all_periods).
+  4. Si el alumno no tiene snapshots, cae al cálculo en vivo (que ya trae todos los periodos).
+- La libreta oficial de UN bimestre (period_id sin all_periods) queda intacta.
+- Requiere Deploy.
+
+
 ## 2026-07-15 — Libreta: columnas de bimestre vacías por FILAS DUPLICADAS (fix de raíz)
 - Síntoma: en la libreta (Precursores TJ) a un alumno le faltaba el BIM I y a otro el BIM II, de forma inconsistente por alumno, aunque las notas existían.
 - Causa raíz: existen filas duplicadas de student_grades para el mismo (subject_id, period_id) — una con nota real y otra vacía. El notes_lookup de la libreta usaba "la última gana", así que según el orden de Mongo, una fila vacía tapaba la buena.
