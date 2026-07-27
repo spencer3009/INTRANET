@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { Loader2, FileSpreadsheet, FileText, Printer, BookMarked, Archive, Eye, Lock } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, Printer, BookMarked, Archive, Eye } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import RightDrawer from "@/components/RightDrawer";
@@ -547,11 +547,11 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-fn cns-fn-num">{student.number}</td>
                       <td colSpan={2} className="cns-fn cns-fn-name">
                         <Link
-                          to={`/libreta/${student.student_id}?all_periods=true${selectedPeriod ? `&period_id=${selectedPeriod}` : ""}`}
+                          to={`/libreta/${student.student_id}?all_periods=true`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-slate-900 hover:text-indigo-700 hover:underline cursor-pointer"
-                          title="Ver libreta del alumno (se abre en una pestaña nueva)"
+                          title="Ver libreta completa del alumno (todos los bimestres, se abre en pestaña nueva)"
                           data-testid={`consolidado-libreta-link-${student.number}`}
                         >
                           {student.student_name}
@@ -575,18 +575,14 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
                       <td className="cns-summ-cell cns-libreta-col" style={{padding:"2px 4px"}}>
                         <Link
-                          to={`/libreta/${student.student_id}?all_periods=true${selectedPeriod ? `&period_id=${selectedPeriod}` : ""}`}
+                          to={`/libreta/${student.student_id}?all_periods=true`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                            closedPeriodIds.includes(selectedPeriod)
-                              ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                              : "bg-slate-900 text-white hover:bg-slate-700"
-                          }`}
-                          title={closedPeriodIds.includes(selectedPeriod) ? "Libreta cerrada — abrir en pestaña nueva" : "Ver libreta del alumno en una pestaña nueva"}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-900 text-white hover:bg-slate-700"
+                          title="Ver libreta completa del alumno (todos los bimestres, se abre en pestaña nueva)"
                           data-testid={`consolidado-libreta-btn-${student.number}`}
                         >
-                          {closedPeriodIds.includes(selectedPeriod) ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />} Ver
+                          <Eye className="w-3 h-3" /> Ver
                         </Link>
                       </td>
                     </tr>
