@@ -516,24 +516,45 @@ async def get_libreta(
     #   final_grade_manual (override del profesor desde el portal de notas) >
     #   final_grade (calculado automáticamente desde el Registro Auxiliar) >
     #   on-the-fly recompute (solo para plantillas custom).
-    # Sin esta precedencia, las notas que el profesor pone desde el "Manual de
-    # Notas" aparecen en el Consolidado pero NO en la libreta — bug P0
-    # reportado en producción (Señor de Gualamita, 2026-02).
-    notes_lookup: Dict[str, Dict[str, Optional[float]]] = {}
-    for g in student_grade_docs:
+    #
+    # ROBUSTEZ ante FILAS DUPLICADAS: puede existir MÁS de una fila de
+    # student_grades para el mismo (subject_id, period_id) — típicamente una con
+    # notas reales y otra vacía (creada por cambios de sección, re-sync, etc.).
+    # Antes se usaba "la última gana", por lo que una fila vacía podía pisar a la
+    # buena según el orden de Mongo (causa de que a un alumno le faltara el BIM I
+    # y a otro el BIM II en la libreta). Ahora se elige la MEJOR fila por grupo:
+    # prioridad manual(3) > valor real(2) > vacía(0-1); a igualdad, se prefiere la
+    # fila de la SECCIÓN ACTUAL del alumno.
+    def _row_candidate(g):
         manual = g.get("final_grade_manual")
         if manual is not None:
-            notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = manual
-            continue
+            return manual, 3
         final_val = g.get("final_grade")
-        if is_custom_template and (g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)):
+        has_data = g.get("grades_dynamic") or any(g.get(f) is not None for f in GRADE_SUB_FIELDS)
+        if is_custom_template and has_data:
             try:
                 recomputed = calculate_final_grade(g, {}, template=libreta_template)
                 if recomputed is not None:
                     final_val = recomputed
             except Exception as e:
                 logger.warning(f"[LIBRETA] on-the-fly recompute failed for student={student_id} subj={g.get('subject_id')}: {e}")
-        notes_lookup.setdefault(g["subject_id"], {})[g["period_id"]] = final_val
+        if final_val is not None:
+            return final_val, 2
+        return None, (1 if has_data else 0)
+
+    notes_lookup: Dict[str, Dict[str, Optional[float]]] = {}
+    _best_rank: Dict[str, Dict[str, tuple]] = {}
+    for g in student_grade_docs:
+        subj_id = g.get("subject_id")
+        period_id_g = g.get("period_id")
+        if not subj_id or not period_id_g:
+            continue
+        val, prio = _row_candidate(g)
+        sec_match = 1 if (g.get("section_id") == section_id) else 0
+        prev = _best_rank.get(subj_id, {}).get(period_id_g)
+        if prev is None or (prio, sec_match) > (prev[0], prev[1]):
+            _best_rank.setdefault(subj_id, {})[period_id_g] = (prio, sec_match)
+            notes_lookup.setdefault(subj_id, {})[period_id_g] = val
 
     # 7) Tutor de la sección
     tutor = await _get_active_tutor(school_id, section_id)
