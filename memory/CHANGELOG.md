@@ -1,5 +1,14 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — Libreta: columnas de bimestre vacías por FILAS DUPLICADAS (fix de raíz)
+- Síntoma: en la libreta (Precursores TJ) a un alumno le faltaba el BIM I y a otro el BIM II, de forma inconsistente por alumno, aunque las notas existían.
+- Causa raíz: existen filas duplicadas de student_grades para el mismo (subject_id, period_id) — una con nota real y otra vacía. El notes_lookup de la libreta usaba "la última gana", así que según el orden de Mongo, una fila vacía tapaba la buena.
+- Fix (routes/libreta.py): se elige la MEJOR fila por (subject, period): prioridad final_grade_manual(3) > valor real(2) > vacía(0-1); a igualdad se prefiere la fila de la sección ACTUAL del alumno.
+- Además: el botón "Ver libreta" del Consolidado ahora abre `?all_periods=true` SIN period_id → siempre muestra todos los bimestres calificados, independiente del filtro de período.
+- Diagnóstico ampliado (/diag/final-grade): ahora devuelve academic_periods, period_orden/period_is_orphan por nota y duplicate_subject_period_rows + student_current_section.
+- Requiere Deploy.
+
+
 ## 2026-07-15 — Libreta desde Consolidado ahora muestra TODOS los bimestres calificados
 - Síntoma: al hacer clic en "ver libreta" desde el Consolidado, solo se veía el bimestre actual (ej. II); los bimestres anteriores calificados (I) salían vacíos.
 - Causa: el "ver libreta" abría con `?period_id=<actual>` y el backend, al recibir un period_id con snapshot, BORRABA a propósito los demás bimestres (diseño de libreta oficial por bimestre, routes/libreta.py L337-387).
