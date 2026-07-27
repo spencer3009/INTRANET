@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — CAUSA REAL libreta acumulada: filtro "solo último bimestre cerrado"
+- Raíz definitiva (routes/libreta.py ~L821): en el camino EN VIVO, sin period_id y en modo bimestral, se aplicaba `keep_ids = {último bimestre CERRADO}` y se blanqueaban los demás. Con BIM I cerrado y BIM II activo, mostraba SOLO BIM I y borraba BIM II (bimestre en curso). Esto explica el patrón sistemático.
+- Fix: cuando `all_periods=true`, NO se aplica ese filtro → se muestran TODOS los bimestres calificados (en vivo, coincidiendo con el Consolidado/Registro Auxiliar).
+- Se revirtió la complejidad previa de snapshots/merge para all_periods (innecesaria): all_periods ahora va directo al cálculo en vivo. La libreta oficial de un solo bimestre (period_id sin all_periods) y la vista de cerrados quedan intactas.
+- Validado: GET /api/libreta/{id}?all_periods=true → is_snapshot=False y devuelve los 4 bimestres sin recortar.
+- Requiere Deploy.
+
+
 ## 2026-07-15 — Libreta acumulada: FUSIÓN de snapshots (la "combinación perfecta")
 - Dato clave del usuario: con `?period_id=BIM_II` se veía BIM II (vía snapshot) y en vivo solo BIM I → el BIM II vive en el snapshot por período; la consulta en vivo no lo hallaba (mismatch sección/subject).
 - Fix (routes/libreta.py, all_periods=true):
