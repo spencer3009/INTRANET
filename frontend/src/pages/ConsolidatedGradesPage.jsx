@@ -547,7 +547,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-fn cns-fn-num">{student.number}</td>
                       <td colSpan={2} className="cns-fn cns-fn-name">
                         <Link
-                          to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          to={`/libreta/${student.student_id}?all_periods=true${selectedPeriod ? `&period_id=${selectedPeriod}` : ""}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-slate-900 hover:text-indigo-700 hover:underline cursor-pointer"
@@ -575,7 +575,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                       <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
                       <td className="cns-summ-cell cns-libreta-col" style={{padding:"2px 4px"}}>
                         <Link
-                          to={`/libreta/${student.student_id}${selectedPeriod ? `?period_id=${selectedPeriod}` : ""}`}
+                          to={`/libreta/${student.student_id}?all_periods=true${selectedPeriod ? `&period_id=${selectedPeriod}` : ""}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${

@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — Libreta desde Consolidado ahora muestra TODOS los bimestres calificados
+- Síntoma: al hacer clic en "ver libreta" desde el Consolidado, solo se veía el bimestre actual (ej. II); los bimestres anteriores calificados (I) salían vacíos.
+- Causa: el "ver libreta" abría con `?period_id=<actual>` y el backend, al recibir un period_id con snapshot, BORRABA a propósito los demás bimestres (diseño de libreta oficial por bimestre, routes/libreta.py L337-387).
+- Fix: nuevo parámetro `all_periods=true` en GET /api/libreta/{id}. Cuando viene, se OMITE el snapshot por bimestre y se usa el cálculo en vivo (que ya arma los 4 periodos). Los enlaces "ver libreta" del ConsolidatedGradesPage ahora usan `?all_periods=true&period_id=<actual>`. LibretaPage reenvía el flag. Comportamiento de libreta oficial de un solo bimestre se mantiene intacto sin el flag.
+- Verificado (curl, colegio El Roble): all_periods=true → is_snapshot=False y devuelve BIMESTRE I/II/III/IV.
+- Requiere Deploy para producción.
+
+
 ## 2026-07-15 — Doble turno (cont.): el flag `doble_turno` no estaba guardado en BD + herramienta de diagnóstico
 - Diagnóstico en producción (San Juan Bosco, alumno QUIROZ OBREGON FABRIZIO) reveló: nivel coincide (SECUNDARIA), turnos válidos (2 sesiones), pero `doble_turno_flag=false` en `attendance_config.levels` pese a verse ON en la UI → por eso el escaneo caía al flujo normal.
 - Backend verificado OK (AttendanceConfigUpdate persiste doble_turno=true). El problema era que el switch no quedaba persistido de forma fiable con el botón "Guardar".

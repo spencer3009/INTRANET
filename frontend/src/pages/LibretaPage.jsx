@@ -23,6 +23,7 @@ export default function LibretaPage({ user, token, onLogout }) {
   const { student_id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const periodIdParam = searchParams.get("period_id") || "";
+  const allPeriodsParam = searchParams.get("all_periods") === "true";
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
@@ -32,11 +33,15 @@ export default function LibretaPage({ user, token, onLogout }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchLibreta = useCallback(async (pid) => {
+  const fetchLibreta = useCallback(async (pid, allPeriods = false) => {
     setLoading(true);
     setError(null);
     try {
-      const url = pid ? `${API}/libreta/${student_id}?period_id=${pid}` : `${API}/libreta/${student_id}`;
+      const params = new URLSearchParams();
+      if (pid) params.set("period_id", pid);
+      if (allPeriods) params.set("all_periods", "true");
+      const qs = params.toString();
+      const url = qs ? `${API}/libreta/${student_id}?${qs}` : `${API}/libreta/${student_id}`;
       const r = await axios.get(url, { headers });
       setData(r.data);
       if (!selectedPeriodId && r.data?.period_active?.id) {
@@ -62,7 +67,7 @@ export default function LibretaPage({ user, token, onLogout }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [student_id]);
 
-  useEffect(() => { fetchLibreta(periodIdParam); /* eslint-disable-next-line */ }, [student_id, periodIdParam]);
+  useEffect(() => { fetchLibreta(periodIdParam, allPeriodsParam); /* eslint-disable-next-line */ }, [student_id, periodIdParam, allPeriodsParam]);
 
   const handlePeriodChange = (pid) => {
     setSelectedPeriodId(pid);
@@ -101,7 +106,7 @@ export default function LibretaPage({ user, token, onLogout }) {
         <div className="max-w-md mx-auto bg-white rounded-2xl border border-red-200 p-8 text-center">
           <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
           <h2 className="text-lg font-semibold mb-2">{error}</h2>
-          <button onClick={() => fetchLibreta(selectedPeriodId)} className="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm" data-testid="libreta-retry-btn">
+          <button onClick={() => fetchLibreta(selectedPeriodId, allPeriodsParam)} className="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm" data-testid="libreta-retry-btn">
             Reintentar
           </button>
         </div>
@@ -159,7 +164,7 @@ export default function LibretaPage({ user, token, onLogout }) {
             otras vistas; mostrarla aquí ensuciaba la libreta y aparecía en el
             PDF exportado. */}
 
-        <LibretaCard data={data} token={token} canEdit={canEdit} userRole={user?.role} onReload={() => fetchLibreta(selectedPeriodId)} />
+        <LibretaCard data={data} token={token} canEdit={canEdit} userRole={user?.role} onReload={() => fetchLibreta(selectedPeriodId, allPeriodsParam)} />
       </div>
     </div>
   );

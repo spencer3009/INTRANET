@@ -256,6 +256,7 @@ async def get_libreta(
     student_id: str,
     period_id: Optional[str] = Query(default=None),
     year: Optional[int] = Query(default=None),
+    all_periods: bool = Query(default=False),
     current_user=Depends(get_current_user),
 ):
     """Genera el payload completo de la libreta del estudiante.
@@ -263,12 +264,16 @@ async def get_libreta(
     Si `period_id` no viene, usa el periodo `activo: true` del colegio.
     Si `year` viene y existe un snapshot persistido para ese (student, year),
     devuelve el snapshot tal cual (libreta congelada / histórica).
+    Si `all_periods=true` (vista acumulada del Consolidado), se ignora el
+    snapshot por bimestre y se muestran TODOS los bimestres calificados en vivo.
     """
     viewer = await _require_user(current_user)
 
     # 0) Snapshot read-through si se pide un año específico O period_id puntual
     # NOTA: en modelo bimestral, los snapshots se llavean por period_id.
-    if period_id:
+    # Se OMITE cuando all_periods=true (vista acumulada), para mostrar todos
+    # los bimestres calificados en vivo en vez de un solo bimestre congelado.
+    if period_id and not all_periods:
         snap = await db.report_cards_snapshots.find_one(
             {"school_id": viewer["school_id"], "student_id": student_id, "period_id": period_id},
             {"_id": 0},
