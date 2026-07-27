@@ -517,6 +517,29 @@ async def diag_final_grade(
         subj_docs = await db.subjects.find({"id": {"$in": subj_ids}}, {"_id": 0, "id": 1, "name": 1, "section_id": 1}).to_list(500)
         subj_by_id = {s["id"]: s for s in subj_docs}
 
+        # Duplicate detection: the same (subject_id, period_id) appearing in MORE
+        # than one student_grades row. This is the root cause when a subject shows
+        # in one bimester but not another: the libreta query does not filter by
+        # section, so an empty duplicate row overwrites the one with real grades.
+        from collections import Counter
+        key_counts = Counter((d.get("subject_id"), d.get("period_id")) for d in grade_docs)
+        dup_keys = {k for k, c in key_counts.items() if c > 1}
+        duplicates = []
+        for d in grade_docs:
+            k = (d.get("subject_id"), d.get("period_id"))
+            if k in dup_keys:
+                duplicates.append({
+                    "subject_id": d.get("subject_id"),
+                    "subject_name": subj_by_id.get(d.get("subject_id"), {}).get("name"),
+                    "subject_section_id": subj_by_id.get(d.get("subject_id"), {}).get("section_id"),
+                    "row_section_id": d.get("section_id"),
+                    "period_id": d.get("period_id"),
+                    "period_name": (period_map.get(d.get("period_id")) or {}).get("nombre"),
+                    "final_grade": d.get("final_grade"),
+                    "final_grade_manual": d.get("final_grade_manual"),
+                    "has_dynamic": bool(d.get("grades_dynamic")),
+                })
+
         rows = []
         for d in grade_docs:
             subj = subj_by_id.get(d.get("subject_id"), {})
@@ -546,6 +569,9 @@ async def diag_final_grade(
             })
         results.append({
             "student": {"id": stu["id"], "name": f"{stu.get('last_name','')} {stu.get('name','')}".strip()},
+            "student_current_section": stu.get("seccion_id"),
+            "total_grade_rows": len(grade_docs),
+            "duplicate_subject_period_rows": duplicates,
             "grades": rows,
         })
 
