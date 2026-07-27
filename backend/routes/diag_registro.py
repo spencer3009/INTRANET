@@ -470,6 +470,15 @@ async def diag_final_grade(
     template = await get_active_template_for_school(db, sid)
     is_custom = bool(template and not template.get("es_sistema"))
 
+    # Full period map for the school — to detect ORPHAN period_ids in grades
+    # (grades saved under a period_id that is NOT a current academic_period, so
+    # the libreta/consolidado column stays empty even though the grade exists).
+    period_docs = await db.academic_periods.find(
+        {"school_id": sid},
+        {"_id": 0, "id": 1, "nombre": 1, "orden": 1, "activo": 1, "academic_year_id": 1},
+    ).sort("orden", 1).to_list(50)
+    period_map = {p["id"]: p for p in period_docs}
+
     def _breakdown(g):
         """Return the per-criterio / per-columna-final breakdown for a grade doc."""
         grades_dyn = g.get("grades_dynamic") or {}
@@ -525,6 +534,9 @@ async def diag_final_grade(
                 "subject_name": subj.get("name"),
                 "section_id": subj.get("section_id") or d.get("section_id"),
                 "period_id": d.get("period_id"),
+                "period_name": (period_map.get(d.get("period_id")) or {}).get("nombre"),
+                "period_orden": (period_map.get(d.get("period_id")) or {}).get("orden"),
+                "period_is_orphan": d.get("period_id") not in period_map,
                 "final_grade_stored": stored,
                 "final_grade_manual": manual,
                 "final_grade_recomputed": recomputed,
@@ -539,6 +551,7 @@ async def diag_final_grade(
 
     return {
         "school_id": sid,
+        "academic_periods": period_docs,
         "template": {"id": (template or {}).get("id"), "nombre": (template or {}).get("nombre"),
                      "es_sistema": (template or {}).get("es_sistema"), "is_custom": is_custom,
                      "modo_ponderacion": (template or {}).get("modo_ponderacion")},
