@@ -1,5 +1,12 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-07-15 — Fix P0: no se podía guardar "Clase en vivo" (NameError PERU_TZ)
+- Causa raíz: `routes/live_classes.py` usaba `PERU_TZ` en `compute_class_status` (L67) y `join_live_class` (L266) pero NUNCA lo importaba desde `.core` → `NameError` → HTTP 500 al crear clase (el doc se insertaba pero la respuesta reventaba) y también rompía el "unirse a clase" del alumno.
+- Fix backend: agregado `PERU_TZ` al import desde `.core`. Verificado E2E local (create + get detail sin error; el bloqueo de suscripción del preview impide curl E2E).
+- Fix frontend (robustez): `LiveClassInlineForm` ahora usa el `section_id` del propio curso como respaldo si no se deriva de las asignaciones (evita 403/404 en cursos a nivel de grado). `CourseDetailPage.jsx`.
+- Requiere Deploy a producción.
+
+
 ## 2026-07-15 — CAUSA REAL libreta acumulada: filtro "solo último bimestre cerrado"
 - Raíz definitiva (routes/libreta.py ~L821): en el camino EN VIVO, sin period_id y en modo bimestral, se aplicaba `keep_ids = {último bimestre CERRADO}` y se blanqueaban los demás. Con BIM I cerrado y BIM II activo, mostraba SOLO BIM I y borraba BIM II (bimestre en curso). Esto explica el patrón sistemático.
 - Fix: cuando `all_periods=true`, NO se aplica ese filtro → se muestran TODOS los bimestres calificados (en vivo, coincidiendo con el Consolidado/Registro Auxiliar).

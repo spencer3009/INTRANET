@@ -12650,7 +12650,7 @@ function RemindersTabContent({ subjectId, token, userRole }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LIVE CLASSES TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
-function LiveClassesTabContent({ subjectId, token, user }) {
+function LiveClassesTabContent({ subjectId, sectionId: subjectSectionId, token, user }) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -12799,6 +12799,7 @@ function LiveClassesTabContent({ subjectId, token, user }) {
         <LiveClassInlineForm
           editData={editData}
           subjectId={subjectId}
+          subjectSectionId={subjectSectionId}
           token={token}
           onSave={handleSave}
           onClose={() => { setShowForm(false); setEditData(null); }}
@@ -12808,7 +12809,7 @@ function LiveClassesTabContent({ subjectId, token, user }) {
   );
 }
 
-function LiveClassInlineForm({ editData, subjectId, token, onSave, onClose }) {
+function LiveClassInlineForm({ editData, subjectId, subjectSectionId, token, onSave, onClose }) {
   const [form, setForm] = useState({
     title: editData?.title || "",
     description: editData?.description || "",
@@ -12820,7 +12821,7 @@ function LiveClassInlineForm({ editData, subjectId, token, onSave, onClose }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [sectionId, setSectionId] = useState(editData?.section_id || "");
+  const [sectionId, setSectionId] = useState(editData?.section_id || subjectSectionId || "");
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
@@ -12829,8 +12830,9 @@ function LiveClassInlineForm({ editData, subjectId, token, onSave, onClose }) {
         try {
           const { data } = await axios.get(`${API}/academic/assignments`, { headers });
           const assignment = data?.find(a => a.subject_id === subjectId);
-          if (assignment) setSectionId(assignment.section_id);
-        } catch { /* ignore */ }
+          if (assignment?.section_id) setSectionId(assignment.section_id);
+          else if (subjectSectionId) setSectionId(subjectSectionId);
+        } catch { if (subjectSectionId) setSectionId(subjectSectionId); }
       })();
     }
   }, [subjectId, editData]);
@@ -13233,7 +13235,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "registro-auxiliar":
         return <GradeBookTab subjectId={subjectId} sectionId={subject?.section_id} token={token} user={user} />;
       case "clases-en-vivo":
-        return <LiveClassesTabContent subjectId={subjectId} token={token} user={user} />;
+        return <LiveClassesTabContent subjectId={subjectId} sectionId={subject?.section_id} token={token} user={user} />;
       default:
         return <DashboardContent subjectId={subjectId} token={token} user={user} />;
     }
