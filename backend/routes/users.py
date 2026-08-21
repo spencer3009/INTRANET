@@ -91,6 +91,41 @@ async def serve_student_constancia(student: dict, school_id: str):
     )
 
 
+def _image_to_pdf(image_bytes: bytes) -> bytes:
+    """Convert an image (jpg/png/webp) into a single-page PDF, fit & centered on the page.
+    Uses the image's own orientation (portrait/landscape) to avoid distortion."""
+    from PIL import Image
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm
+    from reportlab.pdfgen import canvas as _canvas
+    from reportlab.lib.utils import ImageReader
+
+    img = Image.open(io.BytesIO(image_bytes))
+    if img.mode in ("RGBA", "P", "LA"):
+        img = img.convert("RGB")
+    iw, ih = img.size
+    page_w, page_h = landscape(A4) if iw >= ih else A4
+    margin = 1.0 * cm
+    max_w, max_h = page_w - 2 * margin, page_h - 2 * margin
+    ratio = min(max_w / iw, max_h / ih)
+    draw_w, draw_h = iw * ratio, ih * ratio
+    x = (page_w - draw_w) / 2
+    y = (page_h - draw_h) / 2
+
+    img_buf = io.BytesIO()
+    img.save(img_buf, format="JPEG", quality=90)
+    img_buf.seek(0)
+
+    out = io.BytesIO()
+    c = _canvas.Canvas(out, pagesize=(page_w, page_h))
+    c.drawImage(ImageReader(img_buf), x, y, width=draw_w, height=draw_h, preserveAspectRatio=True)
+    c.showPage()
+    c.save()
+    out.seek(0)
+    return out.read()
+
+
+
 async def _ensure_constancias_folder(service, materials_folder_id: str) -> str:
     """Find or create the 'Constancias' subfolder inside the school's materials folder."""
     q = (
@@ -124,13 +159,26 @@ async def upload_constancia_custom(student_id: str, file: UploadFile = File(...)
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
-    if (file.content_type or "").lower() not in ("application/pdf", "application/octet-stream"):
-        raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF")
+    ctype = (file.content_type or "").lower()
+    fname_lower = (file.filename or "").lower()
+    is_pdf = ctype == "application/pdf" or fname_lower.endswith(".pdf")
+    is_image = ctype in ("image/jpeg", "image/jpg", "image/png", "image/webp") or \
+        fname_lower.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    if not (is_pdf or is_image or ctype == "application/octet-stream"):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF, JPG, JPEG, PNG o WEBP")
     content = await file.read()
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Archivo vacío")
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="El archivo supera el límite de 10 MB")
+
+    # Si es imagen, convertir a PDF (una imagen = una página, ajustada a la hoja, centrada).
+    if is_image and not is_pdf:
+        try:
+            content = _image_to_pdf(content)
+        except Exception as e:
+            logger.exception("Error convirtiendo imagen a PDF")
+            raise HTTPException(status_code=400, detail="No se pudo procesar la imagen. Verifica que sea un JPG, PNG o WEBP válido.")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
     if not school.get("google_drive_connected"):
@@ -159,9 +207,10 @@ async def upload_constancia_custom(student_id: str, file: UploadFile = File(...)
         logger.exception("Failed to upload constancia to Drive")
         raise HTTPException(status_code=502, detail=f"Error subiendo a Google Drive: {e}")
 
+    base_name = re.sub(r"\.(pdf|jpg|jpeg|png|webp)$", "", file.filename or "", flags=re.IGNORECASE) or f"Constancia_{student_id}"
     constancia_custom = {
         "drive_file_id": drive_file_id,
-        "file_name": file.filename or f"Constancia_{student_id}.pdf",
+        "file_name": f"{base_name}.pdf",
         "file_size": len(content),
         "storage_type": "google_drive",
         "uploaded_by": user["id"],

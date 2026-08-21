@@ -4257,11 +4257,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const handleConstanciaUpload = (student) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "application/pdf,.pdf";
+    input.accept = "application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp";
     input.onchange = async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      if (file.type && file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
+      const okTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"];
+      const okExt = /\.(pdf|jpg|jpeg|png|webp)$/i.test(file.name || "");
+      if (file.type && !okTypes.includes(file.type) && !okExt) {
+        toast.error("Formato no válido. Sube PDF, JPG, JPEG, PNG o WEBP");
+        return;
+      }
       setUploadingConstancia(student.id);
       try {
         const fd = new FormData();
@@ -6021,7 +6026,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               ? <><RefreshCw className="w-4 h-4 animate-spin" /> Subiendo...</>
                               : <><Upload className="w-4 h-4" /> {editingUser.constancia_custom ? 'Reemplazar PDF' : 'Subir PDF personalizado'}</>}
                           </button>
-                          <p className="text-xs text-slate-400">El PDF se almacena en el Google Drive del colegio. Requiere Drive conectado en Ajustes → Integraciones.</p>
+                          <p className="text-xs text-slate-400">Acepta PDF o imagen (JPG, PNG, WEBP); las imágenes se convierten a PDF. Se almacena en el Google Drive del colegio (conéctalo en Ajustes → Integraciones).</p>
                         </div>
                       )}
                     </div>

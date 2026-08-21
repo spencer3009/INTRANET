@@ -1,5 +1,10 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia personalizada: acepta imágenes (JPG/PNG/WEBP) y las convierte a PDF
+- La subida de constancia personalizada ahora acepta **PDF, JPG, JPEG, PNG y WEBP**. Si el colegio sube una **imagen**, el backend la **convierte a PDF** (una página, ajustada y centrada, orientación según la imagen para no deformarla) antes de guardarla en Drive. El PDF resultante es lo que se almacena y lo que descarga el padre/admin (siempre PDF).
+- Backend: nueva `_image_to_pdf` (Pillow + ReportLab), validación de tipos ampliada, `file_name` normalizado a `.pdf`. Frontend: `accept` del selector ampliado + validación + texto de ayuda. `routes/users.py`, `UsersPage.jsx`.
+- Verificado: conversión de PNG vertical (→A4 vertical) y WEBP/RGBA horizontal (→A4 horizontal), 1 página, PDF válido. Requiere Deploy.
+
 ## 2026-08-21 — Constancia: switch por alumno (defecto/personalizada) + descarga en portal del padre
 - **Switch por alumno** en "Editar alumno" (solo alumnos): "Constancia de Matrícula" con toggle **Por defecto ↔ Personalizada**. Al pasar a Personalizada se sube el PDF (a Drive) SOLO de ese alumno; al volver a Por defecto se usa la generada. Estado en `users.constancia_use_custom`.
 - **Ícono de tarjeta**: ROJO solo cuando `constancia_use_custom && constancia_custom` (personalizada activa); VERDE con la por defecto.
