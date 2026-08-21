@@ -37,9 +37,12 @@ import {
   Clock,
   XCircle,
   Edit3,
-  Trash2
+  Trash2,
+  FileText,
+  Download
 } from "lucide-react";
 import YapePaymentModal from "../components/YapePaymentModal";
+import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -49,7 +52,38 @@ const PRIORITY_COLORS = {
   urgent: "bg-red-100 text-red-700"
 };
 
-function StudentProfileCard({ student, dashboardData, academic }) {
+function StudentProfileCard({ student, dashboardData, academic, token }) {
+  const [downloadingConstancia, setDownloadingConstancia] = useState(false);
+
+  const handleDownloadConstancia = async () => {
+    setDownloadingConstancia(true);
+    try {
+      const res = await axios.get(`${API}/api/parent/students/${student.id}/constancia-matricula`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Constancia_Matricula_${(student.name || "").trim()}_${(student.last_name || "").trim()}.pdf`.replace(/\s+/g, "_");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Constancia descargada");
+    } catch (err) {
+      let msg = "No se pudo descargar la constancia";
+      try {
+        if (err.response?.data instanceof Blob) {
+          msg = JSON.parse(await err.response.data.text()).detail || msg;
+        } else { msg = err.response?.data?.detail || msg; }
+      } catch { /* keep default */ }
+      toast.error(msg);
+    } finally {
+      setDownloadingConstancia(false);
+    }
+  };
+
   const userName = student?.name || "Alumno";
   const userLastName = student?.last_name || "";
   const fullName = userLastName ? `${userName} ${userLastName}` : userName;
@@ -137,6 +171,17 @@ function StudentProfileCard({ student, dashboardData, academic }) {
           <p className="text-[11px] text-slate-500">Asistencia</p>
         </div>
       </div>
+
+      <button
+        onClick={handleDownloadConstancia}
+        disabled={downloadingConstancia}
+        className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+        data-testid="parent-download-constancia-btn"
+      >
+        {downloadingConstancia
+          ? <><Loader2 className="w-4 h-4 animate-spin" /> Descargando...</>
+          : <><Download className="w-4 h-4" /> Descargar constancia de matrícula</>}
+      </button>
     </div>
   );
 }
@@ -488,7 +533,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               <User className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alumno seleccionado</span>
             </div>
-            <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} />
+            <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} token={token} />
           </div>
 
           {/* Quick Stats Cards - Student Dashboard Design */}
@@ -1306,7 +1351,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alumno seleccionado</span>
                 </div>
                 <div className="flex-1">
-                  <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} />
+                  <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} token={token} />
                 </div>
               </div>
             </div>

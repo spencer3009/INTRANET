@@ -43,9 +43,6 @@ router = APIRouter(prefix="/api")
 @router.get("/students/{student_id}/constancia-matricula")
 async def download_constancia_matricula(student_id: str, current_user=Depends(get_current_user)):
     """Genera y descarga la Constancia de Matrícula (PDF) de un alumno. Solo admin/director/owner."""
-    from fastapi.responses import Response
-    from services.constancia_pdf_generator import generate_constancia_pdf
-
     user = await resolve_user_from_token(current_user)
     if not user or user.get("role") not in ("owner", "admin", "director"):
         raise HTTPException(status_code=403, detail="No tienes permisos para generar constancias")
@@ -56,10 +53,17 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
     )
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
+    return await serve_student_constancia(student, school_id)
 
-    # Si el colegio subió una constancia personalizada, servir esa (desde Drive).
+
+async def serve_student_constancia(student: dict, school_id: str):
+    """Return the ACTIVE constancia as a PDF Response: custom (Drive) if enabled, else generated default."""
+    from fastapi.responses import Response
+    from services.constancia_pdf_generator import generate_constancia_pdf
+
+    student_id = student.get("id")
     custom = student.get("constancia_custom")
-    if custom and custom.get("drive_file_id"):
+    if student.get("constancia_use_custom") and custom and custom.get("drive_file_id"):
         from routes.report_cards_pdf import _stream_drive_pdf
         return await _stream_drive_pdf(
             school_id, custom["drive_file_id"], custom.get("file_name") or "Constancia_Matricula.pdf"
@@ -163,8 +167,28 @@ async def upload_constancia_custom(student_id: str, file: UploadFile = File(...)
         "uploaded_by": user["id"],
         "uploaded_at": now_iso(),
     }
-    await db.users.update_one({"id": student_id}, {"$set": {"constancia_custom": constancia_custom}})
-    return {"ok": True, "constancia_custom": constancia_custom}
+    await db.users.update_one({"id": student_id}, {"$set": {"constancia_custom": constancia_custom, "constancia_use_custom": True}})
+    return {"ok": True, "constancia_custom": constancia_custom, "constancia_use_custom": True}
+
+
+class ConstanciaModeBody(BaseModel):
+    use_custom: bool
+
+
+@router.put("/students/{student_id}/constancia-mode")
+async def set_constancia_mode(student_id: str, body: ConstanciaModeBody, current_user=Depends(get_current_user)):
+    """Activa/desactiva la constancia personalizada. use_custom=False → usa la constancia por defecto generada."""
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("owner", "admin", "director"):
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    school_id = user.get("school_id")
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0, "id": 1, "constancia_custom": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+    if body.use_custom and not (student.get("constancia_custom") or {}).get("drive_file_id"):
+        raise HTTPException(status_code=400, detail="Primero sube el PDF de la constancia personalizada")
+    await db.users.update_one({"id": student_id}, {"$set": {"constancia_use_custom": body.use_custom}})
+    return {"ok": True, "constancia_use_custom": body.use_custom}
 
 
 @router.delete("/students/{student_id}/constancia-custom")
@@ -174,7 +198,7 @@ async def delete_constancia_custom(student_id: str, current_user=Depends(get_cur
     if not user or user.get("role") not in ("owner", "admin", "director"):
         raise HTTPException(status_code=403, detail="No tienes permisos")
     school_id = user.get("school_id")
-    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0, "constancia_custom": 1})
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0, "id": 1, "constancia_custom": 1})
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     custom = student.get("constancia_custom")
@@ -185,7 +209,7 @@ async def delete_constancia_custom(student_id: str, current_user=Depends(get_cur
             service.files().delete(fileId=custom["drive_file_id"]).execute()
         except Exception:
             logger.warning(f"No se pudo borrar el archivo de Drive para {student_id} (se deja huérfano)")
-    await db.users.update_one({"id": student_id}, {"$unset": {"constancia_custom": ""}})
+    await db.users.update_one({"id": student_id}, {"$unset": {"constancia_custom": "", "constancia_use_custom": ""}})
     return {"ok": True}
 
 

@@ -4248,26 +4248,29 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [uploadingConstancia, setUploadingConstancia] = useState(null);
   const canIssueConstancia = ["owner", "admin", "director"].includes(user?.role);
 
-  const handleUploadConstanciaClick = (student) => {
+  const patchStudentConstancia = (studentId, fields) => {
+    setUsers(prev => prev.map(u => u.id === studentId ? { ...u, ...fields } : u));
+    setEditingUser(prev => (prev && prev.id === studentId) ? { ...prev, ...fields } : prev);
+  };
+
+  // Sube (o reemplaza) el PDF personalizado del alumno → activa constancia personalizada
+  const handleConstanciaUpload = (student) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "application/pdf,.pdf";
     input.onchange = async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      if (file.type && file.type !== "application/pdf") {
-        toast.error("Solo se permiten archivos PDF");
-        return;
-      }
+      if (file.type && file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
       setUploadingConstancia(student.id);
       try {
         const fd = new FormData();
         fd.append("file", file);
-        await axios.post(`${API}/students/${student.id}/constancia-custom`, fd, {
+        const res = await axios.post(`${API}/students/${student.id}/constancia-custom`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        patchStudentConstancia(student.id, { constancia_custom: res.data.constancia_custom, constancia_use_custom: true });
         toast.success("Constancia personalizada subida al Drive del colegio");
-        loadUsers();
       } catch (err) {
         toast.error(err.response?.data?.detail || "No se pudo subir la constancia");
       } finally {
@@ -4277,15 +4280,36 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     input.click();
   };
 
-  const handleRemoveConstanciaCustom = async (student) => {
-    if (!window.confirm("¿Quitar la constancia personalizada? Se volverá a usar la constancia por defecto.")) return;
+  // Cambia entre constancia por defecto (useCustom=false) y personalizada (useCustom=true)
+  const handleConstanciaMode = async (student, useCustom) => {
+    // Activar personalizada sin PDF cargado → pedir subir primero
+    if (useCustom && !student.constancia_custom) {
+      handleConstanciaUpload(student);
+      return;
+    }
+    setUploadingConstancia(student.id);
+    try {
+      await axios.put(`${API}/students/${student.id}/constancia-mode`, { use_custom: useCustom }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      patchStudentConstancia(student.id, { constancia_use_custom: useCustom });
+      toast.success(useCustom ? "Se usará la constancia personalizada" : "Se usará la constancia por defecto");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cambiar la constancia");
+    } finally {
+      setUploadingConstancia(null);
+    }
+  };
+
+  const handleConstanciaRemove = async (student) => {
+    if (!window.confirm("¿Eliminar el PDF personalizado? Se volverá a usar la constancia por defecto.")) return;
     setUploadingConstancia(student.id);
     try {
       await axios.delete(`${API}/students/${student.id}/constancia-custom`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      patchStudentConstancia(student.id, { constancia_custom: undefined, constancia_use_custom: false });
       toast.success("Constancia personalizada eliminada");
-      loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo quitar la constancia");
     } finally {
@@ -4490,27 +4514,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Cambiar a Activo
                   </button>
                 )}
-                {canIssueConstancia && (
-                  <button
-                    onClick={() => { handleUploadConstanciaClick(student); setOpenMenuId(null); }}
-                    disabled={uploadingConstancia === student.id}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 text-emerald-600 flex items-center gap-2 disabled:opacity-60"
-                    data-testid={`upload-constancia-${student.id}`}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    {student.constancia_custom ? "Cambiar constancia" : "Cargar constancia"}
-                  </button>
-                )}
-                {canIssueConstancia && student.constancia_custom && (
-                  <button
-                    onClick={() => { handleRemoveConstanciaCustom(student); setOpenMenuId(null); }}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-amber-50 text-amber-600 flex items-center gap-2"
-                    data-testid={`remove-constancia-${student.id}`}
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    Usar constancia por defecto
-                  </button>
-                )}
                 <button
                   onClick={() => { handleDeleteClick(student); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
@@ -4615,14 +4618,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownloadConstancia(student); }}
                 disabled={downloadingConstancia === student.id}
-                className={`flex flex-col items-center gap-0.5 p-1 rounded-lg transition-colors disabled:opacity-60 ${student.constancia_custom ? 'hover:bg-red-50' : 'hover:bg-emerald-50'}`}
-                title={student.constancia_custom ? "Constancia personalizada (subida por el colegio) — clic para descargar" : "Constancia de Matrícula por defecto — clic para descargar"}
+                className={`flex flex-col items-center gap-0.5 p-1 rounded-lg transition-colors disabled:opacity-60 ${(student.constancia_use_custom && student.constancia_custom) ? 'hover:bg-red-50' : 'hover:bg-emerald-50'}`}
+                title={(student.constancia_use_custom && student.constancia_custom) ? "Constancia personalizada (subida por el colegio) — clic para descargar" : "Constancia de Matrícula por defecto — clic para descargar"}
                 data-testid={`constancia-btn-${student.id}`}
               >
                 <div className="bg-white w-[58px] h-[58px] rounded border border-slate-200 flex items-center justify-center">
                   {downloadingConstancia === student.id
-                    ? <RefreshCw className={`w-6 h-6 animate-spin ${student.constancia_custom ? 'text-red-500' : 'text-emerald-500'}`} />
-                    : <FileText className={`w-7 h-7 ${student.constancia_custom ? 'text-red-500' : 'text-emerald-500'}`} />}
+                    ? <RefreshCw className={`w-6 h-6 animate-spin ${(student.constancia_use_custom && student.constancia_custom) ? 'text-red-500' : 'text-emerald-500'}`} />
+                    : <FileText className={`w-7 h-7 ${(student.constancia_use_custom && student.constancia_custom) ? 'text-red-500' : 'text-emerald-500'}`} />}
                 </div>
                 <span className="text-[9px] font-medium text-slate-400 uppercase">Constancia</span>
               </button>
@@ -5962,6 +5965,67 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         </div>
                       )}
                     </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {/* SECCIÓN: CONSTANCIA DE MATRÍCULA (solo alumnos) */}
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {editingUser.role === 'student' && (
+                    <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200" data-testid="edit-constancia-section">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-emerald-500" /> Constancia de Matrícula
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-600">{editingUser.constancia_use_custom ? 'Personalizada' : 'Por defecto'}</span>
+                          <Switch
+                            checked={!editingUser.constancia_use_custom}
+                            disabled={uploadingConstancia === editingUser.id}
+                            onCheckedChange={(checked) => handleConstanciaMode(editingUser, !checked)}
+                            data-testid="constancia-default-switch"
+                          />
+                        </div>
+                      </div>
+                      {!editingUser.constancia_use_custom ? (
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm text-slate-600">
+                          Se usará la <b>constancia generada automáticamente</b> por el sistema. Desactiva el switch para subir tu propio PDF.
+                        </div>
+                      ) : (
+                        <div className="bg-red-50 border border-red-100 rounded-xl p-3 space-y-3">
+                          {editingUser.constancia_custom ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm text-slate-700 flex items-center gap-2 min-w-0">
+                                <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <span className="truncate">{editingUser.constancia_custom.file_name || 'Constancia.pdf'}</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleConstanciaRemove(editingUser)}
+                                disabled={uploadingConstancia === editingUser.id}
+                                className="text-xs text-red-600 hover:text-red-700 font-semibold flex-shrink-0"
+                                data-testid="constancia-remove-btn"
+                              >
+                                Eliminar PDF
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-600">Aún no has subido un PDF personalizado.</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleConstanciaUpload(editingUser)}
+                            disabled={uploadingConstancia === editingUser.id}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+                            data-testid="constancia-upload-btn"
+                          >
+                            {uploadingConstancia === editingUser.id
+                              ? <><RefreshCw className="w-4 h-4 animate-spin" /> Subiendo...</>
+                              : <><Upload className="w-4 h-4" /> {editingUser.constancia_custom ? 'Reemplazar PDF' : 'Subir PDF personalizado'}</>}
+                          </button>
+                          <p className="text-xs text-slate-400">El PDF se almacena en el Google Drive del colegio. Requiere Drive conectado en Ajustes → Integraciones.</p>
+                        </div>
+                      )}
+                    </div>
+                    )}
 
                     {/* ═══════════════════════════════════════════════════════════════ */}
                     {/* SECCIÓN 2: VINCULACIÓN PADRE / APODERADO */}

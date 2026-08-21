@@ -76,6 +76,16 @@ async def verify_parent_student_access(parent_user: dict, student_id: str) -> di
     
     return student
 
+
+@router.get("/parent/students/{student_id}/constancia-matricula")
+async def parent_download_constancia(student_id: str, current_user=Depends(get_current_user)):
+    """Descarga la Constancia de Matrícula activa (personalizada o por defecto) del hijo del apoderado."""
+    user = await resolve_user_from_token(current_user)
+    student = await verify_parent_student_access(user, student_id)
+    from routes.users import serve_student_constancia
+    return await serve_student_constancia(student, user.get("school_id"))
+
+
 @router.get("/parent/me")
 async def get_parent_profile(current_user = Depends(get_current_user)):
     """Get parent profile with linked children."""

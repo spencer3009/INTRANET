@@ -1,5 +1,12 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia: switch por alumno (defecto/personalizada) + descarga en portal del padre
+- **Switch por alumno** en "Editar alumno" (solo alumnos): "Constancia de Matrícula" con toggle **Por defecto ↔ Personalizada**. Al pasar a Personalizada se sube el PDF (a Drive) SOLO de ese alumno; al volver a Por defecto se usa la generada. Estado en `users.constancia_use_custom`.
+- **Ícono de tarjeta**: ROJO solo cuando `constancia_use_custom && constancia_custom` (personalizada activa); VERDE con la por defecto.
+- **Portal del padre**: botón "Descargar constancia de matrícula" en la tarjeta del hijo (`ParentDashboardPage` → `StudentProfileCard`). Trae la constancia ACTIVA (personalizada si está activa, si no la por defecto).
+- Backend: refactor `serve_student_constancia(student, school_id)` compartido; `GET /students/{id}/constancia-matricula` y nuevo `GET /parent/students/{id}/constancia-matricula` (verifica vínculo padre-hijo); `PUT /students/{id}/constancia-mode {use_custom}` (valida que exista PDF antes de activar personalizada); upload setea `use_custom=true`; delete limpia ambos flags. **Bug corregido**: proyección Mongo que devolvía `{}` (falsy) causaba 404 falso en mode/delete.
+- Verificado local: generación por defecto, validación del toggle (400 sin PDF), descarga del padre. ⚠️ La subida real del PDF a Drive no se probó E2E (ningún colegio tiene Drive conectado en preview) — requiere conectar Drive. Requiere Deploy.
+
 ## 2026-08-21 — Constancia personalizada por alumno (subida a Drive + ícono rojo/verde)
 - Nuevo ítem en el menú (⋮) de la tarjeta del alumno: **"Cargar constancia"** (o "Cambiar constancia") para que el colegio suba su PROPIO PDF de constancia en lugar del predeterminado. Solo admin/director/owner.
 - El PDF subido se almacena en el **Google Drive del colegio** (carpeta `Materiales/Constancias`), reutilizando `get_drive_service` + patrón de libretas. Se guarda `users.constancia_custom` {drive_file_id, file_name, ...}.
