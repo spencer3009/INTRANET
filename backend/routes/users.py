@@ -93,16 +93,23 @@ async def serve_student_constancia(student: dict, school_id: str):
 
 def _image_to_pdf(image_bytes: bytes) -> bytes:
     """Convert an image (jpg/png/webp) into a single-page PDF, fit & centered on the page.
-    Uses the image's own orientation (portrait/landscape) to avoid distortion."""
-    from PIL import Image
+    Robust: fixes EXIF orientation, converts any color mode to RGB, caps huge images."""
+    from PIL import Image, ImageOps
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.units import cm
     from reportlab.pdfgen import canvas as _canvas
     from reportlab.lib.utils import ImageReader
 
     img = Image.open(io.BytesIO(image_bytes))
-    if img.mode in ("RGBA", "P", "LA"):
+    img.load()
+    try:
+        img = ImageOps.exif_transpose(img)  # honor phone camera orientation
+    except Exception:
+        pass
+    if img.mode != "RGB":
         img = img.convert("RGB")
+    # Cap very large images to avoid excessive memory on the server
+    img.thumbnail((3000, 3000), Image.LANCZOS)
     iw, ih = img.size
     page_w, page_h = landscape(A4) if iw >= ih else A4
     margin = 1.0 * cm
@@ -178,7 +185,7 @@ async def upload_constancia_custom(student_id: str, file: UploadFile = File(...)
             content = _image_to_pdf(content)
         except Exception as e:
             logger.exception("Error convirtiendo imagen a PDF")
-            raise HTTPException(status_code=400, detail="No se pudo procesar la imagen. Verifica que sea un JPG, PNG o WEBP válido.")
+            raise HTTPException(status_code=400, detail=f"No se pudo procesar la imagen: {str(e)[:150]}")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
     if not school.get("google_drive_connected"):

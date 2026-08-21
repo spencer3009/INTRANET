@@ -1,5 +1,10 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Fix: imágenes JPG/CMYK no se convertían a PDF (constancia personalizada)
+- Bug reportado en PRODUCCIÓN: subir una constancia en JPG fallaba con "No se pudo procesar la imagen". Causa: `_image_to_pdf` solo convertía modos RGBA/P/LA a RGB; una imagen **CMYK** (típica de Photoshop/escáner) o con EXIF llegaba a `drawImage` sin convertir y reventaba.
+- Fix (`routes/users.py`): `_image_to_pdf` ahora aplica `ImageOps.exif_transpose`, convierte **cualquier** modo a RGB, y cap de tamaño a 3000px (evita MemoryError con fotos grandes). Se expone el motivo real en el error 400 para diagnóstico.
+- Verificado local: JPEG CMYK 2400x1800 ahora pasa la conversión (llega al 409 de Drive). Requiere **Deploy**.
+
 ## 2026-08-21 — Constancia personalizada: acepta imágenes (JPG/PNG/WEBP) y las convierte a PDF
 - La subida de constancia personalizada ahora acepta **PDF, JPG, JPEG, PNG y WEBP**. Si el colegio sube una **imagen**, el backend la **convierte a PDF** (una página, ajustada y centrada, orientación según la imagen para no deformarla) antes de guardarla en Drive. El PDF resultante es lo que se almacena y lo que descarga el padre/admin (siempre PDF).
 - Backend: nueva `_image_to_pdf` (Pillow + ReportLab), validación de tipos ampliada, `file_name` normalizado a `.pdf`. Frontend: `accept` del selector ampliado + validación + texto de ayuda. `routes/users.py`, `UsersPage.jsx`.
