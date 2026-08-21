@@ -1,5 +1,5 @@
 """
-Constancia de Matrícula - PDF Generator
+Constancia de Matrícula - PDF Generator (formato oficial tipo SIAGIE, tabular).
 Generates on-demand enrollment certificates using ReportLab. Never saves to disk.
 """
 from io import BytesIO
@@ -8,7 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 )
@@ -19,17 +19,12 @@ logger = logging.getLogger(__name__)
 
 PERU_TZ = timezone(timedelta(hours=-5))
 
-_MESES = [
-    "enero", "febrero", "marzo", "abril", "mayo", "junio",
-    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-]
+_NAVY = colors.HexColor("#1e293b")
+_LABEL_BG = colors.HexColor("#eef2f7")
+_BORDER = colors.HexColor("#334155")
 
 
-def _fecha_larga(dt: datetime) -> str:
-    return f"{dt.day} de {_MESES[dt.month - 1]} de {dt.year}"
-
-
-def _download_logo(url: str, max_w=3 * cm, max_h=2.8 * cm):
+def _download_logo(url: str, max_w=2.6 * cm, max_h=2.6 * cm):
     if not url:
         return None
     try:
@@ -49,85 +44,112 @@ def _download_logo(url: str, max_w=3 * cm, max_h=2.8 * cm):
 
 
 def generate_constancia_pdf(*, school: dict, student: dict, level_name: str,
-                            grade_name: str, section_name: str, year: str) -> bytes:
-    """Return the constancia de matrícula as PDF bytes."""
+                            grade_name: str, section_name: str, year: str,
+                            turno_name: str = "", apoderado_name: str = "") -> bytes:
+    """Return the constancia de matrícula (formato tabular) as PDF bytes."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
-        leftMargin=2.5 * cm, rightMargin=2.5 * cm,
-        topMargin=2 * cm, bottomMargin=2 * cm,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+        topMargin=1.6 * cm, bottomMargin=2 * cm,
     )
     styles = getSampleStyleSheet()
-    st_school = ParagraphStyle("school", parent=styles["Normal"], fontSize=13,
-                               alignment=TA_CENTER, leading=16, spaceAfter=2,
-                               fontName="Helvetica-Bold", textColor=colors.HexColor("#1e293b"))
-    st_title = ParagraphStyle("title", parent=styles["Normal"], fontSize=17,
-                              alignment=TA_CENTER, leading=22, spaceBefore=6,
-                              fontName="Helvetica-Bold", textColor=colors.HexColor("#0f172a"))
-    st_body = ParagraphStyle("body", parent=styles["Normal"], fontSize=12,
-                             alignment=TA_JUSTIFY, leading=22, spaceBefore=6)
-    st_sign = ParagraphStyle("sign", parent=styles["Normal"], fontSize=11,
-                            alignment=TA_CENTER, leading=14)
+    st_school = ParagraphStyle("school", parent=styles["Normal"], fontSize=12,
+                               alignment=TA_CENTER, leading=15, fontName="Helvetica-Bold",
+                               textColor=_NAVY)
+    st_meta = ParagraphStyle("meta", parent=styles["Normal"], fontSize=8,
+                             alignment=2, leading=11, textColor=colors.HexColor("#475569"))
+    st_title = ParagraphStyle("title", parent=styles["Normal"], fontSize=16,
+                              alignment=TA_CENTER, leading=20, fontName="Helvetica-Bold",
+                              textColor=colors.HexColor("#0f172a"))
+    st_label = ParagraphStyle("label", parent=styles["Normal"], fontSize=8.5,
+                             alignment=TA_LEFT, leading=11, fontName="Helvetica-Bold",
+                             textColor=_NAVY)
+    st_value = ParagraphStyle("value", parent=styles["Normal"], fontSize=9.5,
+                             alignment=TA_LEFT, leading=12)
+    st_sign = ParagraphStyle("sign", parent=styles["Normal"], fontSize=9.5,
+                            alignment=TA_CENTER, leading=13)
 
     legal_name = (school.get("legal_name") or school.get("name") or "INSTITUCIÓN EDUCATIVA").upper()
     logo = _download_logo(school.get("logo_url"))
 
-    full_name = f"{student.get('name', '') or ''} {student.get('last_name', '') or ''}".strip().upper()
-    dni = student.get("dni") or student.get("document_number") or ""
-    ubic = " ".join([p for p in [level_name, grade_name] if p]).strip()
-    seccion_txt = f' sección "{section_name}"' if section_name else ""
+    apellidos = (student.get("last_name") or "").strip()
+    nombres = (student.get("name") or "").strip()
+    estudiante = f"{apellidos}, {nombres}".strip(", ").upper() or "-"
+    dni = student.get("dni") or student.get("document_number") or "-"
+    codigo = student.get("student_code") or "-"
+    nivel = (level_name or "").strip() or "-"
+    grado = (grade_name or "").strip() or "-"
+    seccion = (section_name or "").strip() or "-"
+    turno = (turno_name or "").strip().upper() or "-"
+    apoderado = (apoderado_name or "").strip().upper() or "-"
+
+    hoy = datetime.now(PERU_TZ)
+    periodo = f"DEL 01/03/{year}   AL 31/12/{year}"
 
     story = []
 
-    # Header: logo + school name
-    if logo:
-        header = Table([[logo, Paragraph(legal_name, st_school)]],
-                       colWidths=[3.2 * cm, None])
-        header.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ]))
-        story.append(header)
-    else:
-        story.append(Paragraph(legal_name, st_school))
+    # ── Header: logo | school name | fecha/pág ──────────────────────────────
+    header_cells = [[
+        logo if logo else Paragraph("", st_meta),
+        Paragraph(legal_name, st_school),
+        Paragraph(f"Fecha: {hoy.strftime('%d/%m/%Y')}<br/>Pág.: 1 de 1", st_meta),
+    ]]
+    header = Table(header_cells, colWidths=[3 * cm, 10.5 * cm, 3.5 * cm])
+    header.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "LEFT"),
+        ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+    ]))
+    story.append(header)
+    story.append(Spacer(1, 0.25 * cm))
+    story.append(Table([[""]], colWidths=[17 * cm], rowHeights=[1],
+                       style=TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1.2, _NAVY)])))
+    story.append(Spacer(1, 0.7 * cm))
 
-    story.append(Spacer(1, 0.4 * cm))
-    story.append(Table([[""]], colWidths=[None], rowHeights=[1],
-                       style=TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1, colors.HexColor("#94a3b8"))])))
-    story.append(Spacer(1, 0.9 * cm))
+    # ── Title ───────────────────────────────────────────────────────────────
+    story.append(Paragraph(f"CONSTANCIA DE MATRÍCULA {year}", st_title))
+    story.append(Spacer(1, 0.7 * cm))
 
-    story.append(Paragraph("CONSTANCIA DE MATRÍCULA", st_title))
-    story.append(Spacer(1, 1.0 * cm))
+    # ── Data grid ─────────────────────────────────────────────────────────────
+    def L(t):
+        return Paragraph(t, st_label)
 
-    dni_txt = f", identificado(a) con DNI N° <b>{dni}</b>" if dni else ""
-    cuerpo = (
-        f"El(La) Director(a) de la {legal_name}, deja constancia que el(la) estudiante "
-        f"<b>{full_name}</b>{dni_txt}, se encuentra matriculado(a) en el nivel <b>{ubic}</b>"
-        f"{seccion_txt} durante el año escolar <b>{year}</b>."
-    )
-    story.append(Paragraph(cuerpo, st_body))
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(
-        "Se expide la presente constancia a solicitud de la parte interesada, para los fines "
-        "que estime convenientes.", st_body))
+    def V(t):
+        return Paragraph(t, st_value)
 
-    story.append(Spacer(1, 1.5 * cm))
-    hoy = datetime.now(PERU_TZ)
-    story.append(Paragraph(f"{_fecha_larga(hoy)}.", ParagraphStyle(
-        "date", parent=st_body, alignment=2)))
+    rows = [
+        [L("ESTUDIANTE"), V(estudiante), L("DNI"), V(dni)],
+        [L("INSTITUCIÓN EDUCATIVA"), V(legal_name), L("CÓDIGO"), V(codigo)],
+        [L("PERÍODO PROMOCIONAL"), V(periodo), L("CICLO / NIVEL"), V(nivel)],
+        [L("SECCIÓN"), V(seccion), L("GRADO"), V(grado)],
+        [L("APODERADO"), V(apoderado), L("TURNO"), V(turno)],
+    ]
+    grid = Table(rows, colWidths=[3.7 * cm, 6.0 * cm, 3.3 * cm, 4.0 * cm])
+    grid.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.6, _BORDER),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("BACKGROUND", (0, 0), (0, -1), _LABEL_BG),
+        ("BACKGROUND", (2, 0), (2, -1), _LABEL_BG),
+    ]))
+    story.append(grid)
 
-    story.append(Spacer(1, 3.2 * cm))
-
+    # ── Signature footer ──────────────────────────────────────────────────────
+    story.append(Spacer(1, 4.0 * cm))
     director_name = (school.get("libreta_director_name") or "").strip()
-    sign_lines = ["_______________________________"]
+    sign_lines = ["_______________________________________"]
     if director_name:
         sign_lines.append(f"<b>{director_name}</b>")
-    sign_lines.append("DIRECTOR(A)")
+    sign_lines.append("Director(a) / Sub Director(a)")
+    sign_lines.append('<font size="8" color="#64748b">Firma - Post Firma y Sello</font>')
     sign_para = Paragraph("<br/>".join(sign_lines), st_sign)
-    sign_tbl = Table([[sign_para]], colWidths=[8 * cm])
-    sign_tbl.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
-    story.append(Table([["", sign_tbl]], colWidths=[None, 8 * cm],
-                       style=TableStyle([("ALIGN", (1, 0), (1, 0), "CENTER")])))
+    sign_tbl = Table([["", sign_para, ""]], colWidths=[4.5 * cm, 8 * cm, 4.5 * cm])
+    sign_tbl.setStyle(TableStyle([("ALIGN", (1, 0), (1, 0), "CENTER")]))
+    story.append(sign_tbl)
 
     doc.build(story)
     buf.seek(0)

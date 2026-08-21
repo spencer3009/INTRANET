@@ -1,5 +1,10 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia de Matrícula: reformateada al formato oficial (tipo SIAGIE)
+- A pedido del usuario (subió PDF modelo), la Constancia se rehízo al **formato tabular oficial**: encabezado (logo + nombre legal del colegio + "Fecha/Pág." a la derecha), regla horizontal, título centrado "CONSTANCIA DE MATRÍCULA {año}", tabla bordeada con etiquetas sombreadas (ESTUDIANTE [APELLIDOS, NOMBRES], DNI, INSTITUCIÓN EDUCATIVA, CÓDIGO [student_code], PERÍODO PROMOCIONAL [DEL 01/03 AL 31/12], CICLO/NIVEL, SECCIÓN, GRADO, APODERADO, TURNO) y pie "Director(a) / Sub Director(a) — Firma - Post Firma y Sello".
+- Endpoint `GET /api/students/{id}/constancia-matricula` ahora resuelve además TURNO (`shifts`) y APODERADO (padre vía `padre_id`). `services/constancia_pdf_generator.py` reescrito.
+- Verificado visualmente (render coincide con el modelo). Requiere Deploy.
+
 ## 2026-08-21 — Feature: Botón "Constancia" (Constancia de Matrícula PDF) en tarjeta de alumno
 - Nuevo botón con ícono de documento etiquetado "Constancia" al lado del QR en la tarjeta del alumno (`/users`, vista agrupada). Al hacer clic descarga un PDF de Constancia de Matrícula.
 - Solo visible/permitido para **owner/admin/director** (front `canIssueConstancia` + backend gate).

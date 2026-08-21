@@ -65,6 +65,16 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
     ay = await db.academic_years.find_one({"school_id": school_id}, {"_id": 0, "year": 1}, sort=[("year", -1)])
     year = str(ay.get("year")) if ay and ay.get("year") else str(datetime.now(timezone.utc).year)
 
+    turno_name = ""
+    if student.get("turno_id"):
+        shift = await db.shifts.find_one({"id": student.get("turno_id")}, {"_id": 0, "nombre": 1})
+        turno_name = (shift or {}).get("nombre", "") or ""
+    apoderado_name = ""
+    if student.get("padre_id"):
+        parent = await db.users.find_one({"id": student.get("padre_id")}, {"_id": 0, "name": 1, "last_name": 1})
+        if parent:
+            apoderado_name = f"{parent.get('last_name', '') or ''}, {parent.get('name', '') or ''}".strip(", ")
+
     pdf_bytes = generate_constancia_pdf(
         school=school,
         student=student,
@@ -72,6 +82,8 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
         grade_name=(grade or {}).get("nombre", "") or "",
         section_name=(section or {}).get("nombre", "") or "",
         year=year,
+        turno_name=turno_name,
+        apoderado_name=apoderado_name,
     )
     safe_name = re.sub(r"[^A-Za-z0-9]+", "_", f"{student.get('name','')}_{student.get('last_name','')}").strip("_")
     filename = f"Constancia_Matricula_{safe_name or student_id}.pdf"
