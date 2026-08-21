@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia de Matrícula: período real, RUC/Código Modular y descarga en lote
+- **Período Promocional** ahora se toma de **Períodos Académicos** (`academic_periods`): DEL = fecha_inicio más temprana, AL = fecha_fin más tardía del año escolar activo (fallback 01/03–31/12).
+- **Código Modular + RUC en el encabezado**: nuevo campo "Código Modular" en Ajustes → Libretas (`school.codigo_modular`, GET/PUT `/api/report-cards/settings`); el RUC se reutiliza del Sello (`libreta_stamp_config.ruc`). Se muestran bajo el nombre del colegio.
+- **Nombre del director**: ya configurable en Ajustes → Libretas ("Nombre del director(a)", `libreta_director_name`); se imprime sobre la línea de firma. (Sin cambios, confirmado).
+- **Constancia en Lote**: nuevo `GET /api/sections/{section_id}/constancias-matricula` genera **un solo PDF** con una constancia por página para todos los alumnos activos de la sección (ordenados por apellido). Botón "Constancias (lote)" en el header de cada sección en `/users` (admin/director/owner).
+- Backend: `services/constancia_pdf_generator.py` refactorizado (story compartida + modo batch con PageBreak, caché de logo). `routes/users.py` (helpers `_constancia_period`, `_constancia_student_detail` + 2 endpoints). Frontend: `LibretasSettingsTab.jsx` (input código modular), `UsersPage.jsx` (botón lote).
+- Verificado visualmente (render con RUC/código/director + período real; batch 5 páginas OK); frontend compila. Requiere Deploy.
+
 ## 2026-08-21 — Constancia de Matrícula: reformateada al formato oficial (tipo SIAGIE)
 - A pedido del usuario (subió PDF modelo), la Constancia se rehízo al **formato tabular oficial**: encabezado (logo + nombre legal del colegio + "Fecha/Pág." a la derecha), regla horizontal, título centrado "CONSTANCIA DE MATRÍCULA {año}", tabla bordeada con etiquetas sombreadas (ESTUDIANTE [APELLIDOS, NOMBRES], DNI, INSTITUCIÓN EDUCATIVA, CÓDIGO [student_code], PERÍODO PROMOCIONAL [DEL 01/03 AL 31/12], CICLO/NIVEL, SECCIÓN, GRADO, APODERADO, TURNO) y pie "Director(a) / Sub Director(a) — Firma - Post Firma y Sello".
 - Endpoint `GET /api/students/{id}/constancia-matricula` ahora resuelve además TURNO (`shifts`) y APODERADO (padre vía `padre_id`). `services/constancia_pdf_generator.py` reescrito.

@@ -256,6 +256,7 @@ class ReportCardSettingsUpdate(BaseModel):
     grade_scale_mode: Optional[str] = None
     grade_scale: Optional[List[Dict[str, object]]] = None
     director_name: Optional[str] = None
+    codigo_modular: Optional[str] = None
     stamp_mode: Optional[str] = None
     stamp_config: Optional[Dict[str, str]] = None
     director_signature: Optional[str] = None  # "" or null clears it
@@ -422,6 +423,7 @@ async def get_report_card_settings(current_user=Depends(get_current_user)):
         "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
         "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
         "director_name": school.get("libreta_director_name") or "",
+        "codigo_modular": school.get("codigo_modular") or "",
         "stamp_mode": school.get("libreta_stamp_mode") or "generated",
         "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
         "director_signature": school.get("libreta_director_signature") or "",
@@ -544,6 +546,8 @@ async def update_report_card_settings(
         update_fields["libreta_grade_scale"] = norm
     if body.director_name is not None:
         update_fields["libreta_director_name"] = str(body.director_name).strip()[:120]
+    if body.codigo_modular is not None:
+        update_fields["codigo_modular"] = str(body.codigo_modular).strip()[:30]
     if body.stamp_mode is not None:
         sm = str(body.stamp_mode).strip().lower()
         if sm not in ("generated", "image"):
@@ -586,6 +590,7 @@ async def update_report_card_settings(
         "grade_scale": (normalizar_escala(school.get("libreta_grade_scale")) or list(DEFAULT_MINEDU_SCALE)),
         "default_grade_scale": list(DEFAULT_MINEDU_SCALE),
         "director_name": school.get("libreta_director_name") or "",
+        "codigo_modular": school.get("codigo_modular") or "",
         "stamp_mode": school.get("libreta_stamp_mode") or "generated",
         "stamp_config": _merge_stamp_config(school.get("libreta_stamp_config")),
         "director_signature": school.get("libreta_director_signature") or "",

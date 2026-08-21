@@ -4180,11 +4180,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                         return (
                                           <div key={sectionId} data-testid={`section-accordion-${sectionId}`}>
                                             {/* Section Header */}
-                                            <button
-                                              onClick={() => toggleSectionAccordion(levelId, gradeId, sectionId)}
-                                              className={`w-full flex items-center justify-between p-3 rounded-lg ${levelColor.light} hover:opacity-90 transition-all`}
-                                            >
-                                              <div className="flex items-center gap-2">
+                                            <div className={`w-full flex items-center justify-between p-3 rounded-lg ${levelColor.light}`}>
+                                              <button
+                                                onClick={() => toggleSectionAccordion(levelId, gradeId, sectionId)}
+                                                className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-90 transition-all text-left"
+                                              >
                                                 {isSectionOpen ? (
                                                   <ChevronDown className={`w-4 h-4 ${levelColor.text}`} />
                                                 ) : (
@@ -4193,11 +4193,25 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                                 <span className={`font-medium text-sm ${levelColor.text}`}>
                                                   Sección {sectionName}
                                                 </span>
-                                              </div>
-                                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${levelColor.bg} text-white`}>
-                                                {sectionStudents.length}
-                                              </span>
-                                            </button>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${levelColor.bg} text-white`}>
+                                                  {sectionStudents.length}
+                                                </span>
+                                              </button>
+                                              {canIssueConstancia && section && (
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); handleDownloadConstanciasSection(sectionId, sectionName); }}
+                                                  disabled={downloadingSectionConstancias === sectionId}
+                                                  className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white text-emerald-700 text-xs font-semibold border border-emerald-200 transition-colors disabled:opacity-60 flex-shrink-0"
+                                                  title="Descargar Constancias de Matrícula de toda la sección (1 PDF)"
+                                                  data-testid={`constancias-lote-btn-${sectionId}`}
+                                                >
+                                                  {downloadingSectionConstancias === sectionId
+                                                    ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                    : <FileText className="w-3.5 h-3.5" />}
+                                                  Constancias (lote)
+                                                </button>
+                                              )}
+                                            </div>
                                             
                                             {/* Section Content - Student Cards */}
                                             {isSectionOpen && (
@@ -4230,7 +4244,39 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Constancia de Matrícula (PDF) — solo admin/director/owner
   const [downloadingConstancia, setDownloadingConstancia] = useState(null);
+  const [downloadingSectionConstancias, setDownloadingSectionConstancias] = useState(null);
   const canIssueConstancia = ["owner", "admin", "director"].includes(user?.role);
+
+  const handleDownloadConstanciasSection = async (sectionId, sectionName) => {
+    setDownloadingSectionConstancias(sectionId);
+    try {
+      const res = await axios.get(`${API}/sections/${sectionId}/constancias-matricula`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Constancias_Matricula_${(sectionName || "seccion").trim()}.pdf`.replace(/\s+/g, "_");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Constancias descargadas");
+    } catch (err) {
+      let msg = "No se pudieron generar las constancias";
+      try {
+        if (err.response?.data instanceof Blob) {
+          const text = await err.response.data.text();
+          msg = JSON.parse(text).detail || msg;
+        } else { msg = err.response?.data?.detail || msg; }
+      } catch { /* keep default */ }
+      toast.error(msg);
+    } finally {
+      setDownloadingSectionConstancias(null);
+    }
+  };
+
 
   const handleDownloadConstancia = async (student) => {
     setDownloadingConstancia(student.id);

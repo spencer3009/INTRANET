@@ -58,13 +58,52 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
+    year, periodo_del, periodo_al = await _constancia_period(school_id)
+    codigo_modular = school.get("codigo_modular") or ""
+    ruc = (school.get("libreta_stamp_config") or {}).get("ruc") or ""
 
+    detail = await _constancia_student_detail(student, school_id)
+    pdf_bytes = generate_constancia_pdf(
+        school=school, student=student,
+        level_name=detail["level_name"], grade_name=detail["grade_name"],
+        section_name=detail["section_name"], year=year,
+        turno_name=detail["turno_name"], apoderado_name=detail["apoderado_name"],
+        codigo_modular=codigo_modular, ruc=ruc,
+        periodo_del=periodo_del, periodo_al=periodo_al,
+    )
+    safe_name = re.sub(r"[^A-Za-z0-9]+", "_", f"{student.get('name','')}_{student.get('last_name','')}").strip("_")
+    filename = f"Constancia_Matricula_{safe_name or student_id}.pdf"
+    return Response(
+        content=pdf_bytes, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+async def _constancia_period(school_id: str):
+    """Return (year, periodo_del dd/mm/yyyy, periodo_al dd/mm/yyyy) from academic_periods."""
+    ay = await db.academic_years.find_one({"school_id": school_id}, {"_id": 0, "id": 1, "year": 1}, sort=[("year", -1)])
+    year = str(ay.get("year")) if ay and ay.get("year") else str(datetime.now(timezone.utc).year)
+    q = {"school_id": school_id}
+    if ay and ay.get("id"):
+        q["academic_year_id"] = ay["id"]
+    periods = await db.academic_periods.find(q, {"_id": 0, "fecha_inicio": 1, "fecha_fin": 1}).to_list(50)
+    starts = sorted([p.get("fecha_inicio") for p in periods if p.get("fecha_inicio")])
+    ends = sorted([p.get("fecha_fin") for p in periods if p.get("fecha_fin")])
+
+    def _fmt(iso):
+        try:
+            return datetime.strptime(iso[:10], "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            return ""
+    periodo_del = _fmt(starts[0]) if starts else f"01/03/{year}"
+    periodo_al = _fmt(ends[-1]) if ends else f"31/12/{year}"
+    return year, periodo_del, periodo_al
+
+
+async def _constancia_student_detail(student: dict, school_id: str):
     level = await db.academic_levels.find_one({"id": student.get("nivel_id")}, {"_id": 0, "nombre": 1})
     grade = await db.grades.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
     section = await db.sections.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
-    ay = await db.academic_years.find_one({"school_id": school_id}, {"_id": 0, "year": 1}, sort=[("year", -1)])
-    year = str(ay.get("year")) if ay and ay.get("year") else str(datetime.now(timezone.utc).year)
-
     turno_name = ""
     if student.get("turno_id"):
         shift = await db.shifts.find_one({"id": student.get("turno_id")}, {"_id": 0, "nombre": 1})
@@ -74,22 +113,55 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
         parent = await db.users.find_one({"id": student.get("padre_id")}, {"_id": 0, "name": 1, "last_name": 1})
         if parent:
             apoderado_name = f"{parent.get('last_name', '') or ''}, {parent.get('name', '') or ''}".strip(", ")
+    return {
+        "level_name": (level or {}).get("nombre", "") or "",
+        "grade_name": (grade or {}).get("nombre", "") or "",
+        "section_name": (section or {}).get("nombre", "") or "",
+        "turno_name": turno_name,
+        "apoderado_name": apoderado_name,
+    }
 
-    pdf_bytes = generate_constancia_pdf(
-        school=school,
-        student=student,
-        level_name=(level or {}).get("nombre", "") or "",
-        grade_name=(grade or {}).get("nombre", "") or "",
-        section_name=(section or {}).get("nombre", "") or "",
-        year=year,
-        turno_name=turno_name,
-        apoderado_name=apoderado_name,
+
+@router.get("/sections/{section_id}/constancias-matricula")
+async def download_constancias_section(section_id: str, current_user=Depends(get_current_user)):
+    """Genera un solo PDF con la Constancia de Matrícula de todos los alumnos activos de la sección."""
+    from fastapi.responses import Response
+    from services.constancia_pdf_generator import generate_constancias_batch_pdf
+
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("owner", "admin", "director"):
+        raise HTTPException(status_code=403, detail="No tienes permisos para generar constancias")
+    school_id = user.get("school_id")
+
+    students = await db.users.find(
+        {"school_id": school_id, "role": "student", "seccion_id": section_id},
+        {"_id": 0},
+    ).to_list(1000)
+    students = [s for s in students if s.get("student_status") != "withdrawn" and s.get("is_active") is not False]
+    if not students:
+        raise HTTPException(status_code=404, detail="La sección no tiene alumnos activos")
+    students.sort(key=lambda s: (s.get("last_name") or "").upper())
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
+    year, periodo_del, periodo_al = await _constancia_period(school_id)
+    codigo_modular = school.get("codigo_modular") or ""
+    ruc = (school.get("libreta_stamp_config") or {}).get("ruc") or ""
+
+    items = []
+    for st in students:
+        d = await _constancia_student_detail(st, school_id)
+        items.append({"student": st, **d})
+
+    pdf_bytes = generate_constancias_batch_pdf(
+        items=items, school=school, year=year,
+        codigo_modular=codigo_modular, ruc=ruc,
+        periodo_del=periodo_del, periodo_al=periodo_al,
     )
-    safe_name = re.sub(r"[^A-Za-z0-9]+", "_", f"{student.get('name','')}_{student.get('last_name','')}").strip("_")
-    filename = f"Constancia_Matricula_{safe_name or student_id}.pdf"
+    section = await db.sections.find_one({"id": section_id}, {"_id": 0, "nombre": 1})
+    sec_name = re.sub(r"[^A-Za-z0-9]+", "_", (section or {}).get("nombre", "") or "seccion").strip("_")
+    filename = f"Constancias_Matricula_{sec_name}.pdf"
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
+        content=pdf_bytes, media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

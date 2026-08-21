@@ -107,6 +107,7 @@ export default function LibretasSettingsTab({ token }) {
   const [gradeScale, setGradeScale] = useState([]);
   const [defaultGradeScale, setDefaultGradeScale] = useState([]);
   const [directorName, setDirectorName] = useState("");
+  const [codigoModular, setCodigoModular] = useState("");
   const [stampMode, setStampMode] = useState("generated");
   const [stampConfig, setStampConfig] = useState({ texto_superior: "", texto_inferior: "", ruc: "", direccion: "", cargo: "DIRECTOR" });
   const [directorSignature, setDirectorSignature] = useState("");
@@ -147,6 +148,7 @@ export default function LibretasSettingsTab({ token }) {
         setGradeScale(Array.isArray(r.data?.grade_scale) ? r.data.grade_scale.map(x => ({ letter: String(x.letter || ""), min: Number(x.min), max: Number(x.max) })) : []);
         setDefaultGradeScale(Array.isArray(r.data?.default_grade_scale) ? r.data.default_grade_scale : []);
         setDirectorName(r.data?.director_name || "");
+        setCodigoModular(r.data?.codigo_modular || "");
         setStampMode(r.data?.stamp_mode === "image" ? "image" : "generated");
         setStampConfig({
           texto_superior: r.data?.stamp_config?.texto_superior || "",
@@ -283,6 +285,17 @@ export default function LibretasSettingsTab({ token }) {
       setTimeout(() => setSuccess(""), 2500);
     } catch (e) {
       setError(e?.response?.data?.detail || "Error al guardar el nombre del director");
+    } finally { setSaving(false); }
+  };
+
+  const saveCodigoModular = async (val) => {
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await axios.put(`${API}/report-cards/settings`, { codigo_modular: val }, { headers });
+      setSuccess("Código modular guardado.");
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Error al guardar el código modular");
     } finally { setSaving(false); }
   };
 
@@ -1038,6 +1051,24 @@ export default function LibretasSettingsTab({ token }) {
             data-testid="director-name-input"
           />
           <p className="text-xs text-slate-400 mt-1">Se mostrará debajo de la línea de firma del director.</p>
+        </div>
+
+        {/* Código Modular (para Constancia de Matrícula) */}
+        <div>
+          <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <PenLine className="w-4 h-4 text-slate-400" /> Código Modular
+          </label>
+          <input
+            type="text"
+            value={codigoModular}
+            disabled={saving}
+            onChange={(e) => setCodigoModular(e.target.value)}
+            onBlur={(e) => saveCodigoModular(e.target.value)}
+            placeholder="Ej. 0729988"
+            className="w-full h-10 px-3 text-sm text-slate-800 border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-violet-500"
+            data-testid="codigo-modular-input"
+          />
+          <p className="text-xs text-slate-400 mt-1">Aparece en el encabezado de la Constancia de Matrícula (junto al RUC, que se toma del Sello).</p>
         </div>
 
         {/* Firma del director (imagen) */}
