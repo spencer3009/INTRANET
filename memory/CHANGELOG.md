@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Feature: Botón "Constancia" (Constancia de Matrícula PDF) en tarjeta de alumno
+- Nuevo botón con ícono de documento etiquetado "Constancia" al lado del QR en la tarjeta del alumno (`/users`, vista agrupada). Al hacer clic descarga un PDF de Constancia de Matrícula.
+- Solo visible/permitido para **owner/admin/director** (front `canIssueConstancia` + backend gate).
+- Backend: `GET /api/students/{student_id}/constancia-matricula` (`routes/users.py`) + nuevo generador `services/constancia_pdf_generator.py` (ReportLab). El PDF incluye logo + nombre legal del colegio, título "CONSTANCIA DE MATRÍCULA", nombre completo + DNI del alumno, nivel/grado/sección, año escolar (de `academic_years`), fecha de emisión y bloque de firma DIRECTOR(A) (con nombre si `schools.libreta_director_name`).
+- Datos resueltos de: `academic_levels`, `grades`, `sections`, `academic_years`, `schools`.
+- Verificado: PDF genera OK (34KB, contenido correcto validado); frontend compila; endpoint protegido (401 sin token). Requiere Deploy a producción.
+
+
 ## 2026-07-15 — Fix P0: no se podía guardar "Clase en vivo" (NameError PERU_TZ)
 - Causa raíz: `routes/live_classes.py` usaba `PERU_TZ` en `compute_class_status` (L67) y `join_live_class` (L266) pero NUNCA lo importaba desde `.core` → `NameError` → HTTP 500 al crear clase (el doc se insertaba pero la respuesta reventaba) y también rompía el "unirse a clase" del alumno.
 - Fix backend: agregado `PERU_TZ` al import desde `.core`. Verificado E2E local (create + get detail sin error; el bloqueo de suscripción del preview impide curl E2E).

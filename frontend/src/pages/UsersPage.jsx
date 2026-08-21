@@ -4228,6 +4228,43 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     );
   };
 
+  // Constancia de Matrícula (PDF) — solo admin/director/owner
+  const [downloadingConstancia, setDownloadingConstancia] = useState(null);
+  const canIssueConstancia = ["owner", "admin", "director"].includes(user?.role);
+
+  const handleDownloadConstancia = async (student) => {
+    setDownloadingConstancia(student.id);
+    try {
+      const res = await axios.get(`${API}/students/${student.id}/constancia-matricula`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Constancia_Matricula_${(student.name || "").trim()}_${(student.last_name || "").trim()}.pdf`.replace(/\s+/g, "_");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Constancia descargada");
+    } catch (err) {
+      let msg = "No se pudo generar la constancia";
+      try {
+        if (err.response?.data instanceof Blob) {
+          const text = await err.response.data.text();
+          msg = JSON.parse(text).detail || msg;
+        } else {
+          msg = err.response?.data?.detail || msg;
+        }
+      } catch { /* keep default */ }
+      toast.error(msg);
+    } finally {
+      setDownloadingConstancia(null);
+    }
+  };
+
+
   // Helper function to render student card for grouped view
   const renderStudentCard = (student, roleConfig, levelColor, levelName, gradeName, sectionName) => {
     const st = student.student_status || "active";
@@ -4458,21 +4495,39 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             )}
           </div>
 
-          {/* QR Code */}
-          {student.qr_token && (
-            <button
-              onClick={() => {
-                setQRStudent({ ...student, grade_name: gradeName, section_name: sectionName });
-                setShowQRModal(true);
-              }}
-              className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors flex-shrink-0"
-            >
-              <div className="bg-white p-1 rounded border border-slate-200">
-                <QRCodeSVG value={student.qr_token} size={50} level="L" />
-              </div>
-              <span className="text-[9px] font-medium text-slate-400 uppercase">QR</span>
-            </button>
-          )}
+          {/* Constancia + QR */}
+          <div className="flex items-end gap-2 flex-shrink-0">
+            {canIssueConstancia && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownloadConstancia(student); }}
+                disabled={downloadingConstancia === student.id}
+                className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-60"
+                title="Descargar Constancia de Matrícula"
+                data-testid={`constancia-btn-${student.id}`}
+              >
+                <div className="bg-white w-[58px] h-[58px] rounded border border-slate-200 flex items-center justify-center">
+                  {downloadingConstancia === student.id
+                    ? <RefreshCw className="w-6 h-6 text-emerald-500 animate-spin" />
+                    : <FileText className="w-7 h-7 text-emerald-500" />}
+                </div>
+                <span className="text-[9px] font-medium text-slate-400 uppercase">Constancia</span>
+              </button>
+            )}
+            {student.qr_token && (
+              <button
+                onClick={() => {
+                  setQRStudent({ ...student, grade_name: gradeName, section_name: sectionName });
+                  setShowQRModal(true);
+                }}
+                className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <div className="bg-white p-1 rounded border border-slate-200">
+                  <QRCodeSVG value={student.qr_token} size={50} level="L" />
+                </div>
+                <span className="text-[9px] font-medium text-slate-400 uppercase">QR</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

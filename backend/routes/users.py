@@ -39,6 +39,49 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+
+@router.get("/students/{student_id}/constancia-matricula")
+async def download_constancia_matricula(student_id: str, current_user=Depends(get_current_user)):
+    """Genera y descarga la Constancia de Matrícula (PDF) de un alumno. Solo admin/director/owner."""
+    from fastapi.responses import Response
+    from services.constancia_pdf_generator import generate_constancia_pdf
+
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("owner", "admin", "director"):
+        raise HTTPException(status_code=403, detail="No tienes permisos para generar constancias")
+    school_id = user.get("school_id")
+
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
+
+    level = await db.academic_levels.find_one({"id": student.get("nivel_id")}, {"_id": 0, "nombre": 1})
+    grade = await db.grades.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
+    section = await db.sections.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+    ay = await db.academic_years.find_one({"school_id": school_id}, {"_id": 0, "year": 1}, sort=[("year", -1)])
+    year = str(ay.get("year")) if ay and ay.get("year") else str(datetime.now(timezone.utc).year)
+
+    pdf_bytes = generate_constancia_pdf(
+        school=school,
+        student=student,
+        level_name=(level or {}).get("nombre", "") or "",
+        grade_name=(grade or {}).get("nombre", "") or "",
+        section_name=(section or {}).get("nombre", "") or "",
+        year=year,
+    )
+    safe_name = re.sub(r"[^A-Za-z0-9]+", "_", f"{student.get('name','')}_{student.get('last_name','')}").strip("_")
+    filename = f"Constancia_Matricula_{safe_name or student_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 # USERS MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
