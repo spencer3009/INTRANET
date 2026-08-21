@@ -1,5 +1,10 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia de Matrícula: formato EXACTO al modelo oficial + escudo MINEDU
+- Rediseñada la tabla para replicar 1:1 el modelo SIAGIE del usuario: grilla de 6 columnas con celdas combinadas, **etiquetas grises alineadas a la derecha en negrita**, valores centrados. Filas: ESTUDIANTE | nombre | DNI | valor | CÓDIGO | valor; INSTITUCIÓN EDUCATIVA | código modular | nombre I.E. (span); PERÍODO PROMOCIONAL | DEL | fecha | AL | fecha; CICLO / NIVEL | nivel | GRADO EDUCATIVO | grado; SECCIÓN | A | TURNO | turno; APODERADO | nombre (span). Título centrado en azul.
+- **Escudo del MINEDU** (asset del usuario `escudo.webp` → `assets/minedu_escudo.png`) reemplaza el logo del colegio en el encabezado (arriba-izquierda), con "Fecha/Pág." arriba-derecha.
+- Verificado visualmente: render idéntico al modelo. `services/constancia_pdf_generator.py` reescrito (single + batch usan la misma story). Requiere Deploy.
+
 ## 2026-08-21 — Constancia de Matrícula: período real, RUC/Código Modular y descarga en lote
 - **Período Promocional** ahora se toma de **Períodos Académicos** (`academic_periods`): DEL = fecha_inicio más temprana, AL = fecha_fin más tardía del año escolar activo (fallback 01/03–31/12).
 - **Código Modular + RUC en el encabezado**: nuevo campo "Código Modular" en Ajustes → Libretas (`school.codigo_modular`, GET/PUT `/api/report-cards/settings`); el RUC se reutiliza del Sello (`libreta_stamp_config.ruc`). Se muestran bajo el nombre del colegio.
