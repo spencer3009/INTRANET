@@ -1,5 +1,8 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia de Matrícula: hoja horizontal (landscape)
+- La constancia ahora se genera en **orientación horizontal A4** (antes vertical), a pedido del usuario. Anchos de encabezado/tabla/firma ajustados y tabla centrada. Aplica a individual y lote. Requiere Deploy.
+
 ## 2026-08-21 — Constancia de Matrícula: formato EXACTO al modelo oficial + escudo MINEDU
 - Rediseñada la tabla para replicar 1:1 el modelo SIAGIE del usuario: grilla de 6 columnas con celdas combinadas, **etiquetas grises alineadas a la derecha en negrita**, valores centrados. Filas: ESTUDIANTE | nombre | DNI | valor | CÓDIGO | valor; INSTITUCIÓN EDUCATIVA | código modular | nombre I.E. (span); PERÍODO PROMOCIONAL | DEL | fecha | AL | fecha; CICLO / NIVEL | nivel | GRADO EDUCATIVO | grado; SECCIÓN | A | TURNO | turno; APODERADO | nombre (span). Título centrado en azul.
 - **Escudo del MINEDU** (asset del usuario `escudo.webp` → `assets/minedu_escudo.png`) reemplaza el logo del colegio en el encabezado (arriba-izquierda), con "Fecha/Pág." arriba-derecha.

@@ -6,7 +6,7 @@ Supports single-student and batch (one page per student) output.
 import os
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -86,7 +86,7 @@ def _build_constancia_story(*, school, student, level_name, grade_name, section_
     escudo = _escudo()
     left_cell = [escudo] if escudo else [Paragraph("Ministerio de Educación", S["minedu"])]
     header = Table([[left_cell, Paragraph(f"Fecha: {hoy.strftime('%d/%m/%Y')}<br/>Pág.: 1 de 1", S["meta"])]],
-                   colWidths=[8.5 * cm, 8.5 * cm])
+                   colWidths=[13.05 * cm, 13.05 * cm])
     header.setStyle(TableStyle([
         ("VALIGN", (0, 0), (0, 0), "TOP"),
         ("VALIGN", (1, 0), (1, 0), "TOP"),
@@ -117,7 +117,8 @@ def _build_constancia_story(*, school, student, level_name, grade_name, section_
         [LR("SECCIÓN"), VC(seccion), "", "", LC("TURNO"), VC(turno)],
         [LR("APODERADO"), VC(apoderado), "", "", "", ""],
     ]
-    grid = Table(rows, colWidths=[3.8 * cm, 3.8 * cm, 1.2 * cm, 1.9 * cm, 2.2 * cm, 4.1 * cm])
+    grid = Table(rows, colWidths=[5.4 * cm, 5.4 * cm, 1.7 * cm, 2.7 * cm, 3.1 * cm, 5.8 * cm])
+    grid.hAlign = "CENTER"
     grid.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.7, _BORDER),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -150,7 +151,7 @@ def _build_constancia_story(*, school, student, level_name, grade_name, section_
     sign_lines.append("Director(a) / Sub Director(a)")
     sign_lines.append('<font size="8" color="#64748b">Firma - Post Firma y Sello</font>')
     sign_para = Paragraph("<br/>".join(sign_lines), S["sign"])
-    sign_tbl = Table([["", sign_para, ""]], colWidths=[4.5 * cm, 8 * cm, 4.5 * cm])
+    sign_tbl = Table([["", sign_para, ""]], colWidths=[9 * cm, 8 * cm, 9 * cm])
     sign_tbl.setStyle(TableStyle([("ALIGN", (1, 0), (1, 0), "CENTER")]))
     story.append(sign_tbl)
     return story
@@ -176,7 +177,7 @@ def generate_constancias_batch_pdf(*, items, school, year, codigo_modular="", ru
 
     buf = BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=A4,
+        buf, pagesize=landscape(A4),
         leftMargin=1.8 * cm, rightMargin=1.8 * cm, topMargin=1.5 * cm, bottomMargin=2 * cm,
     )
     story = []
