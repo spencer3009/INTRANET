@@ -1,5 +1,13 @@
 # CHANGELOG — Edunet (SaaS Escolar)
 
+## 2026-08-21 — Constancia personalizada por alumno (subida a Drive + ícono rojo/verde)
+- Nuevo ítem en el menú (⋮) de la tarjeta del alumno: **"Cargar constancia"** (o "Cambiar constancia") para que el colegio suba su PROPIO PDF de constancia en lugar del predeterminado. Solo admin/director/owner.
+- El PDF subido se almacena en el **Google Drive del colegio** (carpeta `Materiales/Constancias`), reutilizando `get_drive_service` + patrón de libretas. Se guarda `users.constancia_custom` {drive_file_id, file_name, ...}.
+- **Ícono de la tarjeta**: ROJO si el alumno tiene constancia personalizada, VERDE si usa la predeterminada. Al hacer clic descarga la que corresponda.
+- `GET /students/{id}/constancia-matricula` ahora sirve la personalizada (stream desde Drive) si existe; si no, genera la predeterminada.
+- Nuevos endpoints: `POST` (multipart) y `DELETE /students/{id}/constancia-custom` (+ ítem "Usar constancia por defecto" en el menú). `routes/users.py` + `UsersPage.jsx`.
+- Verificado: endpoints registrados/protegidos, rama de descarga personalizada OK, frontend compila. ⚠️ La subida real a Drive NO se pudo probar E2E porque ningún colegio tiene Google Drive conectado en preview — requiere conectar Drive en Ajustes → Integraciones. Requiere Deploy.
+
 ## 2026-08-21 — Constancia de Matrícula: hoja horizontal (landscape)
 - La constancia ahora se genera en **orientación horizontal A4** (antes vertical), a pedido del usuario. Anchos de encabezado/tabla/firma ajustados y tabla centrada. Aplica a individual y lote. Requiere Deploy.
 

@@ -4245,7 +4245,54 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Constancia de Matrícula (PDF) — solo admin/director/owner
   const [downloadingConstancia, setDownloadingConstancia] = useState(null);
   const [downloadingSectionConstancias, setDownloadingSectionConstancias] = useState(null);
+  const [uploadingConstancia, setUploadingConstancia] = useState(null);
   const canIssueConstancia = ["owner", "admin", "director"].includes(user?.role);
+
+  const handleUploadConstanciaClick = (student) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/pdf,.pdf";
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.type && file.type !== "application/pdf") {
+        toast.error("Solo se permiten archivos PDF");
+        return;
+      }
+      setUploadingConstancia(student.id);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        await axios.post(`${API}/students/${student.id}/constancia-custom`, fd, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success("Constancia personalizada subida al Drive del colegio");
+        loadUsers();
+      } catch (err) {
+        toast.error(err.response?.data?.detail || "No se pudo subir la constancia");
+      } finally {
+        setUploadingConstancia(null);
+      }
+    };
+    input.click();
+  };
+
+  const handleRemoveConstanciaCustom = async (student) => {
+    if (!window.confirm("¿Quitar la constancia personalizada? Se volverá a usar la constancia por defecto.")) return;
+    setUploadingConstancia(student.id);
+    try {
+      await axios.delete(`${API}/students/${student.id}/constancia-custom`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Constancia personalizada eliminada");
+      loadUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo quitar la constancia");
+    } finally {
+      setUploadingConstancia(null);
+    }
+  };
+
 
   const handleDownloadConstanciasSection = async (sectionId, sectionName) => {
     setDownloadingSectionConstancias(sectionId);
@@ -4443,6 +4490,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Cambiar a Activo
                   </button>
                 )}
+                {canIssueConstancia && (
+                  <button
+                    onClick={() => { handleUploadConstanciaClick(student); setOpenMenuId(null); }}
+                    disabled={uploadingConstancia === student.id}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 text-emerald-600 flex items-center gap-2 disabled:opacity-60"
+                    data-testid={`upload-constancia-${student.id}`}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {student.constancia_custom ? "Cambiar constancia" : "Cargar constancia"}
+                  </button>
+                )}
+                {canIssueConstancia && student.constancia_custom && (
+                  <button
+                    onClick={() => { handleRemoveConstanciaCustom(student); setOpenMenuId(null); }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-amber-50 text-amber-600 flex items-center gap-2"
+                    data-testid={`remove-constancia-${student.id}`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Usar constancia por defecto
+                  </button>
+                )}
                 <button
                   onClick={() => { handleDeleteClick(student); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
@@ -4547,14 +4615,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownloadConstancia(student); }}
                 disabled={downloadingConstancia === student.id}
-                className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-60"
-                title="Descargar Constancia de Matrícula"
+                className={`flex flex-col items-center gap-0.5 p-1 rounded-lg transition-colors disabled:opacity-60 ${student.constancia_custom ? 'hover:bg-red-50' : 'hover:bg-emerald-50'}`}
+                title={student.constancia_custom ? "Constancia personalizada (subida por el colegio) — clic para descargar" : "Constancia de Matrícula por defecto — clic para descargar"}
                 data-testid={`constancia-btn-${student.id}`}
               >
                 <div className="bg-white w-[58px] h-[58px] rounded border border-slate-200 flex items-center justify-center">
                   {downloadingConstancia === student.id
-                    ? <RefreshCw className="w-6 h-6 text-emerald-500 animate-spin" />
-                    : <FileText className="w-7 h-7 text-emerald-500" />}
+                    ? <RefreshCw className={`w-6 h-6 animate-spin ${student.constancia_custom ? 'text-red-500' : 'text-emerald-500'}`} />
+                    : <FileText className={`w-7 h-7 ${student.constancia_custom ? 'text-red-500' : 'text-emerald-500'}`} />}
                 </div>
                 <span className="text-[9px] font-medium text-slate-400 uppercase">Constancia</span>
               </button>

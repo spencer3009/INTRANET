@@ -57,6 +57,14 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
     if not student:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
+    # Si el colegio subió una constancia personalizada, servir esa (desde Drive).
+    custom = student.get("constancia_custom")
+    if custom and custom.get("drive_file_id"):
+        from routes.report_cards_pdf import _stream_drive_pdf
+        return await _stream_drive_pdf(
+            school_id, custom["drive_file_id"], custom.get("file_name") or "Constancia_Matricula.pdf"
+        )
+
     school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
     year, periodo_del, periodo_al = await _constancia_period(school_id)
     codigo_modular = school.get("codigo_modular") or ""
@@ -77,6 +85,109 @@ async def download_constancia_matricula(student_id: str, current_user=Depends(ge
         content=pdf_bytes, media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+async def _ensure_constancias_folder(service, materials_folder_id: str) -> str:
+    """Find or create the 'Constancias' subfolder inside the school's materials folder."""
+    q = (
+        f"name='Constancias' and '{materials_folder_id}' in parents and "
+        f"mimeType='application/vnd.google-apps.folder' and trashed=false"
+    )
+    res = service.files().list(q=q, fields="files(id)").execute()
+    items = res.get("files", [])
+    if items:
+        return items[0]["id"]
+    meta = {"name": "Constancias", "mimeType": "application/vnd.google-apps.folder", "parents": [materials_folder_id]}
+    f = service.files().create(body=meta, fields="id").execute()
+    return f.get("id")
+
+
+@router.post("/students/{student_id}/constancia-custom")
+async def upload_constancia_custom(student_id: str, file: UploadFile = File(...),
+                                   current_user=Depends(get_current_user)):
+    """Sube una Constancia de Matrícula personalizada (PDF) al Drive del colegio. Solo admin/director/owner."""
+    from googleapiclient.http import MediaIoBaseUpload
+    from routes.exams import get_drive_service
+
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("owner", "admin", "director"):
+        raise HTTPException(status_code=403, detail="No tienes permisos para subir constancias")
+    school_id = user.get("school_id")
+
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    if (file.content_type or "").lower() not in ("application/pdf", "application/octet-stream"):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF")
+    content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo supera el límite de 10 MB")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0}) or {}
+    if not school.get("google_drive_connected"):
+        raise HTTPException(status_code=409, detail="Google Drive no está conectado. Ve a Ajustes → Integraciones para conectarlo.")
+    materials_folder_id = school.get("google_drive_materials_folder_id")
+    if not materials_folder_id:
+        raise HTTPException(status_code=409, detail="Google Drive no tiene carpeta de materiales configurada.")
+
+    try:
+        service = await get_drive_service(school_id)
+        folder_id = await _ensure_constancias_folder(service, materials_folder_id)
+        safe_label = f"{student.get('last_name','')}_{student.get('name','')}".strip().replace(" ", "_") or student_id
+        media = MediaIoBaseUpload(io.BytesIO(content), mimetype="application/pdf", resumable=True)
+        drive_file = service.files().create(
+            body={"name": f"Constancia_{safe_label}.pdf", "parents": [folder_id]},
+            media_body=media, fields="id, name",
+        ).execute()
+        drive_file_id = drive_file.get("id")
+    except HTTPException:
+        raise
+    except Exception as e:
+        err = str(e).lower()
+        if "invalid_grant" in err or "token has been expired" in err or "token has been revoked" in err:
+            await db.schools.update_one({"id": school_id}, {"$set": {"google_drive_connected": False, "google_drive_token_invalidated_at": now_iso()}})
+            raise HTTPException(status_code=409, detail="La conexión con Google Drive expiró o fue revocada. Reconéctala en Ajustes → Integraciones → Google Drive.")
+        logger.exception("Failed to upload constancia to Drive")
+        raise HTTPException(status_code=502, detail=f"Error subiendo a Google Drive: {e}")
+
+    constancia_custom = {
+        "drive_file_id": drive_file_id,
+        "file_name": file.filename or f"Constancia_{student_id}.pdf",
+        "file_size": len(content),
+        "storage_type": "google_drive",
+        "uploaded_by": user["id"],
+        "uploaded_at": now_iso(),
+    }
+    await db.users.update_one({"id": student_id}, {"$set": {"constancia_custom": constancia_custom}})
+    return {"ok": True, "constancia_custom": constancia_custom}
+
+
+@router.delete("/students/{student_id}/constancia-custom")
+async def delete_constancia_custom(student_id: str, current_user=Depends(get_current_user)):
+    """Quita la constancia personalizada (vuelve a usar la predeterminada). Solo admin/director/owner."""
+    user = await resolve_user_from_token(current_user)
+    if not user or user.get("role") not in ("owner", "admin", "director"):
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    school_id = user.get("school_id")
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"}, {"_id": 0, "constancia_custom": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+    custom = student.get("constancia_custom")
+    if custom and custom.get("drive_file_id"):
+        try:
+            from routes.exams import get_drive_service
+            service = await get_drive_service(school_id)
+            service.files().delete(fileId=custom["drive_file_id"]).execute()
+        except Exception:
+            logger.warning(f"No se pudo borrar el archivo de Drive para {student_id} (se deja huérfano)")
+    await db.users.update_one({"id": student_id}, {"$unset": {"constancia_custom": ""}})
+    return {"ok": True}
+
 
 
 async def _constancia_period(school_id: str):
